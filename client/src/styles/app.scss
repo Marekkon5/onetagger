@@ -1,0 +1,72 @@
+@import 'quasar.variables.scss';
+@import 'scrollbar.scss';
+
+@font-face {
+    font-family: Dosis;
+    src: url('./fonts/Dosis-Light.ttf');
+    font-weight: 300;
+}
+
+@font-face {
+    font-family: Dosis;
+    src: url('./fonts/Dosis-Regular.ttf');
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: Dosis;
+    src: url('./fonts/Dosis-Medium.ttf');
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: Dosis;
+    src: url('./fonts/Dosis-SemiBold.ttf');
+    font-weight: 600;
+}
+
+@font-face {
+    font-family: Dosis;
+    src: url('./fonts/Dosis-Bold.ttf');
+    font-weight: 700;
+}
+
+@font-face {
+    font-family: Dosis;
+    src: url('./fonts/Dosis-ExtraBold.ttf');
+    font-weight: 800;
+}
+
+* {
+    font-family: Dosis !important;
+    user-select: none;
+}
+
+.bg-darker {
+    background: #171918;
+}
+
+.q-tab__indicator {
+    color: $primary;
+}
+
+// Checkbox fix
+.checkbox svg {
+    color: #000;
+}
+
+// Input fix
+.input input {
+    color: #fff !important;
+}
+
+
+// Select fix
+.select span {
+    color: #fff !important;
+}
+
+//https://medium.com/cloud-native-the-gathering/how-to-fix-your-angular-material-input-field-from-being-broken-in-safari-1419b12007ee
+input {
+    -webkit-user-select: all !important;
+}

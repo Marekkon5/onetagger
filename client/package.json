@@ -1,0 +1,33 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.0.0",
+    "base64-inline-loader": "^1.1.1",
+    "html-webpack-inline-source-plugin": "^1.0.0-beta.2",
+    "html-webpack-plugin": "^4.5.1",
+    "quasar": "^1.0.0",
+    "vue": "^2.6.11",
+    "vue-router": "^3.2.0",
+    "vuedraggable": "^2.24.3"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~4.5.0",
+    "@vue/cli-plugin-eslint": "~4.5.0",
+    "@vue/cli-plugin-router": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^6.7.2",
+    "eslint-plugin-vue": "^6.2.2",
+    "node-sass": "^4.13.0",
+    "sass-loader": "^8.0.0",
+    "vue-cli-plugin-quasar": "~3.0.1",
+    "vue-template-compiler": "^2.6.11"
+  }
+}

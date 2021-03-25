@@ -1,0 +1,175 @@
+<template>
+<div>
+  <q-layout view="hHh lpR fFf" class='bg-background'>
+
+    <!-- Header -->
+    <q-header class="bg-darker text-white" height-hint="98">
+      <q-toolbar>
+        <q-toolbar-title class='topbar'>
+          <img src="./assets/icon.png" height='42' @click='home' class='logo' :class='{spin: $1t.lock.locked}'>
+          <img src="./assets/logo-text.png" height='42' @click='home' class='logo'>
+        </q-toolbar-title>
+        <!-- Settings -->
+        <q-btn flat round dense icon='mdi-cog' @click='settings = true'></q-btn>
+        
+      </q-toolbar>
+
+      <q-tabs align="left">
+        <q-route-tab :disable='$1t.lock.locked' to="/autotagger" class='text-weight-bolder' @click='hideSide'>Auto tagger</q-route-tab>
+        <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>QuickTag</q-route-tab>
+        <q-route-tab :disable='$1t.lock.locked' to="/" class='text-weight-bolder' @click='hideSide'>Because you haven't decided yet</q-route-tab>
+      </q-tabs>
+    </q-header>
+
+    <!-- Drawers -->
+    <q-drawer v-model="left" side="left" :width='250'>
+      <QuickTagLeft></QuickTagLeft>
+    </q-drawer>
+
+    <q-drawer v-model="right" side="right" :width='250'>
+      <!-- drawer content -->
+    </q-drawer>
+
+    <!-- Content -->
+    <q-page-container class='content' ref='contentContainer'>
+      <transition name='fade'>
+        <router-view />
+      </transition>
+    </q-page-container>
+
+    <!-- Footer -->
+    <q-footer reveal class="bg-darker text-white" v-if='footer'>
+      <q-toolbar>
+        <div class='row'>
+          <!-- Play button -->
+          <q-btn 
+            round 
+            flat
+            icon='mdi-play' 
+            class='q-mr-sm' 
+            :ripple='false' 
+            v-if='!$1t.player.playing'
+            @click='$1t.play()'
+          ></q-btn>
+          <!-- Pause -->
+          <q-btn 
+            round 
+            flat
+            icon='mdi-pause' 
+            class='q-mr-sm' 
+            :ripple='false' 
+            v-if='$1t.player.playing'
+            @click='$1t.pause()'
+          ></q-btn>
+        </div>
+        <Waveform></Waveform>
+        <!-- Volume -->
+        <div class='volume-container'>
+          <q-slider
+            v-model='$1t.player.volume'
+            :min='0.00'
+            :max='1.00'
+            :step='0.01'
+            @input='$1t.setVolume($event)'
+            @change='$1t.saveSettings()'
+          ></q-slider>
+        </div>
+      </q-toolbar>
+    </q-footer>
+
+  </q-layout>
+
+  <!-- Settings -->
+  <Settings v-model='settings' @close='settings = false'></Settings>
+
+</div>
+</template>
+
+<script>
+import Waveform from './components/Waveform.vue';
+import QuickTagLeft from './components/QuickTagLeft';
+import Settings from './components/Settings';
+
+export default {
+  name: "App",
+  components: {Waveform, QuickTagLeft, Settings},
+  data() {
+    return {
+      left: false,
+      right: false,
+      footer: false,
+      settings: false
+    };
+  },
+  methods: {
+    //Hide/Show footer and drawer
+    hideSide() {
+      this.left = false;
+      this.right = false;
+      this.footer = false;
+    },
+    showSide() {
+      this.left = true;
+      this.right = true;
+      this.footer = true;
+    },
+    //Navigate to homepage
+    home() {
+      if (!this.$1t.lock.locked) 
+        this.$router.push("/");
+    }
+  },
+  mounted() {
+    this.$q.dark.set(true);
+  },
+  watch: {
+    //Dont show scrollbar while transition
+    $route() {
+      this.$refs.contentContainer.$el.style.overflowY = "hidden";
+    }
+  },
+  updated() {
+    //Show again scrollbar after transition
+    setTimeout(() => {
+      this.$refs.contentContainer.$el.style.overflowY = "auto";
+    }, 250);
+  }
+};
+</script>
+
+<style>
+.content {
+  overflow-y: auto;
+  height: calc(100vh);
+  min-height: 100vh;
+}
+.logo {
+  cursor: pointer;
+}
+.topbar {
+  padding-top: 12px !important;
+}
+.volume-container {
+  margin-left: 50px;
+  width: 15% !important;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition-property: opacity;
+  transition-duration: .25s;
+}
+.fade-enter-active {
+  transition-delay: .25s;
+}
+.fade-enter, .fade-leave-active {
+  opacity: 0
+}
+
+@keyframes rotation {
+  from {transform: rotate(0deg);}
+  to {transform: rotate(360deg);}
+}
+.spin {
+  animation: rotation 2s infinite linear;
+}
+</style>

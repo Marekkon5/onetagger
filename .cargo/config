@@ -1,0 +1,13 @@
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/STACK:8000000"]
+
+[target.x86_64-apple-darwin]
+linker = "x86_64-apple-darwin14-clang"
+ar = "x86_64-apple-darwin14-ar"
+rustflags = ["-lz", "-lbz2", "-llzma", "-C", "link-args=-framework AudioUnit -framework CoreVideo -framework CoreFoundation -framework VideoDecodeAcceleration -framework CoreMedia -framework VideoToolbox -framework AVFoundation"]
+
+# https://wapl.es/rust/2019/02/17/rust-cross-compile-linux-to-macos.html
+# MACOSX_DEPLOYMENT_TARGET=10.8 PKG_CONFIG_ALLOW_CROSS=1 CC=o64-clang CXX=o64-clang++ ./configure --prefix=x86_64-apple-darwin14 --disable-shared --enable-static --disable-lavf --disable-ffplay --disable-doc --arch=x86_64 --target-os=darwin --cross-prefix=x86_64-apple-darwin14- --cc=o64-clang --prefix=../target/SDK/MacOSX10.10.sdk/usr
+# make -j12
+# make install
+# PKG_CONFIG_ALLOW_CROSS=1 CC=o64-clang CXX=o64-clang++ cargo build --target x86_64-apple-darwin --release
