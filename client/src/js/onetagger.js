@@ -184,7 +184,25 @@ class OneTagger {
                 genres: [
                     {genre: 'House', keybind: null},
                     {genre: 'Electro', keybind: null}
-                ]
+                ],
+                custom: [{
+                    name: "Style",
+                    id3: "STYLE",
+                    vorbis: "STYLE",
+                    values: [{
+                        val: "Boring",
+                        keybind: null
+                    }, {
+                        val: "Very Boring",
+                        keybind: null
+                    }, {
+                        val: "Joscha is a dickhead",
+                        keybind: null
+                    }, {
+                        val: "Ass",
+                        keybind: null
+                    }],
+                }]
             }
         });
 

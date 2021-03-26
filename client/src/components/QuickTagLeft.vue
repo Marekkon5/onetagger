@@ -27,6 +27,7 @@
                 @mousemove.native='moodHover = i'
                 @mouseleave.native="moodHover = -1"
                 @click.native='moodSelect(mood)'
+                class='pointer'
             ></q-chip>
         </div>
     </div>
@@ -59,5 +60,8 @@ export default {
 <style>
 .moods {
     margin-left: -4px;
+}
+.pointer {
+    cursor: pointer;
 }
 </style>
