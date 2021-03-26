@@ -1,7 +1,8 @@
 # Intended for Github Actions
 # Requires Ubuntu, rustup and nodejs, npm installed
-apt update
-apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2
+sudo apt update
+sudo apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2
+
 rustup target add x86_64-apple-darwin
 # Compile UI
 cd client
