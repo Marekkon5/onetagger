@@ -135,7 +135,8 @@ pub enum Field {
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum TagChange {
     Raw { tag: String, value: Vec<String> },
-    Rating { value: u8 }
+    Rating { value: u8 },
+    Genre { value: Vec<String> }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,7 +155,8 @@ impl TagChanges {
         for change in self.changes.clone() {
             match change {
                 TagChange::Raw {tag: t, value} => tag.set_raw(&t, value, true),
-                TagChange::Rating {value} => tag.set_rating(value, true)
+                TagChange::Rating {value} => tag.set_rating(value, true),
+                TagChange::Genre {value} => tag.set_field(Field::Genre, value, true),
             }
         }
         //Save

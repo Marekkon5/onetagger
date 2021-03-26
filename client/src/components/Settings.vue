@@ -101,6 +101,20 @@
                         <q-btn @click='addMood' round flat dense icon='mdi-plus' class='col-1 text-primary'></q-btn>
                     </div>
                 </div>
+                <!-- Genres -->
+                <div class='text-subtitle1 q-my-sm'>Genres:</div>
+                <div>
+                    <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
+                        <div class='row q-my-sm'>
+                            <q-input outlined dense class='col-10' v-model='$1t.settings.quickTag.genres[i].genre'></q-input>
+                            <Keybind
+                                class='col-2 text-center'
+                                @set='$1t.settings.quickTag.genres[i].keybind = $event'
+                                :initial='$1t.settings.quickTag.genres[i].keybind'
+                            ></Keybind>
+                        </div>
+                    </div>
+                </div>
 
             </div>
         </q-card-section>

@@ -6,6 +6,7 @@ use std::fmt;
 use std::thread;
 use std::io::prelude::*;
 use std::fs::File;
+use std::path::PathBuf;
 use rouille::router;
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
@@ -49,10 +50,15 @@ impl Settings {
         Ok(())
     }
 
-    //Get settings path
-    pub fn get_path() -> Result<String, Box<dyn Error>> {
+    //Get app data folder
+    pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
         let root = app_root(AppDataType::UserConfig, &APP_INFO)?;
-        let path = root.join("settings.json");
+        Ok(root)
+    }
+
+    //Get settings path
+    fn get_path() -> Result<String, Box<dyn Error>> {
+        let path = Settings::get_folder()?.join("settings.json");
         Ok(path.to_str().ok_or("Error converting path to string!")?.to_string())
     }
 }

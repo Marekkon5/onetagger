@@ -42,7 +42,6 @@ pub struct QuickTagFile {
     title: String,
     artists: Vec<String>,
     genres: Vec<String>,
-    release_date: Option<String>,
     bpm: Option<i64>,
     rating: u8,
     tags: HashMap<String, Vec<String>>
@@ -64,7 +63,6 @@ impl QuickTagFile {
             artists: tag.get_field(Field::Artist)?,
             genres: tag.get_field(Field::Genre).unwrap_or(vec![]),
             rating: tag.get_rating().unwrap_or(0),
-            release_date: tag.get_date(),
             bpm: match tag.get_field(Field::BPM) {
                 Some(t) => t.first().unwrap_or(&"can't parse".to_string()).parse().ok(),
                 None => None

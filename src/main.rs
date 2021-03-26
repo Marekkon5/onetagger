@@ -30,7 +30,7 @@ fn main() {
         .create(true)
         .write(true)
         .truncate(true)
-        .open("onetagger.log") {
+        .open(ui::Settings::get_folder().unwrap().join("onetagger.log")) {
             //Log file
             Ok(file) => {
                 let drain2 = slog_term::FullFormat::new(slog_term::PlainDecorator::new(file)).build().fuse();

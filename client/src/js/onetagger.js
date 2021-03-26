@@ -179,7 +179,11 @@ class OneTagger {
                     symbol: '*',
                     id3: 'TCOM',
                     vorbis: 'COMPOSER'
-                }
+                },
+                genres: [
+                    {genre: 'House', keybind: null},
+                    {genre: 'Electro', keybind: null}
+                ]
             }
         });
 
@@ -232,7 +236,11 @@ class OneTagger {
     }
     //Load settings from JSON
     loadSettings(data) {
+        //Load depper dicts separately
+        Object.assign(this.settings.quickTag, data.quickTag);
+        delete data.quickTag;
         Object.assign(this.settings, data);
+        
         //Restore discogs token and volume
         this.config.discogs.token = this.settings.discogsToken;
         this.player.volume = this.settings.volume??0.5;
@@ -386,9 +394,15 @@ class OneTagger {
             this.settings.quickTag.moods.forEach((mood) => {
                 if (this.checkKeybind(event, mood.keybind)) {
                     this.quickTag.track.mood = mood.mood;
-                    return true;
                 }
             });
+            //Genres
+            this.settings.quickTag.genres.forEach((genre) => {
+                if (this.checkKeybind(event, genre.keybind)) {
+                    this.quickTag.track.setGenre(genre.genre);
+                }
+            });
+
             //Energy
             for (let i=0; i<5; i++) {
                 if (this.checkKeybind(event, this.settings.quickTag.energyKeys[i])) {

@@ -15,18 +15,18 @@
       </q-toolbar>
 
       <q-tabs align="left">
+        <q-route-tab :disable='$1t.lock.locked' to="/" class='text-weight-bolder' @click='hideSide'><q-icon name='mdi-home' size='sm'></q-icon></q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/autotagger" class='text-weight-bolder' @click='hideSide'>Auto tagger</q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>QuickTag</q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/" class='text-weight-bolder' @click='hideSide'>Because you haven't decided yet</q-route-tab>
       </q-tabs>
     </q-header>
 
     <!-- Drawers -->
-    <q-drawer v-model="left" side="left" :width='250'>
+    <q-drawer v-model="left" side="left" :width='200'>
       <QuickTagLeft></QuickTagLeft>
     </q-drawer>
 
-    <q-drawer v-model="right" side="right" :width='250'>
+    <q-drawer v-model="right" side="right" :width='200'>
       <!-- drawer content -->
     </q-drawer>
 
@@ -39,6 +39,7 @@
 
     <!-- Footer -->
     <q-footer reveal class="bg-darker text-white" v-if='footer'>
+      <QuickTagGenreBar v-if='$1t.quickTag.track'></QuickTagGenreBar>
       <q-toolbar>
         <div class='row'>
           <!-- Play button -->
@@ -89,10 +90,11 @@
 import Waveform from './components/Waveform.vue';
 import QuickTagLeft from './components/QuickTagLeft';
 import Settings from './components/Settings';
+import QuickTagGenreBar from './components/QuickTagGenreBar';
 
 export default {
   name: "App",
-  components: {Waveform, QuickTagLeft, Settings},
+  components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar},
   data() {
     return {
       left: false,

@@ -1,7 +1,7 @@
 <template>
 <div>
     <!-- Tracks -->
-    <div class='tracklist' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist'>
+    <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
         <!-- Tracklist -->
         <div v-for='(track, i) in $1t.quickTag.tracks' :key='i'>
             <q-card flat class='q-mx-md q-my-sm' @click='trackClick(i)'
@@ -11,13 +11,13 @@
                     </div>
                     <div class='row q-pa-md q-pl-md full-width'>
                         <!-- Title -->
-                        <div class='col-5'>
+                        <div class='col-6'>
                             <span class='text-h6 text-weight-bold text-no-wrap'>{{track.title}}</span><br>
                             <span class='text-subtitle1 text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
                         </div>
                         <!-- Details -->
-                        <div class='col-7 row text-grey-6 text-weight-medium text-center items-center'>
-                            <div class='col-3'>
+                        <div class='col-6 row text-grey-6 text-weight-medium text-center items-center'>
+                            <div class='col-4'>
                                 <!-- Mood -->
                                 <div v-if='!$1t.quickTag.track || track.path != $1t.quickTag.track.path'>
                                     <q-chip 
@@ -37,19 +37,14 @@
                                     ></q-chip>
                                 </div>
                             </div>
-                            <div class='col-3'>
-                                <span>{{track.genres.join(", ")}}</span>
-                            </div>
-                            <div class='col-2'>
-                                <span>{{track.releaseDate || 'N/A'}}</span>
+                            <div class='col-6'>
+                                <span v-if='!$1t.quickTag.track || track.path != $1t.quickTag.track.path'>{{track.genres.join(", ")}}</span>
+                                <span v-if='$1t.quickTag.track && track.path == $1t.quickTag.track.path'>{{$1t.quickTag.track.genres.join(", ")}}</span>
                             </div>
                             <div class='col-1'>
-                                <span>{{track.bpm || 'N/A'}}</span>
+                                <span>{{track.bpm}}</span>
                             </div>
-                            <div class='col-1'>
-                                <span>G#</span>
-                            </div>
-                            <div class='col-2 q-mt-xs'>
+                            <div class='col-1 q-mt-xs'>
                                 <q-btn round flat icon='mdi-dots-horizontal' color='primary'></q-btn>
                             </div>
                         </div>
@@ -61,7 +56,7 @@
     </div>
 
     <!-- No path selected -->
-    <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container' @click='selectFolder'>
+    <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container qt-full-height' @click='selectFolder'>
         <div>
             <div class='text-center text-grey-6 text-h3'>No folder selected!</div>
             <div class='text-center text-grey-6 text-h5 q-pt-md'>Click here to select folder</div>
@@ -81,7 +76,7 @@
             </q-card-section>
             <q-card-actions align='right'>
                 <q-btn color='red' flat text @click='saveDialogCallback(false)'>Discard</q-btn>
-                <q-btn color='primary' flat text @click='saveDialogCallback(true)'>Save</q-btn>
+                <q-btn color='primary' flat text @click='saveDialogCallback(true)' ref='saveButton'>Save</q-btn>
             </q-card-actions>
         </q-card>
     </q-dialog>
@@ -124,12 +119,15 @@ export default {
         //Select folder and load tracks
         selectFolder() {
             this.$1t.send('browse', {context: 'qt'});
-        }
+        },
     },
     mounted() {
         //On unsaved changes
         this.$1t.onQTUnsavedChanges = () => {
             this.saveDialog = true;
+            setTimeout(() => {
+                this.$refs.saveButton.$el.focus();
+            }, 100)
         }
 
         //Load tracks if path available
@@ -155,14 +153,21 @@ export default {
 
 .tracklist {
     overflow-y: auto;
-    max-height: calc(100vh - 176px);
 }
 
 .qtbg-container {
-    height: calc(100vh - 172px);
     display: flex;
     flex-direction: column;
     justify-content: center;
     cursor: pointer;
 }
+
+.qt-full-height {
+    height: calc(100vh - 172px);
+}
+
+.qt-height {
+    height: calc(100vh - 220px);
+}
+
 </style>

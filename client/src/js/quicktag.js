@@ -7,6 +7,21 @@ class QTTrack {
         //Load mood, energy
         this.mood = this.getMood();
         this.energy = this.getEnergy();
+
+        this._changes = [];
+    }
+
+    //Set new genre
+    setGenre(genre) {
+        this.genres = [genre];
+        //Generate change
+        let change = {
+            type: 'genre',
+            value: [genre]
+        }
+        let index = this._changes.findIndex((c) => c.type == 'genre');
+        if (index == -1) this._changes.push(change);
+        else this._changes[index] = change;
     }
 
     //Get name of field for tag
@@ -37,7 +52,7 @@ class QTTrack {
 
     //Get output tags
     getOutput() {
-        let changes = [];
+        let changes = this._changes;
         //Mood change
         if (this.getMood() != this.mood) {
             changes.push({
@@ -63,6 +78,7 @@ class QTTrack {
                 });
             }
         }
+        //Genre change
         return {changes, path: this.path};
     }
 
