@@ -1,6 +1,8 @@
+# Windows native MSVC
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "link-arg=/STACK:8000000"]
 
+# Mac cross-compile
 [target.x86_64-apple-darwin]
 linker = "x86_64-apple-darwin14-clang"
 ar = "x86_64-apple-darwin14-ar"

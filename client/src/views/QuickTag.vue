@@ -4,54 +4,8 @@
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
         <!-- Tracklist -->
         <div v-for='(track, i) in $1t.quickTag.tracks' :key='i'>
-            <q-card flat class='q-mx-md q-my-sm' @click='trackClick(i)'
-                :class='{"bg-darker": $1t.quickTag.track && track.path == $1t.quickTag.track.path}'>
-                <div class='row'>
-                    <div class='selected-bar bg-primary' v-if='$1t.quickTag.track && track.path == $1t.quickTag.track.path'>
-                    </div>
-                    <div class='row q-pa-md q-pl-md full-width'>
-                        <!-- Title -->
-                        <div class='col-6'>
-                            <span class='text-h6 text-weight-bold text-no-wrap'>{{track.title}}</span><br>
-                            <span class='text-subtitle1 text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
-                        </div>
-                        <!-- Details -->
-                        <div class='col-6 row text-grey-6 text-weight-medium text-center items-center'>
-                            <div class='col-4'>
-                                <!-- Mood -->
-                                <div v-if='!$1t.quickTag.track || track.path != $1t.quickTag.track.path'>
-                                    <q-chip 
-                                        v-if='getMood(track.mood)'
-                                        :color='getMood(track.mood).color'
-                                        :outline='getMood(track.mood).outline'
-                                        :label='getMood(track.mood).mood'
-                                    ></q-chip>
-                                </div>
-                                <!-- Current track mood -->
-                                <div v-if='$1t.quickTag.track && track.path == $1t.quickTag.track.path'>
-                                    <q-chip
-                                        v-if='getMood($1t.quickTag.track.mood)'
-                                        :color='getMood($1t.quickTag.track.mood).color'
-                                        :outline='getMood($1t.quickTag.track.mood).outline'
-                                        :label='getMood($1t.quickTag.track.mood).mood'
-                                    ></q-chip>
-                                </div>
-                            </div>
-                            <div class='col-6'>
-                                <span v-if='!$1t.quickTag.track || track.path != $1t.quickTag.track.path'>{{track.genres.join(", ")}}</span>
-                                <span v-if='$1t.quickTag.track && track.path == $1t.quickTag.track.path'>{{$1t.quickTag.track.genres.join(", ")}}</span>
-                            </div>
-                            <div class='col-1'>
-                                <span>{{track.bpm}}</span>
-                            </div>
-                            <div class='col-1 q-mt-xs'>
-                                <q-btn round flat icon='mdi-dots-horizontal' color='primary'></q-btn>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </q-card>
-            <!-- <q-separator inset></q-separator> -->
+            <QuickTagTile @click.native='trackClick(i)' :track='$1t.quickTag.track' v-if='$1t.quickTag.track && track.path == $1t.quickTag.track.path'></QuickTagTile>
+            <QuickTagTile @click.native='trackClick(i)' :track='track' v-if='!$1t.quickTag.track || track.path != $1t.quickTag.track.path'></QuickTagTile>
         </div>
     </div>
 
@@ -62,9 +16,7 @@
             <div class='text-center text-grey-6 text-h5 q-pt-md'>Click here to select folder</div>
         </div>
     </div>
-
     
-
     <!-- Save dialog -->
     <q-dialog v-model='saveDialog'>
         <q-card>
@@ -85,8 +37,11 @@
 </template>
 
 <script>
+import QuickTagTile from '../components/QuickTagTile';
+
 export default {
     name: 'QuickTag',
+    components: {QuickTagTile},
     data() {
         return {
             saveDialog: false
@@ -96,17 +51,6 @@ export default {
         //Click on track card
         trackClick(i) {
             this.$1t.loadQTTrack(this.$1t.quickTag.tracks[i]);
-        },
-        //Get mood by name
-        getMood(name) {
-            if (!name) return null;
-            let mood = this.$1t.settings.quickTag.moods.find(m => m.mood == name);
-            //Inject outline if unknown mood
-            if (mood) {
-                mood.outline = false;
-                return mood;
-            }
-            return {mood: name, color: 'white', outline: true};
         },
         //Save dialog callback
         async saveDialogCallback(save) {
@@ -144,13 +88,6 @@ export default {
 </script>
 
 <style>
-.selected-bar {
-    position: absolute;
-    width: 5px;
-    height: 92px;
-    border-radius: 4px;
-}
-
 .tracklist {
     overflow-y: auto;
 }

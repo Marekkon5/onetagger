@@ -118,6 +118,7 @@ class OneTagger {
             "overwrite": true,
             "threads": 16,
             "strictness": 0.7,
+            "mergeGenres": false,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1

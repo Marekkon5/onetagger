@@ -52,6 +52,7 @@ pub struct TaggerConfig {
     pub threads: i16,
     //From 0 to 1
     pub strictness: f64,
+    pub merge_genres: bool,
 
     //Platform specific
     pub beatport: BeatportConfig,
@@ -142,10 +143,27 @@ impl Track {
             tag.set_field(Field::Label, vec![self.label.as_ref().unwrap().to_string()], config.overwrite);
         }
         if config.genre && !self.genres.is_empty() {
-            tag.set_field(Field::Genre, self.genres.clone(), config.overwrite);
+            if config.merge_genres {
+                //Merge with existing ones
+                let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).iter().map(|g| g.to_lowercase()).collect();
+                let mut genres = self.genres.clone().into_iter().filter(|g| !current.iter().any(|i| i == &g.to_lowercase())).collect();
+                current.append(&mut genres);
+                tag.set_field(Field::Genre, current, config.overwrite); 
+            } else {
+                tag.set_field(Field::Genre, self.genres.clone(), config.overwrite);
+            }
         }
         if config.style && !self.styles.is_empty() {
-            tag.set_field(Field::Style, self.styles.clone(), config.overwrite);
+            if config.merge_genres {
+                //Merge with existing ones
+                let mut current: Vec<String> = tag.get_field(Field::Style).unwrap_or(vec![]).iter().map(|s| s.to_lowercase()).collect();
+                let mut styles = self.styles.clone().into_iter().filter(|s| !current.iter().any(|i| i == &s.to_lowercase())).collect();
+                current.append(&mut styles);
+                tag.set_field(Field::Style, current, config.overwrite); 
+            } else {
+                tag.set_field(Field::Style, self.styles.clone(), config.overwrite);
+            }
+            
         }
         //Release dates
         if config.release_date {
