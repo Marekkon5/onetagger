@@ -1,3 +1,5 @@
+import Vue from 'vue';
+
 class QTTrack {
     //From backend
     constructor(data, settings) {
@@ -48,6 +50,36 @@ class QTTrack {
             return this.tags[this.settings.energyTag[this.getTagField()]].split(this.settings.energyTag.symbol).length - 1;
         }
         return 0;
+    }
+
+    //If has custom tag value
+    hasCustom(custom, index) {
+        let field = custom[this.getTagField()];
+        let tag = this.tags[field];
+        if (!tag) return false;
+        return tag.find((t) => custom.values[index].val.toLowerCase() == t.toLowerCase());
+    }
+
+    //Toggle custom value
+    toggleCustom(custom, index) {
+        let field = custom[this.getTagField()];
+        //Add tag
+        if (!this.tags[field]) Vue.set(this.tags, field, []);
+        let value = custom.values[index].val;
+        let i = this.tags[field].findIndex((t) => t.toLowerCase() == value.toLowerCase());
+        //Add or remove tag if exists
+        if (i == -1) this.tags[field].push(value)
+        else this.tags[field].splice(i, 1);
+        //Generate change
+        let change = {
+            type: 'raw',
+            tag: field,
+            value: this.tags[field]
+        };
+        //Update change
+        i = this._changes.findIndex((c) => c.tag == field);
+        if (i == -1) this._changes.push(change);
+        else this._changes[i] = change;
     }
 
     //Get output tags

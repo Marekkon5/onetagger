@@ -25,9 +25,8 @@
     <q-drawer v-model="left" side="left" :width='200'>
       <QuickTagLeft></QuickTagLeft>
     </q-drawer>
-
     <q-drawer v-model="right" side="right" :width='200'>
-      <!-- drawer content -->
+      <QuickTagRight></QuickTagRight>
     </q-drawer>
 
     <!-- Content -->
@@ -91,10 +90,11 @@ import Waveform from './components/Waveform.vue';
 import QuickTagLeft from './components/QuickTagLeft';
 import Settings from './components/Settings';
 import QuickTagGenreBar from './components/QuickTagGenreBar';
+import QuickTagRight from './components/QuickTagRight';
 
 export default {
   name: "App",
-  components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar},
+  components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar, QuickTagRight},
   data() {
     return {
       left: false,

@@ -196,9 +196,6 @@ class OneTagger {
                         val: "Very Boring",
                         keybind: null
                     }, {
-                        val: "Joscha is a dickhead",
-                        keybind: null
-                    }, {
                         val: "Ass",
                         keybind: null
                     }],
@@ -394,12 +391,11 @@ class OneTagger {
                 //Skip tracks using arrow keys
                 if (event.key == 'ArrowUp' && i > 0) {
                     this.loadQTTrack(this.quickTag.tracks[i-1]);
-                    return true;
                 }
                 if (event.key == 'ArrowDown' && i >= 0 && i < this.quickTag.tracks.length - 1) {
                     this.loadQTTrack(this.quickTag.tracks[i+1]);
-                    return true;
                 }
+                return true;
             }
             //Play pause
             if (event.code == "Space") {
@@ -407,6 +403,7 @@ class OneTagger {
                     this.pause();
                 else 
                     this.play();
+                return true;
             }
 
             //Moods
@@ -426,8 +423,19 @@ class OneTagger {
             for (let i=0; i<5; i++) {
                 if (this.checkKeybind(event, this.settings.quickTag.energyKeys[i])) {
                     this.quickTag.track.energy = i+1;
+                    return true;
                 }
             }
+
+            //Custom values
+            this.settings.quickTag.custom.forEach((tag) => {
+                for (let i=0; i<tag.values.length; i++) {
+                    if (this.checkKeybind(event, tag.values[i].keybind)) {
+                        this.quickTag.track.toggleCustom(tag, i);
+                    }
+                }
+            });
+
             return true;
         }
         return false;
