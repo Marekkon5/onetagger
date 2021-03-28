@@ -90,7 +90,8 @@ class QTTrack {
         for(let i=0; i<custom.length; i++) {
             let field = custom[i][this.getTagField()];
             let values = this.tags[field]??[];
-            out = out.concat(values);
+            //Don't add duplicate tags
+            out = out.concat(values.filter((v) => !out.includes(v)));
         }
         return out;
     }

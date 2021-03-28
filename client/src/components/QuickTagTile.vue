@@ -32,7 +32,7 @@
                 </div>
             </div>
             <!-- Custom tags -->
-            <div class='row q-mx-sm q-my-sm'>
+            <div class='row q-mx-sm q-my-sm no-wrap overflow-hidden'>
                 <div v-for='(tag, i) in track.getAllCustom($1t.settings.quickTag.custom)' :key='"qtc"+i'>
                     <q-chip :label='tag' outline color='primary' text-color='white' class='chip-text-white'></q-chip>
                 </div>
