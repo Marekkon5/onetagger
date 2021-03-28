@@ -70,6 +70,8 @@ class QTTrack {
         //Add or remove tag if exists
         if (i == -1) this.tags[field].push(value)
         else this.tags[field].splice(i, 1);
+        //Clean
+        this.tags[field] = this.tags[field].filter((t) => t && t.trim() != "");
         //Generate change
         let change = {
             type: 'raw',
@@ -80,6 +82,17 @@ class QTTrack {
         i = this._changes.findIndex((c) => c.tag == field);
         if (i == -1) this._changes.push(change);
         else this._changes[i] = change;
+    }
+
+    //Get all selected custom values
+    getAllCustom(custom) {
+        let out = [];
+        for(let i=0; i<custom.length; i++) {
+            let field = custom[i][this.getTagField()];
+            let values = this.tags[field]??[];
+            out = out.concat(values);
+        }
+        return out;
     }
 
     //Get output tags

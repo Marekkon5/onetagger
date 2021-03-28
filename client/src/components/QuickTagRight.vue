@@ -3,12 +3,12 @@
 
     <div v-for='(tag, i) in $1t.settings.quickTag.custom' :key='"tag"+i' class='q-pb-md'>
         <!-- Tag title -->
-        <div class='text-subtitle1 text-bold q-pb-sm'>{{tag.name}}</div>
+        <div class='text-subtitle1 text-bold q-pb-sm text-primary'>{{tag.name}}</div>
         <!-- Values -->
         <div v-for='(value, j) in tag.values' :key='i+"value"+j'>
             <div 
                 class='text-subtitle2' 
-                :class='{"text-bold": selected(tag, j)}'
+                :class='{"text-bold": selected(tag, j), "text-grey-6": !selected(tag, j)}'
                 @click='valueClick(tag, j)'
             >{{value.val}}</div>
         </div>

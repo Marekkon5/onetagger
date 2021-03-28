@@ -97,6 +97,10 @@ impl TagImpl for ID3Tag {
                 tags.insert(frame.id().to_owned(), v.split(&self.id3_separator).map(String::from).collect());
             }
         }
+        //Add TXXX
+        for extended in self.tag.extended_texts() {
+            tags.insert(extended.description.to_string(), extended.value.split(&self.id3_separator).map(String::from).collect());
+        }
         tags
     }
 
@@ -224,6 +228,11 @@ impl TagImpl for ID3Tag {
         //TXXX
         if tag.len() != 4 {
             if overwrite || self.get_raw(tag).is_none() {
+                //Remove if empty
+                if value.is_empty() {
+                    self.tag.remove_extended_text(Some(tag), None);
+                    return;
+                }
                 self.tag.add_extended_text(tag, value.join(&self.id3_separator));
             }
             return;
@@ -231,6 +240,11 @@ impl TagImpl for ID3Tag {
         
         //Normal
         if overwrite || self.tag.get(tag).is_none() {
+            //Remove if empty
+            if value.is_empty() {
+                self.tag.remove(tag);
+                return;
+            }
             self.tag.set_text(tag, value.join(&self.id3_separator));
         }
     }

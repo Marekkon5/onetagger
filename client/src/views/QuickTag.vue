@@ -80,7 +80,7 @@ export default {
     watch: {
         '$1t.quickTag.track'() {
             let index = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
-            this.$refs.tracklist.scrollTop = index * 100 - 200;
+            this.$refs.tracklist.scrollTop = index * 136 - 200;
             // window.scrollTo(0, index * 60);
         }
     }
