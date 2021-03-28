@@ -15,6 +15,7 @@ use app_dirs::{app_root, AppInfo, AppDataType};
 pub mod socket;
 pub mod player;
 pub mod quicktag;
+pub mod audiofeatures;
 
 //UI
 static INDEX_HTML: &'static str = include_str!("../../client/dist/dist.html");

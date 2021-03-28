@@ -8,6 +8,7 @@ import AutotaggerPlatform from '../views/AutotaggerPlatform.vue';
 import AutotaggerAdvanced from '../views/AutotaggerAdvanced.vue';
 import AutotaggerStatus from '../views/AutotaggerStatus.vue';
 import QuickTag from '../views/QuickTag.vue';
+import AudioFeatures from '../views/AudioFeatures.vue';
 
 Vue.use(VueRouter);
 
@@ -39,6 +40,10 @@ const routes = [
   {
     path: '/quicktag',
     component: QuickTag
+  },
+  {
+    path: '/audiofeatures',
+    component: AudioFeatures
   }
 ]
 

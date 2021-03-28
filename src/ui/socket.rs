@@ -8,18 +8,34 @@ use serde_json::{Value, json};
 
 use crate::tag::TagChanges;
 use crate::tagger::{TaggerConfig, Tagger};
-use crate::ui::Settings;
+use crate::tagger::spotify::Spotify;
+use crate::ui::{Settings, OTError};
 use crate::ui::player::{AudioSources, AudioPlayer};
-use crate::ui::OTError;
 use crate::ui::quicktag::{QuickTag, QuickTagFile};
+use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
+
+//Shared variables in socket
+struct SocketContext {
+    player: AudioPlayer,
+    spotify: Option<Spotify>
+} 
+
+impl SocketContext {
+    pub fn new() -> SocketContext {
+        SocketContext {
+            player: AudioPlayer::new(),
+            spotify: None
+        }
+    }
+}
 
 //Start WebSocket UI server
 pub fn start_socket_server() {
     let server = TcpListener::bind("127.0.0.1:36912").unwrap();
     for stream in server.incoming() {
         thread::spawn(move || {
-            //Create player
-            let mut player = AudioPlayer::new();
+            //Create shared
+            let mut context = SocketContext::new();
 
             //Websocket loop
             let mut websocket = accept(stream.unwrap()).unwrap();
@@ -27,7 +43,7 @@ pub fn start_socket_server() {
                 match websocket.read_message() {
                     Ok(msg) => {
                         if msg.is_text() {
-                            match handle_message(msg.to_text().unwrap(), &mut websocket, &mut player) {
+                            match handle_message(msg.to_text().unwrap(), &mut websocket, &mut context) {
                                 Ok(_) => {},
                                 Err(err) => {
                                     //Send error to UI
@@ -55,7 +71,7 @@ pub fn start_socket_server() {
 }
 
 
-fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, player: &mut AudioPlayer) -> Result<(), Box<dyn Error>> {
+fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Box<dyn Error>> {
     //Parse JSON
     let json: Value = serde_json::from_str(text)?;
     match json["action"].as_str().ok_or("Missing action!")? {
@@ -139,17 +155,17 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, player: &mut
                 "duration": source.duration() as u64
             }).to_string())).ok();
             //Load
-            player.load_file(source);
+            context.player.load_file(source);
         },
         //Player controls
         "playerPlay" => {
-            player.play();
+            context.player.play();
         },
         "playerPause" => {
-            player.pause();
+            context.player.pause();
         },
         "playerSeek" => {
-            let playing = player.seek(json["pos"].as_i64().ok_or("Missing position!")? as u64);
+            let playing = context.player.seek(json["pos"].as_i64().ok_or("Missing position!")? as u64);
             //Sync
             websocket.write_message(Message::from(json!({
                 "action": "playerSync",
@@ -158,7 +174,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, player: &mut
         },
         "playerVolume" => {
             let volume = json["volume"].as_f64().ok_or("Missing volume!")? as f32;
-            player.volume(volume);
+            context.player.volume(volume);
         }
         //Quicktag
         "quicktagLoad" => {
@@ -178,6 +194,43 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, player: &mut
                 "file": QuickTagFile::from_tag(&changes.path, &tag).ok_or("Failed loading tags")?
             }).to_string())).ok();
         },
+        //Authorize spotify
+        "spotifyAuthorize" => {
+            //Get vars
+            let client_id = json["clientId"].as_str().ok_or("Missing clientId")?;
+            let client_secret = json["clientSecret"].as_str().ok_or("Missing clientSecret")?;
+            //Authorize
+            let (auth_url, mut oauth) = Spotify::generate_auth_url(client_id, client_secret);
+            webbrowser::open(&auth_url)?;
+            let spotify = Spotify::auth_server(&mut oauth)?;
+            //Save
+            context.spotify = Some(spotify);
+            websocket.write_message(Message::from(json!({
+                "action": "spotifyAuthorized",
+                "value": true
+            }).to_string())).ok();
+        },
+        //Check if authorized
+        "spotifyAuthorized" => {
+            websocket.write_message(Message::from(json!({
+                "action": "spotifyAuthorized",
+                "value": context.spotify.is_some()
+            }).to_string())).ok();
+        },
+        //Start audio features tagging
+        "audioFeaturesStart" => {
+            let config: AudioFeaturesConfig = serde_json::from_value(json["config"].clone())?;
+            //Validate path
+            if !(Path::new(&config.path).exists()) {
+                return Err(OTError::new("Invalid path!").into());
+            }
+            //Start tagging
+            let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
+            let rx = AudioFeatures::start_tagging(&config, spotify);
+            for status in rx {
+                debug!("{:?}", status);
+            }
+        }
         _ => {}
     };
     Ok(())

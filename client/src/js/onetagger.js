@@ -18,6 +18,7 @@ class OneTagger {
         //Load settings on load
         this.ws.onopen = () => {
             this.send('loadSettings');
+            this.send('spotifyAuthorized');
         }
 
         //WS Message handler
@@ -41,6 +42,9 @@ class OneTagger {
                         Vue.set(this.settings.quickTag, 'path', json.path);
                         this.loadQuickTag();
                     }
+                    //Audio features path
+                    if (json.context == 'af')
+                        this.audioFeatures.path = json.path;
                         
                     break;
                 //Error
@@ -90,6 +94,10 @@ class OneTagger {
                     } else {
                         this.onError('quicktagSaved: Invalid track');
                     }
+                    break;
+                //Audio features Spotify
+                case 'spotifyAuthorized':
+                    this.audioFeatures.spotifyAuthorized = json.value;
                     break;
                 //Debug
                 default:
@@ -172,7 +180,6 @@ class OneTagger {
                 moods: [
                     {mood: 'Happy', color: 'green'},
                     {mood: 'Sad', color: 'orange'},
-                    {mood: 'Sexy', color: 'pink'},
                 ],
                 moodTag: {vorbis: 'MOOD', id3: 'TMOO'},
                 energyTag: {
@@ -194,11 +201,21 @@ class OneTagger {
                         val: "Boring",
                         keybind: null
                     }, {
-                        val: "Very Boring",
+                        val: "Energetic",
                         keybind: null
                     }],
                 }]
+            },
+            audioFeatures: {
+                spotifyClientId: null,
+                spotifyClientSecret: null
             }
+        });
+
+        //Audio features
+        this.audioFeatures = Vue.observable({
+            spotifyAuthorized: false,
+            path: null
         });
 
         //If unsaved changes to track

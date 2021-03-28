@@ -61,7 +61,8 @@ impl FLACTag {
             Field::BPM => "BPM".to_string(),
             Field::Genre => "GENRE".to_string(),
             Field::Label => "LABEL".to_string(),
-            Field::Style => "STYLE".to_string()
+            Field::Style => "STYLE".to_string(),
+            Field::ISRC => "ISRC".to_string()
         }
     }
 }

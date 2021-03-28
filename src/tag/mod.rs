@@ -127,7 +127,8 @@ pub enum Field {
     BPM,
     Genre,
     Style,
-    Label
+    Label,
+    ISRC
 }
 
 

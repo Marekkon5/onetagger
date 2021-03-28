@@ -14,6 +14,7 @@ pub mod beatport;
 pub mod traxsource;
 pub mod discogs;
 pub mod junodownload;
+pub mod spotify;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -227,7 +228,8 @@ pub struct AudioFileInfo {
     pub title: String,
     pub artists: Vec<String>,
     pub format: AudioFileFormat,
-    pub path: String
+    pub path: String,
+    pub isrc: Option<String>
 }
 
 impl AudioFileInfo {
@@ -241,7 +243,8 @@ impl AudioFileInfo {
             title: tag.get_field(Field::Title).ok_or("Missing title!")?.first().unwrap().to_owned().to_owned(),
             artists: AudioFileInfo::parse_artist_tag(tag.get_field(Field::Artist).ok_or("Missing artists!")?
                 .iter().map(|a| a.as_ref()).collect()),
-            path: path.to_owned()
+            path: path.to_owned(),
+            isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from)
         })
     }
 
