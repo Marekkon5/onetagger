@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import {Notify} from 'quasar';
 import {QTTrack} from './quicktag';
 
 class OneTagger {
@@ -243,9 +244,19 @@ class OneTagger {
         //Save discogs token and volume
         if (this.config.discogs.token)
             this.settings.discogsToken = this.config.discogs.token;
+        //Only show notification if not changing volume
+        let notif = this.settings.volume == this.player.volume;
         this.settings.volume = this.player.volume;
         //Save
         this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings))});
+        //Notification
+        if (notif)
+            Notify.create({
+                message: "Settings saved!",
+                color: 'primary',
+                textColor: 'black',
+                timeout: 500,
+            });
     }
     //Load settings from JSON
     loadSettings(data) {
