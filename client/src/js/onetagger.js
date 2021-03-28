@@ -164,9 +164,9 @@ class OneTagger {
         //Settings for UI
         this.settings = Vue.observable({
             discogsToken: null,
+            volume: 0.05,
             quickTag: {
                 path: null,
-                volume: 0.05,
                 energyKeys: [null,null,null,null,null],
                 moods: [
                     {mood: 'Happy', color: 'green'},
@@ -194,9 +194,6 @@ class OneTagger {
                         keybind: null
                     }, {
                         val: "Very Boring",
-                        keybind: null
-                    }, {
-                        val: "Ass",
                         keybind: null
                     }],
                 }]
@@ -443,7 +440,7 @@ class OneTagger {
     //Check if keybind matches event
     checkKeybind(e, keybind) {
         if (!keybind) return;
-        if (e.code.startsWith('Key') || e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {
+        if (e.code.match(/F\d{1,2}/) || e.code.startsWith('Key') || e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {
             let key = e.code.toLowerCase().replace("key", "").replace("digit", "").replace("numpad", "");
             return (key == keybind.key && 
                 e.altKey == keybind.alt && 

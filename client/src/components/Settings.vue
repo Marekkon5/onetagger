@@ -77,7 +77,14 @@
                 <div class='q-mb-md'>
                     <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
                         <div class='row justify-around'>
-                            <q-input v-model='$1t.settings.quickTag.moods[i].mood' outlined dense class='col-5 q-pr-md q-mb-sm'></q-input>
+                            <q-input 
+                                clearable 
+                                @clear='$1t.settings.quickTag.moods.splice(i, 1)' 
+                                v-model='$1t.settings.quickTag.moods[i].mood' 
+                                outlined 
+                                dense 
+                                class='col-5 q-pr-md q-mb-sm'
+                            ></q-input>
                             <q-select 
                                 v-model='$1t.settings.quickTag.moods[i].color' 
                                 dense 
@@ -108,7 +115,14 @@
                 <div>
                     <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
                         <div class='row q-my-sm'>
-                            <q-input outlined dense class='col-10' v-model='$1t.settings.quickTag.genres[i].genre'></q-input>
+                            <q-input 
+                                clearable
+                                outlined 
+                                dense 
+                                class='col-10' 
+                                v-model='$1t.settings.quickTag.genres[i].genre'
+                                @clear='$1t.settings.quickTag.genres.splice(i, 1)'
+                            ></q-input>
                             <Keybind
                                 class='col-2 text-center'
                                 @set='$1t.settings.quickTag.genres[i].keybind = $event'
@@ -116,6 +130,15 @@
                             ></Keybind>
                         </div>
                     </div>
+                    <!-- Add new genre -->
+                    <div class='text-subtitle2 q-mb-sm'>Create new genre:</div>
+                    <div class='row'>
+                        <q-input outlined dense class='col-11 q-pr-md' v-model='newGenre'></q-input>
+                        <div class='col-1'>
+                            <q-btn flat round icon='mdi-plus' @click='addGenre' color='primary'></q-btn>
+                        </div>
+                    </div>
+                    
                 </div>
 
             </div>
@@ -123,7 +146,23 @@
             <!-- Quicktag custom -->
             <div v-if='tab == "quicktag-custom"'>
                 <div v-for='(tag, i) in $1t.settings.quickTag.custom' :key='"tag"+i' class='q-mb-md'>
-                    <div class='text-h6 q-mb-sm'>{{tag.name}}</div>
+                    <div class='row'>
+                        <div class='text-h6 q-mb-sm' v-if='!customQTEdit[i]'>{{tag.name}}</div>
+                        <q-input dense outlined v-if='customQTEdit[i]' v-model='$1t.settings.quickTag.custom[i].name'></q-input>
+                        <div class='q-mx-md mt-2'>
+                            <q-btn
+                                size='sm' 
+                                flat 
+                                round 
+                                :icon='customQTEdit[i] ? "mdi-check" : "mdi-pencil"' 
+                                class='q-mr-sm' 
+                                color='primary' 
+                                @click='editCustomQT(i)'
+                            ></q-btn>
+                            
+                            <q-btn size='sm' flat round icon='mdi-delete' color='red' @click='deleteCustomQT(i)'></q-btn>
+                        </div>
+                    </div>
                     <div class='row q-pt-sm'>
                         <q-input class='col-6 q-pr-sm' outlined label='ID3 (MP3+AIFF)' v-model='$1t.settings.quickTag.custom[i].id3'></q-input>
                         <q-input class='col-6 q-pr-sm' outlined label='FLAC' v-model='$1t.settings.quickTag.custom[i].vorbis'></q-input>
@@ -168,6 +207,7 @@
 
 <script>
 import Keybind from './Keybind';
+import Vue from 'vue';
 
 export default {
     name: 'Settings',
@@ -180,7 +220,9 @@ export default {
                 'cyan', 'teal', 'green', 'light-green', 'lime', 'yellow', 'amber', 'orange',
                 'deep-orange', 'brown', 'grey', 'blue-grey'],
             newMood: {mood: null, color: 'red'},
-            newCustomQT: null
+            newGenre: null,
+            newCustomQT: null,
+            customQTEdit: [],
         }
     },
     props: {
@@ -194,8 +236,16 @@ export default {
             if (this.newMood.mood) {
                 //Exists
                 if (this.$1t.settings.quickTag.moods.find(m => this.newMood.mood.toLowerCase() == m.mood.toLowerCase())) return;
-                this.$1t.settings.quickTag.moods.push(this.newMood);
+                this.$1t.settings.quickTag.moods.push(JSON.parse(JSON.stringify(this.newMood)));
+                this.newMood.mood = null;
             }
+        },
+        //Add new genre
+        addGenre() {
+            if (!this.newGenre || this.newGenre.trim() == "") return;
+            if (this.$1t.settings.quickTag.genres.find((g) => g.genre.toLowerCase() == this.newGenre.toLowerCase())) return;
+            this.$1t.settings.quickTag.genres.push({genre: this.newGenre, keybind: null});
+            this.newGenre = null;
         },
         //Mood keybind
         setMoodKeybind(i, key) {
@@ -217,6 +267,13 @@ export default {
                 values: []
             });
             this.newCustomQT = null;
+        },
+        //Delete and edit cusotm qt tag
+        deleteCustomQT(i) {
+            this.$1t.settings.quickTag.custom.splice(i, 1);
+        },
+        editCustomQT(i) {
+            Vue.set(this.customQTEdit, i, !this.customQTEdit[i]);
         },
 
         //Save on close
@@ -243,5 +300,8 @@ export default {
 }
 .energy-keybind {
     margin-top: -2px;
+}
+.mt-2 {
+    margin-top: 2px;
 }
 </style>
