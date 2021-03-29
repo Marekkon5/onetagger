@@ -97,6 +97,12 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 }).to_string())).ok();
             }
         },
+        //Open URL in external browser
+        "browser" => {
+            if let Some(url) = json["url"].as_str() {
+                webbrowser::open(url)?;
+            }
+        },
         //Start tagger
         "startTagging" => {
             //Parse config
@@ -226,10 +232,19 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }
             //Start tagging
             let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
-            let rx = AudioFeatures::start_tagging(&config, spotify);
+            let rx = AudioFeatures::start_tagging(config, spotify);
             for status in rx {
+                //Send to UI
+                websocket.write_message(Message::from(json!({
+                    "action": "audioFeaturesStatus",
+                    "status": status
+                }).to_string())).ok();
                 debug!("{:?}", status);
             }
+            //Mark as done
+            websocket.write_message(Message::from(json!({
+                "action": "audioFeaturesDone",
+            }).to_string())).ok();
         }
         _ => {}
     };

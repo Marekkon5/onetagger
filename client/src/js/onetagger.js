@@ -99,6 +99,16 @@ class OneTagger {
                 case 'spotifyAuthorized':
                     this.audioFeatures.spotifyAuthorized = json.value;
                     break;
+                //New audio features status
+                case 'audioFeaturesStatus':
+                    this.audioFeatures.statuses.push(json.status);
+                    break;
+                case 'audioFeaturesDone':
+                    this.lock.locked = false;
+                    this.audioFeatures.done = true;
+                    this.audioFeatures.ended = Date.now();
+                    this.onTaggingDone();
+                    break;
                 //Debug
                 default:
                     console.log(json);
@@ -215,7 +225,11 @@ class OneTagger {
         //Audio features
         this.audioFeatures = Vue.observable({
             spotifyAuthorized: false,
-            path: null
+            path: null,
+            statuses: [],
+            done: false,
+            started: Date.now(),
+            ended: null
         });
 
         //If unsaved changes to track
@@ -243,6 +257,11 @@ class OneTagger {
         let data = { action };
         Object.assign(data, params);
         this.ws.send(JSON.stringify(data));
+    }
+
+    //Open URL in external browser
+    url(url) {
+        this.send("browser", {url});
     }
 
     //Start autotagger
