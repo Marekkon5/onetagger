@@ -6,3 +6,4 @@ client/node_modules/
 client/dist/
 .idea/
 .spotify*
+dist/

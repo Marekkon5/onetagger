@@ -1,8 +1,13 @@
 [package]
 name = "onetagger"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Marekkon5"]
 edition = "2018"
+license = "Apache"
+description = "App to tag your music library."
+keywords = ["gui", "audio"]
+categories = ["multimedia::audio"]
+build = "src/build.rs"
 
 [dependencies]
 app_dirs = "1.2"
@@ -36,7 +41,22 @@ ffmpeg-decoder = { git = "https://github.com/Marekkon5/ffmpeg-decoder-rs.git", f
 winapi = { version = "0.3", features = ["winuser", "libloaderapi"] }
 cef = { git = "https://github.com/Marekkon5/cef.git" }
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
 
 # Optimize for size
 [profile.release]
 opt-level = 'z'
+
+[package.metadata.bundle]
+name = "OneTagger"
+identifier = "com.marekkon5.onetagger"
+icon = ["assets/32x32.png", "assets/128x128.png", "assets/128x128@2x.png", "assets/icon.icns", "assets/icon.ico"]
+version = "1.0.0"
+resources = []
+copyright = "Copyright (c) Marekkon5 2021. All rights reserved."
+category = "Music"
+short_description = "Tool to tag your audio library."
+long_description = """
+Tool to tag your audio library.
+"""

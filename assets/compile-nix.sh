@@ -1,7 +1,7 @@
 # Intended for Github Actions
 # Requires Ubuntu, rustup and nodejs, npm installed
-sudo apt update
-sudo apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 ffmpeg libwebkit2gtk-4.0-dev
+#sudo apt update
+#sudo apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 ffmpeg libwebkit2gtk-4.0-dev
 # Compile UI
 cd client
 npm i
@@ -36,4 +36,15 @@ cd ..
 export PKG_CONFIG_PATH="$PATH:$(pwd)/target/SDK/MacOSX10.10.sdk/usr/lib/pkgconfig"
 cd ..
 # Compile 1t
-cargo build --target x86_64-apple-darwin --release
+cargo install cargo-bundle
+cargo bundle --target x86_64-apple-darwin --release
+x86_64-apple-darwin14-strip target/x86_64-apple-darwin/release/onetagger
+# Create own zip with proper permissions
+cd target/x86_64-apple-darwin/release/bundle/osx
+x86_64-apple-darwin14-strip OneTagger.app/Contents/MacOS/onetagger
+chmod +x OneTagger.app/Contents/MacOS/onetagger
+zip -r OneTagger-mac.zip .
+cd -
+mkdir dist
+cp target/x86_64-apple-darwin/release/bundle/osx/OneTagger-mac.zip dist/
+cp target/release/onetagger dist/OneTagger-linux
