@@ -206,9 +206,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             let client_id = json["clientId"].as_str().ok_or("Missing clientId")?;
             let client_secret = json["clientSecret"].as_str().ok_or("Missing clientSecret")?;
             //Authorize
-            let (auth_url, mut oauth) = Spotify::generate_auth_url(client_id, client_secret);
-            webbrowser::open(&auth_url)?;
-            let spotify = Spotify::auth_server(&mut oauth)?;
+            let mut spotify = Spotify::create_client(client_id, client_secret)?;
+            spotify.authenticate()?;
             //Save
             context.spotify = Some(spotify);
             websocket.write_message(Message::from(json!({
@@ -239,7 +238,6 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     "action": "audioFeaturesStatus",
                     "status": status
                 }).to_string())).ok();
-                debug!("{:?}", status);
             }
             //Mark as done
             websocket.write_message(Message::from(json!({

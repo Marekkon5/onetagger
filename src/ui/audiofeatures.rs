@@ -84,7 +84,7 @@ impl AudioFeatures {
         let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
         let track = results.first().ok_or("No results")?;
         //Get features
-        let features = spotify.spotify.audio_features(track.id.as_ref().ok_or("Invalid track")?)?;
+        let features = spotify.audio_features(track.id.as_ref().ok_or("Invalid track")?)?;
         Ok(features)
     }
 

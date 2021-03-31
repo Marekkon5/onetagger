@@ -41,7 +41,8 @@ export default {
                 ok: 0,
                 failed: 0,
                 skipped: 0
-            }
+            },
+            time: "0:00"
         }
     },
     methods: {
@@ -66,18 +67,17 @@ export default {
                 case 'error':
                     return 'red'
             }
-        }
-    },
-    computed: {
+        },
         //Elapsed time
-        time() {
+        calculateTime() {
             let s = ((this.$1t.audioFeatures.ended??Date.now()) - this.$1t.audioFeatures.started) / 1000;
-            return `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;
+            this.time = `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;
         }
     },
     watch: {
         //Recalculate stats
         '$1t.audioFeatures.statuses'() {
+            this.calculateTime();
             let s = {ok: 0, failed: 0, skipped: 0};
             this.$1t.audioFeatures.statuses.forEach((status) => {
                 switch (status.state) {

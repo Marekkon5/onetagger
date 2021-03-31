@@ -72,7 +72,7 @@ pub struct BeatportConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscogsConfig {
-    pub token: String,
+    pub token: Option<String>,
     pub max_results: i16,
     pub styles: DiscogsStyles
 }
@@ -477,7 +477,11 @@ impl Tagger {
                     MusicPlatform::Discogs => {
                         //Auth discogs
                         let mut discogs = discogs::Discogs::new();
-                        discogs.set_auth_token(&config.discogs.token);
+                        if config.discogs.token.as_ref().is_none() {
+                            error!("Missing Discogs token! Skipping Discogs...");
+                            continue;
+                        }
+                        discogs.set_auth_token(config.discogs.token.as_ref().unwrap());
                         if !discogs.validate_token() {
                             error!("Invalid Discogs token! Skipping Discogs...");
                             continue;

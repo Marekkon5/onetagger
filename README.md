@@ -3,7 +3,7 @@
 ## Compilling
 
 ### Linux & Mac
-Mac version is cross compiled from linux, the build script is designed to run on Github Actions enviromnent, so you have to install some dependencies manually: [rustup](https://rustup.rs), [node]("https://nodejs.org/en/download/package-manager/")
+Mac version is cross compiled from linux, the build script is designed to run on Github Actions enviromnent, so you have to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/)
 
 **Install remaining dependencies**
 ```
