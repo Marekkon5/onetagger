@@ -14,7 +14,7 @@
                             <q-checkbox v-model='platform.enabled' class='cb' @input='update'></q-checkbox>
                             <div class='text-h5 q-mt-xs'>{{platform.name}}</div>
                         </div>
-                        <div class='text-subtitle1 q-ml-sm'>{{platform.description}}</div>
+                        <div class='text-subtitle1 q-ml-sm text-left' v-html='platform.description'></div>
                     </q-card-section>
                     <q-card-section class='right'>
                         <img :src='platform.image' height='64'>
@@ -43,28 +43,28 @@ export default {
                     name: 'Beatport',
                     value: 'beatport',
                     enabled: false,
-                    description: 'Some generic description',
+                    description: 'Overall more specialized in Techno. <br>Genre specialty: Bass House, Big Room, Electro (Classic/Detroit/Modern), Future House, Melodic House & Techno, Techno (Peak Time/Driving), Techno (Raw/Deep/Hypnotic)',
                     image: require('../assets/beatport.png')
                 },
                 {
                     name: 'Traxsource',
                     value: 'traxsource',
                     enabled: false,
-                    description: 'Some generic description',
+                    description: 'Overall more specialized in House. <br>Genre specialty: Acapella, Afro/Latin/Brazillian, Classic House, Lounge/Chill Out, Soul/Funk/Disco, Soulful House',
                     image: require('../assets/traxsource.png')
                 },
                 {
                     name: 'Discogs',
                     value: 'discogs',
                     enabled: false,
-                    description: 'Requires an account and is very slow due to rate limiting.',
+                    description: 'Most variety in genres. <br>Also ability to fetch styles narrated by Discogs Contributors. <br>Due API rate limits, the process is slow (~20 tracks / minute).',
                     image: require('../assets/discogs.png')
                 },
                 {
                     name: 'Juno Download',
                     value: 'junodownload',
                     enabled: false,
-                    description: 'Some meaningful description',
+                    description: 'Overall a mixed bag with additionally a lot of niche genres. <br>Genre specialty: Ambient/Drone, Coldwave/Synth, Dancehall/Ragga, Dub, Footwork/Juke, Gabba, Industrial/Noise, Jazz, Pop Trance, Reggae, Rock, Scouse House, Soundtracks, UK Hardcore',
                     image: require('../assets/junodownload.png')
                 }
             ]

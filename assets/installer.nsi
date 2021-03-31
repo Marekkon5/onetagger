@@ -37,7 +37,7 @@ VIAddVersionKey "FileVersion" "${SETUP_VERSION}"
 !define MUI_ICON "..\assets\installer-icon.ico"
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "..\assets\headerimage.bmp"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "..\assets\welcomebanner.bmp"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 
 ; Modern UI Desktop Shortcut
