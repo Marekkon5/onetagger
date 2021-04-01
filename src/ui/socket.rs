@@ -81,11 +81,18 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             settings.save()?;
         },
         "loadSettings" => {
-            let settings = Settings::load()?;
-            websocket.write_message(Message::from(json!({
-                "action": "loadSettings",
-                "settings": settings.ui
-            }).to_string())).ok();
+            //Ignore settings load error, might be first try
+            match Settings::load() {
+                Ok(settings) => {
+                    websocket.write_message(Message::from(json!({
+                        "action": "loadSettings",
+                        "settings": settings.ui
+                    }).to_string())).ok();
+                },
+                Err(e) => {
+                    error!("Failed loading settings, using defaults. {}", e);
+                }
+            }
         },
         //Browse folder
         "browse" => {

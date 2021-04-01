@@ -110,16 +110,6 @@ impl AudioFeatures {
         Ok(features)
     }
 
-    // //Get spotify track features from isrc
-    // fn features_by_isrc(spotify: &Spotify, isrc: &str) -> Result<rspotify::model::audio::AudioFeatures, Box<dyn Error>> {
-    //     //Search
-    //     let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
-    //     let track = results.first().ok_or("No results")?;
-    //     //Get features
-    //     let features = spotify.audio_features(track.id.as_ref().ok_or("Invalid track")?)?;
-    //     Ok(features)
-    // }
-
     //Write to path
     fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
         //Load tag
