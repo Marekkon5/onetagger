@@ -43,28 +43,28 @@ export default {
                     name: 'Beatport',
                     value: 'beatport',
                     enabled: false,
-                    description: 'Overall more specialized in Techno. <br>Genre specialty: Bass House, Big Room, Electro (Classic/Detroit/Modern), Future House, Melodic House & Techno, Techno (Peak Time/Driving), Techno (Raw/Deep/Hypnotic)',
+                    description: 'Overall more specialized in Techno.',
                     image: require('../assets/beatport.png')
                 },
                 {
                     name: 'Traxsource',
                     value: 'traxsource',
                     enabled: false,
-                    description: 'Overall more specialized in House. <br>Genre specialty: Acapella, Afro/Latin/Brazillian, Classic House, Lounge/Chill Out, Soul/Funk/Disco, Soulful House',
+                    description: 'Overall more specialized in House.',
                     image: require('../assets/traxsource.png')
                 },
                 {
                     name: 'Discogs',
                     value: 'discogs',
                     enabled: false,
-                    description: 'Most variety in genres. <br>Also ability to fetch styles narrated by Discogs Contributors. <br>Due API rate limits, the process is slow (~20 tracks / minute).',
+                    description: 'Most variety in genres. <br><b class="text-subtitle2">Due API rate limits, the process is slow (~20 tracks / minute).</b>',
                     image: require('../assets/discogs.png')
                 },
                 {
                     name: 'Juno Download',
                     value: 'junodownload',
                     enabled: false,
-                    description: 'Overall a mixed bag with additionally a lot of niche genres. <br>Genre specialty: Ambient/Drone, Coldwave/Synth, Dancehall/Ragga, Dub, Footwork/Juke, Gabba, Industrial/Noise, Jazz, Pop Trance, Reggae, Rock, Scouse House, Soundtracks, UK Hardcore',
+                    description: 'Overall a mixed bag with additionally a lot of niche genres.',
                     image: require('../assets/junodownload.png')
                 }
             ]

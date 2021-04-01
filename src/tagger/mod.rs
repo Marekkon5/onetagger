@@ -281,7 +281,7 @@ pub trait TrackMatcherST {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
 }
 
-struct MatchingUtils {}
+pub struct MatchingUtils {}
 impl MatchingUtils {
     //Clean title for searching
     pub fn clean_title(input: &str) -> String {
