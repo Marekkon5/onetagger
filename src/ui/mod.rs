@@ -7,7 +7,7 @@ use std::thread;
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
-use rouille::router;
+use rouille::{router, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use app_dirs::{app_root, AppInfo, AppDataType};
@@ -73,6 +73,7 @@ pub fn start_webview() {
         .user_data(())
         .title("OneTagger")
         .size(1280, 720)
+        .min_size(1024, 550)
         .resizable(true)
         .debug(true)
         .build()
@@ -93,9 +94,24 @@ pub fn start_webserver_thread() {
         rouille::start_server("127.0.0.1:36913", move |request| {
             router!(request, 
                 (GET) (/) => {
-                    rouille::Response::html(INDEX_HTML)
+                    Response::html(INDEX_HTML)
                 },
-                _ => rouille::Response::empty_404()
+                //Get thumbnail of image from tag by path
+                (GET) (/thumb) => {
+                    match request.get_param("path") {
+                        Some(path) => {
+                            match quicktag::QuickTagFile::get_art(&path) {
+                                Ok(art) => Response::from_data("image/jpeg", art),
+                                Err(e) => {
+                                    warn!("Error loading album art: {} File: {}", e, path);
+                                    Response::empty_404()
+                                }
+                            }
+                        },
+                        None => Response::empty_404()
+                    }
+                },
+                _ => Response::empty_404()
             )
         });
     });

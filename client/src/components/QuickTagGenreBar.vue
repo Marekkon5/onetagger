@@ -1,10 +1,10 @@
 <template>
 <div class='genre-bar'>
 
-    <div class='row q-mx-md q-pt-sm'>
+    <div class='row q-mx-md q-pt-sm no-wrap'>
         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
             <div 
-                class='q-mx-sm text-subtitle1 genre-text' 
+                class='q-mx-sm text-subtitle1 genre-text text-no-wrap' 
                 :class='{"text-weight-bolder": isSelected(genre)}'
                 @click='setGenre(genre)'
             >{{genre.genre}}</div>

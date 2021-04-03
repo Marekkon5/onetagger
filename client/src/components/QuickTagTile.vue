@@ -4,10 +4,20 @@
         <div class='row'>
             <div class='selected-bar bg-primary' v-if='selected'></div>
             <div class='row q-pt-md q-pl-md full-width'>
+                <!-- Art -->
+                <div class='col-1 q-pt-xs'>
+                    <q-img 
+                        :src='art' 
+                        width='50px' 
+                        height='50px' 
+                        class='rounded-borders' 
+                        :placeholder-src='require("../assets/placeholder.png")'
+                    />
+                </div>
                 <!-- Title -->
-                <div class='col-6'>
-                    <span class='text-h6 text-weight-bold text-no-wrap'>{{track.title}}</span><br>
-                    <span class='text-subtitle1 text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
+                <div class='col-5 q-pl-sm'>
+                    <span class='text-h6 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
+                    <span class='text-subtitle1 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
                 </div>
                 <!-- Details -->
                 <div class='col-6 row text-grey-6 text-weight-medium text-center items-center'>
@@ -66,6 +76,9 @@ export default {
     computed: {
         selected() {
             return this.$1t.quickTag.track && this.track.path == this.$1t.quickTag.track.path;
+        },
+        art() {
+            return `http://localhost:36913/thumb?path=${encodeURIComponent(this.track.path)}`;
         }
     }
 }
@@ -85,5 +98,10 @@ export default {
     height: 128px;
     min-height: 128px;
     max-height: 128px;
+}
+.title-span {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: block;
 }
 </style>

@@ -1,8 +1,11 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::fs::read_dir;
+use std::io::Cursor;
+use image::ImageOutputFormat;
+use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
-use crate::tag::{Tag, Field, AudioFileFormat};
+use crate::tag::{AudioFileFormat, Field, Tag};
 
 pub struct QuickTag {}
 
@@ -44,7 +47,7 @@ pub struct QuickTagFile {
     genres: Vec<String>,
     bpm: Option<i64>,
     rating: u8,
-    tags: HashMap<String, Vec<String>>
+    tags: HashMap<String, Vec<String>>,
 }
 
 impl QuickTagFile {
@@ -56,6 +59,7 @@ impl QuickTagFile {
 
     pub fn from_tag(path: &str, tag_wrap: &Tag) -> Option<QuickTagFile> {
         let tag = tag_wrap.tag()?;
+
         Some(QuickTagFile {
             path: path.to_string(),
             format: tag_wrap.format.clone(),
@@ -67,7 +71,22 @@ impl QuickTagFile {
                 Some(t) => t.first().unwrap_or(&"can't parse".to_string()).parse().ok(),
                 None => None
             },
-            tags: tag.all_tags()
+            tags: tag.all_tags(),
         })
+    }
+
+    //Load album art from tag and downscale
+    pub fn get_art(path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+        //Load
+        let tag_wrap = Tag::load_file(path)?;
+        let tag = tag_wrap.tag().ok_or("Missing tag!")?;
+        let pictures = tag.get_art();
+        let picture = pictures.first().ok_or("Missing album art!")?;
+        let img = ImageReader::new(Cursor::new(&picture.data)).with_guessed_format()?.decode()?;
+        //Downscale and save
+        let scaled = img.thumbnail_exact(50, 50);
+        let mut out = vec![];
+        scaled.write_to(&mut out, ImageOutputFormat::Jpeg(95))?;
+        Ok(out)
     }
 }

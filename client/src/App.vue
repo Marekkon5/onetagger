@@ -23,10 +23,10 @@
     </q-header>
 
     <!-- Drawers -->
-    <q-drawer v-model="left" side="left" :width='200'>
+    <q-drawer :breakpoint='1000' v-model="left" side="left" :width='200'>
       <QuickTagLeft></QuickTagLeft>
     </q-drawer>
-    <q-drawer v-model="right" side="right" :width='200'>
+    <q-drawer :breakpoint='1000' v-model="right" side="right" :width='200'>
       <QuickTagRight></QuickTagRight>
     </q-drawer>
 
@@ -153,8 +153,8 @@ export default {
   padding-top: 12px !important;
 }
 .volume-container {
-  margin-left: 50px;
-  width: 15% !important;
+  padding-left: 40px;
+  width: 18% !important;
 }
 
 .fade-enter-active, .fade-leave-active {

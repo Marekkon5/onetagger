@@ -93,10 +93,10 @@ pub enum AudioFileFormat {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Picture {
-    kind: CoverType,
-    data: Vec<u8>,
-    description: String,
-    mime: String
+    pub kind: CoverType,
+    pub data: Vec<u8>,
+    pub description: String,
+    pub mime: String
 }
 
 #[derive(Debug, Clone, PartialEq)]
