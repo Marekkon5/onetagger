@@ -7,14 +7,130 @@ use serde;
 use crate::tagger::MatchingUtils;
 use crate::tagger::spotify::Spotify;
 use crate::tagger::{Tagger, AudioFileInfo, TaggingState};
-use crate::tag::Tag;
+use crate::tag::{Tag, AudioFileFormat};
+
+// CONFIG SERIALIZATION
 
 //Config from UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioFeaturesConfig {
     pub path: String,
-    pub save_raw: bool
+    pub main_tag: AFTag,
+    pub properties: AFProperties
+}
+
+//Audio features
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AFProperties {
+    pub acousticness: AFProperty,
+    pub danceability: AFProperty,
+    pub energy: AFProperty,
+    pub instrumentalness: AFProperty,
+    pub liveness: AFProperty,
+    pub speechiness: AFProperty,
+    pub valence: AFProperty
+}
+
+impl AFProperties {
+    //Merge properties into list with actual values
+    pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
+        vec![
+            AFPropertyMerged::new(features.danceability, &self.danceability, &format)
+                .add_main_value("Unrhythmical", "Danceable"),
+            AFPropertyMerged::new(features.acousticness, &self.acousticness, &format)
+                .add_main_value("Electronic", "Acoustic"),
+            AFPropertyMerged::new(features.energy, &self.energy, &format)
+                .add_main_value("Passive", "Energetic"), 
+            AFPropertyMerged::new(features.instrumentalness, &self.instrumentalness, &format)
+                .add_main_value("Vocal", "Instrumental"),
+            AFPropertyMerged::new(features.liveness, &self.liveness, &format)
+                .add_main_value("Recorded", "Live"),
+            AFPropertyMerged::new(features.speechiness, &self.speechiness, &format)
+                .add_main_value("Speechless", "Speech"),
+            AFPropertyMerged::new(features.valence, &self.valence, &format)
+                .add_main_value("Negative", "Positive")
+        ]
+    }
+}
+
+//Property merged with value
+pub struct AFPropertyMerged {
+    pub tag: String,
+    pub value: i8,
+    range: AFRange,
+    enabled: bool,
+    pub main_value: String
+}
+
+impl AFPropertyMerged {
+    //Create new merged property, value = rspotify value
+    pub fn new(value: f32, property: &AFProperty, format: &AudioFileFormat) -> AFPropertyMerged {
+        AFPropertyMerged {
+            value: (value * 100.0) as i8,
+            tag: property.tag.by_format(format),
+            enabled: property.enabled,
+            range: property.range.to_owned(),
+            main_value: String::new()
+        }
+    }
+
+    //Set main values by range
+    pub fn add_main_value(mut self, under: &str, over: &str) -> Self {
+        if self.enabled {
+            self.main_value = self.range.select(self.value, under, over);
+        }
+        self
+    }
+}
+
+//Audio Features property
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AFProperty {
+    pub tag: AFTag,
+    pub range: AFRange,
+    pub enabled: bool
+}
+
+//Tag info from UI
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AFTag {
+    pub id3: String,
+    pub flac: String
+}
+
+impl AFTag {
+    //Get tag by AudioFileFormat
+    pub fn by_format(&self, format: &AudioFileFormat) -> String {
+        if format.to_owned() == AudioFileFormat::FLAC {
+            self.flac.to_owned()
+        } else {
+            self.id3.to_owned()
+        }
+    }
+}
+
+//Threshold range in config
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AFRange {
+    pub min: i8,
+    pub max: i8
+}
+impl AFRange {
+    //Select value under or over range
+    pub fn select(&self, v: i8, under: &str, over: &str) -> String {
+        if v < self.min {
+            return under.to_owned();
+        }
+        if v >= self.max {
+            return over.to_owned();
+        }
+        String::new()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,17 +230,22 @@ impl AudioFeatures {
     fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
         //Load tag
         let mut tag_wrap = Tag::load_file(path)?;
+        let format = tag_wrap.format.clone();
         let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
 
-        //Write features
-        if config.save_raw {
-            tag.set_raw("1T_ACOUSTICNESS", vec![((features.acousticness * 100.0) as u8).to_string()], true);
-            tag.set_raw("1T_DANCEABILITY", vec![((features.danceability * 100.0) as u8).to_string()], true);
-            tag.set_raw("1T_ENERGY", vec![((features.energy * 100.0) as u8).to_string()], true);
-            tag.set_raw("1T_INSTRUMENTALNESS", vec![((features.instrumentalness * 100.0) as u8).to_string()], true);
-            tag.set_raw("1T_LIVENESS", vec![((features.liveness * 100.0) as u8).to_string()], true);
-            tag.set_raw("1T_SPEECHINESS", vec![((features.speechiness * 100.0) as u8).to_string()], true);
-            tag.set_raw("1T_VALENCE", vec![((features.valence * 100.0) as u8).to_string()], true);    
+        //Get properties
+        let mut main_tag = vec![];
+        for property in config.properties.merge_with_values(features, format.clone()) {
+            if !property.tag.is_empty() {
+                tag.set_raw(&property.tag, vec![property.value.to_string()], true);
+            }
+            if !property.main_value.is_empty() {
+                main_tag.push(property.main_value);
+            }
+        }
+        //Set main tag
+        if !main_tag.is_empty() {
+            tag.set_raw(&config.main_tag.by_format(&format), main_tag, true);
         }
 
         //Save

@@ -26,14 +26,71 @@
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-white' @click='browse'></q-btn>
             </template>
         </q-input>
-        <!-- Options -->
-        <div class='text-h5 q-mt-xl q-mb-md'>Options:</div>
-        <q-checkbox class='checkbox' label='Write raw values to custom 1T tags' v-model='config.saveRaw'></q-checkbox>
-        
+
+        <!-- Main tag -->
+        <div class='text-h5 q-mt-xl q-mb-md'>Main Tag:</div>
+        <div class='text-subtitle1 q-mb-md'>This tag will have names of properties that are in threshold</div>
+        <div class='row q-mx-xl'>
+            <div class='col-6 q-px-md'>
+                <q-input outlined v-model='config.mainTag.id3' label='ID3 (MP3 + AIFF)'></q-input>
+            </div>
+            <div class='col-6 q-px-md'>
+                <q-input outlined v-model='config.mainTag.flac' label='FLAC'></q-input>
+            </div>
+        </div>
+
+        <!-- Values -->
+        <div class='text-h5 q-mt-xl q-mb-md'>Properties:</div>
+        <div class='q-px-xl'>
+            <!-- Header -->
+            <div class='row text-subtitle1 text-bold q-mb-sm'>
+                <div class='col-1'>Include in Main Tag</div>
+                <div class='col-2'>Property</div>
+                <div class='col-3'>ID3 Tag Name (MP3 + AIFF)</div>
+                <div class='col-3'>FLAC Tag Name</div>
+                <div class='col-3'>Threshold</div>
+            </div>
+
+            <div v-for='(_, key, i) in config.properties' :key='"P"+i'>
+                <div class='row'>
+                    <!-- Enabled -->
+                    <div class='col-1'>
+                        <q-checkbox v-model='config.properties[key].enabled' class='checkbox'></q-checkbox>
+                    </div>
+                    <!-- Title -->
+                    <div class='col-2'>
+                        <span class='text-subtitle1' style='text-transform: capitalize;'>{{key}}</span>
+                    </div>
+                    <!-- Tags -->
+                    <div class='col-3'>
+                        <q-input 
+                            outlined
+                            dense 
+                            class='q-px-sm q-pb-xs'
+                            v-model='config.properties[key].tag.id3'
+                            label='ID3 (MP3 + AIFF)'
+                        ></q-input>
+                    </div>
+                    <div class='col-3'>
+                        <q-input 
+                            outlined
+                            dense 
+                            class='q-px-sm q-pb-xs'
+                            v-model='config.properties[key].tag.flac'
+                            label='FLAC'
+                        ></q-input>
+                    </div>
+                    <!-- Range -->
+                    <div class='col-3 q-px-md'>
+                        <q-range label :min='0' :max='100' v-model='config.properties[key].range'></q-range>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Start -->
         <br>
-        <q-btn color='primary' class='text-black q-mt-xl' size='md' @click='start' v-if='$1t.audioFeatures.path'>START</q-btn>
+        <q-btn color='primary' class='text-black q-my-md' size='md' @click='start' v-if='$1t.audioFeatures.path'>START</q-btn>
     </div>
 
 </div>
@@ -47,7 +104,16 @@ export default {
             clientId: this.$1t.settings.audioFeatures.spotifyClientId,
             clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret,
             config: {
-                saveRaw: true
+                mainTag: {id3: 'STYLE', flac: 'STYLE'},
+                properties: {
+                    acousticness: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_ACOUSTICNESS', flac: '1T_ACOUSTICNESS'}},
+                    danceability: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_DANCEABILITY', flac: '1T_DANCEABILITY'}},
+                    energy: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_ENERGY', flac: '1T_ENERGY'}},
+                    instrumentalness: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_INSTRUMENTALNESS', flac: '1T_INSTRUMENTALNESS'}},
+                    liveness: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_LIVENESS', flac: '1T_LIVENESS'}},
+                    speechiness: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_SPEECHINESS', flac: '1T_SPEECHINESS'}},
+                    valence: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_VALENCE', flac: '1T_VALENCE'}}
+                }
             }
         }
     },
@@ -69,6 +135,10 @@ export default {
         },
         //Start tagging
         start() {
+            //Save config
+            this.$1t.settings.audioFeatures.config = this.config;
+            this.$1t.saveSettings();
+
             //Lock UI
             this.$1t.lock.locked = true;
             this.$1t.audioFeatures.done = false;
@@ -82,6 +152,12 @@ export default {
             this.$router.push('/audiofeatures/status');
         }
     },
+    mounted() {
+        //Load config from settings
+        if (this.$1t.settings.audioFeatures.config) {
+            this.config = Object.assign({}, this.config, this.$1t.settings.audioFeatures.config);
+        }
+    }
 }
 </script>
 

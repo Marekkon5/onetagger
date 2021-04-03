@@ -218,7 +218,8 @@ class OneTagger {
             },
             audioFeatures: {
                 spotifyClientId: null,
-                spotifyClientSecret: null
+                spotifyClientSecret: null,
+                config: null
             }
         });
 

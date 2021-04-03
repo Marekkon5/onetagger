@@ -17,7 +17,7 @@
       <q-tabs align="left">
         <q-route-tab :disable='$1t.lock.locked' to="/" class='text-weight-bolder' @click='hideSide'><q-icon name='mdi-home' size='sm'></q-icon></q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/autotagger" class='text-weight-bolder' @click='hideSide'>Auto tagger</q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/audiofeatures" class='text-weight-bolder' @click='hideSide'>Audio features</q-route-tab>
+        <q-route-tab :disable='$1t.lock.locked' to="/audiofeatures" class='text-weight-bolder' @click='audioFeatures'>Audio features</q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>QuickTag</q-route-tab>
       </q-tabs>
     </q-header>
@@ -120,6 +120,13 @@ export default {
     home() {
       if (!this.$1t.lock.locked) 
         this.$router.push("/");
+    },
+    //Navigate to audio features
+    audioFeatures() {
+      if (!this.$1t.lock.locked) {
+        this.hideSide();
+        this.$router.push('/audiofeatures');
+      }
     }
   },
   mounted() {
