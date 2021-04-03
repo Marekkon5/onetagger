@@ -83,6 +83,18 @@
   <!-- Settings -->
   <Settings v-model='settings' @close='settings = false'></Settings>
 
+  <!-- Min size dialog -->
+  <q-dialog v-model='sizeDialog' persistent>
+    <q-card>
+      <q-card-section>
+        <div class='text-h6'>Warning</div>
+      </q-card-section>
+      <q-card-section>
+        OneTagger requires atleast 1024x550 window size. Please resize to continue.
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
 </div>
 </template>
 
@@ -101,7 +113,8 @@ export default {
       left: false,
       right: false,
       footer: false,
-      settings: false
+      settings: false,
+      sizeDialog: false
     };
   },
   methods: {
@@ -131,6 +144,15 @@ export default {
   },
   mounted() {
     this.$q.dark.set(true);
+
+    //Handle resize to apply min height/width
+    window.addEventListener('resize', () => {
+      if (window.innerHeight < 550 || window.innerWidth < 1024) {
+        this.sizeDialog = true;
+      } else {
+        this.sizeDialog = false;
+      }
+    });
   },
   watch: {
     //Dont show scrollbar while transition

@@ -154,7 +154,12 @@ pub fn start_all() {
 //CEF Webview, intended for Windows only
 #[cfg(target_os = "windows")]
 pub fn start_webview_cef() {
-    use winapi::um::winuser::{WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_OVERLAPPEDWINDOW, WS_VISIBLE};
+    use winapi::um::winuser::{WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_OVERLAPPEDWINDOW, 
+        WS_VISIBLE, WM_SETICON, ICON_BIG, ICON_SMALL, SendMessageA, CreateIconIndirect, 
+        ICONINFO, GetDC};
+    use winapi::shared::ntdef::NULL;
+    use winapi::um::wingdi::{CreateBitmap, CreateCompatibleBitmap};
+    use winapi::ctypes::c_void;
     use cef::{
         app::{App, AppCallbacks},
         browser::{Browser, BrowserSettings},
@@ -213,7 +218,7 @@ pub fn start_webview_cef() {
     });
 
     info!("Opening CEF Window");
-    let _browser = BrowserHost::create_browser_sync(
+    let browser = BrowserHost::create_browser_sync(
         &window_info,
         client,
         "http://127.0.0.1:36913/",
@@ -221,6 +226,30 @@ pub fn start_webview_cef() {
         None,
         None
     );
+    //Set icon
+    unsafe {
+        if let Some(handle) = browser.get_host().get_window_handle() {
+            let raw = handle.to_cef_handle();
+            //Create bitmap
+            let mut icon_data = include_bytes!("../../assets/64x64.bin").to_owned();
+            let bitmap = CreateBitmap(64, 64, 1, 32, icon_data.as_mut_ptr() as *mut c_void);
+            let dc = GetDC(raw);
+            let mask = CreateCompatibleBitmap(dc, 64, 64);
+            //Create icon
+            let mut icon = ICONINFO {
+                fIcon: 1,
+                xHotspot: NULL as u32,
+                yHotspot: NULL as u32,
+                hbmMask: mask,
+                hbmColor: bitmap
+            };
+            let icon = CreateIconIndirect(&mut icon);
+            //Set icon
+            SendMessageA(raw, WM_SETICON, ICON_BIG as usize, icon as isize);
+            SendMessageA(raw, WM_SETICON, ICON_SMALL as usize, icon as isize);
+        }
+    }
+
     context.run_message_loop();
 
     info!("CEF Quit");
