@@ -138,6 +138,7 @@ class OneTagger {
             "threads": 16,
             "strictness": 0.7,
             "mergeGenres": false,
+            "albumArtFile": false,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1

@@ -14,6 +14,9 @@
             <q-tooltip content-style="font-size: 12px">Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files</q-tooltip>
         </q-icon>
     </q-toggle>
+    <br>
+    <q-toggle v-model='$1t.config.albumArtFile' label='Save album art to file'></q-toggle>
+    <br>
     <q-toggle v-model='$1t.config.mergeGenres' label='Merge/append genres and styles'>
         <q-icon name='mdi-help-circle-outline' class='q-mx-sm'>
             <q-tooltip content-style="font-size: 12px">Merge the new genres and styles with the previous one rather than replacing.</q-tooltip>

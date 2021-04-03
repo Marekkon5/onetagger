@@ -1,5 +1,8 @@
 use std::error::Error;
 use std::thread;
+use std::path::Path;
+use std::fs::File;
+use std::io::prelude::*;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver};
 use regex::Regex;
@@ -54,6 +57,7 @@ pub struct TaggerConfig {
     //From 0 to 1
     pub strictness: f64,
     pub merge_genres: bool,
+    pub album_art_file: bool,
 
     //Platform specific
     pub beatport: BeatportConfig,
@@ -207,7 +211,18 @@ impl Track {
         //Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
             match self.download_art(self.art.as_ref().unwrap()) {
-                Ok(data) => tag.set_art(CoverType::Front, "image/jpeg", Some("Cover"), data),
+                Ok(data) => {
+                    tag.set_art(CoverType::Front, "image/jpeg", Some("Cover"), data.clone());
+                    //Save to file
+                    if config.album_art_file {
+                        let path = Path::new(&info.path).parent().unwrap().join("cover.jpg");
+                        if !path.exists() {
+                            if let Ok(mut file) = File::create(path) {
+                                file.write_all(&data).ok();
+                            }
+                        }
+                    }
+                },
                 Err(e) => warn!("Error downloading album art! {}", e)
             }
         }
