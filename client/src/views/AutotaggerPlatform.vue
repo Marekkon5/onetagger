@@ -3,7 +3,7 @@
 
     <!-- Beatport settings -->
     <div v-if='beatport' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md'>Beatport:</div>
+        <div class='text-h5 q-mt-md'>Beatport</div>
         <!-- Album art resolution -->
         <q-select 
             dark 
@@ -26,7 +26,7 @@
 
     <!-- Discogs -->
     <div v-if='discogs' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md'>Discogs:</div>
+        <div class='text-h5 q-mt-md'>Discogs</div>
         <!-- Token -->
         <q-input
             dark
@@ -36,9 +36,9 @@
             label='Token'
         >
             <template v-slot:append>
-                <q-icon name='mdi-help-circle-outline'>
+                <q-icon name='mdi-help-circle-outline' size='xs'>
                     <q-tooltip content-style='font-size: 12px'>
-                        To obtain token, create a free account on discogs.com. More info in Homepage.
+                        To obtain token, create a free account on discogs.com. More info? Hit the Home-icon. 
                     </q-tooltip>
                 </q-icon>
             </template>

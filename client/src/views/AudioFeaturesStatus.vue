@@ -20,8 +20,8 @@
                     <q-icon :name="icon(status.state)" :color='iconColor(status.state)'></q-icon>
                 </q-item-section>
                 <q-item-section>
-                    <q-item-label overline>{{status.state.toUpperCase()}}</q-item-label>
-                    <q-item-label>{{status.filename}}</q-item-label>
+                    <q-item-label overline class='selectable'>{{status.state.toUpperCase()}}</q-item-label>
+                    <q-item-label><span class='selectable'>{{status.filename}}</span></q-item-label>
                 </q-item-section>
                 
             </q-item>

@@ -74,3 +74,8 @@
 input {
     -webkit-user-select: all !important;
 }
+
+.selectable {
+    user-select: text !important;
+    cursor: text;
+}

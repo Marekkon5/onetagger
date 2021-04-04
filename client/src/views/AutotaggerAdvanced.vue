@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-my-md'>Advanced:</div>
+    <div class='text-h5 q-my-md'>Advanced</div>
 
     <q-toggle v-model='$1t.config.overwrite' label='Overwrite tags'>
         <q-icon name='mdi-help-circle-outline' class='q-mx-sm'>
@@ -19,7 +19,7 @@
     <br>
     <q-toggle v-model='$1t.config.mergeGenres' label='Merge/append genres and styles'>
         <q-icon name='mdi-help-circle-outline' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 12px">Merge the new genres and styles with the previous one rather than replacing.</q-tooltip>
+            <q-tooltip content-style="font-size: 12px">Merge the new genres and styles with existing ones, rather than replacing.</q-tooltip>
         </q-icon>
     </q-toggle>
     <br>
@@ -38,7 +38,9 @@
         >
         </q-slider>
         <q-icon name='mdi-help-circle-outline' class='q-mx-sm slider-tooltip'>
-            <q-tooltip content-style="font-size: 12px">The higher, the more accurate results, but may cause false matches.</q-tooltip>
+            <q-tooltip content-style="font-size: 12px">
+                The higher, the more accurate results, but less potential matches.
+            </q-tooltip>
         </q-icon>
     </div>
     <!-- Threads -->

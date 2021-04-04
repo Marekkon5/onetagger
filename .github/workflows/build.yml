@@ -1,0 +1,63 @@
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build-linux:
+    name: Linux + Mac
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 ffmpeg libwebkit2gtk-4.0-dev
+    
+    - name: Run build script
+      run: |
+        ./assets/compile-nix.sh
+    
+    - name: Upload Linux
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-linux
+        path: dist/OneTagger-linux
+
+    - name: Upload Mac
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-mac
+        path: dist/OneTagger-mac.zip
+
+  build-win:
+    name: Windows
+    runs-on: windows-latest
+    
+    steps:
+      
+    - name: Checkout
+      uses: actions/checkout@v2
+      
+    - name: Install Dependencies
+      run: |
+        choco install nsis 7zip -y
+    
+    - name: Run build script
+      run: |
+        python assets/compile-win.py
+    
+    - name: Upload Archive
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-win
+        path: dist/OneTagger-windows.7z
+    
+    - name: Upload Archive
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-win-setup
+        path: dist/OneTagger-windows.exe
+      

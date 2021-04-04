@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
     <!-- Path -->
-    <div class='text-h5 q-mt-md'>Select folder:</div>
+    <div class='text-h5 q-mt-md'>Select folder</div>
     <div class='text-subtitle1 q-mt-xs q-pb-md'>Subfolders are included.</div>
     <div class='path q-mt-md'>
         <q-input standout='text-white bg-dark' class='text-white input' label='Path' v-model='$1t.config.path'>

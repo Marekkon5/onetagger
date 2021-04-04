@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-mt-md'>Select platforms:</div>
+    <div class='text-h5 q-mt-md'>Select platforms</div>
     <div class='text-subtitle1 q-mt-xs'>Use the checkbox to enable/disable, drag and drop to reorder fallback.</div>
 
     <!-- Platforms -->

@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-mt-md'>Tagging status:</div>
+    <div class='text-h5 q-mt-md'>Tagging status</div>
     <!-- Chips -->
     <div class='row q-my-sm chips'>
         <q-chip color='primary' text-color='black' icon='mdi-timelapse' class='q-mx-sm'>
@@ -21,9 +21,12 @@
             <q-item class='item'>
                 <q-item-section>
                     <q-item-label overline>
-                        <span :class='color(status.platform)'>{{status.platform.toUpperCase()}}</span> | {{statusText(status.status.status)}}
+                        <span>
+                            <span class='selectable' :class='color(status.platform)'>{{platformText(status.platform)}}</span>
+                            <span class='selectable'> | {{statusText(status.status.status)}}</span>
+                        </span>
                     </q-item-label>
-                    {{status.status.path}}
+                    <span class='selectable'>{{status.status.path}}</span>
                 </q-item-section>
             </q-item>
         </div>
@@ -69,6 +72,11 @@ export default {
         statusText(s) {
             if (s == 'error') return 'NO MATCH';
             return s.toUpperCase();
+        },
+        //Conver platform name
+        platformText(p) {
+            if (p == 'junodownload') return 'JUNO DOWNLOAD';
+            return p.toUpperCase();
         }
     },
     mounted() {
