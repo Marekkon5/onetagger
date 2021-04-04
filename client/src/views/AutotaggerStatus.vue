@@ -21,7 +21,7 @@
             <q-item class='item'>
                 <q-item-section>
                     <q-item-label overline>
-                        <span :class='color(status.platform)'>{{status.platform.toUpperCase()}}</span> | {{status.status.status.toUpperCase()}}
+                        <span :class='color(status.platform)'>{{status.platform.toUpperCase()}}</span> | {{statusText(status.status.status)}}
                     </q-item-label>
                     {{status.status.path}}
                 </q-item-section>
@@ -64,6 +64,11 @@ export default {
                 default:
                     return '';
             }
+        },
+        //Convert status
+        statusText(s) {
+            if (s == 'error') return 'NO MATCH';
+            return s.toUpperCase();
         }
     },
     mounted() {
@@ -72,7 +77,7 @@ export default {
             //Already done
             if (this.$1t.taggerStatus.done) {
                 if (this.timeInterval != null)
-                    this.clearInterval(this.timeInterval);
+                    clearInterval(this.timeInterval);
                 return;
             }
             //Timestamp

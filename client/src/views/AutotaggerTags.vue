@@ -2,8 +2,8 @@
 <div class='text-center'>
     <!-- Path -->
     <div class='text-h5 q-mt-md'>Select folder:</div>
-    <div class='text-subtitle1 q-my-sm'>Subfolders are included</div>
-    <div class='path'>
+    <div class='text-subtitle1 q-mt-xs q-pb-md'>Subfolders are included.</div>
+    <div class='path q-mt-md'>
         <q-input standout='text-white bg-dark' class='text-white input' label='Path' v-model='$1t.config.path'>
             <template v-slot:append>
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-white' @click='browse'></q-btn>
@@ -59,7 +59,6 @@ export default {
 .path {
     max-width: 80%;
     margin-left: 10%;
-    margin-top: 16px;
 }
 .flex-break {
     height: 0 !important;

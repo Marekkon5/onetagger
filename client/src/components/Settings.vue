@@ -45,20 +45,20 @@
                 <q-select
                     v-model='$1t.settings.quickTag.energyTag.type'
                     dense
-                    outlined
+                    filled
                     label='Tag type'
                     :options='["rating", "symbol"]'
                     class='q-mb-sm q-pr-md'
                 ></q-select>
                 <div v-if='$1t.settings.quickTag.energyTag.type != "rating"' class='row'>
                     <div class='col-2 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.energyTag.symbol' outlined dense label='Symbol'></q-input>
+                        <q-input v-model='$1t.settings.quickTag.energyTag.symbol' filled dense label='Symbol'></q-input>
                     </div>
                     <div class='col-5 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.energyTag.id3' outlined dense label='ID3 (MP3, AIFF)'></q-input>
+                        <q-input v-model='$1t.settings.quickTag.energyTag.id3' filled dense label='ID3 (MP3, AIFF)'></q-input>
                     </div>
                     <div class='col-5 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.energyTag.vorbis' outlined dense label='FLAC'></q-input>
+                        <q-input v-model='$1t.settings.quickTag.energyTag.vorbis' filled dense label='FLAC'></q-input>
                     </div>
                 </div>
                 <div class='q-mb-md'></div>
@@ -66,10 +66,10 @@
                 <div class='text-h6 q-my-sm'>Mood tag:</div>
                 <div class='row q-mb-md'>
                     <div class='col-6 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.moodTag.id3' outlined dense label='ID3 (MP3, AIFF)'></q-input>
+                        <q-input v-model='$1t.settings.quickTag.moodTag.id3' filled label='ID3 (MP3, AIFF)'></q-input>
                     </div>
                     <div class='col-6 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.moodTag.vorbis' outlined dense label='FLAC'></q-input>
+                        <q-input v-model='$1t.settings.quickTag.moodTag.vorbis' filled label='FLAC'></q-input>
                     </div>
                 </div>
                 <!-- Moods -->
@@ -81,14 +81,14 @@
                                 clearable 
                                 @clear='$1t.settings.quickTag.moods.splice(i, 1)' 
                                 v-model='$1t.settings.quickTag.moods[i].mood' 
-                                outlined 
+                                filled 
                                 dense 
                                 class='col-5 q-pr-md q-mb-sm'
                             ></q-input>
                             <q-select 
                                 v-model='$1t.settings.quickTag.moods[i].color' 
                                 dense 
-                                outlined 
+                                filled 
                                 label='Color'
                                 :options='colors' 
                                 :label-color='$1t.settings.quickTag.moods[i].color'
@@ -105,8 +105,8 @@
                     <!-- Add new mood -->
                     <div class='text-subtitle2 q-mb-sm'>Create new mood:</div>
                     <div class='row'>
-                        <q-input v-model='newMood.mood' outlined dense class='col-6 q-pr-md'></q-input>
-                        <q-select v-model='newMood.color' :options='colors' outlined dense class='col-5 q-pr-md'></q-select>
+                        <q-input v-model='newMood.mood' filled dense class='col-6 q-pr-md'></q-input>
+                        <q-select v-model='newMood.color' :options='colors' filled dense class='col-5 q-pr-md'></q-select>
                         <q-btn @click='addMood' round flat dense icon='mdi-plus' class='col-1 text-primary'></q-btn>
                     </div>
                 </div>
@@ -117,7 +117,7 @@
                         <div class='row q-my-sm'>
                             <q-input 
                                 clearable
-                                outlined 
+                                filled 
                                 dense 
                                 class='col-10' 
                                 v-model='$1t.settings.quickTag.genres[i].genre'
@@ -133,7 +133,7 @@
                     <!-- Add new genre -->
                     <div class='text-subtitle2 q-mb-sm'>Create new genre:</div>
                     <div class='row'>
-                        <q-input outlined dense class='col-11 q-pr-md' v-model='newGenre'></q-input>
+                        <q-input filled dense class='col-11 q-pr-md' v-model='newGenre'></q-input>
                         <div class='col-1'>
                             <q-btn flat round icon='mdi-plus' @click='addGenre' color='primary'></q-btn>
                         </div>
@@ -148,7 +148,7 @@
                 <div v-for='(tag, i) in $1t.settings.quickTag.custom' :key='"tag"+i' class='q-mb-md'>
                     <div class='row'>
                         <div class='text-h6 q-mb-sm' v-if='!customQTEdit[i]'>{{tag.name}}</div>
-                        <q-input dense outlined v-if='customQTEdit[i]' v-model='$1t.settings.quickTag.custom[i].name'></q-input>
+                        <q-input dense filled v-if='customQTEdit[i]' v-model='$1t.settings.quickTag.custom[i].name'></q-input>
                         <div class='q-mx-md mt-2'>
                             <q-btn
                                 size='sm' 
@@ -164,14 +164,14 @@
                         </div>
                     </div>
                     <div class='row q-pt-sm'>
-                        <q-input class='col-6 q-pr-sm' outlined label='ID3 (MP3+AIFF)' v-model='$1t.settings.quickTag.custom[i].id3'></q-input>
-                        <q-input class='col-6 q-pr-sm' outlined label='FLAC' v-model='$1t.settings.quickTag.custom[i].vorbis'></q-input>
+                        <q-input class='col-6 q-pr-sm' filled label='ID3 (MP3+AIFF)' v-model='$1t.settings.quickTag.custom[i].id3'></q-input>
+                        <q-input class='col-6 q-pr-sm' filled label='FLAC' v-model='$1t.settings.quickTag.custom[i].vorbis'></q-input>
                     </div>
                     <!-- Values -->
                     <div v-for='(value, j) in tag.values' :key='value.value+j.toString()'>
                         <div class='row'>
                             <q-btn class='col-1 q-mt-sm' round flat icon='mdi-close' @click='$1t.settings.quickTag.custom[i].values.splice(j, 1)'></q-btn>
-                            <q-input class='col-9 q-px-sm q-pt-sm' dense outlined v-model='$1t.settings.quickTag.custom[i].values[j].val'></q-input>
+                            <q-input class='col-9 q-px-sm q-pt-sm' dense filled v-model='$1t.settings.quickTag.custom[i].values[j].val'></q-input>
                             <Keybind
                                 class='col-2 text-center q-pt-sm'
                                 @set='$1t.settings.quickTag.custom[i].values[j].keybind = $event'
@@ -190,8 +190,8 @@
                 </div>
                 <!-- Add new tag -->
                 <div class='row q-mt-md'>
-                    <div class='text-h6 q-my-md col-3'>Add new tag</div>
-                    <q-input v-model='newCustomQT' outlined label='Name' class='q-mt-sm col-8 q-pr-md'></q-input>
+                    <div class='text-h6 q-my-md col-4'>Add new section</div>
+                    <q-input v-model='newCustomQT' filled label='Name' class='q-mt-sm col-7 q-pr-md'></q-input>
                     <div class='q-mt-md col-1'>
                         <q-btn round flat icon='mdi-plus' size='md' color='primary' @click='addCustomQT'></q-btn>
                     </div>

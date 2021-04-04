@@ -11,7 +11,7 @@
     <br>
     <q-toggle v-model='$1t.config.id3v24' label='ID3v2.4'>
         <q-icon name='mdi-help-circle-outline' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 12px">Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files</q-tooltip>
+            <q-tooltip content-style="font-size: 12px">Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files.</q-tooltip>
         </q-icon>
     </q-toggle>
     <br>
@@ -59,7 +59,7 @@
         </q-icon>
     </div>
     <!-- Start tagging -->
-    <q-btn class='q-mt-xl text-black' color='primary' size='lg' @click='start'>Start!</q-btn>
+    <q-btn class='q-mt-xl text-black' color='primary' @click='start'>Start</q-btn>
 
 
 </div>

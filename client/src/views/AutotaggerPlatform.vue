@@ -34,7 +34,15 @@
             v-model='$1t.config.discogs.token'
             class='input'
             label='Token'
-        ></q-input>
+        >
+            <template v-slot:append>
+                <q-icon name='mdi-help-circle-outline'>
+                    <q-tooltip content-style='font-size: 12px'>
+                        To obtain token, create a free account on discogs.com. More info in Homepage.
+                    </q-tooltip>
+                </q-icon>
+            </template>
+        </q-input>
         <!-- Styles -->
         <q-select
             dark

@@ -72,7 +72,7 @@ pub fn start_webview() {
         .content(web_view::Content::Url("http://127.0.0.1:36913"))
         .user_data(())
         .title("OneTagger")
-        .size(1280, 720)
+        .size(1280, 750)
         .min_size(1024, 550)
         .resizable(true)
         .debug(true)
@@ -208,7 +208,7 @@ pub fn start_webview_cef() {
     window_info.platform_specific.style = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE;
     window_info.window_name = "One Tagger".into();
     window_info.width = 1280;
-    window_info.height = 720;
+    window_info.height = 750;
     window_info.x = 300;
     window_info.y = 100;
 

@@ -1,8 +1,8 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-mt-xl'>Select platforms:</div>
-    <div class='text-subtitle-1 q-mt-xs'>Use the checkbox to enable/disable, drag and drop to reorder fallback.</div>
+    <div class='text-h5 q-mt-md'>Select platforms:</div>
+    <div class='text-subtitle1 q-mt-xs'>Use the checkbox to enable/disable, drag and drop to reorder fallback.</div>
 
     <!-- Platforms -->
     <div class='cards'>
@@ -12,12 +12,12 @@
                     <q-card-section>
                         <div class='row'>
                             <q-checkbox v-model='platform.enabled' class='cb' @input='update'></q-checkbox>
-                            <div class='text-h5 q-mt-xs'>{{platform.name}}</div>
+                            <div class='text-h6 q-mt-xs'>{{platform.name}}</div>
                         </div>
-                        <div class='text-subtitle1 q-ml-sm text-left' v-html='platform.description'></div>
+                        <div class='text-subtitle2 q-ml-sm text-left text-grey-5' v-html='platform.description'></div>
                     </q-card-section>
                     <q-card-section class='right'>
-                        <img :src='platform.image' height='64'>
+                        <img :src='platform.image' height='50'>
                     </q-card-section>
                 </q-card-section>
             </q-card>
@@ -57,7 +57,7 @@ export default {
                     name: 'Discogs',
                     value: 'discogs',
                     enabled: false,
-                    description: 'Most variety in genres. <br><b class="text-subtitle2">Due API rate limits, the process is slow (~20 tracks / minute).</b>',
+                    description: 'Most variety in genres. <br><b class="text-subtitle3 text-white">Due rate limits, process is slow (~20 tracks / min) & requires a free account.</b>',
                     image: require('../assets/discogs.png')
                 },
                 {
@@ -103,5 +103,8 @@ export default {
 }
 .cb svg {
     color: #000;
+}
+.text-subtitle3 {
+    font-size: 12px;
 }
 </style>
