@@ -142,10 +142,16 @@ pub struct AudioFeaturesStatus {
 
 impl AudioFeaturesStatus {
     pub fn new(path: &str, base_path: &str) -> AudioFeaturesStatus {
+        //Get filename without base path
+        let mut filename = path.replacen(base_path, "", 1);
+        if filename.starts_with("/") || filename.starts_with("\\") {
+            filename = filename[1..].to_owned();
+        }
+
         AudioFeaturesStatus {
             state: TaggingState::Skipped,
             path: path.to_string(),
-            filename: path.replacen(base_path, "", 1)
+            filename 
         }
     }
 }

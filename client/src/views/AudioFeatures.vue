@@ -1,8 +1,8 @@
 <template>
-<div class='text-center'>
+<div class='text-center af-wrapper'>
 
     <!-- Login -->
-    <div v-if='!$1t.audioFeatures.spotifyAuthorized' class='full-width'>
+    <div v-if='!$1t.audioFeatures.spotifyAuthorized' class='af-content'>
         <div class='text-h5 q-mt-md'>Setup</div>
         <div class='text-subtitle1 q-mt-md'>
             1. Open <span class='link' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
@@ -31,24 +31,24 @@
     </div>
 
     <!-- Logged in -->
-    <div v-if='$1t.audioFeatures.spotifyAuthorized' class='full-width'>
+    <div v-if='$1t.audioFeatures.spotifyAuthorized' class='af-content'>
         <!-- Path -->
         <div class='text-h5 q-mt-md q-mb-md'>Select folder</div>
-        <q-input outlined label='Path' v-model='$1t.audioFeatures.path' class='path-field'>
+        <q-input filled class='path-field' label='Path' v-model='$1t.audioFeatures.path'>
             <template v-slot:append>
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-white' @click='browse'></q-btn>
             </template>
         </q-input>
 
         <!-- Main tag -->
-        <div class='text-h5 q-mt-xl q-mb-md'>Main Tag</div>
+        <div class='text-h5 q-mt-xl q-mb-md'>Prominent Tag</div>
         <div class='text-subtitle1 q-mb-md'>This tag will have names of properties that are in threshold</div>
         <div class='row q-mx-xl'>
             <div class='col-6 q-px-md'>
-                <q-input outlined v-model='config.mainTag.id3' label='ID3 (MP3 + AIFF)'></q-input>
+                <q-input filled v-model='config.mainTag.id3' label='ID3 (MP3 + AIFF)'></q-input>
             </div>
             <div class='col-6 q-px-md'>
-                <q-input outlined v-model='config.mainTag.flac' label='FLAC'></q-input>
+                <q-input filled v-model='config.mainTag.flac' label='FLAC'></q-input>
             </div>
         </div>
 
@@ -57,7 +57,13 @@
         <div class='q-px-xl'>
             <!-- Header -->
             <div class='row text-subtitle1 text-bold q-mb-sm'>
-                <div class='col-1'>Include in Main Tag</div>
+                <div class='col-1'>Include
+                    <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
+                        <q-tooltip content-style="font-size: 12px">
+                            Include the property in most prominent tag.
+                        </q-tooltip>
+                    </q-icon>
+                </div>
                 <div class='col-2'>Property</div>
                 <div class='col-3'>ID3 Tag Name (MP3 + AIFF)</div>
                 <div class='col-3'>FLAC Tag Name</div>
@@ -77,7 +83,7 @@
                     <!-- Tags -->
                     <div class='col-3'>
                         <q-input 
-                            outlined
+                            filled
                             dense 
                             class='q-px-sm q-pb-xs'
                             v-model='config.properties[key].tag.id3'
@@ -86,7 +92,7 @@
                     </div>
                     <div class='col-3'>
                         <q-input 
-                            outlined
+                            filled
                             dense 
                             class='q-px-sm q-pb-xs'
                             v-model='config.properties[key].tag.flac'
@@ -95,7 +101,14 @@
                     </div>
                     <!-- Range -->
                     <div class='col-3 q-px-md'>
-                        <q-range label :min='0' :max='100' v-model='config.properties[key].range'></q-range>
+                        <q-range 
+                            label 
+                            :min='0' 
+                            :max='100' 
+                            v-model='config.properties[key].range'
+                            class='t-range'
+                            color='grey-8'
+                        ></q-range>
                     </div>
                 </div>
             </div>
@@ -190,5 +203,17 @@ export default {
     font-weight: bold;
     color: #00d2bf;
     cursor: pointer;
+}
+.af-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+.af-content {
+    width: 100%;
+    max-width: 1400px;
+}
+.t-range .q-slider__track-container {
+    background: #00D2BF !important;
 }
 </style>

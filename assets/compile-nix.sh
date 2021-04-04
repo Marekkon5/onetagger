@@ -1,7 +1,7 @@
 # Intended for Github Actions
 # Requires Ubuntu, rustup and nodejs, npm installed
 #sudo apt update
-#sudo apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 ffmpeg libwebkit2gtk-4.0-dev
+#sudo apt install -y libasound2-dev pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 ffmpeg libwebkit2gtk-4.0-dev
 # Compile UI
 cd client
 npm i
