@@ -1,26 +1,39 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h4 q-mt-md'>Spotify Audio Features</div>
-
     <!-- Login -->
     <div v-if='!$1t.audioFeatures.spotifyAuthorized' class='full-width'>
-        <div class='text-h6 q-mt-md'>
+        <div class='text-h5 q-mt-md'>Setup</div>
+        <div class='text-subtitle1 q-mt-md'>
             1. Open <span class='link' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
             2. In settings set the Callback URL to: <span class='selectable text-bold'>http://localhost:36914/spotify</span> <br>
             3. Enter your Client ID and Client Secret below and press login. <br>
         </div>
         <!-- Client ID and secret field -->
-        <div class='row q-mt-xl auth-container'>
-            <q-input v-model='clientId' outlined label='Client ID' class='col-5 q-pr-md'></q-input>
-            <q-input v-model='clientSecret' type='password' outlined label='Client Secret' class='col-5 q-pr-md'></q-input>
+        <div class='row q-mt-xl auth-container justify-evenly'>
+            <q-input v-model='clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
+            <q-input v-model='clientSecret' type='password' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
             <q-btn color='primary' class='text-black' @click='authorize'>Login</q-btn>
+        </div>
+        <!-- Description -->
+        <div class='q-mt-xl text-subtitle2 text-grey-6'>
+            Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match.<br>
+            What are these audio features?<br>
+            Acousticness,<br>
+            Danceability,<br>
+            Energy,<br>
+            Instrumentalness,<br>
+            Liveness,<br>
+            Speechiness,<br>
+            Valence.<br>
+            More info? Hit the Home-icon.<br>
         </div>
     </div>
 
     <!-- Logged in -->
-    <div v-if='$1t.audioFeatures.spotifyAuthorized' class='full-width q-mt-xl'>
+    <div v-if='$1t.audioFeatures.spotifyAuthorized' class='full-width'>
         <!-- Path -->
+        <div class='text-h5 q-mt-md q-mb-md'>Select folder</div>
         <q-input outlined label='Path' v-model='$1t.audioFeatures.path' class='path-field'>
             <template v-slot:append>
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-white' @click='browse'></q-btn>
@@ -28,7 +41,7 @@
         </q-input>
 
         <!-- Main tag -->
-        <div class='text-h5 q-mt-xl q-mb-md'>Main Tag:</div>
+        <div class='text-h5 q-mt-xl q-mb-md'>Main Tag</div>
         <div class='text-subtitle1 q-mb-md'>This tag will have names of properties that are in threshold</div>
         <div class='row q-mx-xl'>
             <div class='col-6 q-px-md'>
@@ -40,7 +53,7 @@
         </div>
 
         <!-- Values -->
-        <div class='text-h5 q-mt-xl q-mb-md'>Properties:</div>
+        <div class='text-h5 q-mt-xl q-mb-md'>Properties</div>
         <div class='q-px-xl'>
             <!-- Header -->
             <div class='row text-subtitle1 text-bold q-mb-sm'>
@@ -175,7 +188,7 @@ export default {
 }
 .link {
     font-weight: bold;
-    color: lightblue;
+    color: #00d2bf;
     cursor: pointer;
 }
 </style>

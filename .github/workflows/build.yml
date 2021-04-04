@@ -18,6 +18,7 @@ jobs:
     
     - name: Run build script
       run: |
+        chmod +x assets/compile-nix.sh
         ./assets/compile-nix.sh
     
     - name: Upload Linux
@@ -44,6 +45,9 @@ jobs:
     - name: Install Dependencies
       run: |
         choco install nsis 7zip -y
+    
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
     
     - name: Run build script
       run: |
