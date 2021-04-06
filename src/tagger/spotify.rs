@@ -12,6 +12,8 @@ use rspotify::model::audio::AudioFeatures;
 use rspotify::client::ApiError;
 use rouille::{Server, router};
 
+use crate::ui::Settings;
+
 static CALLBACK_PORT: u16 = 36914;
 static CALLBACK_HTML: &'static str = "<script>window.close();</script>";
 
@@ -24,6 +26,7 @@ impl Spotify {
     //Generate authorization URL
     pub fn generate_auth_url(client_id: &str, client_secret: &str) -> (String, SpotifyOAuth) {
         let oauth = SpotifyOAuth::default()
+            .cache_path(Settings::get_folder().unwrap().join("spotify_token_cache.json"))
             .client_id(client_id)
             .client_secret(client_secret)
             .scope("user-read-private")
