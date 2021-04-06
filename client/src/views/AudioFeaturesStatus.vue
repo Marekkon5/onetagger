@@ -1,7 +1,7 @@
 <template>
-<div>
+<div class='text-center'>
 
-    <div class='text-h4 text-center q-my-md'>Status:</div>
+    <div class='text-h5 q-mt-md'>Tagging status</div>
 
     <!-- Status -->
     <div class='row justify-center q-my-md'>
@@ -13,9 +13,9 @@
 
     <!-- List of statuses -->
     <div class='status-list'>
-    <q-list bordered>
+    <q-list class='list q-mt-md text-left'>
         <div v-for='(status, i) in $1t.audioFeatures.statuses' :key='"S"+i'>
-            <q-item>
+            <q-item class='item'>
                 <q-item-section avatar>
                     <q-icon :name="icon(status.state)" :color='iconColor(status.state)'></q-icon>
                 </q-item-section>
@@ -23,8 +23,8 @@
                     <q-item-label overline class='selectable'>{{status.state.toUpperCase()}}</q-item-label>
                     <q-item-label><span class='selectable'>{{status.filename}}</span></q-item-label>
                 </q-item-section>
-                
             </q-item>
+
         </div>
     </q-list>
     </div>
@@ -111,5 +111,8 @@ export default {
 .status-list {
     width: 70%;
     margin-left: 15%;
+}
+.item {
+    background-color: #242626;
 }
 </style>

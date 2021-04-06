@@ -12,7 +12,7 @@
     </div>
 
     <!-- Tags -->
-    <div class='text-h5 q-mt-lg'>Select tags:</div>
+    <div class='text-h5 q-mt-lg'>Select tags</div>
     <div class='row tags'>
         <q-checkbox class='tag checkbox' label='Title' v-model='$1t.config.title'></q-checkbox>
         <q-checkbox class='tag checkbox' label='Artist' v-model='$1t.config.artist'></q-checkbox>

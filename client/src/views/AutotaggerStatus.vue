@@ -15,7 +15,7 @@
         </q-chip>
     </div>
     <!-- Failed -->
-    <div class='text-h5 q-mt-md'>Failed tracks:</div>
+    <div class='text-h5 q-mt-md'>Failed tracks</div>
     <q-list class='list q-mt-md text-left'>
         <div v-for='(status, i) in $1t.taggerStatus.statuses' :key='i'>
             <q-item class='item'>

@@ -57,7 +57,7 @@
             :label-value='"Threads: " + $1t.config.threads'
         ></q-slider>
         <q-icon name='mdi-help-circle-outline' class='q-mx-sm slider-tooltip'>
-            <q-tooltip content-style="font-size: 12px">The higher, the faster, but uses more bandwith, and not supported by all platforms.</q-tooltip>
+            <q-tooltip content-style="font-size: 12px">The higher, the faster, but uses more bandwidth, and not supported by all platforms.</q-tooltip>
         </q-icon>
     </div>
     <!-- Start tagging -->

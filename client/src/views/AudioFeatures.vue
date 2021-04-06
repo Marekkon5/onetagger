@@ -18,15 +18,29 @@
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
             Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match.<br>
-            What are these audio features?<br>
-            Acousticness,<br>
-            Danceability,<br>
-            Energy,<br>
-            Instrumentalness,<br>
-            Liveness,<br>
-            Speechiness,<br>
-            Valence.<br>
-            More info? Hit the Home-icon.<br>
+            Audio features overview below. More info? Hit the 'Home' icon.<br>
+            </div>
+            <div class='row q-mt-md justify-center'>
+                <div class='col-2 text-right'>
+                    ACOUSTICNESS<br>
+                    DANCEABILITY<br>
+                    ENERGY<br>
+                    INSTRUMENTALNESS<br>
+                    LIVENESS<br>
+                    SPEECHINESS<br>
+                    VALENCE<br>
+                <div>
+            </div>
+        </div>
+        <div class='col-2 text-left q-mx-md'>
+                    Acoustic vs. Electronic<br>
+                    Danceable vs. Non-rhythmic<br>
+                    Energetic vs. Non-energetic<br>
+                    Instrumental vs. Vocal<br>
+                    Live vs. Recording<br>
+                    Speech vs. Music<br>
+                    Positive vs. Negative (happy vs. sad/angry)<br>
+        </div>
         </div>
     </div>
 
@@ -41,13 +55,15 @@
         </q-input>
 
         <!-- Main tag -->
-        <div class='text-h5 q-mt-xl q-mb-md'>Prominent Tag</div>
-        <div class='text-subtitle1 q-mb-md'>This tag will have names of properties that are in threshold</div>
+        <div class='text-h5 q-mt-xl'>Prominent tag</div>
+        <div class='text-subtitle1 q-mt-xs'>Converts most prominent audio features value (0-100) to a description - based on treshold - and writes to entered tagcode field.</div>
+        <div class='text-subtitle2 q-mt-xs q-mb-sm text-grey-6'>e.g. Acoustic, Danceable, Energetic, Instrumental, Live, Speech, Positive</div>
+
         <div class='row q-mx-xl'>
-            <div class='col-6 q-px-md'>
-                <q-input filled v-model='config.mainTag.id3' label='ID3 (MP3 + AIFF)'></q-input>
+            <div class='col-6 q-px-sm'>
+                <q-input filled v-model='config.mainTag.id3' label='ID3 (MP3/AIFF)'></q-input>
             </div>
-            <div class='col-6 q-px-md'>
+            <div class='col-6 q-px-sm'>
                 <q-input filled v-model='config.mainTag.flac' label='FLAC'></q-input>
             </div>
         </div>
@@ -60,12 +76,12 @@
                 <div class='col-1'>Include
                     <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
                         <q-tooltip content-style="font-size: 12px">
-                            Include the property in most prominent tag.
+                            Include the audio feature in prominent tag.
                         </q-tooltip>
                     </q-icon>
                 </div>
-                <div class='col-2'>Property</div>
-                <div class='col-3'>ID3 Tag Name (MP3 + AIFF)</div>
+                <div class='col-2'>Audio feature</div>
+                <div class='col-3'>ID3 Tag Name (MP3/AIFF)</div>
                 <div class='col-3'>FLAC Tag Name</div>
                 <div class='col-3'>Threshold</div>
             </div>
