@@ -24,6 +24,7 @@ jobs:
         ./configure --disable-shared --enable-static --disable-programs --disable-doc
         make -j8
         sudo make install
+        cd ..
 
     - name: Run build script
       run: |
