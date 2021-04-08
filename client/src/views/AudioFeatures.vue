@@ -18,29 +18,7 @@
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
             Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match.<br>
-            Audio features overview below. More info? Hit the 'Home' icon.<br>
-            </div>
-            <div class='row q-mt-md justify-center'>
-                <div class='col-2 text-right'>
-                    ACOUSTICNESS<br>
-                    DANCEABILITY<br>
-                    ENERGY<br>
-                    INSTRUMENTALNESS<br>
-                    LIVENESS<br>
-                    SPEECHINESS<br>
-                    VALENCE<br>
-                <div>
-            </div>
-        </div>
-        <div class='col-2 text-left q-mx-md'>
-                    Acoustic vs. Electronic<br>
-                    Danceable vs. Non-rhythmic<br>
-                    Energetic vs. Non-energetic<br>
-                    Instrumental vs. Vocal<br>
-                    Live vs. Recording<br>
-                    Speech vs. Music<br>
-                    Positive vs. Negative (happy vs. sad/angry)<br>
-        </div>
+            More info? Hit the <q-icon name='mdi-home' class='q-pb-xs'></q-icon> icon.<br>
         </div>
     </div>
 

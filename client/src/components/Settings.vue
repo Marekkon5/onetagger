@@ -6,8 +6,8 @@
         <q-card-section>
             <div class='text-h6 q-mb-sm'>Settings</div>
             <q-tabs v-model='tab'>
-                <q-tab label='QuickTag' name='quicktag'></q-tab>
-                <q-tab label='QuickTag Custom' name='quicktag-custom'></q-tab>
+                <q-tab label='Quick Tag' name='quicktag'></q-tab>
+                <q-tab label='Quick Tag Custom' name='quicktag-custom'></q-tab>
             </q-tabs>
         </q-card-section>
         <!-- Content -->
@@ -15,16 +15,16 @@
             <!-- Quicktag options -->
             <div v-if='tab == "quicktag"'>
                 <!-- Path options -->
-                <div class='text-h6'>Folder:</div>
+                <div class='text-h10 text-bold text-grey-6'>FOLDER</div>
                 <div class='row q-mb-sm items-center'>
-                    <div class='col-11 text-subtitle2'>Current: {{$1t.settings.quickTag.path}}</div>
+                    <div class='col-11 text-subtitle2'>{{$1t.settings.quickTag.path}}</div>
                     <div class='col-1'>
                         <q-btn round flat icon='mdi-open-in-app' @click='browseQuickTag'></q-btn>
                     </div>
                 </div>
 
                 <!-- Energy keybinds -->
-                <div class='text-h6 q-mb-sm'>Energy keybinds:</div>
+                <div class='text-h10 q-mb-sm text-bold text-grey-6'>ENERGY KEYBINDS</div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
@@ -41,7 +41,7 @@
                     </div>
                 </div>
                 <!-- Energy settings -->
-                <div class='text-h6 q-mb-sm'>Energy tag options:</div>
+                <div class='text-h10 q-mb-sm text-bold text-grey-6'>ENERGY TAG OPTIONS</div>
                 <q-select
                     v-model='$1t.settings.quickTag.energyTag.type'
                     dense
@@ -63,7 +63,7 @@
                 </div>
                 <div class='q-mb-md'></div>
                 <!-- Mood tag -->
-                <div class='text-h6 q-my-sm'>Mood tag:</div>
+                <div class='text-h10 q-my-sm text-bold text-grey-6'>MOOD TAG</div>
                 <div class='row q-mb-md'>
                     <div class='col-6 q-pr-md'>
                         <q-input v-model='$1t.settings.quickTag.moodTag.id3' filled label='ID3 (MP3, AIFF)'></q-input>
@@ -73,7 +73,7 @@
                     </div>
                 </div>
                 <!-- Moods -->
-                <div class='text-h6 q-my-sm'>Moods:</div>
+                <div class='text-h10 q-my-sm text-bold text-grey-6'>MOODS</div>
                 <div class='q-mb-md'>
                     <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
                         <div class='row justify-around'>
@@ -111,7 +111,7 @@
                     </div>
                 </div>
                 <!-- Genres -->
-                <div class='text-h6 q-my-sm'>Genres:</div>
+                <div class='text-h10 q-my-sm text-bold text-grey-6'>GENRES</div>
                 <div>
                     <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
                         <div class='row q-my-sm'>

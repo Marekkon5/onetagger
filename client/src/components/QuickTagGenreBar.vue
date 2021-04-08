@@ -1,11 +1,12 @@
 <template>
 <div class='genre-bar'>
 
-    <div class='row q-mx-md q-pt-sm no-wrap'>
+    <div class='row q-mx-md q-pt-sm no-wrap' @mouseleave="mouseOver = -1">
         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
             <div 
+                @mouseenter="mouseOver = i"
                 class='q-mx-sm text-subtitle1 genre-text text-no-wrap' 
-                :class='{"text-weight-bolder": isSelected(genre)}'
+                :class='{"text-weight-bolder": isSelected(genre) || mouseOver == i}'
                 @click='setGenre(genre)'
             >{{genre.genre}}</div>
         </div>
@@ -17,6 +18,11 @@
 <script>
 export default {
     name: 'QuickTagGenreBar',
+    data() {
+        return {
+            mouseOver: -1
+        }
+    },
     methods: {
         isSelected(genre) {
             return this.$1t.quickTag.track.genres.includes(genre.genre);

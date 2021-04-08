@@ -1,6 +1,6 @@
 <template>
-<div>
-    <q-card flat class='q-mx-md q-my-sm qt-tile' :class='{"bg-darker": selected}'>
+<div @mouseleave='mouseOver = false' @mouseenter="mouseOver = true">
+    <q-card flat class='q-mx-md q-my-sm qt-tile' :class='{"bg-darker": selected || mouseOver}'>
         <div class='row'>
             <div class='selected-bar bg-primary' v-if='selected'></div>
             <div class='row q-pt-md q-pl-md full-width'>
@@ -57,6 +57,11 @@
 <script>
 export default {
     name: 'QuickTagTile',
+    data() {
+        return {
+            mouseOver: false
+        }
+    },
     props: {
         track: Object
     },

@@ -18,7 +18,7 @@
         <q-route-tab :disable='$1t.lock.locked' to="/" class='text-weight-bolder' @click='hideSide'><q-icon name='mdi-home' size='sm'></q-icon></q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/autotagger" class='text-weight-bolder' @click='hideSide'>Auto tagger</q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/audiofeatures" class='text-weight-bolder' @click='audioFeatures'>Audio features</q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>QuickTag</q-route-tab>
+        <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>Quick Tag</q-route-tab>
       </q-tabs>
     </q-header>
 
@@ -90,7 +90,7 @@
         <div class='text-h6'>Warning</div>
       </q-card-section>
       <q-card-section>
-        OneTagger requires atleast 1024x550 window size. Please resize to continue.
+        One Tagger requires atleast 1024x550 window size. Please resize to continue.
       </q-card-section>
     </q-card>
   </q-dialog>

@@ -2,6 +2,7 @@
 <div ref='container' class='index-container' @scroll='onScroll'>
     <!-- Right cards -->
     <div class='getting-started-cards'>
+    <div class='text-h10 text-bold text-grey-6 q-py-sm'>GETTING STARTED</div>
         <q-card class='rounded-borders' v-if='section != 1'>
             <q-card-section>
                 <div class='text-primary text-h6'>Auto Tagger</div>
@@ -132,15 +133,16 @@ export default {
 
 <style>
 .index-container {
-    overflow-x: scroll;
+    overflow-x: hidden;
     height: calc(100vh - 109px);
+    background-image: url("../assets/bg.png");
+    background-repeat: no-repeat;
+    background-size: contain;    
 }
 .getting-started-cards {
     position: absolute;
     right: 48px;
     top: 157px;
-    /* left: 60%;
-    top: -350px; */
     max-width: 400px;
 }
 .section {
