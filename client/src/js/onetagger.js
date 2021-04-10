@@ -238,6 +238,7 @@ class OneTagger {
         this._nextQTTrack = null;
         //Waveform loading lock
         this._waveformLock = [];
+        this._waveformPath = null;
 
         //Keybinds
         document.addEventListener('keydown', (e) => {
@@ -309,13 +310,23 @@ class OneTagger {
         this.setVolume(this.player.volume);
     }
 
-    //Generate waveform
+    //Wrapper to prevent multiple waveforms
     async generateWaveform(path) {
+        this._waveformPath = path;
         //Aquire lock
         this._waveformLock.push(true);
-        while (this._waveformLock.length > 1)
+        while (this._waveformLock.length > 1) {
             await new Promise((res) => setTimeout(() => res(), 50));
+            if (path != this._waveformPath) {
+                this._waveformLock.pop();
+                return;
+            }
+        }
+        await this._generateWaveform(path);
+    }
 
+    //Generate waveform
+    async _generateWaveform(path) {
         this.generateDefaultWaveform();
         let waveformIndex = 0;
         //Separate socket = separate thread

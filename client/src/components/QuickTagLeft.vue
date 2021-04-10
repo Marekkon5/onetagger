@@ -62,6 +62,9 @@ export default {
     margin-left: -4px;
 }
 .pointer {
-    cursor: pointer;
+    cursor: pointer;    
+}
+.pointer:hover {
+    transform: scale(1.1);
 }
 </style>
