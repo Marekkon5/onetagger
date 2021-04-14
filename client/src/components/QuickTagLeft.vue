@@ -22,7 +22,7 @@
         <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
             <q-chip 
                 :outline='!(moodSelected(mood) || moodHover == i)' 
-                :color='mood.color'
+                :color='mood.color + ((moodSelected(mood) || moodHover == i) ? "-6" : "")'
                 :label='mood.mood'
                 @mousemove.native='moodHover = i'
                 @mouseleave.native="moodHover = -1"

@@ -22,6 +22,8 @@
       </q-tabs>
     </q-header>
 
+    <HelpButton></HelpButton>
+
     <!-- Drawers -->
     <q-drawer :breakpoint='1000' v-model="left" side="left" :width='200'>
       <QuickTagLeft></QuickTagLeft>
@@ -104,10 +106,11 @@ import QuickTagLeft from './components/QuickTagLeft';
 import Settings from './components/Settings';
 import QuickTagGenreBar from './components/QuickTagGenreBar';
 import QuickTagRight from './components/QuickTagRight';
+import HelpButton from './components/HelpButton';
 
 export default {
   name: "App",
-  components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar, QuickTagRight},
+  components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar, QuickTagRight, HelpButton},
   data() {
     return {
       left: false,
@@ -131,8 +134,10 @@ export default {
     },
     //Navigate to homepage
     home() {
-      if (!this.$1t.lock.locked) 
+      if (!this.$1t.lock.locked) {
+        this.hideSide();
         this.$router.push("/");
+      }
     },
     //Navigate to audio features
     audioFeatures() {

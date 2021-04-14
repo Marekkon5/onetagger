@@ -44,7 +44,9 @@ def main():
 
     # Compile Rust
     print("Compiling...")
-    subprocess.Popen(["rustup", "override", "set", "nightly"], shell=True).wait()
+    # NOTE: Latest nightly breaks
+    subprocess.Popen(["rustup", "install", "nightly-2021-03-25"], shell=True).wait()
+    subprocess.Popen(["rustup", "override", "set", "nightly-2021-03-25"], shell=True).wait()
     env = os.environ.copy()
     env["PATH"] = f"{env['PATH']};{ffmpeg_path}"
     subprocess.Popen(["cargo", "build", "--release"], shell=True, env=env).wait()

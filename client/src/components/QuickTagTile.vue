@@ -25,7 +25,7 @@
                         <!-- Mood -->
                         <q-chip 
                             v-if='getMood(track.mood)'
-                            :color='getMood(track.mood).color'
+                            :color='getMood(track.mood).color + "-6"'
                             :outline='getMood(track.mood).outline'
                             :label='getMood(track.mood).mood'
                         ></q-chip>
