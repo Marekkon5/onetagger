@@ -2,7 +2,7 @@
 <div>
 
     <!-- Button -->
-    <div class='help-button-container' @click='show = true' v-if='route'>
+    <div class='help-button-container' @click='show = true' v-if='showButton'>
         <q-btn color='primary' class='q-px-sm help-button text-bold'>
             <q-icon name='mdi-help-circle-outline' class='q-pr-sm' size='xs'></q-icon>
             Help
@@ -72,12 +72,71 @@
                         </div>
                     </div>
 
+                    <!-- Page 2 -->
+                    <div v-if='page == 1'>
+                        <div class='text-h6 text-bold q-mt-sm'>Step-by-step guide</div>
+                        <div class='text-subtitle1'>
+                            <b>1. </b>Use the checkbox to enable/disable to fetch from particular platform. <br>
+                            <b>2. </b>Drag & drop the cards to reorder fallback <br>
+                            <b>3. </b>Select folder to process (subfolders included) by clicking on the icon or copy/paste the path directly. <br>
+                            <b>4. </b>Use the checkboxes to enable/disable to fetch the stated tag & hit ‘Next’. <br>
+                        </div>
+                        <div class='text-subtitle1 text-bold q-mt-sm'>Beatport</div>
+                        <div class='text-subtitle1'>
+                            <b>5. </b>Select Album art resolution (500x500 is native resolution; above will upscale). <br>
+                            <b>6. </b>Drag slider to determine amount of search page results to scan for the most corresponding track. <br>
+                        </div>
+                        <div class='text-subtitle1 text-bold q-mt-sm'>Discogs</div>
+                        <div class='text-subtitle1'>
+                            <b>7. </b>Enter token. To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable text-primary'>discogs.com</span> <br>
+                            Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='clickable text-primary'>discogs.com/settings/developers</span> and click ‘Generate token’. <br>
+                            Select it & copy/paste the current token. <br>
+                            <b>8. </b>Select Genres/Styles tag to either fetch genre, style or both and if it should merge them, or write elsewhere. <br>
+                            <b>9. </b>Drag slider to determine amount of album search results to check. Hit ‘Next’. <br>
+                        </div>
+                        <div class='text-subtitle1 text-bold q-mt-sm'>Advanced</div>
+                        <div class='text-subtitle1'>
+                            <b>10. </b>Set the settings to your likings. Hover over the <q-icon name='mdi-help-circle-outline' class='q-mb-xs'></q-icon> icons for more info. <br>
+                            Hit ‘Start’ to process.
+                        </div>
+                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-sm q-my-md'>
+                            On top, it shows amount of time taken + amount not matched + amount matched. <br>
+                            Middle section will populate which tracks were not matched. <br>
+                            At the bottom a bar will grow indicating the progression. <br>
+                        </div>
+
+                    </div>
+
                 </q-card-section>
             </div>
 
-            <!-- Autotagger page 2 -->
-            <div v-if='route == "autotagger"'>
+            <!-- Audio features -->
+            <div v-if='route == "audiofeatures"'>
+                <q-card-section class='q-px-xl'>
+                    <div class='text-h5 text-bold text-primary'>Getting started with Audio Features</div>
+                    <div class='text-subtitle1 text-bold text-primary'>{{page+1}} / {{pages}}</div>
 
+                    <!-- Page 1 -->
+                    <div v-if='page == 0'>
+
+                    </div>
+
+                </q-card-section>
+            </div>
+
+
+            <!-- Quicktag -->
+            <div v-if='route == "quicktag"'>
+                <q-card-section class='q-px-xl'>
+                    <div class='text-h5 text-bold text-primary'>Getting started with Quick Tag</div>
+                    <div class='text-subtitle1 text-bold text-primary'>{{page+1}} / {{pages}}</div>
+
+                    <!-- Page 1 -->
+                    <div v-if='page == 0'>
+
+                    </div>
+
+                </q-card-section>
             </div>
 
         </q-card>
@@ -102,6 +161,17 @@ export default {
         pages() {
             if (this.route == 'autotagger') return 2;
             return 0;
+        },
+        //Show/Hide button
+        showButton() {
+            if (!this.route) return false;
+            if (this.$route.path.includes('/status')) return false;
+            return true;
+        }
+    },
+    watch: {
+        show() {
+            if (!this.show) this.page = 0;
         }
     }
 }
@@ -124,9 +194,18 @@ export default {
     opacity: 100%;
 }
 
-.help-card {
-    min-width: 80%;
+@media screen and (max-width: 1200px) {
+    .help-card {
+       width: 80%;
+       min-width: 80%;
+    }
 }
+@media screen and (min-width: 1200px) {
+    .help-card {
+        min-width: 1000px;
+    }
+}
+
 
 .help-page-icon {
     position: absolute !important;
