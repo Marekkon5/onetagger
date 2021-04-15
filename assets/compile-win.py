@@ -21,7 +21,7 @@ def main():
 
     # Download ffmpeg
     print("Setting up ffmpeg and pkg-config")
-    url = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z'
+    url = 'https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-4.3.2-2021-02-27-full_build-shared.7z'
     urllib.request.urlretrieve(url, "dist\\ffmpeg.7z")
     subprocess.Popen(["7z", "x", "dist\\ffmpeg.7z", "-odist\\ffmpeg"]).wait()
     ffmpeg_path = os.path.abspath(os.path.join("dist\\ffmpeg", os.listdir("dist\\ffmpeg")[0]))
@@ -45,8 +45,8 @@ def main():
     # Compile Rust
     print("Compiling...")
     # NOTE: Latest nightly breaks
-    subprocess.Popen(["rustup", "install", "nightly-2021-03-25"], shell=True).wait()
-    subprocess.Popen(["rustup", "override", "set", "nightly-2021-03-25"], shell=True).wait()
+    subprocess.Popen(["rustup", "install", "nightly"], shell=True).wait()
+    subprocess.Popen(["rustup", "override", "set", "nightly"], shell=True).wait()
     env = os.environ.copy()
     env["PATH"] = f"{env['PATH']};{ffmpeg_path}"
     subprocess.Popen(["cargo", "build", "--release"], shell=True, env=env).wait()
