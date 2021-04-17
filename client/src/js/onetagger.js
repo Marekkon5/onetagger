@@ -248,6 +248,9 @@ class OneTagger {
                 return false;
             }
         });
+
+        //So can be triggered globally
+        this.helpDialog = Vue.observable({open: false, route: null});
     }
 
     //SHOULD BE OVERWRITTEN

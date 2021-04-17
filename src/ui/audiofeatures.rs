@@ -38,17 +38,17 @@ impl AFProperties {
     pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
         vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
-                .add_main_value("Unrhythmical", "Danceable"),
+                .add_main_value("Non-rhythmic", "Danceable"),
             AFPropertyMerged::new(features.acousticness, &self.acousticness, &format)
                 .add_main_value("Electronic", "Acoustic"),
             AFPropertyMerged::new(features.energy, &self.energy, &format)
-                .add_main_value("Passive", "Energetic"), 
+                .add_main_value("Non-energetic", "Energetic"), 
             AFPropertyMerged::new(features.instrumentalness, &self.instrumentalness, &format)
                 .add_main_value("Vocal", "Instrumental"),
             AFPropertyMerged::new(features.liveness, &self.liveness, &format)
-                .add_main_value("Recorded", "Live"),
+                .add_main_value("Recording", "Live"),
             AFPropertyMerged::new(features.speechiness, &self.speechiness, &format)
-                .add_main_value("Speechless", "Speech"),
+                .add_main_value("Music", "Speech"),
             AFPropertyMerged::new(features.valence, &self.valence, &format)
                 .add_main_value("Negative", "Positive")
         ]

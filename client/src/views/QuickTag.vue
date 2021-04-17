@@ -14,6 +14,14 @@
         <div>
             <div class='text-center text-grey-6 text-h3'>No folder selected!</div>
             <div class='text-center text-grey-6 text-h5 q-pt-md'>Click here to select folder</div>
+            <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
+                Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
+                Seek -10s: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon><br>
+                Seek +30s: <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon><br>
+                Change tracks: <q-icon name='mdi-chevron-up' class='keybind-icon'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon> <br>
+                Confirm save: <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon><br>
+            </div>
+
         </div>
     </div>
     
@@ -105,6 +113,14 @@ export default {
 
 .qt-height {
     height: calc(100vh - 220px);
+}
+
+.keybind-icon {
+    padding: 4px;
+    border-radius: 2px;
+    background: #262828;
+    margin-bottom: 4px;
+    margin-left: 4px;
 }
 
 </style>
