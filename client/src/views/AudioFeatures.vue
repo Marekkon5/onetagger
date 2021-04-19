@@ -18,7 +18,6 @@
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
             Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match.<br>
-            More info? Hit the <q-icon name='mdi-home' class='q-pb-xs'></q-icon> icon.<br>
         </div>
     </div>
 
