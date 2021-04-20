@@ -1,5 +1,9 @@
 <template>
-<div ref='container' class='index-container'>
+<div class='index-container' @mouseenter='mouseEnter' @mouseleave="mouseLeave">
+
+    <!-- Background -->
+    <img src='../assets/bg.png' class='bg-image' ref='bgImage'>
+
     <!-- Right cards -->
     <div class='getting-started-cards'>
     <div class='text-h10 text-bold q-py-sm'>GETTING STARTED</div>
@@ -69,6 +73,13 @@ export default {
         help(route) {
             this.$1t.helpDialog.route = route;
             this.$1t.helpDialog.open = true;
+        },
+        mouseEnter() {
+            this.$refs.bgImage.classList.remove('scale-down-anim');
+            this.$refs.bgImage.classList.add('scale-up-anim');
+        },
+        mouseLeave() {
+            this.$refs.bgImage.classList.add('scale-down-anim');
         }
     }
 }
@@ -78,9 +89,6 @@ export default {
 .index-container {
     overflow: hidden;
     height: calc(100vh - 109px);
-    background-image: url("../assets/bg.png");
-    background-repeat: no-repeat;
-    background-size: contain;    
 }
 .getting-started-cards {
     position: absolute;
@@ -88,4 +96,34 @@ export default {
     top: 157px;
     max-width: 400px;
 }
+.bg-image {
+    width: 100%;
+    max-height: 100%;
+    position: fixed;
+    z-index: -100;
+    transform: scale(1.1);
+}
+
+.scale-up-anim {
+    animation-name: scale-up;
+    animation-duration: 0.5s;
+    animation-fill-mode: forwards;
+}
+
+.scale-down-anim {
+    animation-name: scale-down;
+    animation-duration: 0.5s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes scale-up {
+    from { transform: scale(1.1); }
+    to   { transform: scale(1.2); }
+}
+
+@keyframes scale-down {
+    from { transform: scale(1.2); }
+    to   { transform: scale(1.1); }
+}
+
 </style>

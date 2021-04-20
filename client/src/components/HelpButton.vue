@@ -77,7 +77,7 @@
                         <div class='text-subtitle1 text-bold text-primary q-mt-md'>Step-by-step guide</div>
                         <div class='text-subtitle2'>
                             <span class='text-number text-bold text-grey-6'>1. </span>Use the checkbox to enable/disable to fetch from particular platform. <br>
-                            <span class='text-number text-bold text-grey-6'>2. </span>Drag & drop the cards to reorder fallback <br>
+                            <span class='text-number text-bold text-grey-6'>2. </span>Drag & drop the cards to reorder fallback. <br>
                             <span class='text-number text-bold text-grey-6'>3. </span>Select folder to process (subfolders included) by clicking on the icon or copy/paste the path directly. <br>
                             <span class='text-number text-bold text-grey-6'>4. </span>Use the checkboxes to enable/disable to fetch the stated tag & hit ‘Next’. <br>
                         </div>
@@ -205,9 +205,9 @@
                             <span class='text-number text-bold text-grey-6'>5. </span>Key bind them all to a character on your keyboard for quick access. <br>
                             <span class='text-number text-bold text-grey-6'>6. </span>Decide where you want all the above data written to. <br>
                             <span class='text-number text-bold text-grey-6'>7. </span>Play a song and listen - or quickly skip through a track using the arrow keys on your keyboard. <br>
-                            <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br>
+                            <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br><br>
                         </div>
-                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-md'>
+                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-sm'>
                             For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
                         </div>
                     </div>
