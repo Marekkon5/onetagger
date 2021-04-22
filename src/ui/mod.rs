@@ -71,7 +71,7 @@ pub fn start_webview() {
         .invoke_handler(|_, __| Ok(()))
         .content(web_view::Content::Url("http://127.0.0.1:36913"))
         .user_data(())
-        .title("OneTagger")
+        .title("One Tagger")
         .size(1280, 750)
         .min_size(1024, 550)
         .resizable(true)

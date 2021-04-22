@@ -189,8 +189,12 @@ class OneTagger {
                 path: null,
                 energyKeys: [null,null,null,null,null],
                 moods: [
-                    {mood: 'Happy', color: 'green'},
-                    {mood: 'Sad', color: 'orange'},
+                    {mood: 'Happy', color: 'amber'},
+                    {mood: 'Sad', color: 'indigo'},
+                    {mood: 'Bright', color: 'green'},
+                    {mood: 'Dark', color: 'deep-purple'},
+                    {mood: 'Angry', color: 'red'},
+                    {mood: 'Chill', color: 'teal'}
                 ],
                 moodTag: {vorbis: 'MOOD', id3: 'TMOO'},
                 energyTag: {
@@ -201,20 +205,72 @@ class OneTagger {
                     vorbis: 'COMPOSER'
                 },
                 genres: [
+                    {genre: '2-step', keybind: null},
+                    {genre: 'Acid', keybind: null},
+                    {genre: 'Breakbeat', keybind: null},
+                    {genre: 'Disco', keybind: null},
+                    {genre: 'Drum & Bass', keybind: null},
+                    {genre: 'Electro', keybind: null},
+                    {genre: 'Funk', keybind: null},
+                    {genre: 'Hardcore', keybind: null},
+                    {genre: 'Hiphop', keybind: null},
                     {genre: 'House', keybind: null},
-                    {genre: 'Electro', keybind: null}
+                    {genre: 'Industrial', keybind: null},
+                    {genre: 'Jungle', keybind: null},
+                    {genre: 'Latin', keybind: null},
+                    {genre: 'Minimal', keybind: null},
+                    {genre: 'Nu-Disco', keybind: null},
+                    {genre: 'Oldies', keybind: null},
+                    {genre: 'Pop', keybind: null},
+                    {genre: 'Reggae', keybind: null},
+                    {genre: 'Rock', keybind: null},
+                    {genre: 'Techno', keybind: null},
+                    {genre: 'Trance', keybind: null},
                 ],
                 custom: [{
-                    name: "Style",
-                    id3: "STYLE",
-                    vorbis: "STYLE",
-                    values: [{
-                        val: "Boring",
-                        keybind: null
-                    }, {
-                        val: "Energetic",
-                        keybind: null
-                    }],
+                    name: 'Vibe',
+                    id3: 'STYLE',
+                    vorbis: 'STYLE',
+                    values: [
+                        {val: 'Afro', keybind: null},
+                        {val: 'Asian', keybind: null},
+                        {val: 'Arabic', keybind: null},
+                        {val: 'Classic', keybind: null},
+                        {val: 'Dirty', keybind: null},
+                        {val: 'Etnic', keybind: null},
+                        {val: 'Funky', keybind: null},
+                        {val: 'Gangsta', keybind: null},
+                        {val: 'Glitchy', keybind: null},
+                        {val: 'Melodic', keybind: null},
+                        {val: 'Sensual', keybind: null},
+                        {val: 'Soulful', keybind: null},
+                    ],
+                }, {
+                    name: 'Situation',
+                    id3: '',
+                    vorbis: '',
+                    values: [
+                        {val: 'Start', keybind: null},
+                        {val: 'Build', keybind: null},
+                        {val: 'Peak', keybind: null},
+                        {val: 'Sustain', keybind: null},
+                        {val: 'Release', keybind: null},
+                    ]
+                }, {
+                    name: 'Instruments',
+                    id3: '',
+                    vorbis: '',
+                    values: [
+                        {val: 'Vocals', keybind: null},
+                        {val: 'Bass Heavy', keybind: null},
+                        {val: 'Congas', keybind: null},
+                        {val: 'Guitar', keybind: null},
+                        {val: 'Horns', keybind: null},
+                        {val: 'Organ', keybind: null},
+                        {val: 'Piano', keybind: null},
+                        {val: 'Strings', keybind: null},
+                        {val: 'Sax', keybind: null},
+                    ]
                 }]
             },
             audioFeatures: {

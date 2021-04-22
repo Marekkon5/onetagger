@@ -50,7 +50,7 @@
             <img src="../assets/logo-full.png" height='64' class='q-pr-sm q-mt-xs'>            
         </div>
         <div class='q-pt-md text-h6'>The ultimate cross-platform audio tagger for DJs</div>
-        <div class='q-pt-md text-subtitle1 text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger")'>https://github.com/Marekkon5/onetagger</div>
+        <span class='q-pt-md text-subtitle1 text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger")'>https://github.com/Marekkon5/onetagger</span>
         <div class='q-pt-md text-subtitle1'>
             Developed by Marekkon5<br>
             UI & logo design by Bas Curtiz

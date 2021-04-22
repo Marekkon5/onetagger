@@ -7,3 +7,4 @@ client/dist/
 .idea/
 .spotify*
 dist/
+osxcross/

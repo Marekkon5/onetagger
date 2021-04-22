@@ -15,7 +15,14 @@ use rouille::{Server, router};
 use crate::ui::Settings;
 
 static CALLBACK_PORT: u16 = 36914;
-static CALLBACK_HTML: &'static str = "<script>window.close();</script>";
+static CALLBACK_HTML: &'static str = "
+<html>
+    <head><script>window.close();</script></head>
+    <body>
+        <h1>Spotify authorized successfully, you can close this window.</h1>
+    </body>
+</html>
+";
 
 #[derive(Clone)]
 pub struct Spotify {

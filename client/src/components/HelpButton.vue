@@ -154,20 +154,66 @@
                             but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>
                             Look up which tag code represents what tag name in the <span class='clickable text-primary' @click='$1t.url(metadataMatrix)'>Metadata matrix</span>. <br>
                         </div>
-                        <div class='text-subtitle2 q-mt-md'>For example, a track has the following values:</div> <br>
-                        <div class='row text-subtitle2 text-left' style='width: 26%; margin-left: 37%;'>
-                            <div class='col-10'>ACOUSTICNESS</div>     <div class='text-right col-2'>10</div>
-                            <div class='col-10'>DANCEABILITY</div>     <div class='text-right col-2'>70</div>
-                            <div class='col-10'>ENERGY</div>           <div class='text-right col-2'>80</div>
-                            <div class='col-10'>INSTRUMENTALNESS</div> <div class='text-right col-2'>90</div>
-                            <div class='col-10'>LIVENESS</div>         <div class='text-right col-2'>20</div>
-                            <div class='col-10'>SPEECHINESS</div>      <div class='text-right col-2'>10</div>
-                            <div class='col-10'>VALENCE</div>          <div class='text-right col-2'>88</div>
+
+                        <div class='row q-mx-xl q-my-xl justify-around'>
+                            <div class='col-3'>
+                                <span class='text-primary text-subtitle1 text-bold'>Acousticness</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    0-10 = Electronic <br>
+                                    90-100 = Acoustic <br>
+                                </span>
+                            </div>
+                            <div class='col-3'>
+                                <span class='text-primary text-subtitle1 text-bold'>Danceability</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    80-100 = Danceable <br>
+                                    0-20 = Non-rhythmic <br>
+                                </span>
+                            </div>
+                            <div class='col-3'>
+                                <span class='text-primary text-subtitle1 text-bold'>Energy</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    80-100 = Energetic <br>
+                                    0-20 = Non-energetic <br>
+                                </span>
+                            </div>
+                            <div class='col-3'>
+                                <span class='text-primary text-subtitle1 text-bold'>Instrumentalness</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    0-10 = Vocal <br>
+                                    90-100 = Instrumental <br>
+                                </span>
+                            </div>
+                            <div class='col-3 q-mt-md'>
+                                <span class='text-primary text-subtitle1 text-bold'>Liveness</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    0-20 = Recording <br>
+                                    80-100 = Live <br>
+                                </span>
+                            </div>
+                            <div class='col-3 q-mt-md'>
+                                <span class='text-primary text-subtitle1 text-bold'>Speechiness</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    0-30 = Music <br>
+                                    70-100 = Speech <br>
+                                </span>
+                            </div>
+                            <div class='col-3 q-mt-md'>
+                                <span class='text-primary text-subtitle1 text-bold'>Valence</span><br>
+                                <span class='text-subtitle2'>
+                                    Treshold default: <br>
+                                    0-15 = Negative <br>
+                                    85-100 = Positive <br>
+                                </span>
+                            </div>
                         </div>
-                        <div class='text-subtitle2 q-mt-md'>
-                            When going with the default treshold values it will write the following prominent tag: <br>
-                            Electronic, Energetic, Instrumental, Positive <br><br>
-                        </div>
+
                         <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-md'>
                             To look up audio features online for other tracks, check out <span class='text-primary clickable' @click='$1t.url("https://songdata.io")'>SongData.io</span> - Ignore the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify</span> though.
                         </div>

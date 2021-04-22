@@ -5,11 +5,11 @@
         <!-- Tag title -->
         <div class='text-subtitle1 text-bold q-pb-sm text-primary'>{{tag.name}}</div>
         <!-- Values -->
-        <div v-for='(value, j) in tag.values' :key='i+"value"+j' @mouseleave="mouseOver = -1">
+        <div v-for='(value, j) in tag.values' :key='i+"value"+j' @mouseleave="mouseOver.index = -1">
             <div 
-                @mouseenter="mouseOver = j"
+                @mouseenter="mouseOver.index = j; mouseOver.tag = i"
                 class='text-subtitle2 clickable' 
-                :class='{"text-bold": selected(tag, j) || mouseOver == j, "text-grey-6": !selected(tag, j)}'
+                :class='{"text-bold": selected(tag, j) || (mouseOver.index == j && mouseOver.tag == i), "text-grey-6": !selected(tag, j)}'
                 @click='valueClick(tag, j)'
             >{{value.val}}</div>
         </div>
@@ -23,7 +23,7 @@ export default {
     name: "QuickTagRight",
     data() {
         return {
-            mouseOver: -1
+            mouseOver: {index: -1, tag: -1}
         }
     },
     methods: {

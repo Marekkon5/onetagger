@@ -38,7 +38,7 @@
             <template v-slot:append>
                 <q-icon name='mdi-help-circle-outline' size='xs'>
                     <q-tooltip content-style='font-size: 12px'>
-                        To obtain token, create a free account on discogs.com. More info? Hit the 'Home' icon. 
+                        To obtain token, create a free account on discogs.com. More info? Hit the <q-icon style='padding-bottom: 2px;' name='mdi-help-circle-outline'></q-icon> HELP on the right side. 
                     </q-tooltip>
                 </q-icon>
             </template>
