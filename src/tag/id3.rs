@@ -18,23 +18,33 @@ pub struct ID3Tag {
 
 impl ID3Tag {
     //Read from file
-    pub fn load_file(path: &str) -> Result<ID3Tag, Box<dyn Error>> {
+    pub fn load_file(path: &str) -> Result<ID3Tag, Box<dyn Error>> {        
         //MP3
         if path.to_lowercase().ends_with(".mp3") {
+            let tag = Tag::read_from_path(path)?;
+            let version = tag.version();
             return Ok(ID3Tag {
-                tag: Tag::read_from_path(path)?,
+                tag,
                 format: ID3AudioFormat::MP3,
                 id3_separator: String::from(", "),
-                id3v24: true
+                id3v24: match version {
+                    Version::Id3v24 => true,
+                    _ => false
+                }
             }.into());
         }
         //AIFF
         if path.to_lowercase().ends_with(".aif") || path.to_lowercase().ends_with(".aiff") {
+            let tag = Tag::read_from_path(path)?;
+            let version = tag.version();
             return Ok(ID3Tag {
-                tag: Tag::read_from_aiff(path)?,
+                tag,
                 format: ID3AudioFormat::AIFF,
                 id3_separator: String::from(", "),
-                id3v24: true
+                id3v24: match version {
+                    Version::Id3v24 => true,
+                    _ => false
+                }
             }.into());
         }
 

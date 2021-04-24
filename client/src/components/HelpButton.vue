@@ -160,7 +160,7 @@
                                 <span class='text-primary text-subtitle1 text-bold'>Acousticness</span><br>
                                 <span class='text-subtitle2'>
                                     Treshold default: <br>
-                                    0-10 = Electronic <br>
+                                    0* = Electronic <br>
                                     90-100 = Acoustic <br>
                                 </span>
                             </div>
@@ -168,23 +168,23 @@
                                 <span class='text-primary text-subtitle1 text-bold'>Danceability</span><br>
                                 <span class='text-subtitle2'>
                                     Treshold default: <br>
-                                    80-100 = Danceable <br>
                                     0-20 = Non-rhythmic <br>
+                                    80-100 = Danceable <br>
                                 </span>
                             </div>
                             <div class='col-3'>
                                 <span class='text-primary text-subtitle1 text-bold'>Energy</span><br>
                                 <span class='text-subtitle2'>
                                     Treshold default: <br>
-                                    80-100 = Energetic <br>
                                     0-20 = Non-energetic <br>
+                                    90-100 = Energetic <br>
                                 </span>
                             </div>
                             <div class='col-3'>
                                 <span class='text-primary text-subtitle1 text-bold'>Instrumentalness</span><br>
                                 <span class='text-subtitle2'>
                                     Treshold default: <br>
-                                    0-10 = Vocal <br>
+                                    0-50 = Vocal <br>
                                     90-100 = Instrumental <br>
                                 </span>
                             </div>
@@ -192,7 +192,7 @@
                                 <span class='text-primary text-subtitle1 text-bold'>Liveness</span><br>
                                 <span class='text-subtitle2'>
                                     Treshold default: <br>
-                                    0-20 = Recording <br>
+                                    0* = Recording <br>
                                     80-100 = Live <br>
                                 </span>
                             </div>
@@ -200,7 +200,7 @@
                                 <span class='text-primary text-subtitle1 text-bold'>Speechiness</span><br>
                                 <span class='text-subtitle2'>
                                     Treshold default: <br>
-                                    0-30 = Music <br>
+                                    0* = Music <br>
                                     70-100 = Speech <br>
                                 </span>
                             </div>
@@ -212,6 +212,10 @@
                                     85-100 = Positive <br>
                                 </span>
                             </div>
+                        </div>
+                        
+                        <div class='text-subtitle2'>
+                            *0 = When When treshold is 0, it won't write the prominent tag.
                         </div>
 
                         <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-md'>

@@ -185,6 +185,7 @@ class OneTagger {
         this.settings = Vue.observable({
             discogsToken: null,
             volume: 0.05,
+            helpButton: true,
             quickTag: {
                 path: null,
                 energyKeys: [null,null,null,null,null],

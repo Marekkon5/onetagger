@@ -8,6 +8,7 @@
             <q-tabs v-model='tab'>
                 <q-tab label='Quick Tag' name='quicktag'></q-tab>
                 <q-tab label='Quick Tag Custom' name='quicktag-custom'></q-tab>
+                <q-tab label='Advanced' name='advanced'></q-tab>
             </q-tabs>
         </q-card-section>
         <!-- Content -->
@@ -196,7 +197,14 @@
                         <q-btn round flat icon='mdi-plus' size='md' color='primary' @click='addCustomQT'></q-btn>
                     </div>
                 </div>
-                
+            </div>
+
+            <!-- Advanced -->
+            <div v-if='tab == "advanced"'>
+                <q-checkbox
+                    v-model='$1t.settings.helpButton'
+                    label='Show help button'
+                ></q-checkbox>
             </div>
 
         </q-card-section>

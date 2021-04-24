@@ -125,12 +125,12 @@ export default {
             config: {
                 mainTag: {id3: 'STYLE', flac: 'STYLE'},
                 properties: {
-                    acousticness: {enabled: true, range: {min: 10, max: 90}, tag: {id3: '1T_ACOUSTICNESS', flac: '1T_ACOUSTICNESS'}},
+                    acousticness: {enabled: true, range: {min: 0, max: 90}, tag: {id3: '1T_ACOUSTICNESS', flac: '1T_ACOUSTICNESS'}},
                     danceability: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_DANCEABILITY', flac: '1T_DANCEABILITY'}},
-                    energy: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_ENERGY', flac: '1T_ENERGY'}},
-                    instrumentalness: {enabled: true, range: {min: 10, max: 90}, tag: {id3: '1T_INSTRUMENTALNESS', flac: '1T_INSTRUMENTALNESS'}},
-                    liveness: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_LIVENESS', flac: '1T_LIVENESS'}},
-                    speechiness: {enabled: true, range: {min: 30, max: 70}, tag: {id3: '1T_SPEECHINESS', flac: '1T_SPEECHINESS'}},
+                    energy: {enabled: true, range: {min: 20, max: 90}, tag: {id3: '1T_ENERGY', flac: '1T_ENERGY'}},
+                    instrumentalness: {enabled: true, range: {min: 50, max: 90}, tag: {id3: '1T_INSTRUMENTALNESS', flac: '1T_INSTRUMENTALNESS'}},
+                    liveness: {enabled: true, range: {min: 0, max: 80}, tag: {id3: '1T_LIVENESS', flac: '1T_LIVENESS'}},
+                    speechiness: {enabled: true, range: {min: 0, max: 70}, tag: {id3: '1T_SPEECHINESS', flac: '1T_SPEECHINESS'}},
                     valence: {enabled: true, range: {min: 15, max: 85}, tag: {id3: '1T_VALENCE', flac: '1T_VALENCE'}}
                 }
             }
@@ -163,6 +163,7 @@ export default {
             this.$1t.audioFeatures.done = false;
             this.$1t.audioFeatures.statuses = [];
             this.$1t.audioFeatures.started = Date.now();
+            this.$1t.audioFeatures.ended = null;
             //Start
             let config = this.config;
             this.config.path = this.$1t.audioFeatures.path;

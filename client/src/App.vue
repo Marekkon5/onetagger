@@ -22,7 +22,7 @@
       </q-tabs>
     </q-header>
 
-    <HelpButton></HelpButton>
+    <HelpButton v-if='$1t.settings.helpButton'></HelpButton>
 
     <!-- Drawers -->
     <q-drawer :breakpoint='1000' v-model="left" side="left" :width='200'>
