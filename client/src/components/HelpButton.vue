@@ -35,7 +35,11 @@
             <div v-if='route == "autotagger"'>
                 <q-card-section class='q-px-xl'>
                     <div class='text-h5 text-bold text-primary'>Getting started with Auto Tag</div>
-                    <div class='text-subtitle1 text-bold text-primary'>{{page+1}} / {{pages}}</div>
+                    <div class='q-mt-xs'>
+                    <q-badge color='white'>
+                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                    </q-badge>
+                    </div>                  
 
                     <!-- Page 1 -->
                     <div v-if='page == 0'>
@@ -90,7 +94,7 @@
                         <div class='text-subtitle2'>
                             <span class='text-number text-bold text-grey-6'>7. </span>Enter token. To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable text-primary'>discogs.com</span> <br>
                             Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='clickable text-primary'>discogs.com/settings/developers</span> and click ‘Generate token’. <br>
-                            Select it & copy/paste the current token. <span @click='$1t.url("https://youtu.be/IvAiMkfdLCw")' class='clickable text-primary'>See video demo.</span><br>
+                            Select it & copy/paste the current token - <span @click='$1t.url("https://youtu.be/IvAiMkfdLCw")' class='clickable text-primary'>see video demo</span>.<br>
                             <span class='text-number text-bold text-grey-6'>8. </span>Select Genres/Styles tag to either fetch genre, style or both and if it should merge them, or write elsewhere. <br>
                             <span class='text-number text-bold text-grey-6'>9. </span>Drag slider to determine amount of album search results to check. Hit ‘Next’. <br>
                         </div>
@@ -114,7 +118,11 @@
             <div v-if='route == "audiofeatures"'>
                 <q-card-section class='q-px-xl'>
                     <div class='text-h5 text-bold text-primary'>Getting started with Audio Features</div>
-                    <div class='text-subtitle1 text-bold text-primary'>{{page+1}} / {{pages}}</div>
+                    <div class='q-mt-xs'>
+                    <q-badge color='white'>
+                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                    </q-badge>
+                    </div>    
 
                     <!-- Page 1 -->
                     <div v-if='page == 0'>
@@ -124,7 +132,7 @@
                         </div>
                         <div class='text-subtitle1 text-bold text-primary q-mt-md'>How does it work?</div>
                         <div class='text-subtitle2'>
-                            Follow the setup described on the Audio Features entrance. <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable text-primary'>See video demo.</span> <br>
+                            Follow the setup described on the Audio Features entrance - <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable text-primary'>see video demo</span>. <br>
                             Select a folder with tracks you want to get their audio features fetched for. <br>
                             Based on the <span class='clickable text-primary' @click='$1t.url(isrcWiki)'>ISRC</span> inside the metadata it will search up the track in Spotify's API and return these values. <br>
                             If no ISRC exists, it will search by artist and title tag using an exact match. <br>
@@ -230,7 +238,11 @@
             <div v-if='route == "quicktag"'>
                 <q-card-section class='q-px-xl'>
                     <div class='text-h5 text-bold text-primary'>Getting started with Quick Tag</div>
-                    <div class='text-subtitle1 text-bold text-primary'>{{page+1}} / {{pages}}</div>
+                    <div class='q-mt-xs'>
+                    <q-badge color='white'>
+                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                    </q-badge>
+                    </div>    
 
                     <!-- Page 1 -->
                     <div v-if='page == 0'>
@@ -254,9 +266,9 @@
                             <span class='text-number text-bold text-grey-6'>5. </span>Key bind them all to a character on your keyboard for quick access. <br>
                             <span class='text-number text-bold text-grey-6'>6. </span>Decide where you want all the above data written to. <br>
                             <span class='text-number text-bold text-grey-6'>7. </span>Play a song and listen - or quickly skip through a track using the arrow keys on your keyboard. <br>
-                            <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br><br>
+                            <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br>
                         </div>
-                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-sm'>
+                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-sm q-mt-lg'>
                             For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
                         </div>
                     </div>
@@ -282,11 +294,11 @@
                         <div class='text-subtitle1 text-bold text-primary q-mt-md'>Genre</div>
                         <div class='text-subtitle2'>
                             If the genre stated in the original genre tag of your tracks (or the ones fetched with Auto Tag) are still not to your liking, <br>
-                            predefine them in Settings and use key bindings for quick access. <br>
-                            <div class='q-my-xs'>
+                            predefine them in Settings and use key bindings for quick access.<br>
+                            
                                 <q-icon name='mdi-information-outline' class='q-mb-xs q-pr-xs'></q-icon>
                                 Pro-tip: Use <span class='text-overline'>CTRL</span> + character for genres. This way you can keep <span class='text-overline'></span> characters for moods.
-                            </div>
+                            
                         </div>
                         <div class='text-subtitle1 text-bold text-primary q-mt-sm'>Custom</div>
                         <div class='text-subtitle2'>
