@@ -56,10 +56,10 @@
                         <q-input v-model='$1t.settings.quickTag.energyTag.symbol' filled dense label='Symbol'></q-input>
                     </div>
                     <div class='col-5 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.energyTag.id3' filled dense label='ID3 (MP3, AIFF)'></q-input>
+                        <TagField format='id3' dense :initial='$1t.settings.quickTag.energyTag.id3' @change='$1t.settings.quickTag.energyTag.id3 = $event'></TagField>
                     </div>
                     <div class='col-5 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.energyTag.vorbis' filled dense label='FLAC'></q-input>
+                        <TagField format='flac' dense :initial='$1t.settings.quickTag.energyTag.vorbis' @change='$1t.settings.quickTag.energyTag.vorbis = $event'></TagField>
                     </div>
                 </div>
                 <div class='q-mb-md'></div>
@@ -67,10 +67,10 @@
                 <div class='text-h10 q-my-sm text-bold text-grey-6'>MOOD TAG</div>
                 <div class='row q-mb-md'>
                     <div class='col-6 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.moodTag.id3' filled label='ID3 (MP3, AIFF)'></q-input>
+                        <TagField format='id3' :initial='$1t.settings.quickTag.moodTag.id3' @change='$1t.settings.quickTag.moodTag.id3 = $event'></TagField>
                     </div>
                     <div class='col-6 q-pr-md'>
-                        <q-input v-model='$1t.settings.quickTag.moodTag.vorbis' filled label='FLAC'></q-input>
+                        <TagField format='flac' :initial='$1t.settings.quickTag.moodTag.vorbis' @change='$1t.settings.quickTag.moodTag.vorbis = $event'></TagField>
                     </div>
                 </div>
                 <!-- Moods -->
@@ -165,8 +165,8 @@
                         </div>
                     </div>
                     <div class='row q-pt-sm'>
-                        <q-input class='col-6 q-pr-sm' filled label='ID3 (MP3+AIFF)' v-model='$1t.settings.quickTag.custom[i].id3'></q-input>
-                        <q-input class='col-6 q-pr-sm' filled label='FLAC' v-model='$1t.settings.quickTag.custom[i].vorbis'></q-input>
+                        <TagField class='col-6 q-pr-sm' format='id3' :initial='$1t.settings.quickTag.custom[i].id3' @change='$1t.settings.quickTag.custom[i].id3 = $event'></TagField>
+                        <TagField class='col-6 q-pr-sm' format='flac' :initial='$1t.settings.quickTag.custom[i].vorbis' @change='$1t.settings.quickTag.custom[i].vorbis = $event'></TagField>
                     </div>
                     <!-- Values -->
                     <div v-for='(value, j) in tag.values' :key='value.value+j.toString()'>
@@ -215,11 +215,12 @@
 
 <script>
 import Keybind from './Keybind';
+import TagField from './TagField';
 import Vue from 'vue';
 
 export default {
     name: 'Settings',
-    components: {Keybind},
+    components: {Keybind, TagField},
     data() {
         return {
             open: this.value,

@@ -90,7 +90,7 @@
                         <div class='text-subtitle2'>
                             <span class='text-number text-bold text-grey-6'>7. </span>Enter token. To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable text-primary'>discogs.com</span> <br>
                             Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='clickable text-primary'>discogs.com/settings/developers</span> and click ‘Generate token’. <br>
-                            Select it & copy/paste the current token. <br>
+                            Select it & copy/paste the current token. <span @click='$1t.url("https://youtu.be/IvAiMkfdLCw")' class='clickable text-primary'>See video demo.</span><br>
                             <span class='text-number text-bold text-grey-6'>8. </span>Select Genres/Styles tag to either fetch genre, style or both and if it should merge them, or write elsewhere. <br>
                             <span class='text-number text-bold text-grey-6'>9. </span>Drag slider to determine amount of album search results to check. Hit ‘Next’. <br>
                         </div>
@@ -124,24 +124,24 @@
                         </div>
                         <div class='text-subtitle1 text-bold text-primary q-mt-md'>How does it work?</div>
                         <div class='text-subtitle2'>
-                            Follow the setup described on the Audio Features entrance. <br>
+                            Follow the setup described on the Audio Features entrance. <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable text-primary'>See video demo.</span> <br>
                             Select a folder with tracks you want to get their audio features fetched for. <br>
                             Based on the <span class='clickable text-primary' @click='$1t.url(isrcWiki)'>ISRC</span> inside the metadata it will search up the track in Spotify's API and return these values. <br>
                             If no ISRC exists, it will search by artist and title tag using an exact match. <br>
-                            Eventually it will write the audio features to the metadata and its value derived from Spotify. <br>
+                            Eventually it will write the audio features to the metadata and its value derived from Spotify.
                         </div>
                         <div class='text-subtitle1 text-bold text-primary q-mt-md'>What?</div>
-                        <div class='text-subtitle2 q-pb-sm'>In a nutshell audio features are:</div>
-                        <div class='row text-subtitle2 text-left' style='width: 60%; margin-left: 20%;'>
+                        <div class='text-subtitle2 q-mb-xs'>In a nutshell audio features are:</div>
+                        <div class='row text-subtitle2 q-py-sm text-left' style='width: 60%; margin-left: 20%;'>
                             <div class='col-4'>ACOUSTICNESS</div>     <div class='text-right col-8'>Acoustic vs. Electronic</div> 
                             <div class='col-4'>DANCEABILITY</div>     <div class='text-right col-8'>Danceable vs. Non-rhythmic</div> 
                             <div class='col-4'>ENERGY</div>           <div class='text-right col-8'>Energetic vs. Non-energetic</div> 
                             <div class='col-4'>INSTRUMENTALNESS</div> <div class='text-right col-8'>Instrumental vs. Vocal</div> 
                             <div class='col-4'>LIVENESS</div>         <div class='text-right col-8'>Live vs. Recording</div> 
                             <div class='col-4'>SPEECHINESS</div>      <div class='text-right col-8'>Speech vs. Music</div> 
-                            <div class='col-4'>VALENCE</div>          <div class='text-right col-8'>Positive vs. Negative (happy vs. sad/angry)</div> 
+                            <div class='col-4 q-mb-xs'>VALENCE</div>          <div class='text-right col-8'>Positive vs. Negative (happy vs. sad/angry)</div>
                         </div>
-                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-sm q-my-md'>
+                        <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-md'>
                             For a more in-depth description, check out <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#endpoint-get-several-audio-features")'>Spotify’s official AudioFeaturesObject</span> section.
                         </div>
                     </div>
@@ -152,70 +152,69 @@
                         <div class='text-subtitle2'>
                             You can customize the treshold, so it doesn't only write the simple value from 0-100 per audio feature, <br>
                             but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>
-                            Look up which tag code represents what tag name in the <span class='clickable text-primary' @click='$1t.url(metadataMatrix)'>Metadata matrix</span>. <br>
+                            Look up which tag code represents what tag name in the <span class='clickable text-primary' @click='$1t.url(metadataMatrix)'>Metadata matrix</span>.
                         </div>
 
                         <div class='row q-mx-xl q-my-xl justify-around'>
-                            <div class='col-3'>
+                            <div class='col-3 q-mb-xs'>
                                 <span class='text-primary text-subtitle1 text-bold'>Acousticness</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0* = Electronic <br>
-                                    90-100 = Acoustic <br>
+                                    90-100 = Acoustic
                                 </span>
                             </div>
                             <div class='col-3'>
                                 <span class='text-primary text-subtitle1 text-bold'>Danceability</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0-20 = Non-rhythmic <br>
-                                    80-100 = Danceable <br>
+                                    80-100 = Danceable
                                 </span>
                             </div>
                             <div class='col-3'>
                                 <span class='text-primary text-subtitle1 text-bold'>Energy</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0-20 = Non-energetic <br>
-                                    90-100 = Energetic <br>
+                                    90-100 = Energetic
                                 </span>
                             </div>
                             <div class='col-3'>
                                 <span class='text-primary text-subtitle1 text-bold'>Instrumentalness</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0-50 = Vocal <br>
-                                    90-100 = Instrumental <br>
+                                    90-100 = Instrumental
                                 </span>
                             </div>
                             <div class='col-3 q-mt-md'>
                                 <span class='text-primary text-subtitle1 text-bold'>Liveness</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0* = Recording <br>
-                                    80-100 = Live <br>
+                                    80-100 = Live
                                 </span>
                             </div>
                             <div class='col-3 q-mt-md'>
                                 <span class='text-primary text-subtitle1 text-bold'>Speechiness</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0* = Music <br>
-                                    70-100 = Speech <br>
+                                    70-100 = Speech
                                 </span>
                             </div>
                             <div class='col-3 q-mt-md'>
                                 <span class='text-primary text-subtitle1 text-bold'>Valence</span><br>
+                                <span class='text-subtitle2 text-grey-5'>Treshold default: </span><br>
                                 <span class='text-subtitle2'>
-                                    Treshold default: <br>
                                     0-15 = Negative <br>
-                                    85-100 = Positive <br>
+                                    85-100 = Positive
                                 </span>
                             </div>
                         </div>
-                        
-                        <div class='text-subtitle2'>
-                            *0 = When When treshold is 0, it won't write the prominent tag.
+                            <div class='text-subtitle2 text-grey-5'>
+                            *0 = When treshold is 0, it won't write the prominent tag.
                         </div>
 
                         <div class='bg-grey-9 text-subtitle2 q-px-md q-py-md q-my-md'>
@@ -284,7 +283,7 @@
                         <div class='text-subtitle2'>
                             If the genre stated in the original genre tag of your tracks (or the ones fetched with Auto Tag) are still not to your liking, <br>
                             predefine them in Settings and use key bindings for quick access. <br>
-                            <div class='bg-grey-9 q-my-sm'>
+                            <div class='q-my-xs'>
                                 <q-icon name='mdi-information-outline' class='q-mb-xs q-pr-xs'></q-icon>
                                 Pro-tip: Use <span class='text-overline'>CTRL</span> + character for genres. This way you can keep <span class='text-overline'></span> characters for moods.
                             </div>
@@ -292,7 +291,8 @@
                         <div class='text-subtitle1 text-bold text-primary q-mt-sm'>Custom</div>
                         <div class='text-subtitle2'>
                             Whatever you want! For example focus on different elements like vibe, instruments, vocals, time to play or situation, etc. 
-                        </div><br>
+                        </div>
+                        <br>
                     </div>
 
                 </q-card-section>

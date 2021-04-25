@@ -38,10 +38,10 @@
 
         <div class='row q-mx-xl'>
             <div class='col-6 q-px-sm'>
-                <q-input filled v-model='config.mainTag.id3' label='ID3 (MP3/AIFF)'></q-input>
+                <TagField format='id3' :initial='config.mainTag.id3' @change='config.mainTag.id3 = $event'></TagField>
             </div>
             <div class='col-6 q-px-sm'>
-                <q-input filled v-model='config.mainTag.flac' label='FLAC'></q-input>
+                <TagField format='flac' :initial='config.mainTag.flac' @change='config.mainTag.flac = $event'></TagField>
             </div>
         </div>
 
@@ -75,22 +75,22 @@
                     </div>
                     <!-- Tags -->
                     <div class='col-3'>
-                        <q-input 
-                            filled
-                            dense 
+                        <TagField
+                            dense
+                            format='id3'
                             class='q-px-sm q-pb-xs'
-                            v-model='config.properties[key].tag.id3'
-                            label='ID3 (MP3 + AIFF)'
-                        ></q-input>
+                            :initial='config.properties[key].tag.id3'
+                            @change='config.properties[key].tag.id3 = $event'
+                        ></TagField>
                     </div>
                     <div class='col-3'>
-                        <q-input 
-                            filled
-                            dense 
+                        <TagField
+                            dense
+                            format='flac'
                             class='q-px-sm q-pb-xs'
-                            v-model='config.properties[key].tag.flac'
-                            label='FLAC'
-                        ></q-input>
+                            :initial='config.properties[key].tag.flac'
+                            @change='config.properties[key].tag.flac = $event'
+                        ></TagField>
                     </div>
                     <!-- Range -->
                     <div class='col-3 q-px-md'>
@@ -116,8 +116,11 @@
 </template>
 
 <script>
+import TagField from '../components/TagField';
+
 export default {
     name: 'AudioFeatures',
+    components: {TagField},
     data() {
         return {
             clientId: this.$1t.settings.audioFeatures.spotifyClientId,
