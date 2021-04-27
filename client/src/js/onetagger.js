@@ -1,6 +1,6 @@
 import Vue from 'vue';
-import {Notify} from 'quasar';
-import {QTTrack} from './quicktag';
+import { Notify, colors } from 'quasar';
+import { QTTrack } from './quicktag';
 
 class OneTagger {
 
@@ -133,6 +133,7 @@ class OneTagger {
             "albumArt": false,
             "otherTags": false,
             "id3Separator": ", ",
+            "flacSeparator": null,
             "id3v24": true,
             "overwrite": true,
             "threads": 16,
@@ -183,6 +184,7 @@ class OneTagger {
 
         //Settings for UI
         this.settings = Vue.observable({
+            primaryColor: '#00D2BF',
             discogsToken: null,
             volume: 0.05,
             helpButton: true,
@@ -364,10 +366,11 @@ class OneTagger {
         delete data.quickTag;
         Object.assign(this.settings, data);
         
-        //Restore discogs token and volume
+        //Restore specific
         this.config.discogs.token = this.settings.discogsToken;
         this.player.volume = this.settings.volume??0.5;
         this.setVolume(this.player.volume);
+        colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');
     }
 
     //Wrapper to prevent multiple waveforms
@@ -448,6 +451,7 @@ class OneTagger {
         if (this.quickTag.track) {
             let changes = this.quickTag.track.getOutput();
             this.send('quicktagSave', {changes});
+            this.quickTag.track.clearChanges();
         }
     }
 
@@ -520,6 +524,17 @@ class OneTagger {
                     this.pause();
                 else 
                     this.play();
+                return true;
+            }
+
+            //Save
+            if (event.code == "KeyS" && event.ctrlKey) {
+                this.saveQTTrack().then(() => {
+                    Notify.create({
+                        message: "Track saved!",
+                        timeout: 3000,
+                    });
+                });
                 return true;
             }
 

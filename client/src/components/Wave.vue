@@ -17,7 +17,7 @@ export default {
             return `
                 height: calc(${this.height} * ${this.value}); 
                 width: ${this.width};
-                background: linear-gradient(to right, #00D2BF ${Math.round(this.filled*100)}%, #3a3c3c ${Math.round(this.filled*100)}%, #3a3c3c);
+                background: linear-gradient(to right, var(--q-color-primary) ${Math.round(this.filled*100)}%, #3a3c3c ${Math.round(this.filled*100)}%, #3a3c3c);
             `;
         }
     }

@@ -18,7 +18,8 @@
                 Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
                 Seek -10s: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon><br>
                 Seek +30s: <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon><br>
-                Change tracks: <q-icon name='mdi-chevron-up' class='keybind-icon'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon> <br>
+                Change tracks: <q-icon name='mdi-chevron-up' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon> <br>
+                Save: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>S</span><br>
                 Confirm save: <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon><br>
             </div>
 
@@ -58,6 +59,8 @@ export default {
     methods: {
         //Click on track card
         trackClick(i) {
+            //Prevent clicking on same track
+            if (this.$1t.quickTag.track && this.$1t.quickTag.tracks[i].path == this.$1t.quickTag.track.path) return;
             this.$1t.loadQTTrack(this.$1t.quickTag.tracks[i]);
         },
         //Save dialog callback

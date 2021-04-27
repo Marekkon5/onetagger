@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use id3::{Version, Tag, Timestamp, Frame, Content};
-use id3::frame::{Picture, PictureType};
+use id3::frame::{Picture, PictureType, Comment};
 use crate::tag::{TagDate, CoverType, Field, TagImpl};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -35,7 +35,7 @@ impl ID3Tag {
         }
         //AIFF
         if path.to_lowercase().ends_with(".aif") || path.to_lowercase().ends_with(".aiff") {
-            let tag = Tag::read_from_path(path)?;
+            let tag = Tag::read_from_aiff(path)?;
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
@@ -104,6 +104,11 @@ impl TagImpl for ID3Tag {
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
         let mut tags = HashMap::new();
         for frame in self.tag.frames() {
+            //Comment override for compatibility
+            if frame.id() == "COMM" {
+                tags.insert("COMM".to_string(), self.get_raw("COMM").unwrap_or(vec![]));
+            }
+
             if let Content::Text(v) = frame.content() {
                 tags.insert(frame.id().to_owned(), v.split(&self.id3_separator).map(String::from).collect());
             }
@@ -248,6 +253,28 @@ impl TagImpl for ID3Tag {
             }
             return;
         }
+
+        //COMM tag override for compatibility with DJ apps
+        if tag.to_uppercase() == "COMM" {
+            if overwrite || self.tag.comments().next().is_none() {
+                let mut comment = match self.tag.comments().cloned().next() {
+                    Some(comment) => comment.to_owned(),
+                    None => Comment {
+                        lang: "eng".to_string(),
+                        description: String::new(),
+                        text: String::new()
+                    }
+                };
+                //Add value
+                self.tag.remove("COMM");
+                if !value.is_empty() {
+                    comment.text = value.join(&self.id3_separator);
+                    self.tag.add_comment(comment);
+                }
+            }
+            return;
+        }
+
         
         //Normal
         if overwrite || self.tag.get(tag).is_none() {
@@ -268,6 +295,16 @@ impl TagImpl for ID3Tag {
             }
             return None;
         }
+
+        //COMM tag override for compatibility with DJ apps
+        if tag == "COMM" {
+            return match self.tag.comments().next() {
+                Some(comment) => Some(comment.text.split(&self.id3_separator).map(String::from).collect()),
+                None => None
+            };
+        }
+
+
         //Get tag
         if let Some(t) = self.tag.get(tag) {
             if let Some(content) = t.content().text() {

@@ -5,7 +5,7 @@
     <div v-if='!$1t.audioFeatures.spotifyAuthorized' class='af-content'>
         <div class='text-h5 q-mt-md'>Setup</div>
         <div class='text-subtitle1 q-mt-md'>
-            1. Open <span class='link' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
+            1. Open <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
             2. In settings set the Callback URL to: <span class='selectable text-bold'>http://localhost:36914/spotify</span> <br>
             3. Enter your Client ID and Client Secret below and press login. <br>
         </div>
@@ -107,6 +107,22 @@
             </div>
         </div>
 
+        <!-- Separators -->
+        <div class='row q-mx-xl q-my-md'>
+            <q-input
+                v-model='config.id3Separator'
+                filled
+                label='ID3 Separator (MP3 + AIFF)'
+                class='col-6 q-px-md'
+            ></q-input>
+            <q-input
+                v-model='config.flacSeparator'
+                filled
+                label='FLAC Separator (Leave empty for default)'
+                class='col-6 q-px-md'
+            ></q-input>
+        </div>
+
         <!-- Start -->
         <br>
         <q-btn color='primary' class='text-black q-my-md' size='md' @click='start' v-if='$1t.audioFeatures.path'>START</q-btn>
@@ -127,6 +143,8 @@ export default {
             clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret,
             config: {
                 mainTag: {id3: 'STYLE', flac: 'STYLE'},
+                id3Separator: ", ",
+                flacSeparator: null,
                 properties: {
                     acousticness: {enabled: true, range: {min: 0, max: 90}, tag: {id3: '1T_ACOUSTICNESS', flac: '1T_ACOUSTICNESS'}},
                     danceability: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_DANCEABILITY', flac: '1T_DANCEABILITY'}},
@@ -195,11 +213,6 @@ export default {
 .path-field {
     width: 50% !important;
     margin-left: 25%;
-}
-.link {
-    font-weight: bold;
-    color: #00d2bf;
-    cursor: pointer;
 }
 .af-wrapper {
     width: 100%;

@@ -51,6 +51,7 @@ pub struct TaggerConfig {
 
     //Advanced
     pub id3_separator: String,
+    pub flac_separator: Option<String>,
     pub id3v24: bool,
     pub overwrite: bool,
     pub threads: i16,
@@ -120,12 +121,17 @@ impl Track {
     pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
         //Get tag
         let mut tag_wrap = Tag::load_file(&info.path)?;
-        //Configure ID3
-        if tag_wrap.id3.is_some() {
-            let t = tag_wrap.id3.as_mut().unwrap();
+        //Configure ID3 and FLAC
+        if let Some(t) = tag_wrap.id3.as_mut() {
             t.set_id3_separator(&config.id3_separator);
             t.set_id3v24(config.id3v24);
         }
+        if let Some(flac) = tag_wrap.flac.as_mut() {
+            if let Some(s) = config.flac_separator.as_ref() {
+                flac.set_separator(Some(s));
+            }
+        }
+
         let tag = tag_wrap.tag_mut().unwrap();
 
         //Set tags

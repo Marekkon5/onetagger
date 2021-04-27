@@ -99,6 +99,7 @@ export default {
 .bg-image {
     width: 100%;
     max-height: 100%;
+    max-width: 100%;
     position: fixed;
     z-index: -100;
     transform: scale(1.1);

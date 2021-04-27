@@ -8,7 +8,8 @@ use metaflac::block::PictureType;
 use crate::tag::{Field, TagDate, CoverType, TagImpl};
 
 pub struct FLACTag {
-    tag: Tag
+    tag: Tag,
+    separator: Option<String>
 }
 
 impl FLACTag {
@@ -29,7 +30,8 @@ impl FLACTag {
         file.seek(SeekFrom::Start(0))?;
 
         Ok(FLACTag {
-            tag: Tag::read_from(&mut file)?
+            tag: Tag::read_from(&mut file)?,
+            separator: None
         }.into())
     }
 
@@ -64,6 +66,11 @@ impl FLACTag {
             Field::Style => "STYLE".to_string(),
             Field::ISRC => "ISRC".to_string()
         }
+    }
+
+    //If separator is set, all values are written to single tag, separated by commas for compatibility reasons
+    pub fn set_separator(&mut self, separator: Option<&str>) {
+        self.separator = separator.map(String::from);
     }
 }
 
@@ -142,16 +149,28 @@ impl TagImpl for FLACTag {
     //Set raw tag
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool) {
         if overwrite || self.tag.get_vorbis(&tag).is_none() || self.tag.get_vorbis(&tag).unwrap().next().is_none() {
+            //Separator override
+            if let Some(separator) = &self.separator {
+                self.tag.set_vorbis(tag, vec![value.join(separator)]);
+                return;
+            }
+            
             self.tag.set_vorbis(tag, value);
         }
     }
     //Get raw tag, None even if empty array
     fn get_raw(&self, tag: &str) -> Option<Vec<String>> {
         if let Some(values) = self.tag.get_vorbis(tag) {
-            let v: Vec<&str> = values.collect();
+            let mut v: Vec<&str> = values.collect();
             if v.is_empty() {
                 return None;
             }
+
+            //Separator override
+            if v.len() == 1 && self.separator.is_some() {
+                v = v[0].split(self.separator.as_ref().unwrap()).collect();
+            }
+
             return Some(v.into_iter().map(|v| v.to_string()).collect());
         }
         None

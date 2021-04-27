@@ -16,7 +16,7 @@
             <!-- Quicktag options -->
             <div v-if='tab == "quicktag"'>
                 <!-- Path options -->
-                <div class='text-h10 text-bold text-grey-6'>FOLDER</div>
+                <div class='text-bold text-grey-6'>FOLDER</div>
                 <div class='row q-mb-sm items-center'>
                     <div class='col-11 text-subtitle2'>{{$1t.settings.quickTag.path}}</div>
                     <div class='col-1'>
@@ -25,7 +25,7 @@
                 </div>
 
                 <!-- Energy keybinds -->
-                <div class='text-h10 q-mb-sm text-bold text-grey-6'>ENERGY KEYBINDS</div>
+                <div class='q-mb-sm text-bold text-grey-6'>ENERGY KEYBINDS</div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <!-- Energy settings -->
-                <div class='text-h10 q-mb-sm text-bold text-grey-6'>ENERGY TAG OPTIONS</div>
+                <div class='q-mb-sm text-bold text-grey-6'>ENERGY TAG OPTIONS</div>
                 <q-select
                     v-model='$1t.settings.quickTag.energyTag.type'
                     dense
@@ -64,7 +64,7 @@
                 </div>
                 <div class='q-mb-md'></div>
                 <!-- Mood tag -->
-                <div class='text-h10 q-my-sm text-bold text-grey-6'>MOOD TAG</div>
+                <div class='q-my-sm text-bold text-grey-6'>MOOD TAG</div>
                 <div class='row q-mb-md'>
                     <div class='col-6 q-pr-md'>
                         <TagField format='id3' :initial='$1t.settings.quickTag.moodTag.id3' @change='$1t.settings.quickTag.moodTag.id3 = $event'></TagField>
@@ -74,7 +74,7 @@
                     </div>
                 </div>
                 <!-- Moods -->
-                <div class='text-h10 q-my-sm text-bold text-grey-6'>MOODS</div>
+                <div class='q-my-sm text-bold text-grey-6'>MOODS</div>
                 <div class='q-mb-md'>
                     <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
                         <div class='row justify-around'>
@@ -112,7 +112,7 @@
                     </div>
                 </div>
                 <!-- Genres -->
-                <div class='text-h10 q-my-sm text-bold text-grey-6'>GENRES</div>
+                <div class='q-my-sm text-bold text-grey-6'>GENRES</div>
                 <div>
                     <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
                         <div class='row q-my-sm'>
@@ -201,10 +201,16 @@
 
             <!-- Advanced -->
             <div v-if='tab == "advanced"'>
+                <div class='q-my-sm text-bold text-grey-6'>GENERAL</div>
                 <q-checkbox
                     v-model='$1t.settings.helpButton'
                     label='Show help button'
                 ></q-checkbox>
+                <div class='q-pt-md q-my-sm text-bold text-grey-6'>PRIMARY COLOR</div>
+                <q-color 
+                    v-model='$1t.settings.primaryColor'
+                    @change='colorChange'
+                ></q-color>
             </div>
 
         </q-card-section>
@@ -217,6 +223,7 @@
 import Keybind from './Keybind';
 import TagField from './TagField';
 import Vue from 'vue';
+import { colors } from 'quasar';
 
 export default {
     name: 'Settings',
@@ -240,6 +247,10 @@ export default {
         }
     },
     methods: {
+        //Primary color change
+        colorChange() {
+            colors.setBrand('primary', this.$1t.settings.primaryColor);
+        },
         //Adds new quicktag mood
         addMood() {
             if (this.newMood.mood) {

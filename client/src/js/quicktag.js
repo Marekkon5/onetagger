@@ -132,6 +132,11 @@ class QTTrack {
     isChanged() {
         return this.getOutput().changes.length > 0
     }
+
+    //Remove all changes (on save)
+    clearChanges() {
+        this._changes = [];
+    }
 }
 
 export {QTTrack};

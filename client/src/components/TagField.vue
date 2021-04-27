@@ -25,21 +25,19 @@
 <script>
 //Tags you shouldn't use
 const banned = {
-    id3: ["APIC", "TXXX", "COMM", "POPM", "TYER", "TDAT", "TORY", "TRDA", "TRCK", "TDTG", "TSOT", 
-        "TDOR", "TKEY", "TSOC", "TCMP", "TBPM", "TSOP", "TSO2", "TSOA", "USLT", "SYLT", "IPLS"],
+    id3: ["APIC", "TXXX", "POPM", "TYER", "TDAT", "TORY", "TRDA", "TRCK", "TDTG", "TSOT", "TIT2",
+        "TDOR", "TKEY", "TSOC", "TCMP", "TBPM", "TSOP", "TSO2", "TSOA", "USLT", "SYLT", "TSRC"],
     flac: ["METADATA_BLOCK_PICTURE", "DATE", "ORIGINALDATE", "TRACKNUMBER", "TAGGINGTIME", 
         "TRACK", "TITLESORT", "ORIGYEAR", "INITIALKEY", "KEY", "COMPOSERSORT", "COMPILATION", 
-        "BPM", "ARTISTSORT", "ALBUMARTISTSORT", "ALBUMSORT", "POPULARIMETER", "RATING"]
+        "BPM", "ARTISTSORT", "ALBUMARTISTSORT", "ALBUMSORT", "POPULARIMETER", "RATING", "ISRC"]
 }
 //Autocompletion
 const options = {
     id3: [
-        "TIT2 (Title)",
         "TCON (Genre)",
         "TALB (Album)",
         "TPE2 (Album Artist)",
         "TCOM (Composer)",
-        "TCON (Genre)",
         "TEXT (Lyricist)",
         "TIT3 (Mix Name)",
         "TOPE (Original Artist)",
@@ -47,6 +45,10 @@ const options = {
         "GRP1 (Grouping djay Pro)",
         "TPUB (Label)",
         "TPE4 (Remixer)",
+        "IPLS (Producer ID3v2.3)",
+        "TIPL (Producer ID3v2.4)",
+        "TPE3 (Conductor)",
+        "COMM (Comment)"
     ],
     flac: [
         "ALBUM",
@@ -60,6 +62,9 @@ const options = {
         "PUBLISHER",
         "MIXARTIST",
         "REMIXER",
+        "CONDUCTOR",
+        "COMMENT",
+        "LABEL"
     ]
 };
 

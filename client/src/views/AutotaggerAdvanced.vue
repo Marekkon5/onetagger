@@ -60,6 +60,23 @@
             <q-tooltip content-style="font-size: 12px">The higher, the faster, but uses more bandwidth, and not supported by all platforms.</q-tooltip>
         </q-icon>
     </div>
+    <!-- Separators -->
+    <div class='q-mt-md text-h6'>Separators</div>
+    <div class='row q-mx-xl q-my-md'>
+        <q-input
+            v-model='$1t.config.id3Separator'
+            filled
+            label='ID3 Separator (MP3 + AIFF)'
+            class='col-6 q-px-md'
+        ></q-input>
+        <q-input
+            v-model='$1t.config.flacSeparator'
+            filled
+            label='FLAC Separator (Leave empty for default)'
+            class='col-6 q-px-md'
+        ></q-input>
+    </div>
+
     <!-- Start tagging -->
     <q-btn class='q-mt-xl text-black' color='primary' @click='start'>Start</q-btn>
 

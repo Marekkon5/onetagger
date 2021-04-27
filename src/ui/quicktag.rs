@@ -28,8 +28,8 @@ impl QuickTag {
             let path = entry.path();
             let path = path.to_str().unwrap();
             match QuickTagFile::from_path(&path) {
-                Some(t) => out.push(t),
-                None => error!("Error loading file: {}", path)
+                Ok(t) => out.push(t),
+                Err(e) => error!("Error loading file: {} {}", path, e)
             }
         }
 
@@ -52,9 +52,9 @@ pub struct QuickTagFile {
 
 impl QuickTagFile {
     //Load tags from path
-    pub fn from_path(path: &str) -> Option<QuickTagFile> {
-        let tag_wrap = Tag::load_file(path).ok()?;
-        QuickTagFile::from_tag(path, &tag_wrap)
+    pub fn from_path(path: &str) -> Result<QuickTagFile, Box<dyn Error>> {
+        let tag_wrap = Tag::load_file(path)?;
+        Ok(QuickTagFile::from_tag(path, &tag_wrap).ok_or("Unable to load tags!")?)
     }
 
     pub fn from_tag(path: &str, tag_wrap: &Tag) -> Option<QuickTagFile> {

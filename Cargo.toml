@@ -10,6 +10,7 @@ categories = ["multimedia::audio"]
 build = "src/build.rs"
 
 [dependencies]
+sndfile = "0.0.4"
 image = "0.23"
 app_dirs = "1.2"
 tempfile = "3.2"
@@ -36,7 +37,6 @@ failure = "0.1"
 rspotify = { version = "0.10.0", features = ["blocking"] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 serde = { version = "1.0", features = ["derive"] }
-ffmpeg-decoder = { git = "https://github.com/Marekkon5/ffmpeg-decoder-rs.git", features = ["rodio_source"] }
 
 # Temporarily until some better solution on master
 id3 = { git = "https://github.com/Marekkon5/rust-id3.git", branch = "save-version" }
@@ -53,7 +53,7 @@ winres = "0.1"
 opt-level = 'z'
 
 [package.metadata.bundle]
-name = "One Tagger"
+name = "OneTagger"
 identifier = "com.marekkon5.onetagger"
 icon = ["assets/32x32.png", "assets/128x128.png", "assets/128x128@2x.png", "assets/icon.icns", "assets/icon.ico"]
 version = "1.0.0"

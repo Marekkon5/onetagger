@@ -138,8 +138,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         //Generate waveform, should be run from separate connection
         "waveform" => {
             let path = json["path"].as_str().unwrap();
-            let source = AudioSources::from_path(path).unwrap();
-            let (waveform_rx, cancel_tx) = source.generate_waveform(250).unwrap();
+            let source = AudioSources::from_path(path)?;
+            let (waveform_rx, cancel_tx) = source.generate_waveform(250)?;
             //Streamed
             for wave in waveform_rx {
                 websocket.write_message(Message::from(json!({
