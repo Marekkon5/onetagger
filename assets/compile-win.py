@@ -16,7 +16,7 @@ def main():
 
     # Install libsndfile
     print("Installing libsndfile...")
-    subprocess.check_output(["vcpkg", "install", "libsndfile:x64-windows-static"])
+    subprocess.check_output(["vcpkg", "install", "libsndfile:x64-windows-static"], shell=True)
 
     # Compile UI
     print("Compiling UI...")

@@ -57,8 +57,9 @@ jobs:
 
     - name: Run build script
       run: |
-        setx VCPKG_ROOT C:\vcpkg
         python assets/compile-win.py
+      env: 
+        VCPKG_ROOT: C:\vcpkg
     
     - name: Upload Archive
       uses: actions/upload-artifact@v2
