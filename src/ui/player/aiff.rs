@@ -1,8 +1,9 @@
 use std::error::Error;
 use std::time::Duration;
 use std::io::SeekFrom;
+use ndarray::ArrayViewMut2;
 use rodio::Source;
-use sndfile::{ReadOptions, SndFile, SndFileIO};
+use sndfile::{ReadOptions, SndFile, SndFileNDArrayIO};
 use crate::ui::player::AudioSource;
 
 pub struct AIFFSource {
@@ -18,8 +19,9 @@ impl AIFFSource {
     pub fn new(path: &str) -> Result<AIFFSource, Box<dyn Error>> { 
         let mut snd = sndfile::OpenOptions::ReadOnly(ReadOptions::Auto).from_path(path)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{:?}", e)))?;
-        let len = snd.len().unwrap();
-        snd.seek(SeekFrom::Start(0)).unwrap();
+        let len = snd.len().ok().ok_or("Invalid length")?;
+        snd.seek(SeekFrom::Start(0)).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{:?}", e)))?;
+
 
         let aiff = AIFFSource {
             path: path.to_owned(),
@@ -68,13 +70,17 @@ impl Iterator for AIFFSource {
 
     fn next(&mut self) -> Option<Self::Item> {
         //Load more data
-        //TODO: Currently shitty but works, streaming was broke
-        if self.buffer.is_empty() {
-            self.buffer = self.snd.read_all_to_vec().ok()?;
-            self.position = 0;
-        }
         if self.position >= self.buffer.len() {
-            return None;
+            //Read to ndarray, because reading to slice produced bad data
+            let mut buffer = vec![0; 2048];
+            let nd_buffer = ArrayViewMut2::<i16>::from_shape((1024, 2), &mut buffer).ok()?;
+            let read = self.snd.read_to_ndarray(nd_buffer).ok()?;
+            if read == 0 {
+                return None;
+            }
+
+            self.buffer = buffer;
+            self.position = 0;
         }
 
         //Get sample
