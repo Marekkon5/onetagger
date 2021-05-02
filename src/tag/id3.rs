@@ -1,8 +1,32 @@
 use std::collections::HashMap;
 use std::error::Error;
 use id3::{Version, Tag, Timestamp, Frame, Content};
-use id3::frame::{Picture, PictureType, Comment};
+use id3::frame::{Picture, PictureType, Comment, Lyrics};
 use crate::tag::{TagDate, CoverType, Field, TagImpl};
+
+const COVER_TYPES: [(PictureType, CoverType); 21] = [
+    (PictureType::Other, CoverType::Other),
+    (PictureType::Icon, CoverType::Icon),
+    (PictureType::OtherIcon, CoverType::OtherIcon),
+    (PictureType::CoverFront, CoverType::CoverFront),
+    (PictureType::CoverBack, CoverType::CoverBack),
+    (PictureType::Leaflet, CoverType::Leaflet),
+    (PictureType::Media, CoverType::Media),
+    (PictureType::LeadArtist, CoverType::LeadArtist),
+    (PictureType::Artist, CoverType::Artist),
+    (PictureType::Conductor, CoverType::Conductor),
+    (PictureType::Band, CoverType::Band),
+    (PictureType::Composer, CoverType::Composer),
+    (PictureType::Lyricist, CoverType::Lyricist),
+    (PictureType::RecordingLocation, CoverType::RecordingLocation),
+    (PictureType::DuringRecording, CoverType::DuringRecording),
+    (PictureType::DuringPerformance, CoverType::DuringPerformance),
+    (PictureType::ScreenCapture, CoverType::ScreenCapture),
+    (PictureType::BrightFish, CoverType::BrightFish),
+    (PictureType::Illustration, CoverType::Illustration),
+    (PictureType::BandLogo, CoverType::BandLogo),
+    (PictureType::PublisherLogo, CoverType::PublisherLogo),
+];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ID3AudioFormat {
@@ -60,12 +84,16 @@ impl ID3Tag {
         self.id3v24 = id3v24;
     }
 
-    //Convert CoverType to PictureType
-    fn cover_type(&self, cover_type: CoverType) -> PictureType {
-        match cover_type {
-            CoverType::Front => PictureType::CoverFront
-        }
+    //Convert between different cover/picture types
+    fn picture_type(&self, cover_type: &CoverType) -> PictureType {
+        COVER_TYPES.iter().find(|(_, c)| c == cover_type).unwrap().0
     }
+    fn cover_type(&self, picture_type: &PictureType) -> CoverType {
+        COVER_TYPES.iter().find(|(p, _)| p == picture_type).unwrap_or(
+            &(PictureType::Undefined(0u8), CoverType::Undefined)
+        ).1.clone()
+    }
+
     //Convert Field to tag name
     fn field(&self, field: Field) -> String {
         match field {
@@ -104,11 +132,6 @@ impl TagImpl for ID3Tag {
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
         let mut tags = HashMap::new();
         for frame in self.tag.frames() {
-            //Comment override for compatibility
-            if frame.id() == "COMM" {
-                tags.insert("COMM".to_string(), self.get_raw("COMM").unwrap_or(vec![]));
-            }
-
             if let Content::Text(v) = frame.content() {
                 tags.insert(frame.id().to_owned(), v.split(&self.id3_separator).map(String::from).collect());
             }
@@ -204,7 +227,7 @@ impl TagImpl for ID3Tag {
 
     //Set album art
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
-        let picture_type = self.cover_type(kind);
+        let picture_type = self.picture_type(&kind);
         self.tag.remove_picture_by_type(picture_type);
         self.tag.add_picture(Picture {
             mime_type: mime.to_string(),
@@ -217,9 +240,7 @@ impl TagImpl for ID3Tag {
     fn get_art(&self) -> Vec<crate::tag::Picture> {
         self.tag.pictures().map(
             |p| crate::tag::Picture {
-                kind: match p.picture_type {
-                    _ => CoverType::Front
-                },
+                kind: self.cover_type(&p.picture_type),
                 description: p.description.to_string(),
                 data: p.data.clone(),
                 mime: p.mime_type.to_string()
@@ -229,6 +250,9 @@ impl TagImpl for ID3Tag {
     //Check if has album art
     fn has_art(&self) -> bool {
         self.tag.pictures().next().is_some()
+    }
+    fn remove_art(&mut self, kind: CoverType) { 
+        self.tag.remove_picture_by_type(self.picture_type(&kind));
     }
 
     //Set/Get named field
@@ -275,6 +299,19 @@ impl TagImpl for ID3Tag {
             return;
         }
 
+        //USLT override so can be used as normal tag
+        if tag.to_uppercase() == "USLT" {
+            if overwrite || self.tag.lyrics().next().is_none() {
+                self.tag.remove_all_lyrics();
+                self.tag.add_lyrics(Lyrics {
+                    lang: "eng".to_string(),
+                    description: String::new(),
+                    text: value.join(&self.id3_separator),
+                });
+            }
+            return;
+        }
+
         
         //Normal
         if overwrite || self.tag.get(tag).is_none() {
@@ -297,13 +334,20 @@ impl TagImpl for ID3Tag {
         }
 
         //COMM tag override for compatibility with DJ apps
-        if tag == "COMM" {
+        if tag.to_uppercase() == "COMM" {
             return match self.tag.comments().next() {
                 Some(comment) => Some(comment.text.split(&self.id3_separator).map(String::from).collect()),
                 None => None
             };
         }
 
+        //USLT override
+        if tag.to_uppercase() == "USLT" {
+            return match self.tag.lyrics().next() {
+                Some(lyrics) => Some(lyrics.text.split(&self.id3_separator).map(String::from).collect()),
+                None => None
+            };
+        }
 
         //Get tag
         if let Some(t) = self.tag.get(tag) {
@@ -315,5 +359,9 @@ impl TagImpl for ID3Tag {
         } else {
             None
         }
+    }
+
+    fn remove_raw(&mut self, tag: &str) { 
+        self.tag.remove(tag);
     }
 }

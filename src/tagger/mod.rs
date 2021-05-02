@@ -218,7 +218,7 @@ impl Track {
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
             match self.download_art(self.art.as_ref().unwrap()) {
                 Ok(data) => {
-                    tag.set_art(CoverType::Front, "image/jpeg", Some("Cover"), data.clone());
+                    tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
                     //Save to file
                     if config.album_art_file {
                         let path = Path::new(&info.path).parent().unwrap().join("cover.jpg");

@@ -7,6 +7,31 @@ use metaflac::Tag;
 use metaflac::block::PictureType;
 use crate::tag::{Field, TagDate, CoverType, TagImpl};
 
+//Cannot be a HashMap, because doens't implement Hash
+const COVER_TYPES: [(PictureType, CoverType); 21] = [
+    (PictureType::Other, CoverType::Other),
+    (PictureType::Icon, CoverType::Icon),
+    (PictureType::OtherIcon, CoverType::OtherIcon),
+    (PictureType::CoverFront, CoverType::CoverFront),
+    (PictureType::CoverBack, CoverType::CoverBack),
+    (PictureType::Leaflet, CoverType::Leaflet),
+    (PictureType::Media, CoverType::Media),
+    (PictureType::LeadArtist, CoverType::LeadArtist),
+    (PictureType::Artist, CoverType::Artist),
+    (PictureType::Conductor, CoverType::Conductor),
+    (PictureType::Band, CoverType::Band),
+    (PictureType::Composer, CoverType::Composer),
+    (PictureType::Lyricist, CoverType::Lyricist),
+    (PictureType::RecordingLocation, CoverType::RecordingLocation),
+    (PictureType::DuringRecording, CoverType::DuringRecording),
+    (PictureType::DuringPerformance, CoverType::DuringPerformance),
+    (PictureType::ScreenCapture, CoverType::ScreenCapture),
+    (PictureType::BrightFish, CoverType::BrightFish),
+    (PictureType::Illustration, CoverType::Illustration),
+    (PictureType::BandLogo, CoverType::BandLogo),
+    (PictureType::PublisherLogo, CoverType::PublisherLogo),
+];
+
 pub struct FLACTag {
     tag: Tag,
     separator: Option<String>
@@ -46,11 +71,12 @@ impl FLACTag {
         }
     }
 
-    //Convert CoverType to PictureType
-    fn cover_type(&self, cover_type: &CoverType) -> PictureType {
-        match cover_type {
-            CoverType::Front => PictureType::CoverFront
-        }
+    //Convert between different cover/picture types
+    fn picture_type(&self, cover_type: &CoverType) -> PictureType {
+        COVER_TYPES.iter().find(|(_, c)| c == cover_type).unwrap().0
+    }
+    fn cover_type(&self, picture_type: &PictureType) -> CoverType {
+        COVER_TYPES.iter().find(|(p, _)| p == picture_type).unwrap().1.clone()
     }
 
     //Get field tag name
@@ -118,15 +144,13 @@ impl TagImpl for FLACTag {
 
     //Set/Get album art
     fn set_art(&mut self, kind: CoverType, mime: &str, _description: Option<&str>, data: Vec<u8>) {
-        self.tag.remove_picture_type(self.cover_type(&kind));
-        self.tag.add_picture(mime, self.cover_type(&kind), data);
+        self.tag.remove_picture_type(self.picture_type(&kind));
+        self.tag.add_picture(mime, self.picture_type(&kind), data);
     }
     fn get_art(&self) -> Vec<crate::tag::Picture> {
         self.tag.pictures().map(
             |p| crate::tag::Picture {
-                kind: match p.picture_type {
-                    _ => CoverType::Front
-                },
+                kind: self.cover_type(&p.picture_type),
                 description: p.description.to_string(),
                 data: p.data.clone(),
                 mime: p.mime_type.to_string()
@@ -136,6 +160,10 @@ impl TagImpl for FLACTag {
     //Check if has album art
     fn has_art(&self) -> bool {
         self.tag.pictures().next().is_some()
+    }
+
+    fn remove_art(&mut self, kind: CoverType) { 
+        self.tag.remove_picture_type(self.picture_type(&kind));
     }
     
     //Set/Get named field
@@ -175,4 +203,9 @@ impl TagImpl for FLACTag {
         }
         None
     }
+    
+    fn remove_raw(&mut self, tag: &str) { 
+        self.tag.remove_vorbis(tag);
+    }
+
 }

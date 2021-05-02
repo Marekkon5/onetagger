@@ -47,7 +47,7 @@
 }
 
 .q-tab__indicator {
-    color: $primary;
+    color: var(--q-color-primary);
 }
 
 // Checkbox fix
@@ -82,4 +82,8 @@ input {
 
 .clickable {
     cursor: pointer;
+}
+
+.monospace {
+    font-family: monospace !important;
 }

@@ -19,6 +19,7 @@
         <q-route-tab :disable='$1t.lock.locked' to="/autotagger" class='text-weight-bolder' @click='hideSide'>Auto tag</q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/audiofeatures" class='text-weight-bolder' @click='audioFeatures'>Audio features</q-route-tab>
         <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>Quick Tag</q-route-tab>
+        <q-route-tab :disable='$1t.lock.locked' to="/tageditor" class='text-weight-bolder' @click='hideSide'>Tag Editor</q-route-tab>
       </q-tabs>
     </q-header>
 

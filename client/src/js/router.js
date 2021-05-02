@@ -10,6 +10,7 @@ import AutotaggerStatus from '../views/AutotaggerStatus.vue';
 import QuickTag from '../views/QuickTag.vue';
 import AudioFeatures from '../views/AudioFeatures.vue';
 import AudioFeaturesStatus from '../views/AudioFeaturesStatus.vue';
+import TagEditor from '../views/TagEditor.vue';
 
 Vue.use(VueRouter);
 
@@ -49,6 +50,10 @@ const routes = [
   {
     path: '/audiofeatures/status',
     component: AudioFeaturesStatus
+  },
+  {
+    path: '/tageditor',
+    component: TagEditor
   }
 ]
 

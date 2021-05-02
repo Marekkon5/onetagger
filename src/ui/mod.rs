@@ -5,22 +5,21 @@ use std::error::Error;
 use std::fmt;
 use std::thread;
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs::{File, create_dir_all};
 use std::path::PathBuf;
 use rouille::{router, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
-use app_dirs::{app_root, AppInfo, AppDataType};
+use directories::ProjectDirs;
 
 pub mod socket;
 pub mod player;
 pub mod quicktag;
 pub mod audiofeatures;
+pub mod tageditor;
 
 //UI
 static INDEX_HTML: &'static str = include_str!("../../client/dist/dist.html");
-//For directories
-static APP_INFO: AppInfo = AppInfo {name: "OneTagger", author: "OneTagger"};
 
 //Onetagger settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,8 +52,11 @@ impl Settings {
 
     //Get app data folder
     pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
-        let root = app_root(AppDataType::UserConfig, &APP_INFO)?;
-        Ok(root)
+        let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
+        if !root.preference_dir().exists() {
+            create_dir_all(root.preference_dir())?;
+        }
+        Ok(root.preference_dir().to_owned())
     }
 
     //Get settings path

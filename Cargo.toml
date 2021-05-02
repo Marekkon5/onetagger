@@ -10,8 +10,9 @@ categories = ["multimedia::audio"]
 build = "src/build.rs"
 
 [dependencies]
+base64 = "0.13"
 image = "0.23"
-app_dirs = "1.2"
+directories = "3.0"
 tempfile = "3.2"
 rodio = "0.13"
 mp3-duration = "0.1.10"

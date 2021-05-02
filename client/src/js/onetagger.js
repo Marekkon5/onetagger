@@ -45,7 +45,9 @@ class OneTagger {
                     //Audio features path
                     if (json.context == 'af')
                         this.audioFeatures.path = json.path;
-                        
+                    //Tag editor
+                    if (json.context == 'te')
+                        this.onTagEditorEvent(json);
                     break;
                 //Error
                 case 'error':
@@ -109,8 +111,15 @@ class OneTagger {
                     this.audioFeatures.ended = Date.now();
                     this.onTaggingDone();
                     break;
+
                 //Debug
                 default:
+                    //Tag editor
+                    if (json.action.startsWith('tagEditor')) {
+                        this.onTagEditorEvent(json);
+                        break;
+                    }
+
                     console.log(json);
                     break;
             }
@@ -316,6 +325,7 @@ class OneTagger {
     onError(msg) {console.error(msg);}
     onTaggingDone() {}
     onQTUnsavedChanges() {}
+    onTagEditorEvent() {}
 
     //Send to socket
     send(action, params = {}) {

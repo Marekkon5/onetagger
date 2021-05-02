@@ -75,6 +75,7 @@ pub trait TagImpl {
     //To not load all album arts
     fn has_art(&self) -> bool;
     fn get_art(&self) -> Vec<Picture>;
+    fn remove_art(&mut self, kind: CoverType);
 
     //Set/Get named field
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool);
@@ -83,6 +84,7 @@ pub trait TagImpl {
     //Set/Get by tag field name
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool);
     fn get_raw(&self, tag: &str) -> Option<Vec<String>>;
+    fn remove_raw(&mut self, tag: &str);
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -99,9 +101,30 @@ pub struct Picture {
     pub mime: String
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum CoverType {
-    Front
+    CoverFront,
+    CoverBack,
+    Other,
+    Artist,
+    Icon,
+    OtherIcon,
+    Leaflet,
+    Media,
+    LeadArtist,
+    Conductor,
+    Band,
+    Composer,
+    Lyricist,
+    RecordingLocation,
+    DuringRecording,
+    DuringPerformance,
+    ScreenCapture,
+    BrightFish,
+    Illustration,
+    BandLogo,
+    PublisherLogo,
+    Undefined
 }
 
 #[derive(Debug, Clone)]
@@ -131,13 +154,16 @@ pub enum Field {
     ISRC
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum TagChange {
     Raw { tag: String, value: Vec<String> },
     Rating { value: u8 },
-    Genre { value: Vec<String> }
+    Genre { value: Vec<String> },
+    Remove { tag: String },
+    RemovePicture { kind: CoverType },
+    //For adding from UI
+    AddPictureBase64 { kind: CoverType, description: String, data: String, mime: String }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -158,6 +184,10 @@ impl TagChanges {
                 TagChange::Raw {tag: t, value} => tag.set_raw(&t, value, true),
                 TagChange::Rating {value} => tag.set_rating(value, true),
                 TagChange::Genre {value} => tag.set_field(Field::Genre, value, true),
+                TagChange::Remove {tag: t} => tag.remove_raw(&t),
+                TagChange::RemovePicture {kind} => tag.remove_art(kind),
+                TagChange::AddPictureBase64 {kind, description, data, mime} => tag.set_art(kind, &mime, Some(&description), base64::decode(&data)?),
+                
             }
         }
         //Save

@@ -59,6 +59,14 @@ impl QuickTagFile {
 
     pub fn from_tag(path: &str, tag_wrap: &Tag) -> Option<QuickTagFile> {
         let tag = tag_wrap.tag()?;
+        let mut all_tags = tag.all_tags();
+        //Insert overriden tags
+        if let Some(v) = tag.get_raw("COMM") {
+            all_tags.insert("COMM".to_string(), v);
+        }
+        if let Some(v) = tag.get_raw("USLT") {
+            all_tags.insert("USLT".to_string(), v);
+        }
 
         Some(QuickTagFile {
             path: path.to_string(),
@@ -71,7 +79,7 @@ impl QuickTagFile {
                 Some(t) => t.first().unwrap_or(&"can't parse".to_string()).parse().ok(),
                 None => None
             },
-            tags: tag.all_tags(),
+            tags: all_tags,
         })
     }
 

@@ -224,6 +224,6 @@ export default {
     max-width: 1400px;
 }
 .t-range .q-slider__track-container {
-    background: #00D2BF !important;
+    background: var(--q-color-primary) !important;
 }
 </style>
