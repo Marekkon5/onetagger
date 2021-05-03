@@ -3,10 +3,10 @@
 
     <div class='row full-height'>
         <!-- File browser -->
-        <div class='col-4 bg-darker q-px-md q-pt-sm'>
+        <div class='bg-darker q-px-md q-pt-sm' :class='{"col-4": !$1t.settings.tagEditorDouble, "col-3": $1t.settings.tagEditorDouble}'>
             <div class='text-weight-bold text-subtitle2 monospace clickable path-display' @click='browse'>
                 <div class='row inline'>
-                    <span style="direction:ltr;">{{path}}</span>
+                    <span style="direction:ltr;" class='text-primary'>{{path}}</span>
                 </div>
             </div>
             <div class='q-mt-sm'>
@@ -16,28 +16,57 @@
                     <span class='q-ml-sm text-subtitle2'>Parent folder</span>
                 </div>
 
-                <div v-for='file in files' :key='file.filename'>
-                    <div 
-                        class='clickable te-file' 
-                        @click='file.dir ? loadFiles(file.filename) : loadFile(file.filename)'
-                        :class='{"text-primary" : isSelected(file.filename)}'
-                    >
-                        <q-icon size='xs' class='q-mb-xs' v-if='!file.dir' name='mdi-music'></q-icon>
-                        <q-icon size='xs' class='q-mb-xs' v-if='file.dir' name='mdi-folder'></q-icon>
-                        <span class='q-ml-sm text-subtitle2'>{{file.filename}}</span>
+                <draggable 
+                    id='fileList' 
+                    :move='onFileMove' 
+                    group='files' 
+                    :list='files' 
+                    @change='onFileDrag'>
+                    <div v-for='file in files' :key='file.filename'>
+                        <div 
+                            class='clickable te-file' 
+                            @click='file.dir ? loadFiles(file.filename) : loadFile(file.path)'
+                            :class='{"text-primary": isSelected(file.path)}'
+                        >
+                            <q-icon size='xs' class='q-mb-xs' v-if='!file.dir' name='mdi-music'></q-icon>
+                            <q-icon size='xs' class='q-mb-xs' v-if='file.dir' name='mdi-folder'></q-icon>
+                            <span class='q-ml-sm text-subtitle2'>{{file.filename}}</span>
+                        </div>
                     </div>
-                </div>
+                </draggable>
             </div>
         </div>
 
-        <div class='col-8'>
+        <!-- Custom list -->
+        <div class='col-3 bg-darker q-px-md q-pt-sm' v-if='$1t.settings.tagEditorDouble'>
+            <div class='bg-grey-8 separator'></div>
+            <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>Your list</div>
+
+            <draggable group='files' :move='onFileMove' :list='customList' @change='onFileDrag'  style='height: calc(100% - 32px)'>
+                <div v-for='(f, i) in customList' :key='"c"+i'>
+                    <div class='row'>
+                        <div @click='loadFile(f)' class='te-file clickable q-my-xs q-mr-sm' style='width: calc(100% - 32px)' :class='{"text-primary": isSelected(f)}'>
+                            <span>{{filename(f)}}</span>
+                        </div>
+                        <div>
+                            <q-btn size='xs' class='q-mt-xs' flat round style='float: right;' @click='removeCustom(i)'>
+                                <q-icon name='mdi-close' color='red'></q-icon>
+                            </q-btn>
+                        </div>
+                    </div>
+                </div>
+            </draggable>
+        </div>
+
+        <!-- Tags -->
+        <div :class='{"col-8": !$1t.settings.tagEditorDouble, "col-6": $1t.settings.tagEditorDouble}'>
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 <div class='col-12 text-h4 text-grey-7 text-center q-my-sm'>No file selected!</div><br>
                 <div class='text-h6 text-grey-7'>Tip: Click the path to select folder using your OS's picker.</div>
             </div>
 
             <div v-if='file' class='q-px-md'>
-                <div class='text-center q-pt-md text-h5'>{{file.filename}}</div>
+                <div class='text-center q-py-md text-subtitle1 text-primary'>{{file.filename}}</div>
                 <div class='q-mt-md'>
                     <div v-for='(tag, i) in Object.keys(file.tags)' :key='i' class='row q-my-sm'>
                         <div class='col-3 text-subtitle1 q-mt-xs'>
@@ -63,8 +92,8 @@
 
                 <!-- Add new tag -->
                 <div class='row q-mt-xl'>
-                    <div class='text-subtitle1 text-weight-bold col-3'>Add new tag:</div>
-                    <TagField class='col-8' dense :format='tagFormat' @change='newTag = $event'></TagField>
+                    <div class='text-subtitle1 text-weight-bold col-3 q-pt-xs'>Add new tag:</div>
+                    <TagField tageditor class='col-8' dense :format='tagFormat' @change='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
                             <q-icon name='mdi-plus' class='text-primary'></q-icon>
@@ -72,9 +101,9 @@
                     </div>
                 </div>
 
-                <div class='text-h5'>
-                    Art:
-                    <q-btn round flat class='q-mb-xs' @click='addAlbumArtDialog = true'>
+                <div class='text-subtitle1'>
+                    ALBUM ART
+                    <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
                         <q-icon name='mdi-plus' color='primary'></q-icon>
                     </q-btn>
                 </div>
@@ -117,13 +146,14 @@
 import Vue from 'vue';
 import TagField from '../components/TagField';
 import AddAlbumArt from '../components/AddAlbumArt';
+import draggable from 'vuedraggable';
 
 export default {
     name: 'TagEditor',
-    components: { TagField, AddAlbumArt },
+    components: { draggable, TagField, AddAlbumArt },
     data() {
         return {
-            path: null,
+            path: this.$1t.settings.tagEdiorPath,
             files: [],
             file: null,
             changes: [],
@@ -131,6 +161,7 @@ export default {
             albumArt: null,
             showAlbumArt: false,
             addAlbumArtDialog: false,
+            customList: this.$1t.settings.tagEditorCustom,
             abstractions: {
                 "TIT2": "Title",
                 "TCON": "Genre",
@@ -157,16 +188,51 @@ export default {
         browse() {
             this.$1t.send('browse', {context: 'te'});
         },
-        loadFile(f) {
+        loadFile(path) {
             this.changes = [];
             this.newTag = null;
             //Will be joined in backend
-            this.$1t.send('tagEditorLoad', {path: this.path, file: f});
+            this.$1t.send('tagEditorLoad', {path});
+        },
+        //Get filename from path
+        filename(path) {
+            path = path.toString();
+            if (path.trim().startsWith('/')) {
+                let s = path.split('/');
+                return s[s.length - 1];
+            }
+            let s = path.split('\\');
+            return s[s.length - 1];
+        },
+        //Vue draggable file drag process
+        onFileDrag(e) {
+            if (e.added) {
+                if (e.added.element.dir) {
+                    this.$1t.send('tagEditorFolder', {path: this.path, subdir: e.added.element.filename, recursive: true});
+                } else {
+                    this.customList.splice(e.added.newIndex, 1, e.added.element.path);
+                }
+            }
+            //Readd again
+            if (e.removed) {
+                this.files.splice(e.removed.oldIndex, 0, e.removed.element);
+            }
+            this.$1t.settings.tagEditorCustom = this.customList;
+            this.$1t.saveSettings(false);
+        },
+        //Allow only one way drag
+        onFileMove(e) {
+            if (e.relatedContext.component.$el.id == 'fileList') return false;
+        },
+        removeCustom(i) {
+            this.customList.splice(i, 1);
+            this.$1t.settings.tagEditorCustom = this.customList;
+            this.$1t.saveSettings(false);
         },
         //If file is currently open
-        isSelected(filename) {
-            if (!this.file) return;
-            return this.file.filename == filename;
+        isSelected(path) {
+            if (!this.file) return false;
+            return this.file.path == path;
         },
         onChange(tag) {
             let value = this.file.tags[tag]
@@ -255,13 +321,26 @@ export default {
                     this.loadFiles();
                     break;
                 case 'tagEditorFolder':
-                    this.path = e.path;
-                    //Dirs first and sort
-                    this.files = e.files.sort((a, b) => {
-                        if (a.dir && !b.dir) return -1;
-                        if (b.dir && !a.dir) return 1;
-                        return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
-                    });
+                    if (e.recursive) {
+                        //Add dir to custom list
+                        let files = this.customList.concat(e.files.sort((a, b) => {
+                            return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
+                        }).map((f) => f.path));
+                        //For some wtf reason the customList always has an folder object, so remove it
+                        this.customList = [... new Set(files.filter((f) => typeof f == 'string'))];
+                    } else {
+                        this.path = e.path;
+                        //Dirs first and sort
+                        this.files = e.files.sort((a, b) => {
+                            if (a.dir && !b.dir) return -1;
+                            if (b.dir && !a.dir) return 1;
+                            return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
+                        });
+                    }
+                    //Save
+                    this.$1t.settings.tagEdiorPath = this.path;
+                    this.$1t.settings.tagEditorCustom = this.customList;
+                    this.$1t.saveSettings(false);
                     break;
                 case 'tagEditorLoad':
                     this.file = e.data;
@@ -289,7 +368,7 @@ export default {
             let types = ["CoverFront", "CoverBack", "Other", "Artist", "Icon", "OtherIcon", 
                 "Leaflet", "Media", "LeadArtist", "Conductor", "Band", "Composer", "Lyricist", 
                 "RecordingLocation", "DuringRecording", "DuringPerformance", "ScreenCapture", 
-                "BrightFish", "Illustration", "BandLogo", "PublisherLogo", "Undefined"];
+                "BrightFish", "Illustration", "BandLogo", "PublisherLogo"];
             if (!this.file) return types;
             return types.filter((t) => this.file.images.find((i) => i.kind == t) ? false : true);
         }
@@ -332,5 +411,11 @@ export default {
 .albumart-container {
     display: flex;
     width: 180px;
+}
+.separator {
+    width: 2px; 
+    margin-left: -17px; 
+    position: absolute;
+    height: 100%;
 }
 </style>

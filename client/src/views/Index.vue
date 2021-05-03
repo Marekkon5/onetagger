@@ -50,7 +50,7 @@
             <img src="../assets/logo-full.png" height='64' class='q-pr-sm q-mt-xs'>            
         </div>
         <div class='q-pt-md text-h6'>The ultimate cross-platform audio tagger for DJs</div>
-        <span class='q-pt-md text-subtitle1 text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger")'>https://github.com/Marekkon5/onetagger</span>
+        <span class='q-pt-md text-subtitle1 text-primary clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
         <div class='q-pt-md text-subtitle1'>
             Developed by Marekkon5<br>
             UI & logo design by Bas Curtiz
@@ -58,8 +58,8 @@
         <div class='q-pt-md text-subtitle1 text-weight-bold'>Version 1.0</div>
         <div class='q-pt-md text-subtitle1'>
             Need help? Check out our <span class='text-weight-bold'>Getting started sections</span>.<br>
-            Found a bug or have a request? Post it on <span class='text-primary clickable'>Github</span>.<br>
-            Like the app? Contribute by donating through <span class='text-primary clickable'>Patreon</span>.
+            Found a bug or have a request? Post it on <span class='text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>GitHub</span>.<br>
+            Like the app? Contribute by donating through <span class='text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'>Patreon</span>.
         </div>
     </div>
 

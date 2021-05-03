@@ -31,6 +31,11 @@ const banned = {
         "TRACK", "TITLESORT", "ORIGYEAR", "INITIALKEY", "KEY", "COMPOSERSORT", "COMPILATION", 
         "BPM", "ARTISTSORT", "ALBUMARTISTSORT", "ALBUMSORT", "POPULARIMETER", "RATING", "ISRC"]
 }
+const bannedTagEditor = {
+    id3: ["APIC", "TXXX", "POPM", "COMM", "USLT"],
+    flac: []
+}
+
 //Autocompletion
 const options = {
     id3: [
@@ -79,6 +84,10 @@ export default {
             default: false,
             type: Boolean
         },
+        tageditor: {
+            default: false,
+            type: Boolean
+        }
     },
     data() {
         return {
@@ -116,7 +125,7 @@ export default {
             if (v.includes(' ') && !(this.format == 'id3' && v.length != 4))
                 this.error = "Tag names shouldn't contain spaces!"
 
-            if (banned[this.format].includes(v.toUpperCase()))
+            if ((this.tageditor ? bannedTagEditor : banned)[this.format].includes(v.toUpperCase()))
                 this.error = "This tag is reserved, might cause corruption!"
 
             if (!v)

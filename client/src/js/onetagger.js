@@ -289,7 +289,10 @@ class OneTagger {
                 spotifyClientId: null,
                 spotifyClientSecret: null,
                 config: null
-            }
+            },
+            tagEditorPath: null,
+            tagEditorDouble: false,
+            tagEditorCustom: []
         });
 
         //Audio features
@@ -351,12 +354,10 @@ class OneTagger {
     }
 
     //Save settings to file
-    saveSettings() {
+    saveSettings(notif = true) {
         //Save discogs token and volume
         if (this.config.discogs.token)
             this.settings.discogsToken = this.config.discogs.token;
-        //Only show notification if not changing volume
-        let notif = this.settings.volume == this.player.volume;
         this.settings.volume = this.player.volume;
         //Save
         this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings))});
@@ -381,6 +382,7 @@ class OneTagger {
         this.player.volume = this.settings.volume??0.5;
         this.setVolume(this.player.volume);
         colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');
+        if (!this.settings.tagEditorCustom) this.settings.tagEditorCustom = [];
     }
 
     //Wrapper to prevent multiple waveforms

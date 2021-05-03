@@ -90,7 +90,7 @@ impl ID3Tag {
     }
     fn cover_type(&self, picture_type: &PictureType) -> CoverType {
         COVER_TYPES.iter().find(|(p, _)| p == picture_type).unwrap_or(
-            &(PictureType::Undefined(0u8), CoverType::Undefined)
+            &(PictureType::Undefined(20u8), CoverType::Undefined)
         ).1.clone()
     }
 

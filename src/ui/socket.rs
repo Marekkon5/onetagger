@@ -2,11 +2,11 @@ use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::path::Path;
-use std::fs::canonicalize;
 use tungstenite::server::accept;
 use tungstenite::{Message, WebSocket};
 use serde_json::{Value, json};
 use directories::UserDirs;
+use dunce::canonicalize;
 
 use crate::tag::TagChanges;
 use crate::tagger::{TaggerConfig, Tagger};
@@ -257,6 +257,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         },
         //Tag editor
         "tagEditorFolder" => {
+            let recursive = json["recursive"].as_bool().unwrap_or(false);
             let user_dirs = UserDirs::new().ok_or("Invalid home dir!")?;
             let path_raw = json["path"].as_str().unwrap_or(
                 user_dirs.audio_dir().ok_or("Missing path!")?.to_str().ok_or("Invalid path!")?
@@ -266,16 +267,20 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             let path = canonicalize(Path::new(path_raw).join(subdir))?;
             //Load
             let path = path.to_str().unwrap();
-            let files = TagEditor::list_dir(path)?;
+            let files = match recursive {
+                true => TagEditor::list_dir_recursive(path)?,
+                false => TagEditor::list_dir(path)?
+            };
             websocket.write_message(Message::from(json!({
                 "action": "tagEditorFolder",
                 "files": files,
-                "path": path
+                "path": path,
+                //Stateless
+                "recursive": recursive
             }).to_string())).ok();
         },
         "tagEditorLoad" => {
             let path = Path::new(json["path"].as_str().ok_or("Missing path!")?);
-            let path = path.join(json["file"].as_str().ok_or("Missing filename!")?);
             let data = TagEditor::load_file(path.to_str().unwrap())?;
             websocket.write_message(Message::from(json!({
                 "action": "tagEditorLoad",

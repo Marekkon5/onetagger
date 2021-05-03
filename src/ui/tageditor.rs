@@ -2,7 +2,8 @@ use std::error::Error;
 use std::fs::read_dir;
 use std::io::Cursor;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
 use serde::{Serialize, Deserialize};
 use image::{GenericImageView, io::Reader as ImageReader};
 
@@ -12,33 +13,55 @@ pub struct TagEditor {}
 
 impl TagEditor {
     pub fn list_dir(path: &str) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
-        let extensions = ["flac", "mp3", "aif", "aiff"];
         let mut out = vec![];
         for e in read_dir(path)? {
-            let e = e?;
-            let path = e.path();
-            let dir = path.is_dir();
-
-            //Filter extensions
-            if !dir {
-                if path.extension().is_none() {
-                    continue;
-                }
-                let extension = path.extension().unwrap().to_str().ok_or("Invalid extension")?.to_lowercase();
-                if !extensions.iter().any(|e| e == &&extension) {
-                    continue;
+            if let Ok(e) = e {
+                if let Some(fe) = TagEditor::validate_path(e.path()) {
+                    out.push(fe);
                 }
             }
-            let filename = path.file_name().ok_or("Invalid filename!")?.to_str().ok_or("Invalid filename!")?.to_owned();
-            if filename.starts_with('.') {
-                continue;
-            }
-            out.push(FolderEntry {
-                dir,
-                filename 
-            });
         }
         Ok(out)
+    }
+
+    //Get only supported files from all subdirectories
+    pub fn list_dir_recursive(path: &str) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
+        let mut out = vec![];
+        for e in WalkDir::new(path) {
+            if let Ok(e) = e {
+                if let Some(fe) = TagEditor::validate_path(e.path().to_owned()) {
+                    if !fe.dir {
+                        out.push(fe);
+                    }
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    //Check if path is supported
+    fn validate_path(path: PathBuf) -> Option<FolderEntry> {
+        let extensions = ["flac", "mp3", "aif", "aiff"];
+        let dir = path.is_dir();
+        //Filter extensions
+        if !dir {
+            if path.extension().is_none() {
+                return None;
+            }
+            let extension = path.extension().unwrap().to_str()?.to_lowercase();
+            if !extensions.iter().any(|e| e == &&extension) {
+                return None;
+            }
+        }
+        let filename = path.file_name()?.to_str()?.to_owned();
+        if filename.starts_with('.') {
+            return None;
+        }
+        Some(FolderEntry {
+            dir,
+            path: path.to_str()?.to_string(),
+            filename
+        })
     }
 
     //Load tags from file
@@ -84,6 +107,7 @@ impl TagEditor {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FolderEntry {
+    pub path: String,
     pub filename: String,
     pub dir: bool
 }

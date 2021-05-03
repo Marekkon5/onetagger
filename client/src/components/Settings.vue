@@ -206,6 +206,11 @@
                     v-model='$1t.settings.helpButton'
                     label='Show help button'
                 ></q-checkbox>
+                <br>
+                <q-checkbox
+                    v-model='$1t.settings.tagEditorDouble'
+                    label='Tag editor 3 column mode'
+                ></q-checkbox>
                 <div class='q-pt-md q-my-sm text-bold text-grey-6'>PRIMARY COLOR</div>
                 <q-color 
                     v-model='$1t.settings.primaryColor'

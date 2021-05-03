@@ -2364,6 +2364,7 @@ dependencies = [
  "cef",
  "chrono",
  "directories",
+ "dunce",
  "failure",
  "id3",
  "image",
