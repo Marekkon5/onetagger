@@ -55,7 +55,7 @@
             Developed by Marekkon5<br>
             UI & logo design by Bas Curtiz
         </div>
-        <div class='q-pt-md text-subtitle1 text-weight-bold'>Version 1.0</div>
+        <div class='q-pt-md text-subtitle1 text-weight-bold'>Version {{$1t.info.version}}</div>
         <div class='q-pt-md text-subtitle1'>
             Need help? Check out our <span class='text-weight-bold'>Getting started sections</span>.<br>
             Found a bug or have a request? Post it on <span class='text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>GitHub</span>.<br>

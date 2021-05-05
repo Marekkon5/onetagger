@@ -209,7 +209,7 @@
                 <br>
                 <q-checkbox
                     v-model='$1t.settings.tagEditorDouble'
-                    label='Tag editor 3 column mode'
+                    label='Tag editor custom list'
                 ></q-checkbox>
                 <div class='q-pt-md q-my-sm text-bold text-grey-6'>PRIMARY COLOR</div>
                 <q-color 

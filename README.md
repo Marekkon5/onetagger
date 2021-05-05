@@ -7,7 +7,7 @@ Mac version is cross compiled from linux, the build script is designed to run on
 
 **Install remaining dependencies**
 ```
-sudo apt install -y pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 ffmpeg libwebkit2gtk-4.0-dev
+sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 libwebkit2gtk-4.0-dev
 ```
 
 **Compile Linux only**
@@ -23,7 +23,7 @@ assets/compile-nix.sh
 Output files will be in the `dist/` directory.
 
 ### Windows
-Build script is also designed to run on Github Actions environment, so you need to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/), [python3](https://www.python.org/downloads/) (has to be accesible as `python`), Visual Studio Build Tools.  
+Build script is also designed to run on Github Actions environment, so you need to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/), [python3](https://www.python.org/downloads/) (has to be accesible as `python`), [vcpkg](https://github.com/microsoft/vcpkg) (create enviromnent variable `VCPKG_ROOT` with path to it), Visual Studio Build Tools.  
 7z and nsis can be installed using `chocolatey`
 ```
 choco install nsis 7zip -y

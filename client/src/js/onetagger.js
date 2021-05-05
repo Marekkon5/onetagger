@@ -17,9 +17,12 @@ class OneTagger {
         }
         //Load settings on load
         this.ws.onopen = () => {
+            this.send('init');
             this.send('loadSettings');
             this.send('spotifyAuthorized');
         }
+
+        this.info = Vue.observable({version: '0.0.0'});
 
         //WS Message handler
         this.ws.onmessage = (event) => {
@@ -28,6 +31,10 @@ class OneTagger {
 
             //Action
             switch (json.action) {
+                //Initial info
+                case 'init':
+                    this.info.version = json.version;
+                    break;
                 //Settings loaded
                 case 'loadSettings':
                     this.loadSettings(json.settings);

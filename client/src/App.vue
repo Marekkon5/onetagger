@@ -23,7 +23,7 @@
       </q-tabs>
     </q-header>
 
-    <HelpButton v-if='$1t.settings.helpButton'></HelpButton>
+    <HelpButton></HelpButton>
 
     <!-- Drawers -->
     <q-drawer :breakpoint='1000' v-model="left" side="left" :width='200'>
@@ -98,6 +98,26 @@
     </q-card>
   </q-dialog>
 
+  <!-- Update dialog -->
+  <q-dialog v-model='updateDialog'>
+    <q-card v-if='update'>
+      <q-card-section>
+        <div class='text-h5'>New update available!</div>
+      </q-card-section>
+      <q-card-section>
+        <div class='text-center'>
+          <div class='text-h6 text-weight-bold'>{{update.version}}</div><br>
+          <div v-html='update.changelog' class='text-subtitle1'></div>
+        </div>
+      </q-card-section>
+      <q-card-section class='justify-center row'>
+        <q-btn color='primary' class='text-black' @click='$1t.url(update.url)'>
+          Download
+        </q-btn>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
 </div>
 </template>
 
@@ -109,6 +129,9 @@ import QuickTagGenreBar from './components/QuickTagGenreBar';
 import QuickTagRight from './components/QuickTagRight';
 import HelpButton from './components/HelpButton';
 
+import axios from 'axios';
+import compareVersions from 'compare-versions';
+
 export default {
   name: "App",
   components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar, QuickTagRight, HelpButton},
@@ -118,7 +141,9 @@ export default {
       right: false,
       footer: false,
       settings: false,
-      sizeDialog: false
+      sizeDialog: false,
+      update: null,
+      updateDialog: false
     };
   },
   methods: {
@@ -146,6 +171,32 @@ export default {
         this.hideSide();
         this.$router.push('/audiofeatures');
       }
+    },
+    async checkUpdates() {
+      //Fetch latest version info
+      let url = "https://1t.marekkon5.workers.dev/latest";
+      let data = null;
+      try {
+        let res = await axios.get(url);
+        data = res.data;
+      } catch (e) {return;}
+      if (!data) return;
+
+      //New version
+      if (compareVersions(data.version, this.$1t.info.version) == 1) {
+        this.update = data;
+        this.$q.notify({
+          message: `New update available (${data.version})!`,
+          actions: [
+            {
+              label: "Show",
+              handler: () => {
+                this.updateDialog = true;
+              }
+            }
+          ]
+        });
+      }
     }
   },
   mounted() {
@@ -159,6 +210,9 @@ export default {
         this.sizeDialog = false;
       }
     });
+
+    //Wait for app to load
+    setTimeout(() => this.checkUpdates(), 2000);
   },
   watch: {
     //Dont show scrollbar while transition

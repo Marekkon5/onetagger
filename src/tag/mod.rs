@@ -163,7 +163,14 @@ pub enum TagChange {
     Remove { tag: String },
     RemovePicture { kind: CoverType },
     //For adding from UI
-    AddPictureBase64 { kind: CoverType, description: String, data: String, mime: String }
+    AddPictureBase64 { kind: CoverType, description: String, data: String, mime: String },
+
+    #[serde(rename = "id3Comments")]
+    ID3Comments { comments: Vec<id3::ID3Comment> },
+    #[serde(rename = "id3UnsynchronizedLyrics")]
+    ID3UnsynchronizedLyrics { lyrics: Vec<id3::ID3Comment> },
+    #[serde(rename = "id3Popularimeter")]
+    ID3Popularimeter { popm: id3::ID3Popularimeter }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -177,6 +184,19 @@ impl TagChanges {
     //Save all changes to file
     pub fn commit(&self) -> Result<Tag, Box<dyn Error>> {
         let mut tag_wrap = Tag::load_file(&self.path)?;
+
+        //Format specific changes
+        if let Some(id3) = tag_wrap.id3.as_mut() {
+            for change in self.changes.clone() {
+                match change {
+                    TagChange::ID3Comments {comments} => id3.set_comments(&comments),
+                    TagChange::ID3UnsynchronizedLyrics {lyrics} => id3.set_unsync_lyrics(&lyrics),
+                    TagChange::ID3Popularimeter {popm} => id3.set_popularimeter(&popm),
+                    _ => {}
+                }
+            }
+        }
+
         let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
         //Match changes
         for change in self.changes.clone() {
@@ -187,7 +207,7 @@ impl TagChanges {
                 TagChange::Remove {tag: t} => tag.remove_raw(&t),
                 TagChange::RemovePicture {kind} => tag.remove_art(kind),
                 TagChange::AddPictureBase64 {kind, description, data, mime} => tag.set_art(kind, &mime, Some(&description), base64::decode(&data)?),
-                
+                _ => {}
             }
         }
         //Save

@@ -10,7 +10,7 @@
     </div>
 
     <!-- Dialog -->
-    <q-dialog v-model='show'>
+    <q-dialog v-model='show' @hide='hide'>
         <q-card class='help-card text-center'>
 
             <!-- Page controls -->
@@ -328,6 +328,13 @@ export default {
             isrcWiki: 'https://en.wikipedia.org/wiki/International_Standard_Recording_Code'
         }
     },
+    methods: {
+        hide() {
+            this.page = 0;
+            this.$1t.helpDialog.open = false;
+            this.$1t.helpDialog.route = null;
+        }
+    },
     computed: {
         route() {
             //Global override for homescreen
@@ -339,20 +346,12 @@ export default {
         },
         //Show/Hide button
         showButton() {
-            if (this.$1t.helpDialog.open) return false;
-            if (!this.route) return false;
-            if (this.$route.path.includes('/status')) return false;
+            if (this.$1t.helpDialog.open || !this.route || 
+                this.$route.path.includes('/status') || !this.$1t.settings.helpButton) return false;
             return true;
-        }
+        },
     },
     watch: {
-        show() {
-            if (!this.show) {
-                this.page = 0;
-                this.$1t.helpDialog.open = false;
-                this.$1t.helpDialog.route = null;
-            }
-        },
         '$1t.helpDialog.open'() {
             if (this.$1t.helpDialog.open) {
                 this.show = true;

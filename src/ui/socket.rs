@@ -17,6 +17,8 @@ use crate::ui::quicktag::{QuickTag, QuickTagFile};
 use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use crate::ui::tageditor::TagEditor;
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 //Shared variables in socket
 struct SocketContext {
     player: AudioPlayer,
@@ -78,6 +80,13 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
     //Parse JSON
     let json: Value = serde_json::from_str(text)?;
     match json["action"].as_str().ok_or("Missing action!")? {
+        //Get initialization info
+        "init" => {
+            websocket.write_message(Message::from(json!({
+                "action": "init",
+                "version": VERSION
+            }).to_string())).ok();
+        },
         //Save, load settings from UI
         "saveSettings" => {
             let settings = Settings::from_ui(&json["settings"]);

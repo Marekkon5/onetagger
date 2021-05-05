@@ -8,6 +8,7 @@ use serde::{Serialize, Deserialize};
 use image::{GenericImageView, io::Reader as ImageReader};
 
 use crate::tag::{AudioFileFormat, CoverType, Picture, Tag};
+use crate::tag::id3::{ID3Comment, ID3Popularimeter};
 
 pub struct TagEditor {}
 
@@ -68,6 +69,7 @@ impl TagEditor {
     pub fn load_file(path: &str) -> Result<TagEditorFile, Box<dyn Error>> {
         let filename = Path::new(path).file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename!")?;
         let tag_wrap = Tag::load_file(path)?;
+        let id3_binary = ID3Binary::from_tag(&tag_wrap);
         //Load tags
         let tag = tag_wrap.tag().ok_or("No tag")?;
         let tags = tag.all_tags().iter().map(|(k, v)| {
@@ -87,7 +89,8 @@ impl TagEditor {
             filename: filename.to_owned(),
             format: tag_wrap.format,
             path: path.to_owned(),
-            images
+            images,
+            id3: id3_binary
         })
     }
 
@@ -118,7 +121,8 @@ pub struct TagEditorFile {
     pub filename: String,
     pub format: AudioFileFormat,
     pub path: String,
-    pub images: Vec<TagEditorImage>
+    pub images: Vec<TagEditorImage>,
+    pub id3: Option<ID3Binary>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,4 +133,27 @@ pub struct TagEditorImage {
     pub description: String,
     pub width: u32,
     pub height: u32
+}
+
+//Binary ID3 tags
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ID3Binary {
+    pub comments: Vec<ID3Comment>,
+    pub unsync_lyrics: Vec<ID3Comment>,
+    pub popularimeter: Option<ID3Popularimeter>
+}
+
+impl ID3Binary {
+    pub fn from_tag(tag: &Tag) -> Option<ID3Binary> {
+        match tag.id3.as_ref() {
+            Some(t) => {
+                Some(ID3Binary {
+                    comments: t.get_comments(),
+                    unsync_lyrics: t.get_unsync_lyrics(),
+                    popularimeter: t.get_popularimeter()
+                })
+            },
+            None => None
+        }
+    }
 }

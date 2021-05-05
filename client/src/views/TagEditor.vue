@@ -92,7 +92,7 @@
 
                 <!-- Add new tag -->
                 <div class='row q-mt-xl'>
-                    <div class='text-subtitle1 text-weight-bold col-3 q-pt-xs'>Add new tag:</div>
+                    <div class='text-subtitle1 text-weight-bold col-3 q-pt-xs'>Add new text tag:</div>
                     <TagField tageditor class='col-8' dense :format='tagFormat' @change='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
@@ -118,8 +118,145 @@
                         </div>
                     </div>
                 </div>
-                
 
+                <!-- ID3 specific tags -->
+                <div v-if='file.id3'>
+                    <!-- Comments -->
+                    <div class='text-subtitle1'>
+                        COMMENTS (COMM)
+                        <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3Comment'>
+                            <q-icon name='mdi-plus' color='primary'></q-icon>
+                        </q-btn>
+                    </div>
+                    <div>
+                        <div v-for='(comment, i) in file.id3.comments' :key='"comm"+i' class='row q-py-sm'>
+                            <q-input
+                                filled
+                                dense
+                                label='Language'
+                                class='col-2'
+                                v-model='file.id3.comments[i].lang'
+                                maxlength='3'
+                                @change='id3CommentsChange'
+                            ></q-input>
+                            <q-input
+                                filled
+                                dense
+                                label='Description'
+                                class='col-4 q-pl-sm'
+                                v-model='file.id3.comments[i].description'
+                                @change='id3CommentsChange'
+                            ></q-input>
+                            <q-input
+                                filled
+                                dense
+                                label='Text'
+                                class='col-5 q-pl-sm'
+                                v-model='file.id3.comments[i].text'
+                                @change='id3CommentsChange'
+                            ></q-input>
+                            <div class='col-1 q-pl-md q-pt-xs'>
+                                <q-btn round dense flat @click='removeID3Comment(i)'>
+                                    <q-icon name='mdi-delete' class='text-red'></q-icon>
+                                </q-btn>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unsynchronized lyrics -->
+                    <div class='text-subtitle1'>
+                        UNSYNCHRONIZED LYRICS (USLT)
+                        <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3USLT'>
+                            <q-icon name='mdi-plus' color='primary'></q-icon>
+                        </q-btn>
+                    </div>
+                    <div>
+                        <div v-for='(lyric, i) in file.id3.unsync_lyrics' :key='"uslt"+i' class='q-py-sm'>
+                            <div class='row'>
+                                <q-input
+                                    filled
+                                    dense
+                                    label='Language'
+                                    class='col-3'
+                                    v-model='file.id3.unsync_lyrics[i].lang'
+                                    maxlength='3'
+                                    @change='id3USLTChange'
+                                ></q-input>
+                                <q-input
+                                    filled
+                                    dense
+                                    label='Description'
+                                    class='col-8 q-pl-md'
+                                    v-model='file.id3.unsync_lyrics[i].description'
+                                    @change='id3USLTChange'
+                                ></q-input>
+                                <div class='col-1 q-pl-md q-pt-xs'>
+                                    <q-btn round dense flat @click='removeID3USLT(i)'>
+                                        <q-icon name='mdi-delete' class='text-red'></q-icon>
+                                    </q-btn>
+                                </div>
+                            </div>
+                            <q-input
+                                filled
+                                dense
+                                label='Text'
+                                v-model='file.id3.unsync_lyrics[i].text'
+                                type='textarea'
+                                class='q-pt-sm'
+                                @change='id3USLTChange'
+                            ></q-input>
+                        </div>
+                    </div>
+
+                    <!-- Popularimeter -->
+                    <div>
+                        <div class='text-subtitle1'>
+                            POPULARIMETER (POPM)
+                            <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
+                                <q-icon name='mdi-plus' color='primary'></q-icon>
+                            </q-btn>
+                        </div>
+                        <div v-if='file.id3.popularimeter' class='row q-py-sm'>
+                            <q-input
+                                filled
+                                dense
+                                label='Email'
+                                class='col-4'
+                                v-model='file.id3.popularimeter.email'
+                                @change='id3POPMChange'
+                            ></q-input>
+                            <q-input
+                                filled
+                                dense
+                                type='number'
+                                label='Play count'
+                                class='col-3 q-pl-sm'
+                                v-model='file.id3.popularimeter.counter'
+                                maxlength='9'
+                                @change='id3POPMChange'
+                            ></q-input>
+                            <div class='col-4 q-pl-md'>
+                                <q-slider
+                                    :min='0'
+                                    :max='255'
+                                    label
+                                    label-text-color='black'
+                                    :label-value='POPMLabel'
+                                    v-model='file.id3.popularimeter.rating'
+                                    @change='id3POPMChange'
+                                ></q-slider>
+                            </div>
+                            <div class='col-1 q-pl-md q-pt-xs'>
+                                <q-btn round dense flat @click='removePOPM'>
+                                    <q-icon name='mdi-delete' class='text-red'></q-icon>
+                                </q-btn>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+               
                 <!-- Save -->
                 <div class='q-my-md justify-center row'>
                     <q-btn color='primary' class='text-black' @click='save'>Save</q-btn>
@@ -194,16 +331,16 @@ export default {
             //Will be joined in backend
             this.$1t.send('tagEditorLoad', {path});
         },
-        //Get filename from path
-        filename(path) {
-            path = path.toString();
-            if (path.trim().startsWith('/')) {
-                let s = path.split('/');
-                return s[s.length - 1];
-            }
-            let s = path.split('\\');
-            return s[s.length - 1];
+        //If file is currently open
+        isSelected(path) {
+            if (!this.file) return false;
+            return this.file.path == path;
         },
+
+        /*
+            Custom list
+        */
+
         //Vue draggable file drag process
         onFileDrag(e) {
             if (e.added) {
@@ -217,8 +354,7 @@ export default {
             if (e.removed) {
                 this.files.splice(e.removed.oldIndex, 0, e.removed.element);
             }
-            this.$1t.settings.tagEditorCustom = this.customList;
-            this.$1t.saveSettings(false);
+            this.saveSettings();
         },
         //Allow only one way drag
         onFileMove(e) {
@@ -226,13 +362,51 @@ export default {
         },
         removeCustom(i) {
             this.customList.splice(i, 1);
-            this.$1t.settings.tagEditorCustom = this.customList;
-            this.$1t.saveSettings(false);
+            this.saveSettings();
         },
-        //If file is currently open
-        isSelected(path) {
-            if (!this.file) return false;
-            return this.file.path == path;
+        //Get filename from path
+        filename(path) {
+            path = path.toString();
+            if (path.trim().startsWith('/')) {
+                let s = path.split('/');
+                return s[s.length - 1];
+            }
+            let s = path.split('\\');
+            return s[s.length - 1];
+        },
+
+        /*
+            Text Tags
+        */
+
+        //Delete tag
+        removeTag(tag) {
+            Vue.delete(this.file.tags, tag);
+            this.changes.push({
+                type: 'remove',
+                tag: tag
+            })
+        },
+        //Create new tag
+        addNewTag() {
+            if (!this.newTag) return;
+            if (this.file.tags[this.newTag]) {
+                this.$q.notify({
+                    message: "Tag already exists!",
+                    timeout: 2000
+                });
+                return;
+            }
+            //Remove removal of tag
+            let i = this.changes.findIndex((c) => c.type == 'remove' && c.tag == this.newTag);
+            if (i > -1) this.changes.splice(i, 1);
+
+            this.file.tags[this.newTag] = "";
+            this.changes.push({
+                type: 'raw',
+                tag: this.newTag,
+                value: ''
+            });
         },
         onChange(tag) {
             let value = this.file.tags[tag]
@@ -254,13 +428,22 @@ export default {
                 });
             }
         },
-        //Delete tag
-        removeTag(tag) {
-            Vue.delete(this.file.tags, tag);
+
+        /*
+            Album Art
+        */
+
+        //Add new album art
+        addAlbumArt(data) {
             this.changes.push({
-                type: 'remove',
-                tag: tag
-            })
+                type: 'addPictureBase64',
+                mime: data.mime,
+                data: data.data,
+                kind: data.kind,
+                description: data.description
+            });
+            data.data = `data:${data.mime};base64,${data.data}`;
+            this.file.images.push(data);
         },
         //Delete album art
         removeArt(i) {
@@ -277,42 +460,110 @@ export default {
                 kind
             });
         },
-        //Create new tag
-        addNewTag() {
-            if (!this.newTag) return;
-            if (this.file.tags[this.newTag]) {
-                this.$q.notify({
-                    message: "Tag already exists!",
-                    timeout: 2000
-                });
-                return;
-            }
 
-            this.file.tags[this.newTag] = "";
+        /*
+            ID3 Comments
+        */
+
+        //Generate new change for ID3 comments
+        id3CommentsChange() {
+            let i = this.changes.findIndex((c) => c.type == 'id3Comments');
+            if (i > -1) {
+                this.changes.splice(i, 1);
+            }
             this.changes.push({
-                type: 'raw',
-                tag: this.newTag,
-                value: ''
+                type: 'id3Comments',
+                comments: this.file.id3.comments
             });
         },
-        //Add new album art
-        addAlbumArt(data) {
-            this.changes.push({
-                type: 'addPictureBase64',
-                mime: data.mime,
-                data: data.data,
-                kind: data.kind,
-                description: data.description
+        addID3Comment() {
+            this.file.id3.comments.push({
+                lang: "eng",
+                description: "",
+                text: ""
             });
-            data.data = `data:${data.mime};base64,${data.data}`;
-            this.file.images.push(data);
+            this.id3CommentsChange();
         },
+        removeID3Comment(i) {
+            this.file.id3.comments.splice(i, 1);
+            this.id3CommentsChange();
+        },
+
+        /*
+            ID3 Unsynchronized lyrics
+        */
+        id3USLTChange() {
+            let i = this.changes.findIndex((c) => c.type == 'id3UnsynchronizedLyrics');
+            if (i > -1) this.changes.splice(i, 1);
+            this.changes.push({
+                type: 'id3UnsynchronizedLyrics',
+                lyrics: this.file.id3.unsync_lyrics
+            });
+        },
+        removeID3USLT(i) {
+            this.file.id3.unsync_lyrics.splice(i, 1);
+            this.id3USLTChange();
+        },
+        addID3USLT() {
+            this.file.id3.unsync_lyrics.push({
+                lang: 'eng',
+                description: '',
+                text: ''
+            });
+            this.id3USLTChange();
+        },
+
+        /*
+            ID3 Popularimeter
+        */
+        id3POPMChange() {
+            //Remove existing popm changes
+            let i = this.changes.findIndex((c) => c.type == 'id3Popularimeter');
+            if (i > -1) this.changes.splice(i, 1);
+            i = this.changes.findIndex((c) => c.type == "remove" && c.tag == "POPM");
+            if (i > -1) this.changes.splice(i, 1);
+            //Add new changes
+            if (this.file.id3.popularimeter) {
+                this.file.id3.popularimeter.counter = parseInt(this.file.id3.popularimeter.counter.toString());
+                this.changes.push({
+                    type: 'id3Popularimeter',
+                    popm: this.file.id3.popularimeter
+                });
+            } else {
+                this.changes.push({
+                    type: 'remove',
+                    tag: 'POPM'
+                });
+            }
+        },
+        addPOPM() {
+            this.file.id3.popularimeter = {
+                email: "no@email",
+                rating: 0,
+                counter: 0
+            }
+            this.id3POPMChange();
+        },
+        removePOPM() {
+            this.file.id3.popularimeter = null;
+            this.id3POPMChange();
+        },
+
+
+        /*
+            Saving and backend
+        */
+
         //Save to file
         save() {
             this.$1t.send('tagEditorSave', {changes: {path: this.file.path, changes: this.changes}});
             this.changes = [];
         },
-      
+        saveSettings() {
+            this.$1t.settings.tagEdiorPath = this.path;
+            this.$1t.settings.tagEditorCustom = this.customList;
+            this.$1t.saveSettings(false);
+        },
         //Websocket callback
         wsCallback(e) {
             switch (e.action) {
@@ -337,10 +588,7 @@ export default {
                             return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
                         });
                     }
-                    //Save
-                    this.$1t.settings.tagEdiorPath = this.path;
-                    this.$1t.settings.tagEditorCustom = this.customList;
-                    this.$1t.saveSettings(false);
+                    this.saveSettings();
                     break;
                 case 'tagEditorLoad':
                     this.file = e.data;
@@ -371,6 +619,13 @@ export default {
                 "BrightFish", "Illustration", "BandLogo", "PublisherLogo"];
             if (!this.file) return types;
             return types.filter((t) => this.file.images.find((i) => i.kind == t) ? false : true);
+        },
+        //Label for rating slider
+        POPMLabel() {
+            let v = this.file.id3.popularimeter.rating;
+            let stars = Math.ceil(v / 51);
+            if (stars == 0) stars = 1;
+            return `${v} (${stars}⭐)`;
         }
     },
     mounted() {

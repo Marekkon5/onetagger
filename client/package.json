@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
+    "axios": "^0.21.1",
     "base64-inline-loader": "^1.1.1",
+    "compare-versions": "^3.6.0",
     "html-webpack-inline-source-plugin": "^1.0.0-beta.2",
     "html-webpack-plugin": "^4.5.1",
     "quasar": "^1.0.0",

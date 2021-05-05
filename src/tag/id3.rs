@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::convert::TryInto;
 use id3::{Version, Tag, Timestamp, Frame, Content};
 use id3::frame::{Picture, PictureType, Comment, Lyrics};
+use serde::{Serialize, Deserialize};
 use crate::tag::{TagDate, CoverType, Field, TagImpl};
 
 const COVER_TYPES: [(PictureType, CoverType); 21] = [
@@ -82,6 +84,43 @@ impl ID3Tag {
     }
     pub fn set_id3v24(&mut self, id3v24: bool) {
         self.id3v24 = id3v24;
+    }
+
+    //Read and write all comments
+    pub fn get_comments(&self) -> Vec<ID3Comment> {
+        self.tag.comments().map(|c| c.clone().into()).collect()
+    }
+
+    pub fn set_comments(&mut self, comments: &Vec<ID3Comment>) {
+        self.tag.remove("COMM");
+        for c in comments {
+            self.tag.add_comment(c.clone().into())
+        }
+    }
+
+    //Read write all unsynchronized lyrics
+    pub fn get_unsync_lyrics(&self) -> Vec<ID3Comment> {
+        self.tag.lyrics().map(|l| l.clone().into()).collect()
+    }
+
+    pub fn set_unsync_lyrics(&mut self, lyrics: &Vec<ID3Comment>) {
+        self.tag.remove("USLT");
+        for l in lyrics {
+            self.tag.add_lyrics(l.clone().into());
+        }
+    }
+
+    //POPM
+    pub fn get_popularimeter(&self) -> Option<ID3Popularimeter> {
+        let tag = self.tag.get("POPM")?;
+        let data = tag.content().unknown()?;
+        let popm = ID3Popularimeter::from_bytes(data).ok()?;
+        Some(popm)
+    }
+
+    pub fn set_popularimeter(&mut self, popm: &ID3Popularimeter) {
+        self.tag.remove("POPM");
+        self.tag.add_frame(popm.to_frame());
     }
 
     //Convert between different cover/picture types
@@ -193,21 +232,19 @@ impl TagImpl for ID3Tag {
     fn get_rating(&self) -> Option<u8> {
         let tag = self.tag.get("POPM")?;
         let value = tag.content().unknown()?;
-        //Find rating index
-        let i = value.iter().position(|b| b == &0u8)? + 1;
-        //255/5
-        let rating = (value[i] as f32 / 51.0).ceil() as u8;
+        let popm = ID3Popularimeter::from_bytes(value).ok()?;
+        //Byte to 1 - 5
+        let rating = (popm.rating as f32 / 51.0).ceil() as u8;
         if rating == 0 {
             return Some(1)
         }
         Some(rating)
     }
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
-        //no@email \0 rating (single byte), counter = 4 bytes
-        let value = vec![0x6e, 0x6f, 0x40, 0x65, 0x6d, 0x61, 0x69, 0x6c, 0x00, rating * 51, 0, 0, 0, 0];
+        let frame = ID3Popularimeter::new("no@email", rating * 51, 0).to_frame();
         if overwrite || self.tag.get("POPM").is_none() {
             self.tag.remove("POPM");
-            self.tag.add_frame(Frame::with_content("POPM", Content::Unknown(value)));
+            self.tag.add_frame(frame);
         }
     }
 
@@ -363,5 +400,93 @@ impl TagImpl for ID3Tag {
 
     fn remove_raw(&mut self, tag: &str) { 
         self.tag.remove(tag);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ID3Popularimeter {
+    pub email: String,
+    pub rating: u8,
+    pub counter: u32
+}
+
+impl ID3Popularimeter {
+    pub fn new(email: &str, rating: u8, counter: u32) -> ID3Popularimeter {
+        ID3Popularimeter {
+            email: email.to_string(),
+            rating, counter
+        }
+    }
+
+    // EMAIL \0 RATING (u8) COUNTER (u32)
+    pub fn from_bytes(data: &[u8]) -> Result<ID3Popularimeter, Box<dyn Error>> {
+        let pos = data.iter().position(|b| b == &0u8).ok_or("Can't find null byte!")?;
+        Ok(ID3Popularimeter {
+            email: String::from_utf8(data[0..pos].to_vec())?,
+            rating: data[pos+1],
+            counter: u32::from_be_bytes(data[pos+2..pos+6].try_into().unwrap_or([0,0,0,0]))
+        })
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out: Vec<u8> = vec![];
+        out.extend(self.email.as_bytes());
+        out.push(0);
+        out.push(self.rating);
+        out.extend(self.counter.to_be_bytes().iter());
+        out
+    }
+
+    pub fn to_frame(&self) -> Frame {
+        Frame::with_content("POPM", Content::Unknown(self.to_bytes()))
+    }
+}
+
+//Reimplementations of rust-id3 for serialization
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ID3Comment {
+    pub lang: String,
+    pub description: String,
+    pub text: String
+}
+
+impl From<Comment> for ID3Comment {
+    fn from(c: Comment) -> Self {
+        Self {
+            lang: c.lang,
+            description: c.description,
+            text: c.text.replace("\0", "")
+        }
+    }
+}
+
+impl From<ID3Comment> for Comment {
+    fn from(c: ID3Comment) -> Self {
+        Self {
+            lang: c.lang,
+            description: c.description,
+            text: c.text
+        }
+    }
+}
+
+//Unsynchronized lyrics have exactly same schema as comment
+impl From<Lyrics> for ID3Comment {
+    fn from(l: Lyrics) -> Self {
+        Self {
+            lang: l.lang,
+            description: l.description,
+            text: l.text.replace("\0", "")
+        }
+    }
+}
+
+impl From<ID3Comment> for Lyrics {
+    fn from(c: ID3Comment) -> Self {
+        Self {
+            lang: c.lang,
+            description: c.description,
+            text: c.text
+        }
     }
 }
