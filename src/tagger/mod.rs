@@ -328,10 +328,10 @@ impl MatchingUtils {
 
     //Remove spacial characters
     pub fn remove_special(input: &str) -> String {
-        let special = ".,()[]&_\"'";
-        let mut out = String::new();
+        let special = ".,()[]&_\"'-";
+        let mut out = input.to_string();
         for c in special.chars() {
-            out = input.replace(c, "");
+            out = out.replace(c, "");
         }
         out.trim().to_string()
     }

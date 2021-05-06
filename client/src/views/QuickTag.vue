@@ -42,6 +42,28 @@
         </q-card>
     </q-dialog>
 
+    <!-- Note tag dialog -->
+    <q-dialog v-model='noteDialog'>
+        <q-card v-if='$1t.quickTag.track'>
+            <q-card-section>
+                <div class='text-h6'>Note tag</div>
+            </q-card-section>
+            <q-card-section>
+                <q-input
+                    filled
+                    dense
+                    label="Note tag"
+                    style='width: 256px;'
+                    @input='$1t.quickTag.track.setNote($event)'
+                    :value='$1t.quickTag.track.getNote()'
+                ></q-input>
+            </q-card-section>
+            <q-card-section class='justify-end row'>
+                <q-btn color='primary' @click='noteDialog = false' class='text-black'>Save</q-btn>
+            </q-card-section>
+        </q-card>
+    </q-dialog>
+
 </div>
 </template>
 
@@ -53,7 +75,9 @@ export default {
     components: {QuickTagTile},
     data() {
         return {
-            saveDialog: false
+            saveDialog: false,
+            noteDialog: false,
+            note: null
         }
     },
     methods: {
@@ -77,12 +101,15 @@ export default {
         },
     },
     mounted() {
-        //On unsaved changes
+        //Keybind callbacks
         this.$1t.onQTUnsavedChanges = () => {
             this.saveDialog = true;
             setTimeout(() => {
                 this.$refs.saveButton.$el.focus();
             }, 100)
+        }
+        this.$1t.onQTNoteTag = () => {
+            this.noteDialog = true;
         }
 
         //Load tracks if path available

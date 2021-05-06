@@ -46,7 +46,7 @@ class OneTagger {
                         this.config.path = json.path;
                     //Quicktag path
                     if (json.context == 'qt') {
-                        Vue.set(this.settings.quickTag, 'path', json.path);
+                        Vue.set(this.settings, 'path', json.path);
                         this.loadQuickTag();
                     }
                     //Audio features path
@@ -200,12 +200,13 @@ class OneTagger {
 
         //Settings for UI
         this.settings = Vue.observable({
+            path: null,
             primaryColor: '#00D2BF',
             discogsToken: null,
             volume: 0.05,
             helpButton: true,
             quickTag: {
-                path: null,
+                noteTag: {id3: 'COMM', vorbis: 'COMMENT', keybind: null},
                 energyKeys: [null,null,null,null,null],
                 moods: [
                     {mood: 'Happy', color: 'amber'},
@@ -266,8 +267,8 @@ class OneTagger {
                     ],
                 }, {
                     name: 'Situation',
-                    id3: '',
-                    vorbis: '',
+                    id3: 'COMM',
+                    vorbis: 'COMMENT',
                     values: [
                         {val: 'Start', keybind: null},
                         {val: 'Build', keybind: null},
@@ -277,8 +278,8 @@ class OneTagger {
                     ]
                 }, {
                     name: 'Instruments',
-                    id3: '',
-                    vorbis: '',
+                    id3: 'COMM',
+                    vorbis: 'COMMENT',
                     values: [
                         {val: 'Vocals', keybind: null},
                         {val: 'Bass Heavy', keybind: null},
@@ -297,7 +298,6 @@ class OneTagger {
                 spotifyClientSecret: null,
                 config: null
             },
-            tagEditorPath: null,
             tagEditorDouble: false,
             tagEditorCustom: []
         });
@@ -335,6 +335,7 @@ class OneTagger {
     onError(msg) {console.error(msg);}
     onTaggingDone() {}
     onQTUnsavedChanges() {}
+    onQTNoteTag() {}
     onTagEditorEvent() {}
 
     //Send to socket
@@ -500,8 +501,8 @@ class OneTagger {
 
     //Quicktag
     loadQuickTag() {
-        if (!this.settings.quickTag.path) return;
-        this.send('quicktagLoad', {path: this.settings.quickTag.path});
+        if (!this.settings.path) return;
+        this.send('quicktagLoad', {path: this.settings.path});
     }
 
     //Handle keydown event for keyboard bindings
@@ -555,6 +556,11 @@ class OneTagger {
                     });
                 });
                 return true;
+            }
+
+            //Note tag
+            if (this.checkKeybind(event, this.settings.quickTag.noteTag.keybind)) {
+                this.onQTNoteTag();
             }
 
             //Moods

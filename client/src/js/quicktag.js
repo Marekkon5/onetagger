@@ -13,6 +13,24 @@ class QTTrack {
         this._changes = [];
     }
 
+    getNote() {
+        return this.tags[this.settings.noteTag[this.getTagField()]];
+    }
+
+    setNote(note) {
+        //Set
+        let tag = this.settings.noteTag[this.getTagField()];
+        this.tags[tag] = note.split(',');
+        //Create change
+        let index = this._changes.findIndex((c) => c.type == 'raw' && c.tag == tag);
+        if (index > -1) this._changes.splice(index, 1);
+        this._changes.push({
+            type: 'raw',
+            tag,
+            value: note.split(',')
+        });
+    }
+
     //Set new genre
     setGenre(genre) {
         this.genres = [genre];

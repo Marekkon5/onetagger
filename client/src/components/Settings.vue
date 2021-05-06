@@ -18,7 +18,7 @@
                 <!-- Path options -->
                 <div class='text-bold text-grey-6'>FOLDER</div>
                 <div class='row q-mb-sm items-center'>
-                    <div class='col-11 text-subtitle2'>{{$1t.settings.quickTag.path}}</div>
+                    <div class='col-11 text-subtitle2'>{{$1t.settings.path}}</div>
                     <div class='col-1'>
                         <q-btn round flat icon='mdi-open-in-app' @click='browseQuickTag'></q-btn>
                     </div>
@@ -139,7 +139,29 @@
                             <q-btn flat round icon='mdi-plus' @click='addGenre' color='primary'></q-btn>
                         </div>
                     </div>
-                    
+                </div>
+                <!-- Note tag -->
+                <div class='q-my-sm text-bold text-grey-6'>NOTE TAG</div>
+                <div class='row'>
+                    <TagField 
+                        format='id3' 
+                        dense
+                        :initial='$1t.settings.quickTag.noteTag.id3' 
+                        @change='$1t.settings.quickTag.noteTag.id3 = $event'
+                        class='col-5 q-pr-sm'
+                    ></TagField>
+                    <TagField 
+                        format='flac'
+                        dense 
+                        :initial='$1t.settings.quickTag.noteTag.vorbis' 
+                        @change='$1t.settings.quickTag.noteTag.vorbis = $event'
+                        class='col-5 q-pl-sm'
+                    ></TagField>
+                    <Keybind 
+                        class='col-2 text-center' 
+                        @set='$1t.settings.quickTag.noteTag.keybind = $event'
+                        :initial='$1t.settings.quickTag.noteTag.keybind'
+                    ></Keybind>
                 </div>
 
             </div>

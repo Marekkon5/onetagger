@@ -40,19 +40,19 @@ impl AFProperties {
     pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
         vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
-                .add_main_value("Non-rhythmic", "Danceable"),
+                .add_main_value("#dynamics-high", "#dynamics-med", "#dynamics-low"),
             AFPropertyMerged::new(features.acousticness, &self.acousticness, &format)
-                .add_main_value("Electronic", "Acoustic"),
+                .add_main_value("#electronic", "", "#acoustic"),
             AFPropertyMerged::new(features.energy, &self.energy, &format)
-                .add_main_value("Non-energetic", "Energetic"), 
+                .add_main_value("#energy-low", "#energy-med", "#energy-high"), 
             AFPropertyMerged::new(features.instrumentalness, &self.instrumentalness, &format)
-                .add_main_value("Vocal", "Instrumental"),
+                .add_main_value("#vocal-high", "#vocal-med", "#vocal-low"),
             AFPropertyMerged::new(features.liveness, &self.liveness, &format)
-                .add_main_value("Recording", "Live"),
+                .add_main_value("#recording", "", "#live"),
             AFPropertyMerged::new(features.speechiness, &self.speechiness, &format)
-                .add_main_value("Music", "Speech"),
+                .add_main_value("#music", "", "#speech"),
             AFPropertyMerged::new(features.valence, &self.valence, &format)
-                .add_main_value("Negative", "Positive")
+                .add_main_value("#negative", "#neutral", "#positive")
         ]
     }
 }
@@ -79,9 +79,9 @@ impl AFPropertyMerged {
     }
 
     //Set main values by range
-    pub fn add_main_value(mut self, under: &str, over: &str) -> Self {
+    pub fn add_main_value(mut self, under: &str, middle: &str, over: &str) -> Self {
         if self.enabled {
-            self.main_value = self.range.select(self.value, under, over);
+            self.main_value = self.range.select(self.value, under, middle, over);
         }
         self
     }
@@ -124,14 +124,14 @@ pub struct AFRange {
 }
 impl AFRange {
     //Select value under or over range
-    pub fn select(&self, v: i8, under: &str, over: &str) -> String {
+    pub fn select(&self, v: i8, under: &str, middle: &str, over: &str) -> String {
         if v < self.min {
             return under.to_owned();
         }
         if v >= self.max {
             return over.to_owned();
         }
-        String::new()
+        middle.to_owned()
     }
 }
 

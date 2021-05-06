@@ -3,7 +3,7 @@
 
     <div class='row full-height'>
         <!-- File browser -->
-        <div class='bg-darker q-px-md q-pt-sm' :class='{"col-4": !$1t.settings.tagEditorDouble, "col-3": $1t.settings.tagEditorDouble}'>
+        <div @contextmenu.prevent="" class='bg-darker q-px-md q-pt-sm' :class='{"col-4": !$1t.settings.tagEditorDouble, "col-3": $1t.settings.tagEditorDouble}'>
             <div class='text-weight-bold text-subtitle2 monospace clickable path-display' @click='browse'>
                 <div class='row inline'>
                     <span style="direction:ltr;" class='text-primary'>{{path}}</span>
@@ -38,9 +38,17 @@
         </div>
 
         <!-- Custom list -->
-        <div class='col-3 bg-darker q-px-md q-pt-sm' v-if='$1t.settings.tagEditorDouble'>
+        <div @contextmenu.prevent="" class='col-3 bg-darker q-px-md q-pt-sm' v-if='$1t.settings.tagEditorDouble'>
             <div class='bg-grey-8 separator'></div>
-            <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>Your list</div>
+            <div class='row justify-between'>
+                <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>Your list</div>
+                <div>
+                    <q-btn round dense size='xs' flat style='margin-right: 2px;' @click='clearCustom'>
+                        <q-icon name='mdi-close' color='red'></q-icon>
+                    </q-btn>
+                </div>
+            </div>
+            
 
             <draggable group='files' :move='onFileMove' :list='customList' @change='onFileDrag'  style='height: calc(100% - 32px)'>
                 <div v-for='(f, i) in customList' :key='"c"+i'>
@@ -290,7 +298,7 @@ export default {
     components: { draggable, TagField, AddAlbumArt },
     data() {
         return {
-            path: this.$1t.settings.tagEdiorPath,
+            path: this.$1t.settings.path,
             files: [],
             file: null,
             changes: [],
@@ -346,8 +354,14 @@ export default {
             if (e.added) {
                 if (e.added.element.dir) {
                     this.$1t.send('tagEditorFolder', {path: this.path, subdir: e.added.element.filename, recursive: true});
+                    //Don't copy
+                    this.customList.splice(e.added.newIndex, 1);
                 } else {
-                    this.customList.splice(e.added.newIndex, 1, e.added.element.path);
+                    //Duplicate
+                    if (!this.customList.find((i) => i == e.added.element.path)) 
+                        this.customList.splice(e.added.newIndex, 1, e.added.element.path);
+                    else 
+                        this.customList.splice(e.added.newIndex, 1);
                 }
             }
             //Readd again
@@ -373,6 +387,10 @@ export default {
             }
             let s = path.split('\\');
             return s[s.length - 1];
+        },
+        clearCustom() {
+            this.customList = [];
+            this.saveSettings();
         },
 
         /*
@@ -401,7 +419,7 @@ export default {
             let i = this.changes.findIndex((c) => c.type == 'remove' && c.tag == this.newTag);
             if (i > -1) this.changes.splice(i, 1);
 
-            this.file.tags[this.newTag] = "";
+            Vue.set(this.file.tags, this.newTag, "");
             this.changes.push({
                 type: 'raw',
                 tag: this.newTag,
@@ -560,7 +578,7 @@ export default {
             this.changes = [];
         },
         saveSettings() {
-            this.$1t.settings.tagEdiorPath = this.path;
+            this.$1t.settings.path = this.path;
             this.$1t.settings.tagEditorCustom = this.customList;
             this.$1t.saveSettings(false);
         },
@@ -577,8 +595,8 @@ export default {
                         let files = this.customList.concat(e.files.sort((a, b) => {
                             return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
                         }).map((f) => f.path));
-                        //For some wtf reason the customList always has an folder object, so remove it
-                        this.customList = [... new Set(files.filter((f) => typeof f == 'string'))];
+                        //Deduplicate
+                        this.customList = [... new Set(files)];
                     } else {
                         this.path = e.path;
                         //Dirs first and sort

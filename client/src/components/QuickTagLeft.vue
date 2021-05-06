@@ -32,6 +32,13 @@
         </div>
     </div>
 
+    <!-- Note -->
+    <div class='full-width row justify-center'>
+        <q-btn class='q-mt-md' flat color='primary' v-if='$1t.quickTag.track' @click='$1t.onQTNoteTag'>
+            Edit custom note
+        </q-btn>
+    </div>
+
 </div>
 </template>
 
