@@ -214,7 +214,10 @@ class OneTagger {
                     {mood: 'Bright', color: 'green'},
                     {mood: 'Dark', color: 'deep-purple'},
                     {mood: 'Angry', color: 'red'},
-                    {mood: 'Chill', color: 'teal'}
+                    {mood: 'Chill', color: 'teal'},
+                    {mood: 'Lovely', color: 'pink'},
+                    {mood: 'Powerful', color: 'light-blue'},
+                    {mood: 'Sexy', color: 'purple'}
                 ],
                 moodTag: {vorbis: 'MOOD', id3: 'TMOO'},
                 energyTag: {

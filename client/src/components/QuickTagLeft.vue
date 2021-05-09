@@ -2,12 +2,13 @@
 <div class='q-ma-md'>
 
     <!-- Energy -->
-    <div class='text-subtitle1 text-bold'>Energy</div>
+    <div class='text-subtitle1 text-bold text-grey-4' ref='energyTitle'>Energy</div>
     <q-rating 
         size='1.5em' 
         class='q-mt-sm' 
         v-if='$1t.quickTag.track'
         v-model='$1t.quickTag.track.energy'
+        no-reset
     ></q-rating>
     <q-rating 
         size='1.5em' 
@@ -17,7 +18,7 @@
     ></q-rating>
 
     <!-- Mood -->
-    <div class='text-subtitle1 text-bold q-mt-md'>Mood</div>
+    <div class='text-subtitle1 text-bold q-mt-lg text-grey-4'>Mood</div>
     <div class='q-mt-sm moods'>
         <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
             <q-chip 
@@ -31,14 +32,6 @@
             ></q-chip>
         </div>
     </div>
-
-    <!-- Note -->
-    <div class='full-width row justify-center'>
-        <q-btn class='q-mt-md' flat color='primary' v-if='$1t.quickTag.track' @click='$1t.onQTNoteTag'>
-            Edit custom note
-        </q-btn>
-    </div>
-
 </div>
 </template>
 

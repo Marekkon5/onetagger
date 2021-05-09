@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-mt-md'>Tagging status</div>
+    <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
 
     <!-- Status -->
     <div class='row justify-center q-my-md'>
@@ -29,6 +29,15 @@
     </q-list>
     </div>
 
+    <!-- Progressbar -->
+    <div class='progress'>
+        <q-linear-progress 
+            :value='progress'
+            color='primary' 
+            size='5px'
+        ></q-linear-progress>
+    </div>
+
 </div>
 </template>
 
@@ -40,8 +49,9 @@ export default {
             stats: {
                 ok: 0,
                 failed: 0,
-                skipped: 0
+                skipped: 0,
             },
+            progress: 0.0,
             time: "0:00"
         }
     },
@@ -96,12 +106,14 @@ export default {
                         s.failed++; break;
                 }
             });
+            this.progress = this.$1t.audioFeatures.statuses[this.$1t.audioFeatures.statuses.length-1].progress;
             this.stats = s;
         }
     },
     mounted() {
         //Register done callback
         this.$1t.onTaggingDone = () => {
+            this.progress = 1.0;
             this.$q.dialog({
                 title: 'Done',
                 message: 'Tagging done!',

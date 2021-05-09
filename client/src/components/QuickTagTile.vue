@@ -16,7 +16,7 @@
                 </div>
                 <!-- Title -->
                 <div class='col-5 q-pl-sm'>
-                    <span class='text-h6 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
+                    <span class='text-h6 text-grey-4 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
                     <span class='text-subtitle1 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
                 </div>
                 <!-- Details -->
@@ -30,7 +30,7 @@
                             :label='getMood(track.mood).mood'
                         ></q-chip>
                     </div>
-                    <div class='col-6'>
+                    <div class='col-6 text-grey-4'>
                         <span>{{track.genres.join(", ")}}</span>
                     </div>
                     <div class='col-1'>

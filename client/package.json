@@ -31,6 +31,7 @@
     "node-sass": "^4.13.0",
     "sass-loader": "^8.0.0",
     "vue-cli-plugin-quasar": "~3.0.1",
+    "vue-svg-inline-loader": "^2.1.2",
     "vue-template-compiler": "^2.6.11"
   }
 }

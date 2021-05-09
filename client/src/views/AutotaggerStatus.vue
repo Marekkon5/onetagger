@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-mt-md'>Tagging status</div>
+    <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
     <!-- Chips -->
     <div class='row q-my-sm chips'>
         <q-chip color='primary' text-color='black' icon='mdi-timelapse' class='q-mx-sm'>
@@ -15,7 +15,7 @@
         </q-chip>
     </div>
     <!-- Failed -->
-    <div class='text-h5 q-mt-md'>Failed tracks</div>
+    <div class='text-h7 text-grey-4 text-uppercase q-mt-md'>Failed tracks</div>
     <q-list class='list q-mt-md text-left'>
         <div v-for='(status, i) in $1t.taggerStatus.statuses' :key='i'>
             <q-item class='item'>
@@ -37,7 +37,7 @@
         <q-linear-progress 
             :value='$1t.taggerStatus.progress'
             color='primary' 
-            size='4px'
+            size='5px'
         ></q-linear-progress>
     </div>
 
@@ -61,7 +61,7 @@ export default {
                 case 'traxsource':
                     return 'text-light-blue-7';
                 case 'discogs':
-                    return 'text-yellow-6';
+                    return 'text-yellow-7';
                 case 'junodownload':
                     return 'text-light-green-7'
                 default:
@@ -110,7 +110,7 @@ export default {
 <style>
 .list {
     max-width: 80%;
-    margin-left: 10%;
+    margin-left: 10%;    
 }
 .chips {
     justify-content: center;

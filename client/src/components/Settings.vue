@@ -1,14 +1,14 @@
 <template>
 <q-dialog v-model='open' @hide='close()'>
 
-    <q-card class='parent-card'>
+    <q-card class='parent-card q-pa-lg'>
         <!-- Header -->
         <q-card-section>
-            <div class='text-h6 q-mb-sm'>Settings</div>
+            <div class='text-subtitle1 text-bold q-mb-sm text-center text-uppercase text-primary'>Settings</div>
             <q-tabs v-model='tab'>
                 <q-tab label='Quick Tag' name='quicktag'></q-tab>
                 <q-tab label='Quick Tag Custom' name='quicktag-custom'></q-tab>
-                <q-tab label='Advanced' name='advanced'></q-tab>
+                <q-tab label='Display' name='advanced'></q-tab>
             </q-tabs>
         </q-card-section>
         <!-- Content -->
@@ -16,16 +16,16 @@
             <!-- Quicktag options -->
             <div v-if='tab == "quicktag"'>
                 <!-- Path options -->
-                <div class='text-bold text-grey-6'>FOLDER</div>
+                <div class='text-grey-6 text-bold'>Folder</div>
                 <div class='row q-mb-sm items-center'>
-                    <div class='col-11 text-subtitle2'>{{$1t.settings.path}}</div>
+                    <div class='col-11 text-subtitle2 monospace text-bold text-primary'>{{$1t.settings.path}}</div>
                     <div class='col-1'>
                         <q-btn round flat icon='mdi-open-in-app' @click='browseQuickTag'></q-btn>
                     </div>
                 </div>
 
                 <!-- Energy keybinds -->
-                <div class='q-mb-sm text-bold text-grey-6'>ENERGY KEYBINDS</div>
+                <div class='q-mb-sm text-bold text-grey-6'>Energy keybinds</div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <!-- Energy settings -->
-                <div class='q-mb-sm text-bold text-grey-6'>ENERGY TAG OPTIONS</div>
+                <div class='q-mb-sm text-bold text-grey-6'>Energy tag options</div>
                 <q-select
                     v-model='$1t.settings.quickTag.energyTag.type'
                     dense
@@ -64,7 +64,7 @@
                 </div>
                 <div class='q-mb-md'></div>
                 <!-- Mood tag -->
-                <div class='q-my-sm text-bold text-grey-6'>MOOD TAG</div>
+                <div class='q-my-sm text-grey-6 text-bold'>Mood tag</div>
                 <div class='row q-mb-md'>
                     <div class='col-6 q-pr-md'>
                         <TagField format='id3' :initial='$1t.settings.quickTag.moodTag.id3' @change='$1t.settings.quickTag.moodTag.id3 = $event'></TagField>
@@ -74,7 +74,7 @@
                     </div>
                 </div>
                 <!-- Moods -->
-                <div class='q-my-sm text-bold text-grey-6'>MOODS</div>
+                <div class='q-my-sm text-bold text-grey-6'>Moods</div>
                 <div class='q-mb-md'>
                     <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
                         <div class='row justify-around'>
@@ -112,7 +112,7 @@
                     </div>
                 </div>
                 <!-- Genres -->
-                <div class='q-my-sm text-bold text-grey-6'>GENRES</div>
+                <div class='q-my-sm text-bold text-grey-6'>Genres</div>
                 <div>
                     <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
                         <div class='row q-my-sm'>
@@ -140,8 +140,11 @@
                         </div>
                     </div>
                 </div>
-                <!-- Note tag -->
-                <div class='q-my-sm text-bold text-grey-6'>NOTE TAG</div>
+            </div>
+            <!-- Quicktag custom -->
+            <div v-if='tab == "quicktag-custom"'>
+                 <!-- Note tag -->
+                <div class='text-grey-6 text-bold q-mb-sm'>Custom note tag</div>
                 <div class='row'>
                     <TagField 
                         format='id3' 
@@ -163,14 +166,9 @@
                         :initial='$1t.settings.quickTag.noteTag.keybind'
                     ></Keybind>
                 </div>
-
-            </div>
-
-            <!-- Quicktag custom -->
-            <div v-if='tab == "quicktag-custom"'>
                 <div v-for='(tag, i) in $1t.settings.quickTag.custom' :key='"tag"+i' class='q-mb-md'>
                     <div class='row'>
-                        <div class='text-h6 q-mb-sm' v-if='!customQTEdit[i]'>{{tag.name}}</div>
+                        <div class='text-subtitle1 text-bold q-mb-sm' v-if='!customQTEdit[i]'>{{tag.name}}</div>
                         <q-input dense filled v-if='customQTEdit[i]' v-model='$1t.settings.quickTag.custom[i].name'></q-input>
                         <div class='q-mx-md mt-2'>
                             <q-btn
@@ -213,7 +211,7 @@
                 </div>
                 <!-- Add new tag -->
                 <div class='row q-mt-md'>
-                    <div class='text-h6 q-my-md col-4'>Add new section</div>
+                    <div class='text-subtitle1 text-bold q-my-lg col-4'>Add new section</div>
                     <q-input v-model='newCustomQT' filled label='Name' class='q-mt-sm col-7 q-pr-md'></q-input>
                     <div class='q-mt-md col-1'>
                         <q-btn round flat icon='mdi-plus' size='md' color='primary' @click='addCustomQT'></q-btn>
@@ -223,7 +221,7 @@
 
             <!-- Advanced -->
             <div v-if='tab == "advanced"'>
-                <div class='q-my-sm text-bold text-grey-6'>GENERAL</div>
+                <div class='text-bold text-grey-6'>General</div>
                 <q-checkbox
                     v-model='$1t.settings.helpButton'
                     label='Show help button'
@@ -231,13 +229,21 @@
                 <br>
                 <q-checkbox
                     v-model='$1t.settings.tagEditorDouble'
-                    label='Tag editor custom list'
+                    label='Show custom list - in edit tags'
                 ></q-checkbox>
-                <div class='q-pt-md q-my-sm text-bold text-grey-6'>PRIMARY COLOR</div>
+                <div class='q-pt-md q-my-sm text-bold text-grey-6'>Primary color</div>
                 <q-color 
                     v-model='$1t.settings.primaryColor'
                     @change='colorChange'
                 ></q-color>
+                <q-btn
+                    @click='$1t.settings.primaryColor = "#00d2bf"; colorChange()'
+                    color='primary'
+                    flat
+                    class='q-mt-sm'
+                >
+                    Reset color to default
+                </q-btn>
             </div>
 
         </q-card-section>

@@ -1564,7 +1564,7 @@ dependencies = [
 [[package]]
 name = "id3"
 version = "0.6.4"
-source = "git+https://github.com/Marekkon5/rust-id3.git?branch=save-version#07dd78b9d7113ccfac92f81d76ad94eb49776b79"
+source = "git+https://github.com/polyfloyd/rust-id3.git#e142ec656bf70a8153f6e5b34a37f26df144c3c1"
 dependencies = [
  "bitflags",
  "byteorder",

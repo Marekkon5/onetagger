@@ -4,16 +4,16 @@
     <div class='row full-height'>
         <!-- File browser -->
         <div @contextmenu.prevent="" class='bg-darker q-px-md q-pt-sm' :class='{"col-4": !$1t.settings.tagEditorDouble, "col-3": $1t.settings.tagEditorDouble}'>
-            <div class='text-weight-bold text-subtitle2 monospace clickable path-display' @click='browse'>
+            <div class='text-weight-bold text-subtitle2 clickable path-display' @click='browse'>
                 <div class='row inline'>
-                    <span style="direction:ltr;" class='text-primary'>{{path}}</span>
+                    <span style="direction:ltr;" class='text-primary monospace'>{{path}}</span>
                 </div>
             </div>
             <div class='q-mt-sm'>
                 <!-- Parent -->
                 <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
-                    <q-icon size='xs' class='q-mb-xs' name='mdi-folder-upload'></q-icon>
-                    <span class='q-ml-sm text-subtitle2'>Parent folder</span>
+                    <q-icon size='xs' class='q-mb-xs text-grey-4' name='mdi-folder-upload'></q-icon>
+                    <span class='q-ml-sm text-subtitle2 text-grey-4'>Parent folder</span>
                 </div>
 
                 <draggable 
@@ -26,10 +26,10 @@
                         <div 
                             class='clickable te-file' 
                             @click='file.dir ? loadFiles(file.filename) : loadFile(file.path)'
-                            :class='{"text-primary": isSelected(file.path)}'
+                            :class='{"text-primary": isSelected(file.path), "text-grey-4": !isSelected(file.path)}'
                         >
-                            <q-icon size='xs' class='q-mb-xs' v-if='!file.dir' name='mdi-music'></q-icon>
-                            <q-icon size='xs' class='q-mb-xs' v-if='file.dir' name='mdi-folder'></q-icon>
+                            <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='!file.dir' name='mdi-music'></q-icon>
+                            <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.dir' name='mdi-folder'></q-icon>
                             <span class='q-ml-sm text-subtitle2'>{{file.filename}}</span>
                         </div>
                     </div>
@@ -53,7 +53,12 @@
             <draggable group='files' :move='onFileMove' :list='customList' @change='onFileDrag'  style='height: calc(100% - 32px)'>
                 <div v-for='(f, i) in customList' :key='"c"+i'>
                     <div class='row'>
-                        <div @click='loadFile(f)' class='te-file clickable q-my-xs q-mr-sm' style='width: calc(100% - 32px)' :class='{"text-primary": isSelected(f)}'>
+                        <div 
+                            @click='loadFile(f)' 
+                            class='te-file clickable q-my-xs q-mr-sm' 
+                            style='width: calc(100% - 32px)' 
+                            :class='{"text-primary": isSelected(f), "text-grey-4": !isSelected(f)}'
+                        >
                             <span>{{filename(f)}}</span>
                         </div>
                         <div>
@@ -264,7 +269,6 @@
 
                 </div>
 
-               
                 <!-- Save -->
                 <div class='q-my-md justify-center row'>
                     <q-btn color='primary' class='text-black' @click='save'>Save</q-btn>

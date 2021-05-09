@@ -3,11 +3,11 @@
 
     <!-- Beatport settings -->
     <div v-if='beatport' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md'>Beatport</div>
+        <div class='text-h5 q-mt-md text-grey-4'>Beatport</div>
         <!-- Album art resolution -->
         <q-select 
             dark 
-            standout='text-white bg-dark' 
+            standout='text-grey-4 bg-dark' 
             v-model='$1t.config.beatport.artResolution' 
             :options='resolutions' 
             class='select' 
@@ -16,7 +16,7 @@
         <!-- Max pages -->
         <div class='q-my-sm'>
             <q-chip text-color='black' color='primary'>Max pages: {{$1t.config.beatport.maxPages}}
-                <q-tooltip content-style="font-size: 12px">
+                <q-tooltip content-style="font-size: 13px">
                     How many pages of search results to scan for tracks.
                 </q-tooltip>
             </q-chip>
@@ -26,19 +26,19 @@
 
     <!-- Discogs -->
     <div v-if='discogs' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md'>Discogs</div>
+        <div class='text-h5 q-mt-md text-grey-4'>Discogs</div>
         <!-- Token -->
         <q-input
             dark
-            standout='text-white bg-dark'
+            standout='text-grey-4 bg-dark'
             v-model='$1t.config.discogs.token'
             class='input'
             label='Token'
         >
             <template v-slot:append>
-                <q-icon name='mdi-help-circle-outline' size='xs'>
-                    <q-tooltip content-style='font-size: 12px'>
-                        To obtain token, create a free account on discogs.com. More info? Hit the <q-icon style='padding-bottom: 2px;' name='mdi-help-circle-outline'></q-icon> HELP on the right side. 
+                <q-icon name='mdi-help-circle-outline text-grey-6' size='xs'>
+                    <q-tooltip content-style='font-size: 13px'>
+                        To obtain token, create a free account on discogs.com. More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right.
                     </q-tooltip>
                 </q-icon>
             </template>
@@ -46,7 +46,7 @@
         <!-- Styles -->
         <q-select
             dark
-            standout='text-white bg-dark'
+            standout='text-grey-4 bg-dark'
             v-model='discogsStyle'
             :options='discogsStyles'
             class='select'
@@ -56,7 +56,7 @@
         <!-- Max results -->
         <div class='q-my-sm'>
             <q-chip text-color='black' color='primary'>Max albums to check: {{$1t.config.discogs.maxResults}}
-                <q-tooltip content-style="font-size: 12px">
+                <q-tooltip content-style="font-size: 13px">
                     How many albums (search results) to check, due to rate limiting this increases tagging time by a lot.
                 </q-tooltip>
             </q-chip>

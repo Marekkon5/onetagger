@@ -16,11 +16,19 @@ module.exports = {
   chainWebpack: config => {
     const fontsRule = config.module.rule('fonts');
     fontsRule.uses.clear();
+
     config.module
       .rule('images')
       .use('url-loader')
       .loader('url-loader')
       .tap(options => Object.assign(options, { limit: true }));
+    
+    config.module
+      .rule('vue')
+      .use('vue-svg-inline-loader')
+      .loader('vue-svg-inline-loader')
+      .options({});
+
     config.module
       .rule('fonts')
       .test(/\.(ttf|otf|eot|woff|woff2)$/)

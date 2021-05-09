@@ -5,7 +5,7 @@
         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
             <div 
                 @mouseenter="mouseOver = i"
-                class='q-mx-sm text-subtitle1 clickable text-no-wrap text-white-1' 
+                class='q-mx-sm text-subtitle1 clickable text-no-wrap text-grey-4' 
                 :class='{"text-weight-bolder": isSelected(genre) || mouseOver == i, "text-grey-7": !isSelected(genre) && mouseOver != i}'
                 @click='setGenre(genre)'
             >{{genre.genre}}</div>
@@ -36,6 +36,6 @@ export default {
 
 <style>
 .genre-bar {
-    height: 32px;
+    height: 36px;
 }
 </style>

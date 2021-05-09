@@ -3,11 +3,11 @@
 
     <!-- Login -->
     <div v-if='!$1t.audioFeatures.spotifyAuthorized' class='af-content'>
-        <div class='text-h5 q-mt-md'>Setup</div>
-        <div class='text-subtitle1 q-mt-md'>
-            1. Open <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
-            2. In settings set the Callback URL to: <span class='selectable text-bold'>http://localhost:36914/spotify</span> <br>
-            3. Enter your Client ID and Client Secret below and press login. <br>
+        <div class='text-h5 q-mt-md text-grey-4'>Setup</div>
+        <div class='text-subtitle1 text-grey-6 q-mt-md'>
+            <span class='text-grey-4'>1.</span> Open <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
+            <span class='text-grey-4'>2.</span> In settings set the Callback URL to: <span class='selectable text-grey-4'>http://localhost:36914/spotify</span> <br>
+            <span class='text-grey-4'>3.</span> Enter your Client ID and Client Secret below and press login. <br>
         </div>
         <!-- Client ID and secret field -->
         <div class='row q-mt-xl auth-container justify-evenly'>
@@ -18,23 +18,24 @@
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
             Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match.<br>
+            More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right.
         </div>
     </div>
 
     <!-- Logged in -->
     <div v-if='$1t.audioFeatures.spotifyAuthorized' class='af-content'>
         <!-- Path -->
-        <div class='text-h5 q-mt-md q-mb-md'>Select folder</div>
+        <div class='text-h5 q-mt-md q-mb-md text-grey-4'>Select folder</div>
         <q-input filled class='path-field' label='Path' v-model='$1t.audioFeatures.path'>
             <template v-slot:append>
-                <q-btn round dense flat icon='mdi-open-in-app' class='text-white' @click='browse'></q-btn>
+                <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
             </template>
         </q-input>
 
         <!-- Main tag -->
-        <div class='text-h5 q-mt-xl'>Prominent tag</div>
-        <div class='text-subtitle1 q-mt-xs'>Converts most prominent audio features value (0-100) to a description - based on treshold - and writes to entered tagcode field.</div>
-        <div class='text-subtitle2 q-mt-xs q-mb-sm text-grey-6'>e.g. Acoustic, Danceable, Energetic, Instrumental, Live, Speech, Positive</div>
+        <div class='text-h5 q-mt-xl text-grey-4'>Prominent tag</div>
+        <div class='text-subtitle1 q-mt-xs text-grey-6'>Converts most prominent audio features value (0-100) to a description - based on treshold - and writes to entered tagcode field.</div>
+        <div class='text-subtitle2 q-mt-xs q-mb-sm text-grey-6'>e.g. #acoustic, #dynamics-low, #energy-high, #vocal-med, #live, #speech, #positive</div>
 
         <div class='row q-mx-xl'>
             <div class='col-6 q-px-sm'>
@@ -46,13 +47,13 @@
         </div>
 
         <!-- Values -->
-        <div class='text-h5 q-mt-xl q-mb-md'>Properties</div>
+        <div class='text-h5 q-mt-xl q-mb-md text-grey-4'>Properties</div>
         <div class='q-px-xl'>
             <!-- Header -->
-            <div class='row text-subtitle1 text-bold q-mb-sm'>
+            <div class='row text-subtitle1 text-bold q-mb-sm text-grey-6'>
                 <div class='col-1'>Include
                     <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
-                        <q-tooltip content-style="font-size: 12px">
+                        <q-tooltip content-style="font-size: 13px">
                             Include the audio feature in prominent tag.
                         </q-tooltip>
                     </q-icon>
@@ -108,18 +109,18 @@
         </div>
 
         <!-- Separators -->
-        <div class='row q-mx-xl q-my-md'>
+        <div class='row q-mx-xl q-my-md justify-center'>
             <q-input
                 v-model='config.id3Separator'
                 filled
                 label='ID3 Separator (MP3 + AIFF)'
-                class='col-6 q-px-md'
+                class='col-4 q-px-sm'
             ></q-input>
             <q-input
                 v-model='config.flacSeparator'
                 filled
                 label='FLAC Separator (Leave empty for default)'
-                class='col-6 q-px-md'
+                class='col-4 q-px-sm'
             ></q-input>
         </div>
 

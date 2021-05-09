@@ -398,7 +398,13 @@ impl TagImpl for ID3Tag {
         }
     }
 
-    fn remove_raw(&mut self, tag: &str) { 
+    fn remove_raw(&mut self, tag: &str) {
+        //TXXX
+        if tag.len() != 4 {
+            self.tag.remove_extended_text(Some(tag), None);
+            return;
+        }
+
         self.tag.remove(tag);
     }
 }

@@ -10,6 +10,9 @@ cd ..
 # Compile for linux
 cargo build --release
 strip target/release/onetagger
+tar zcf OneTagger-linux.tar.gz -C target/release onetagger
+mkdir dist
+mv OneTagger-linux.tar.gz dist/
 # Mac
 rustup target add x86_64-apple-darwin
 # Install osxcross
@@ -45,6 +48,4 @@ x86_64-apple-darwin14-strip OneTagger.app/Contents/MacOS/onetagger
 chmod +x OneTagger.app/Contents/MacOS/onetagger
 zip -r OneTagger-mac.zip .
 cd -
-mkdir dist
 cp target/x86_64-apple-darwin/release/bundle/osx/OneTagger-mac.zip dist/
-cp target/release/onetagger dist/OneTagger-linux

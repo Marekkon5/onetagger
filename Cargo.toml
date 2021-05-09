@@ -40,9 +40,8 @@ sndfile = { version = "0.0.4", features = ["ndarray_features"] }
 rspotify = { version = "0.10.0", features = ["blocking"] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 serde = { version = "1.0", features = ["derive"] }
+id3 = { git = "https://github.com/polyfloyd/rust-id3.git" }
 
-# Temporarily until some better solution on master
-id3 = { git = "https://github.com/Marekkon5/rust-id3.git", branch = "save-version" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "libloaderapi"] }

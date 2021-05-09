@@ -43,10 +43,10 @@
     </q-dialog>
 
     <!-- Note tag dialog -->
-    <q-dialog v-model='noteDialog'>
+    <q-dialog v-model='noteDialog' @show='onNoteDialogShow'>
         <q-card v-if='$1t.quickTag.track'>
             <q-card-section>
-                <div class='text-h6'>Note tag</div>
+                <div class='text-h6'>Custom note</div>
             </q-card-section>
             <q-card-section>
                 <q-input
@@ -56,10 +56,9 @@
                     style='width: 256px;'
                     @input='$1t.quickTag.track.setNote($event)'
                     :value='$1t.quickTag.track.getNote()'
+                    @keyup.enter="noteDialog = false"
+                    ref='noteDialogInput'
                 ></q-input>
-            </q-card-section>
-            <q-card-section class='justify-end row'>
-                <q-btn color='primary' @click='noteDialog = false' class='text-black'>Save</q-btn>
             </q-card-section>
         </q-card>
     </q-dialog>
@@ -99,6 +98,10 @@ export default {
         selectFolder() {
             this.$1t.send('browse', {context: 'qt'});
         },
+        //Focus
+        onNoteDialogShow() {
+            this.$refs.noteDialogInput.focus();
+        }
     },
     mounted() {
         //Keybind callbacks

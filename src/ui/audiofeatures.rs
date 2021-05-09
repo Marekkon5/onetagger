@@ -140,10 +140,11 @@ pub struct AudioFeaturesStatus {
     pub state: TaggingState,
     pub path: String,
     pub filename: String,
+    pub progress: f32
 }
 
 impl AudioFeaturesStatus {
-    pub fn new(path: &str, base_path: &str) -> AudioFeaturesStatus {
+    pub fn new(path: &str, base_path: &str, progress: f32) -> AudioFeaturesStatus {
         //Get filename without base path
         let mut filename = path.replacen(base_path, "", 1);
         if filename.starts_with("/") || filename.starts_with("\\") {
@@ -153,7 +154,8 @@ impl AudioFeaturesStatus {
         AudioFeaturesStatus {
             state: TaggingState::Skipped,
             path: path.to_string(),
-            filename 
+            filename,
+            progress
         }
     }
 }
@@ -166,9 +168,10 @@ impl AudioFeatures {
         //Start
         let (tx, rx) = channel();
         thread::spawn(move || {
-            for file in files {
+            for (i, file) in files.iter().enumerate() {
                 //Create status
-                let mut status = AudioFeaturesStatus::new(&file, &config.path);
+                let progress = i as f32 / files.len() as f32;
+                let mut status = AudioFeaturesStatus::new(&file, &config.path, progress);
                 //Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file) {
                     //Match and get features
