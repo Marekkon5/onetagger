@@ -271,6 +271,8 @@
                         <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md'>
                             To look up audio features online for other tracks, check out <span class='text-primary clickable' @click='$1t.url("https://songdata.io")'>SongData.io</span> - Ignore the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify</span> though.
                         </div>
+
+                        <DJAppIcons></DJAppIcons>
                     </div>
 
                 </q-card-section>
@@ -311,9 +313,7 @@
                             <span class='text-number text-bold text-grey-6'>7. </span>Play a song and listen - or quickly skip through a track using the arrow keys on your keyboard. <br>
                             <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-sm q-mt-md'>
-                            For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
-                        </div>
+                        <DJAppIcons class='q-mt-md'></DJAppIcons>
                     </div>
 
                     <!-- Page 2 -->
@@ -347,6 +347,9 @@
                         <div class='text-subtitle2 text-grey-4'>
                             Whatever you want! For example focus on different elements like vibe, instruments, vocals, time to play or situation, etc. 
                         </div>
+                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-sm q-mt-md'>
+                            For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
+                        </div>
                         <br>
                     </div>
 
@@ -360,8 +363,11 @@
 </template>
 
 <script>
+import DJAppIcons from './DJAppIcons';
+
 export default {
     name: 'HelpButton',
+    components: { DJAppIcons },
     data() {
         return {
             show: false,
