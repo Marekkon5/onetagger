@@ -229,7 +229,7 @@
                 <br>
                 <q-checkbox
                     v-model='$1t.settings.tagEditorDouble'
-                    label='Show custom list - in edit tags'
+                    label="Show 'Your list' in Edit Tags"
                 ></q-checkbox>
                 <div class='q-pt-md q-my-sm text-bold text-grey-6'>Primary color</div>
                 <q-color 

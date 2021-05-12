@@ -100,7 +100,7 @@
                         </div>
                         <div class='text-subtitle2 text-primary text-bold q-mt-md'>Advanced</div>
                         <div class='text-subtitle2 text-grey-4'>
-                            <span class='text-number text-bold text-grey-6'>10. </span>Set the settings to your likings. Hover over the <q-icon name='mdi-help-circle-outline' class='q-mb-xs'></q-icon> icons for more info. <br>
+                            <span class='text-number text-bold text-grey-6'>10. </span>Set the settings to your likings. Hover over the <q-icon name='mdi-help-circle-outline' class='q-pb-sm'></q-icon> icons for more info. <br>
                             Hit ‘Start’ to process.
                         </div>
                         <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-sm q-my-md'>
@@ -150,7 +150,8 @@
                             <div class='col-4 text-grey-4 q-mb-xs'>VALENCE</div>          <div class='text-right text-grey-4 col-8'>positive <span class='text-grey-6'>vs.</span> neutral <span class='text-grey-6'>vs.</span> negative <span class='text-grey-4'>(happy <span class='text-grey-6'>vs.</span> sad/angry)</span>  </div>
                         </div>
                         <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md'>
-                            For a more in-depth description, check out <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#endpoint-get-several-audio-features")'>Spotify’s official AudioFeaturesObject</span> section.
+                            For a more in-depth description, check out <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#object-audiofeaturesobject")'>Spotify’s official AudioFeaturesObject</span> section.<br>
+                            To look up audio features online for other tracks, check out <span class='text-primary clickable' @click='$1t.url("https://songdata.io")'>SongData.io</span> - Ignore the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify</span> though.
                         </div>
                     </div>
 
@@ -160,10 +161,11 @@
                         <div class='text-subtitle2 text-grey-4'>
                             You can customize the treshold, so it doesn't only write the simple value from 0-100 per audio feature, <br>
                             but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>
-                            Look up which tag code represents what tag name in the <span class='clickable text-primary' @click='$1t.url(metadataMatrix)'>Metadata matrix</span>.
+                            Look up which tag code represents what tag name by clicking on the icon of your DJ app below. <br>
+                            Also shows you recommended tags to use.
                         </div>
 
-                        <div class='row q-mx-xl q-mt-xl justify-around'>
+                        <div class='row q-mx-xl q-mt-md justify-around'>
                             <div class='col-3 q-mb-xs'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Acousticness</span><br>
                                 <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
@@ -264,15 +266,14 @@
                                 </span>                                
                             </div>
                         </div>
-                            <div class='text-subtitle2 q-my-md text-grey-4'>
+                            <div class='text-subtitle2 q-my-md text-grey-6'>
                                 0* = When treshold is 0, it won't write the prominent tag.
                             </div>
 
+                        
                         <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md'>
-                            To look up audio features online for other tracks, check out <span class='text-primary clickable' @click='$1t.url("https://songdata.io")'>SongData.io</span> - Ignore the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify</span> though.
+                            <DJAppIcons></DJAppIcons>
                         </div>
-
-                        <DJAppIcons></DJAppIcons>
                     </div>
 
                 </q-card-section>
@@ -296,11 +297,15 @@
                             Key bind compatible for quick access.
                         </div>
                         <div class='text-subtitle2 text-primary text-bold q-mt-md'>How does it work?</div>
-                        <div class='text-subtitle2 text-grey-4'>
+                        <div class='text-subtitle2 qt-mb-xs text-grey-4'>
+                            Ever felt like the genre of downloaded tracks are simply not what you think it is?<br>
+                            Ever felt like you wanted the mood of a song in your tag too?<br>
+                            Ever felt like you wanted other characteristics of a track showing in your DJ app?<br>
+                            <br>
                             Set the path to a folder with tracks you like to quick tag. Predefine energy, moods, genres and other characteristics. <br>
                             Decide in which tag you want them to write, so you are able to read them out in your favorite DJ software. <br>
                             Key bind them for quick access. Skip through a song to determine the mentioned elements. <br>
-                            Hit the key binds (or point ’nd click).
+                            Hit the key binds (or point ’nd click).<br>                            
                         </div>
                         <div class='text-subtitle2 text-primary text-bold q-mt-md'>Step-by-step guide</div>
                         <div class='text-subtitle2 text-grey-4'>
@@ -313,7 +318,10 @@
                             <span class='text-number text-bold text-grey-6'>7. </span>Play a song and listen - or quickly skip through a track using the arrow keys on your keyboard. <br>
                             <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br>
                         </div>
-                        <DJAppIcons class='q-mt-md'></DJAppIcons>
+                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md'>
+                            For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
+                        </div> 
+                        
                     </div>
 
                     <!-- Page 2 -->
@@ -324,33 +332,78 @@
                             Set it to 1-3-5 stars to show low-mid-high energy level, or go with the 1-2-3-4-5 scale.  <br>
                             Some DJ software can’t read out the Rating tag, or simply don’t have the ability to show it.  <br>
                             Then you can alternatively set the output to ‘symbol’ instead. Predefine the symbol, (an asterisk * for example).  <br>
-                            Also predefine where to write the energy rating (Composer tag field for example) by entering the proper tag code. <br>
-                            More info which tag codes are what tag field, see the <span class='clickable text-primary' @click='$1t.url(metadataMatrix)'>Metadata matrix</span>. <br>
+                            Also predefine where to write the energy rating by entering the proper tag code. <br>                            
                         </div>
                         <div class='text-subtitle2 text-primary text-bold q-mt-md'>Mood</div>
                         <div class='text-subtitle2 text-grey-4'>
                             Predefine your moods and additionally color code them. Use key bindings for quick access.  <br>
                             For inspiration what moods you could use, see this <span class='text-primary clickable' @click='$1t.url(moodOverview)'>Moods and other characteristics overview.</span> <br>
                             Since the native mood tag isn’t read by any DJ software, we need to write it elsewhere. <br>
-                            More info which tag codes are what tag field, once again, see the <span class='clickable text-primary' @click='$1t.url(metadataMatrix)'>Metadata matrix</span>. <br>
+                            Look up which tag code represents what tag name by clicking on the icon of your DJ app below. <br>
+                            Also shows you recommended tags to use.
                         </div>
                         <div class='text-subtitle2 text-primary text-bold q-mt-md'>Genre</div>
                         <div class='text-subtitle2 text-grey-4'>
                             If the genre stated in the original genre tag of your tracks (or the ones fetched with Auto Tag) are still not to your liking, <br>
                             predefine them in Settings and use key bindings for quick access.<br>
-                            
-                                <q-icon name='mdi-information-outline text-grey-6' class='q-mb-xs q-pr-xs'></q-icon>
-                                <span class='text-subtitle2 text-grey-6'>Pro-tip: Use <span class='text-overline text-grey-6'>CTRL</span> or <span class='text-overline text-grey-6'>SHIFT</span> + character for genres. This way you can keep <span class='text-overline'></span> characters for moods.</span>
+                            <q-icon name='mdi-information-outline text-grey-6' class='q-pb-sm q-pr-xs'></q-icon>
+                            <span class='text-grey-6'>Pro-tip: Use <span class='monospace'>SHIFT + character</span> for genres. This way you can keep <span class='monospace'>characters</span> for moods.</span>
                             
                         </div>
                         <div class='text-subtitle2 text-primary text-bold q-mt-sm'>Custom</div>
                         <div class='text-subtitle2 text-grey-4'>
                             Whatever you want! For example focus on different elements like vibe, instruments, vocals, time to play or situation, etc. 
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-sm q-mt-md'>
-                            For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
+                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md'>
+                            <DJAppIcons></DJAppIcons>
                         </div>
-                        <br>
+                                               
+                    </div>
+
+                </q-card-section>
+            </div>
+
+            <!-- Tag editor -->
+            <div v-if='route == "tageditor"'>
+                <q-card-section class='q-pa-xl'>
+                    <div class='text-subtitle1 text-primary text-bold text-uppercase'>GETTING STARTED WITH EDIT TAGS</div>
+                    <div class='q-mt-xs'>
+                    <q-badge color='primary'>
+                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                    </q-badge>
+                    </div>    
+
+                    <!-- Page 1 -->
+                    <div v-if='page == 0'>
+                    
+                        <div class='text-subtitle2 text-grey-4 q-mt-md'>
+                            Edit Tags lets you do what it says... Edit tags.<br>
+                            It reads the metadata of MP3, AIFF and FLAC files within a folder.<br>
+                            You can review what tags got written where inside the metadata, edit them, add a new tag or delete.<br>
+                        </div>
+                        <div class='text-subtitle2 text-primary text-bold q-mt-sm'>How does it work?</div>
+                        <div class='text-subtitle2 text-grey-4'>
+                            Click the path on top left to select folder using your OS's picker.<br>
+                            A list of all audio files within the folder will be populated.<br>
+                            Click on a file to show the metadata and its tag codes sorted by alphabet*.<br>
+                            Review or alter them to your liking. <br>
+                            Hit Save on the bottom to write the changes made.<br>
+                        </div>
+                        <div class='text-subtitle2 q-my-md text-grey-6'>
+                            *Comments, (Unsynchronized) lyrics & Popularimeter (Rating) are special tag fields.<br>
+                            They show at the bottom below the album art.
+                        </div>                           
+                        <div class='text-subtitle2 text-primary text-bold q-mt-sm'>Your list</div>
+                        <div class='text-subtitle2 text-grey-4'>
+                            If you only want to show a few audio files, or from multiple folders,<br>
+                            toggle <span class='text-italic'>Show 'Your list' in Edit Tags</span> by clicking the <q-icon name='mdi-cog' class='q-mb-xs q-pr-xs'></q-icon>icon > Display > General.<br>
+                            This allows you to drag 'nd drop audio files from the treelist into 'Your list'.
+                        </div>
+                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md'>
+                            The path selected in Quick Tag will overwrite the path of Edit Tags.<br>
+                            This way it becomes easy to review where your custom tags got written, by switching between the two tabs.
+                        </div>
+
                     </div>
 
                 </q-card-section>
@@ -391,6 +444,7 @@ export default {
             return this.$route.path.substring(1).split("/")[0];
         },
         pages() {
+            if (this.route == 'tageditor') return 1;
             return 2;
         },
         //Show/Hide button

@@ -73,7 +73,7 @@ impl TagEditor {
         //Load tags
         let tag = tag_wrap.tag().ok_or("No tag")?;
         let tags = tag.all_tags().iter().map(|(k, v)| {
-            (k.to_owned(), v.join(",").split("\0").collect::<Vec<&str>>().join(","))
+            (k.to_owned(), v.join(",").replace('\0', ""))
         }).collect();
 
         //Load images

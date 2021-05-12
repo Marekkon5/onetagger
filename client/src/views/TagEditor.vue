@@ -3,7 +3,12 @@
 
     <div class='row full-height'>
         <!-- File browser -->
-        <div @contextmenu.prevent="" class='bg-darker q-px-md q-pt-sm' :class='{"col-4": !$1t.settings.tagEditorDouble, "col-3": $1t.settings.tagEditorDouble}'>
+        <div 
+            @contextmenu.prevent="" 
+            class='q-px-md q-pt-sm bg-darker' 
+            :class='{"col-4": !$1t.settings.tagEditorDouble, "col-3": $1t.settings.tagEditorDouble}'
+            style='max-height: 100%; overflow-y: scroll;'
+        >
             <div class='text-weight-bold text-subtitle2 clickable path-display' @click='browse'>
                 <div class='row inline'>
                     <span style="direction:ltr;" class='text-primary monospace'>{{path}}</span>
@@ -38,7 +43,12 @@
         </div>
 
         <!-- Custom list -->
-        <div @contextmenu.prevent="" class='col-3 bg-darker q-px-md q-pt-sm' v-if='$1t.settings.tagEditorDouble'>
+        <div 
+            @contextmenu.prevent="" 
+            class='col-3 bg-darker q-px-md q-pt-sm' 
+            v-if='$1t.settings.tagEditorDouble'
+            style='max-height: 100%; overflow-y: scroll;'
+        >
             <div class='bg-grey-8 separator'></div>
             <div class='row justify-between'>
                 <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>Your list</div>
@@ -72,7 +82,10 @@
         </div>
 
         <!-- Tags -->
-        <div :class='{"col-8": !$1t.settings.tagEditorDouble, "col-6": $1t.settings.tagEditorDouble}'>
+        <div 
+            :class='{"col-8": !$1t.settings.tagEditorDouble, "col-6": $1t.settings.tagEditorDouble}'
+            style='max-height: 100%; overflow-y: scroll;'
+        >
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 <div class='col-12 text-h4 text-grey-7 text-center q-my-sm'>No file selected!</div><br>
                 <div class='text-h6 text-grey-7'>Tip: Click the path to select folder using your OS's picker.</div>
@@ -82,7 +95,7 @@
                 <div class='text-center q-py-md text-subtitle1 text-primary'>{{file.filename}}</div>
                 <div class='q-mt-md'>
                     <div v-for='(tag, i) in Object.keys(file.tags)' :key='i' class='row q-my-sm'>
-                        <div class='col-3 text-subtitle1 q-mt-xs'>
+                        <div class='col-3 text-subtitle1 q-mt-xs q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
                             <span v-if='abstractions[tag]'><span class='text-weight-bold'>{{abstractions[tag]}}</span> ({{tag}})</span>
                             <span v-if='!abstractions[tag]'>{{tag}}</span>
                         </div>
@@ -326,7 +339,22 @@ export default {
                 "TPE4": "Remixer",
                 "IPLS": "Producer ID3v2.3",
                 "TIPL": "Producer ID3v2.4",
-                "TPE3": "Conductor"
+                "TPE3": "Conductor",
+                "BPM": "(TBPM)",
+                "TBPM": "BPM",
+                "TCOP": "Copyright",
+                "TDAT": "Release Date",
+                "TDOR": "Original Year",
+                "TDRL": "Releasetime",
+                "TKEY": "Key",
+                "TLEN": "Length",
+                "TMOO": "Mood",
+                "TPE1": "Artist",
+                "TPOS": "Discnumber",
+                "TRCK": "Tracknumber",
+                "TSRC": "ISRC",
+                "TYER": "Year",
+                "TDRC": "Date Recorded"
             }
         } 
     },
