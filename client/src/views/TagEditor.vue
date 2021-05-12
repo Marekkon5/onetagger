@@ -127,8 +127,8 @@
                     </div>
                 </div>
 
-                <div class='text-subtitle1'>
-                    ALBUM ART
+                <div class='text-subtitle1 text-weight-bold'>
+                    Album art
                     <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
                         <q-icon name='mdi-plus' color='primary'></q-icon>
                     </q-btn>
@@ -136,7 +136,7 @@
                 <div class='q-mt-sm albumart-container text-center'>
                     <div v-for='(image, i) in file.images' :key='"art"+i' class='q-mr-md'>
                         <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
-                        <div class='q-pt-sm'>
+                        <div class='q-pt-sm q-mb-md'>
                             <div class='text-subtitle1'>{{image.kind}}</div>
                             <div class='text-subtitle1'>{{image.description}}</div>
                             <div class='text-subtitle2 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
@@ -149,7 +149,7 @@
                 <div v-if='file.id3'>
                     <!-- Comments -->
                     <div class='text-subtitle1'>
-                        COMMENTS (COMM)
+                        <span class='text-weight-bold'>Comments</span> (COMM)
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3Comment'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -191,7 +191,7 @@
 
                     <!-- Unsynchronized lyrics -->
                     <div class='text-subtitle1'>
-                        UNSYNCHRONIZED LYRICS (USLT)
+                        <span class='text-weight-bold'>Unsynchronized lyrics</span> (USLT)
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3USLT'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -237,7 +237,7 @@
                     <!-- Popularimeter -->
                     <div>
                         <div class='text-subtitle1'>
-                            POPULARIMETER (POPM)
+                            <span class='text-weight-bold'>Popularimeter</span> (POPM)
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
                                 <q-icon name='mdi-plus' color='primary'></q-icon>
                             </q-btn>

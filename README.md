@@ -7,13 +7,14 @@ Mac version is cross compiled from linux, the build script is designed to run on
 
 **Install remaining dependencies**
 ```
-sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make yasm libssl-dev libxml2-dev cmake clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl wget git python2 libwebkit2gtk-4.0-dev
+sudo apt install -y libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 ```
 
 **Compile Linux only**
 ```
-cargo run --release
+cargo build --release
 ```
+Output is in: `target/release/onetagger`
 
 **Compile Linux + Mac, create bundles**
 ```
