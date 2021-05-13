@@ -13,6 +13,13 @@ For more info check out our [website](https://onetagger.github.io/).
 
 You can download latest binaries from [releases](https://github.com/Marekkon5/onetagger/releases)
 
+### Linux
+
+You might need to install additional dependencies to make One Tagger work:
+```
+sudo apt install libsndfile1-dev
+```
+
 ## Compilling
 
 ### Linux & Mac

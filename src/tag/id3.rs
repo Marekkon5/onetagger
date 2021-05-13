@@ -114,7 +114,7 @@ impl ID3Tag {
     pub fn get_popularimeter(&self) -> Option<ID3Popularimeter> {
         let tag = self.tag.get("POPM")?;
         let data = tag.content().unknown()?;
-        let popm = ID3Popularimeter::from_bytes(data).ok()?;
+        let popm = ID3Popularimeter::from_bytes(data)?;
         Some(popm)
     }
 
@@ -232,7 +232,7 @@ impl TagImpl for ID3Tag {
     fn get_rating(&self) -> Option<u8> {
         let tag = self.tag.get("POPM")?;
         let value = tag.content().unknown()?;
-        let popm = ID3Popularimeter::from_bytes(value).ok()?;
+        let popm = ID3Popularimeter::from_bytes(value)?;
         //Byte to 1 - 5
         let rating = (popm.rating as f32 / 51.0).ceil() as u8;
         if rating == 0 {
@@ -425,10 +425,15 @@ impl ID3Popularimeter {
     }
 
     // EMAIL \0 RATING (u8) COUNTER (u32)
-    pub fn from_bytes(data: &[u8]) -> Result<ID3Popularimeter, Box<dyn Error>> {
-        let pos = data.iter().position(|b| b == &0u8).ok_or("Can't find null byte!")?;
-        Ok(ID3Popularimeter {
-            email: String::from_utf8(data[0..pos].to_vec())?,
+    pub fn from_bytes(data: &[u8]) -> Option<ID3Popularimeter> {
+        let pos = data.iter().position(|b| b == &0u8)?;
+        if pos + 6 > data.len() {
+            warn!("POMP Tag has invalid length! Len: {}, null: {}", data.len(), pos);
+            return None;
+        }
+
+        Some(ID3Popularimeter {
+            email: String::from_utf8(data[0..pos].to_vec()).ok()?,
             rating: data[pos+1],
             counter: u32::from_be_bytes(data[pos+2..pos+6].try_into().unwrap_or([0,0,0,0]))
         })
