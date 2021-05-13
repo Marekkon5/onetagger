@@ -1,10 +1,17 @@
-# OneTagger
+# ![Logo](https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/32x32.png?token=ADTXOBSCCWLLZUBPGLOGXWDATVX6C) OneTagger
 
 Cross-platform music tagger written in Rust, Vue.js and Quasar.
-It fetches metadata from Beatport, Traxsource, Juno Download and Discogs automatically based on Artist & Title tags. 
-Also able to fetch Spotify's Audio Features based on ISRC & exact match. 
-The app will let you quickly tag your own custom predefined tags, including keyboard shortcuts for quick access. 
+It can fetch metadata from Beatport, Traxsource, Juno Download and Discogs.
+It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
+There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts.
+
 MP3, AIFF & FLAC supported.
+
+For more info check out our [website](https://onetagger.github.io/).
+
+## Installing
+
+You can download latest binaries from [releases](https://github.com/Marekkon5/onetagger/releases)
 
 ## Compilling
 
