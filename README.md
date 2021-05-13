@@ -1,5 +1,11 @@
 # OneTagger
 
+Cross-platform music tagger written in Rust, Vue.js and Quasar.
+It fetches metadata from Beatport, Traxsource, Juno Download and Discogs automatically based on Artist & Title tags. 
+Also able to fetch Spotify's Audio Features based on ISRC & exact match. 
+The app will let you quickly tag your own custom predefined tags, including keyboard shortcuts for quick access. 
+MP3, AIFF & FLAC supported.
+
 ## Compilling
 
 ### Linux & Mac
@@ -7,7 +13,7 @@ Mac version is cross compiled from linux, the build script is designed to run on
 
 **Install remaining dependencies**
 ```
-sudo apt install -y libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
+sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 ```
 
 **Compile Linux only**
