@@ -1,6 +1,13 @@
 <template>
 <div class='text-center'>
 
+    <!-- No settings available -->
+    <div v-if='!beatport && !discogs'>
+        <div class='text-h5 q-mt-md text-grey-4'>
+            No platform specific settings available for the selected platforms!
+        </div>
+    </div>
+
     <!-- Beatport settings -->
     <div v-if='beatport' class='q-mb-xl'>
         <div class='text-h5 q-mt-md text-grey-4'>Beatport</div>
@@ -64,16 +71,12 @@
         </div>
     </div>  
 
-
-    <!-- Next -->
-    <q-btn class='q-mt-xl text-black' color='primary' @click='next'>Next</q-btn>
-
 </div>
 </template>
 
 <script>
 export default {
-    name: 'AutotaggerPlatform',
+    name: 'AutotaggerPlatformSpecific',
     data() {
         return {
             resolutions: [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600],
@@ -89,11 +92,6 @@ export default {
                 "stylesToGenre", "genresToStyle"];
             this.$1t.config.discogs.styles = values[this.discogsStyles.indexOf(this.discogsStyle)];
         },
-
-        //Next step
-        next() {
-            this.$router.push('/autotagger/4');
-        }
     },
     computed: {
         //If enabled
@@ -104,12 +102,6 @@ export default {
             return this.$1t.config.platforms.includes('discogs');
         }
     },
-    mounted() {
-        //Auto skip
-        if (!this.beatport && !this.discogs) {
-            this.next();
-        }
-    }
 }
 </script>
 

@@ -1,8 +1,6 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-my-md text-grey-4'>Advanced</div>
-
     <q-toggle v-model='$1t.config.overwrite' label='Overwrite tags'>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
             <q-tooltip content-style="font-size: 13px">Overwrite the existing tags in the song.</q-tooltip>
@@ -76,25 +74,12 @@
             class='col-4 q-px-sm'
         ></q-input>
     </div>
-
-    <!-- Start tagging -->
-    <q-btn class='q-mt-xl text-black' color='primary' @click='start'>Start</q-btn>
-
-
 </div>
 </template>
 
 <script>
 export default {
     name: 'AutotaggerAdvanced',
-    methods: {
-        //Start tagging
-        start() {
-            this.$1t.saveSettings();
-            this.$1t.startTagging();
-            this.$router.push('/autotagger/status');
-        }
-    }
 }
 </script>
 

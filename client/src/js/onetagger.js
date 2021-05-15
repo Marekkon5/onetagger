@@ -201,6 +201,8 @@ class OneTagger {
         //Settings for UI
         this.settings = Vue.observable({
             path: null,
+            autoTaggerConfig: {},
+            autoTaggerSinglePage: false,
             primaryColor: '#00D2BF',
             discogsToken: null,
             volume: 0.05,
@@ -366,9 +368,9 @@ class OneTagger {
 
     //Save settings to file
     saveSettings(notif = true) {
-        //Save discogs token and volume
-        if (this.config.discogs.token)
-            this.settings.discogsToken = this.config.discogs.token;
+        //Very dirty way to clone a dict, but eh
+        this.settings.autoTaggerConfig = JSON.parse(JSON.stringify(this.config));
+        this.settings.autoTaggerConfig.path = null;
         this.settings.volume = this.player.volume;
         //Save
         this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings))});
@@ -389,7 +391,7 @@ class OneTagger {
         Object.assign(this.settings, data);
         
         //Restore specific
-        this.config.discogs.token = this.settings.discogsToken;
+        Object.assign(this.config, this.settings.autoTaggerConfig??{});
         this.player.volume = this.settings.volume??0.5;
         this.setVolume(this.player.volume);
         colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');

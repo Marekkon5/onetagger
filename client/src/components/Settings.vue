@@ -231,6 +231,12 @@
                     v-model='$1t.settings.tagEditorDouble'
                     label="Show 'Your list' in Edit Tags"
                 ></q-checkbox>
+                <br>
+                <q-checkbox
+                    v-model='$1t.settings.autoTaggerSinglePage'
+                    label="Auto tagger as single page"
+                ></q-checkbox>
+                <!-- Color picker -->
                 <div class='q-pt-md q-my-sm text-bold text-grey-6'>Primary color</div>
                 <q-color 
                     v-model='$1t.settings.primaryColor'

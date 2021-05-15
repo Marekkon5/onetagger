@@ -27,9 +27,10 @@ fn main() {
     //Logging setup
     let drain1 = slog_term::FullFormat::new(slog_term::TermDecorator::new().build()).build();
     let log = match OpenOptions::new()
+        .append(true)
         .create(true)
-        .write(true)
-        .truncate(true)
+        // .write(true)
+        // .truncate(true)
         .open(ui::Settings::get_folder().unwrap().join("onetagger.log")) {
             //Log file
             Ok(file) => {

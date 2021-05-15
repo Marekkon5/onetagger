@@ -83,7 +83,7 @@ export default {
         //Update timestamp
         this.timeInterval = setInterval(() => {
             //Already done
-            if (this.$1t.taggerStatus.done) {
+            if (this.$1t.taggerStatus.done || !this.$1t.lock.locked) {
                 if (this.timeInterval != null)
                     clearInterval(this.timeInterval);
                 return;
@@ -91,10 +91,9 @@ export default {
             //Timestamp
             let s = (Date.now() - this.$1t.taggerStatus.started) / 1000;
             this.time = `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;
-        }, 500);
+        }, 400);
         //Done callback
         this.$1t.onTaggingDone = () => {
-            clearInterval(this.timeInterval);
             this.$q.dialog({
                 title: 'Done',
                 message: 'Tagging done!',

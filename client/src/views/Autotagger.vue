@@ -1,110 +1,145 @@
 <template>
-<div class='text-center'>
+<div>
 
-    <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
-    <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
+    <q-stepper 
+        v-model='step' 
+        header-nav 
+        color='primary' 
+        animated 
+        alternative-labels
+        flat 
+        class='bg-dark-page'
+        v-if='!$1t.settings.autoTaggerSinglePage'>
 
-    <!-- Platforms -->
-    <div class='cards'>
-        <draggable v-model='platforms' @change='update'>
-            <q-card class='card q-ma-md' v-for='platform in platforms' :key='platform.value'>
-                <q-card-section horizontal class='row justify-between'>
-                    <q-card-section>
-                        <div class='row'>
-                            <q-checkbox v-model='platform.enabled' class='cb' @input='update'></q-checkbox>
-                            <div class='text-h6 q-mt-xs'>{{platform.name}}</div>
-                        </div>
-                        <div class='text-subtitle2 q-ml-sm text-left text-grey-6' v-html='platform.description'></div>
-                    </q-card-section>
-                    <q-card-section class='right'>
-                        <img :src='platform.image' height='50'>
-                    </q-card-section>
-                </q-card-section>
-            </q-card>
-        </draggable>
+        <!-- Platforms -->
+        <q-step 
+            :name='0' 
+            title='Select Platforms' 
+            :done='step > 0 && $1t.config.platforms.length > 0'
+            icon='mdi-web'
+            :error='step > 0 && $1t.config.platforms.length == 0'
+            class='text-center step'>
+
+            <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
+            <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
+            <AutotaggerPlatforms></AutotaggerPlatforms>
+            
+            <q-stepper-navigation>
+                <q-btn @click="step+=1" color="primary" label="Next" class='text-black'/>
+            </q-stepper-navigation>
+        </q-step>
+
+        <!-- Tags -->
+        <q-step
+            :name='1'
+            title='Path & Tags'
+            :done='$1t.config.path != null && $1t.config.path.trim().length != 0 && step > 1'
+            icon='mdi-label-multiple'
+            :error='!$1t.config.path && step > 1'
+            class='text-center step'>
+
+            <AutotaggerTags></AutotaggerTags>
+            <q-stepper-navigation>
+                <q-btn v-if='$1t.config.path' @click="step+=1" color="primary" label="Next" class='q-mt-sm text-black'/>
+            </q-stepper-navigation>
+        </q-step>
+
+        <!-- Platform Specific -->
+        <q-step
+            :name='2'
+            title='Platform Specific Settings'
+            :done='step > 2'
+            icon='mdi-tune'
+            class='text-center step'>
+
+            <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
+            <q-stepper-navigation>
+                <q-btn @click="step+=1" color="primary" label="Next" class='text-black'/>
+            </q-stepper-navigation>
+        </q-step>
+
+        <!-- Advanced -->
+        <q-step
+            :name='3'
+            title='Advanced'
+            :done='step > 3'
+            icon='mdi-cog'
+            class='text-center step'>
+
+            <div class='text-h5 q-my-md text-grey-4'>Advanced</div>
+            <AutotaggerAdvanced></AutotaggerAdvanced>
+            <q-btn 
+                v-if='canStart' 
+                size='md'
+                color='primary'
+                class='q-my-md text-black'
+                @click='startTagging'
+            >Start</q-btn>
+        </q-step>
+
+    </q-stepper>
+
+    <!-- Single page -->
+    <div v-if='$1t.settings.autoTaggerSinglePage' class='text-center'>
+        <!-- Platforms -->
+        <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
+        <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
+        <AutotaggerPlatforms dense></AutotaggerPlatforms>
+        <q-separator class='q-my-md'></q-separator>
+        <AutotaggerTags></AutotaggerTags>
+        <q-separator class='q-my-md'></q-separator>
+        <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
+        <q-separator class='q-my-md'></q-separator>
+        <AutotaggerAdvanced></AutotaggerAdvanced>
+        <q-btn 
+            v-if='canStart' 
+            size='md'
+            color='primary'
+            class='q-my-md text-black'
+            @click='startTagging'
+        >Start</q-btn>
     </div>
-
-    <!-- Next -->
-    <q-btn color='primary text-black q-mt-sm q-mb-md' @click='$router.push("/autotagger/2")' v-if='allowNext'>Next</q-btn>
 
 </div>
 </template>
 
 <script>
-import draggable from 'vuedraggable';
+import AutotaggerPlatforms from '../components/AutotaggerPlatforms';
+import AutotaggerTags from '../components/AutotaggerTags';
+import AutotaggerPlatformSpecific from '../components/AutotaggerPlatformSpecific';
+import AutotaggerAdvanced from '../components/AutotaggerAdvanced';
 
 export default {
     name: 'Autotagger',
-    components: {draggable},
+    components: {AutotaggerPlatforms, AutotaggerTags, AutotaggerPlatformSpecific, AutotaggerAdvanced},
     data() {
         return {
-            platforms: [
-                {
-                    name: 'Beatport',
-                    value: 'beatport',
-                    enabled: false,
-                    description: 'Overall more specialized in Techno',
-                    image: require('../assets/beatport.png')
-                },
-                {
-                    name: 'Traxsource',
-                    value: 'traxsource',
-                    enabled: false,
-                    description: 'Overall more specialized in House',
-                    image: require('../assets/traxsource.png')
-                },
-                {
-                    name: 'Juno Download',
-                    value: 'junodownload',
-                    enabled: false,
-                    description: 'Overall a mixed bag with additionally a lot of niche genres',
-                    image: require('../assets/junodownload.png')
-                },
-                {
-                    name: 'Discogs',
-                    value: 'discogs',
-                    enabled: false,
-                    description: 'Most variety in genres <br><b class="text-subtitle3 text-grey-4">Due rate limits, process is slow (~20 tracks / min) & requires a free account</b>',
-                    image: require('../assets/discogs.png')
-                },
-            ]
+            step: 0
         }
     },
     methods: {
-        //Update config
-        update() {
-            this.$1t.config.platforms = this.platforms.filter(p => p.enabled).map(p => p.value);
+        startTagging() {
+            this.$1t.saveSettings();
+            this.$1t.startTagging();
+            this.$router.push('/autotagger/status');
         }
     },
     computed: {
-        //At least one platform selected
-        allowNext() {
-            if (this.platforms.find(p => p.enabled)) {
-                return true;
-            }
-            return false;
+        //If tagging can be started
+        canStart() {
+            return this.$1t.config.path && this.$1t.config.platforms.length > 0;
         }
     }
-}
+};
 </script>
 
-<style lang='scss'>
-.cards {
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
+<style>
+.step {
+    min-height: calc(100vh - 214px);
+    max-height: calc(100vh - 214px);
+    background: #1a1c1b;
 }
-.card {
-    width: 500px;
-    user-select: none;
-}
-.right {
-    display: flex;
-}
-.cb svg {
-    color: #000;
-}
-.text-subtitle3 {
-    font-size: 12px;
+.q-stepper__step-inner {
+    background: #1a1c1b;
 }
 </style>

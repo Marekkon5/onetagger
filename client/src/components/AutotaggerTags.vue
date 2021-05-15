@@ -32,15 +32,6 @@
         <q-checkbox class='tag checkbox text-grey-4' label='Other (URLs)' v-model='$1t.config.otherTags'></q-checkbox>
         <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.albumArt'></q-checkbox>
     </div>
-
-    <!-- Next -->
-    <q-btn 
-        class='q-mt-xl text-black' 
-        color='primary' 
-        @click='$router.push("/autotagger/3")'
-        v-if='$1t.config.path'
-    >Next</q-btn>
-
 </div>
 </template>
 
