@@ -6,7 +6,7 @@ use serde;
 
 use crate::tagger::MatchingUtils;
 use crate::tagger::spotify::Spotify;
-use crate::tagger::{Tagger, AudioFileInfo, TaggingState};
+use crate::tagger::{Tagger, AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
 use crate::tag::{Tag, AudioFileFormat};
 
 // CONFIG SERIALIZATION
@@ -135,43 +135,23 @@ impl AFRange {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AudioFeaturesStatus {
-    pub state: TaggingState,
-    pub path: String,
-    pub filename: String,
-    pub progress: f32
-}
-
-impl AudioFeaturesStatus {
-    pub fn new(path: &str, base_path: &str, progress: f32) -> AudioFeaturesStatus {
-        //Get filename without base path
-        let mut filename = path.replacen(base_path, "", 1);
-        if filename.starts_with("/") || filename.starts_with("\\") {
-            filename = filename[1..].to_owned();
-        }
-
-        AudioFeaturesStatus {
-            state: TaggingState::Skipped,
-            path: path.to_string(),
-            filename,
-            progress
-        }
-    }
-}
-
 pub struct AudioFeatures {}
 impl AudioFeatures {
-    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify) -> Receiver<AudioFeaturesStatus> {
+    //Returtns progress receiver, and file count
+    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify) -> (Receiver<TaggingStatusWrap>, usize) {
         //Load files
         let files = Tagger::get_file_list(&config.path);
+        let file_count = files.len();
         //Start
         let (tx, rx) = channel();
         thread::spawn(move || {
             for (i, file) in files.iter().enumerate() {
                 //Create status
-                let progress = i as f32 / files.len() as f32;
-                let mut status = AudioFeaturesStatus::new(&file, &config.path, progress);
+                let mut status = TaggingStatus {
+                    status: TaggingState::Error,
+                    path: file.to_owned(),
+                    message: None, accuracy: None
+                };
                 //Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file) {
                     //Match and get features
@@ -180,26 +160,33 @@ impl AudioFeatures {
                             //Write to file
                             match AudioFeatures::write_to_path(&file, &features, &config) {
                                 Ok(_) => {
-                                    status.state = TaggingState::Ok;
+                                    status.status = TaggingState::Ok;
                                 },
                                 Err(e) => {
                                     error!("Audio features failed writing to tag: {}", e);
-                                    status.state = TaggingState::Error;
+                                    status.status = TaggingState::Error;
                                 }
                             };
                         },
                         //Failed searching track
                         Err(e) => {
                             error!("Audio features search track by ISRC error: {}", e);
-                            status.state = TaggingState::Error;
+                            status.status = TaggingState::Error;
                         }
                     }
                 }
                 //Send status
-                tx.send(status).ok();
+                tx.send(TaggingStatusWrap::wrap(
+                    MusicPlatform::Spotify, 
+                    &status, 
+                    0,
+                    1,
+                    i as i64, 
+                    file_count
+                )).ok();
             }
         });
-        rx
+        (rx, file_count)
     }
 
     //Get features from track

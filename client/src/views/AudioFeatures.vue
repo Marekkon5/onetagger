@@ -2,7 +2,7 @@
 <div class='text-center af-wrapper'>
 
     <!-- Login -->
-    <div v-if='!$1t.audioFeatures.spotifyAuthorized' class='af-content'>
+    <div v-if='!spotifyAuthorized' class='af-content'>
         <div class='text-h5 q-mt-md text-grey-4'>Setup</div>
         <div class='text-subtitle1 text-grey-6 q-mt-md'>
             <span class='text-grey-4'>1.</span> Open <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app.<br>
@@ -23,10 +23,10 @@
     </div>
 
     <!-- Logged in -->
-    <div v-if='$1t.audioFeatures.spotifyAuthorized' class='af-content'>
+    <div v-if='spotifyAuthorized' class='af-content'>
         <!-- Path -->
         <div class='text-h5 q-mt-md q-mb-md text-grey-4'>Select folder</div>
-        <q-input filled class='path-field' label='Path' v-model='$1t.audioFeatures.path'>
+        <q-input filled class='path-field' label='Path' v-model='config.path'>
             <template v-slot:append>
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
             </template>
@@ -34,7 +34,7 @@
 
         <!-- Main tag -->
         <div class='text-h5 q-mt-xl text-grey-4'>Prominent tag</div>
-        <div class='text-subtitle1 q-mt-xs text-grey-6'>Converts most prominent audio features value (0-100) to a description - based on treshold - and writes to entered tagcode field.</div>
+        <div class='text-subtitle1 q-mt-xs text-grey-6'>Converts most prominent audio features value (0-100) to a description - based on threshold - and writes to entered tagcode field.</div>
         <div class='text-subtitle2 q-mt-xs q-mb-sm text-grey-6'>e.g. #acoustic, #dynamics-low, #energy-high, #vocal-med, #live, #speech, #positive</div>
 
         <div class='row q-mx-xl'>
@@ -126,7 +126,7 @@
 
         <!-- Start -->
         <br>
-        <q-btn color='primary' class='text-black q-my-md' size='md' @click='start' v-if='$1t.audioFeatures.path'>START</q-btn>
+        <q-btn color='primary' class='text-black q-my-md' size='md' @click='start' v-if='config.path'>START</q-btn>
     </div>
 
 </div>
@@ -142,7 +142,9 @@ export default {
         return {
             clientId: this.$1t.settings.audioFeatures.spotifyClientId,
             clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret,
+            spotifyAuthorized: false,
             config: {
+                path: null,
                 mainTag: {id3: 'STYLE', flac: 'STYLE'},
                 id3Separator: ", ",
                 flacSeparator: null,
@@ -179,18 +181,8 @@ export default {
             //Save config
             this.$1t.settings.audioFeatures.config = this.config;
             this.$1t.saveSettings();
-
-            //Lock UI
-            this.$1t.lock.locked = true;
-            this.$1t.audioFeatures.done = false;
-            this.$1t.audioFeatures.statuses = [];
-            this.$1t.audioFeatures.started = Date.now();
-            this.$1t.audioFeatures.ended = null;
             //Start
-            let config = this.config;
-            this.config.path = this.$1t.audioFeatures.path;
-            this.$1t.send('audioFeaturesStart', {config});
-            //UI
+            this.$1t.send('audioFeaturesStart', {config: this.config});
             this.$router.push('/audiofeatures/status');
         }
     },
@@ -198,6 +190,17 @@ export default {
         //Load config from settings
         if (this.$1t.settings.audioFeatures.config) {
             this.config = Object.assign({}, this.config, this.$1t.settings.audioFeatures.config);
+        }
+        //Register events
+        this.$1t.onAudioFeaturesEvent = (json) => {
+            switch (json.action) {
+                case 'browse':
+                    this.config.path = json.path;
+                    break;
+                case 'spotifyAuthorized':
+                    this.spotifyAuthorized = json.value;
+                    break;
+            }
         }
     }
 }

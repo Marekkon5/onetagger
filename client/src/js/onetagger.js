@@ -51,7 +51,7 @@ class OneTagger {
                     }
                     //Audio features path
                     if (json.context == 'af')
-                        this.audioFeatures.path = json.path;
+                        this.onAudioFeaturesEvent(json);
                     //Tag editor
                     if (json.context == 'te')
                         this.onTagEditorEvent(json);
@@ -62,17 +62,25 @@ class OneTagger {
                     this.lock.locked = false;
                     this.onError(json.message);
                     break;
+                case 'startTagging':
+                    this.lock.locked = true;
+                    this.taggerStatus.statuses = [];
+                    this.taggerStatus.started = Date.now();
+                    this.taggerStatus.done = false;
+                    this.taggerStatus.ok = 0;
+                    this.taggerStatus.progress = 0.0;
+                    this.taggerStatus.total = json.files;
+                    this.taggerStatus.type = json.type;
+                    break;
                 //Status
                 case 'taggingProgress':
                     this.taggerStatus.progress = json.status.progress;
-                    if (json.status.status.status != 'ok') {
-                        this.taggerStatus.statuses.push(json.status);
-                    } else {
-                        //OK - remove from failed
+                    this.taggerStatus.statuses.push(json.status);
+                    //OK - remove from failed
+                    if (json.status.status.status == 'ok') {
                         this.taggerStatus.statuses = this.taggerStatus.statuses.filter((s) => {
-                            return s.status.path != json.status.status.path;
+                            return s.status.status == 'ok' || s.status.path != json.status.status.path;
                         });
-                        this.taggerStatus.ok += 1;
                     }
                     break;
                 //Tagging done
@@ -106,19 +114,8 @@ class OneTagger {
                     break;
                 //Audio features Spotify
                 case 'spotifyAuthorized':
-                    this.audioFeatures.spotifyAuthorized = json.value;
+                    this.onAudioFeaturesEvent(json);
                     break;
-                //New audio features status
-                case 'audioFeaturesStatus':
-                    this.audioFeatures.statuses.push(json.status);
-                    break;
-                case 'audioFeaturesDone':
-                    this.lock.locked = false;
-                    this.audioFeatures.done = true;
-                    this.audioFeatures.ended = Date.now();
-                    this.onTaggingDone();
-                    break;
-
                 //Debug
                 default:
                     //Tag editor
@@ -170,9 +167,10 @@ class OneTagger {
         this.taggerStatus = Vue.observable({
             statuses: [],
             started: 0,
-            ok: 0,
             progress: 0.0,
-            done: false
+            done: false,
+            total: 0,
+            type: null
         });
         //Lock, enable when tagging
         this.lock = Vue.observable({locked: false});
@@ -307,16 +305,6 @@ class OneTagger {
             tagEditorCustom: []
         });
 
-        //Audio features
-        this.audioFeatures = Vue.observable({
-            spotifyAuthorized: false,
-            path: null,
-            statuses: [],
-            done: false,
-            started: Date.now(),
-            ended: null
-        });
-
         //If unsaved changes to track
         this._nextQTTrack = null;
         //Waveform loading lock
@@ -342,6 +330,7 @@ class OneTagger {
     onQTUnsavedChanges() {}
     onQTNoteTag() {}
     onTagEditorEvent() {}
+    onAudioFeaturesEvent() {}
 
     //Send to socket
     send(action, params = {}) {
@@ -353,17 +342,6 @@ class OneTagger {
     //Open URL in external browser
     url(url) {
         this.send("browser", {url});
-    }
-
-    //Start autotagger
-    startTagging() {
-        this.lock.locked = true;
-        this.taggerStatus.statuses = [];
-        this.taggerStatus.started = Date.now();
-        this.taggerStatus.done = false;
-        this.taggerStatus.ok = 0;
-        this.taggerStatus.progress = 0.0;
-        this.send('startTagging', {config: this.config});
     }
 
     //Save settings to file

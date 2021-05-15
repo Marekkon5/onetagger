@@ -35,6 +35,7 @@ metaflac = "0.2.4"
 chrono = "0.4"
 webbrowser = "0.5"
 failure = "0.1"
+# Use outdated version for compatibility with sndfile
 ndarray = "0.13"
 sndfile = { version = "0.0.4", features = ["ndarray_features"] }
 rspotify = { version = "0.10.0", features = ["blocking"] }

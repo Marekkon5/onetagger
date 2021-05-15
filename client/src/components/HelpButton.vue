@@ -159,7 +159,7 @@
                     <div v-if='page == 1'>
                         <div class='text-subtitle2 text-primary text-bold q-mt-sm'>Prominent tag</div>
                         <div class='text-subtitle2 text-grey-4'>
-                            You can customize the treshold, so it doesn't only write the simple value from 0-100 per audio feature, <br>
+                            You can customize the threshold, so it doesn't only write the simple value from 0-100 per audio feature, <br>
                             but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>
                             Look up which tag code represents what tag name by clicking on the icon of your DJ app below. <br>
                             Also shows you recommended tags to use.
@@ -168,7 +168,7 @@
                         <div class='row q-mx-xl q-mt-md justify-around'>
                             <div class='col-3 q-mb-xs'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Acousticness</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                     <q-badge color='grey-8'>
                                         <span class='textnumber'>0*</span>
@@ -180,7 +180,7 @@
                             </div>
                             <div class='col-3'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Danceability</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                     <q-badge color='grey-8'>
                                         <span class='textnumber'>0-20</span>
@@ -195,7 +195,7 @@
                             </div>
                             <div class='col-3'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Energy</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                     <q-badge color='grey-8'>
                                         <span class='textnumber'>0-20</span>
@@ -211,7 +211,7 @@
 
                             <div class='col-3'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Instrumentalness</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                     <q-badge color='grey-8'>
                                         <span class='textnumber'>0-50</span>
@@ -227,7 +227,7 @@
 
                             <div class='col-3 q-mt-md'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Liveness</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                  <q-badge color='grey-8'>
                                         <span class='textnumber'>0*</span>
@@ -240,7 +240,7 @@
 
                             <div class='col-3 q-mt-md'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Speechiness</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                  <q-badge color='grey-8'>
                                         <span class='textnumber'>0*</span>
@@ -252,7 +252,7 @@
                             </div>
                             <div class='col-3 q-mt-md'>
                                 <span class='text-subtitle2 text-primary text-bold q-mt-md'>Valence</span><br>
-                                <span class='text-subtitle2 text-grey-6'>Treshold default: </span><br>
+                                <span class='text-subtitle2 text-grey-6'>Threshold default: </span><br>
                                 <span class='text-subtitle2 text-grey-4'>
                                  <q-badge color='grey-8'>
                                         <span class='textnumber'>0-15</span>
@@ -267,7 +267,7 @@
                             </div>
                         </div>
                             <div class='text-subtitle2 q-my-md text-grey-6'>
-                                0* = When treshold is 0, it won't write the prominent tag.
+                                0* = When threshold is 0, it won't write the prominent tag.
                             </div>
 
                         

@@ -25,7 +25,10 @@ pub enum MusicPlatform {
     Beatport,
     Traxsource,
     Discogs,
-    JunoDownload
+    JunoDownload,
+
+    //Currently only used in Audio Features
+    Spotify
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -456,7 +459,7 @@ pub struct TaggingStatus {
 pub struct TaggingStatusWrap {
     pub status: TaggingStatus,
     pub platform: MusicPlatform,
-    pub progress: f64
+    pub progress: f64,
 }
 impl TaggingStatusWrap {
     //pi = platform index, pl = platforms length, p = processed, total = total tracks in this platform
@@ -472,8 +475,8 @@ impl TaggingStatusWrap {
 pub struct Tagger {}
 impl Tagger {
 
-    //Tag directory
-    pub fn tag_dir(cfg: &TaggerConfig) -> Receiver<TaggingStatusWrap> {
+    //Returtns progress receiver, and file count
+    pub fn tag_dir(cfg: &TaggerConfig) -> (Receiver<TaggingStatusWrap>, usize) {
         //Load files
         let mut files = Tagger::get_file_list(&cfg.path);
         let total_files = files.len();
@@ -552,7 +555,7 @@ impl Tagger {
             }
         });
         
-        rx
+        (rx, total_files)
     }
 
     //Tag single track

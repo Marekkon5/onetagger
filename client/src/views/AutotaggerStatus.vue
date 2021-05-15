@@ -2,28 +2,48 @@
 <div class='text-center'>
 
     <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
-    <!-- Chips -->
-    <div class='row q-my-sm chips'>
-        <q-chip color='primary' text-color='black' icon='mdi-timelapse' class='q-mx-sm'>
-            {{time}}
-        </q-chip>
-        <q-chip color='red' icon='mdi-alert-circle' class='q-mx-sm'>
-            {{$1t.taggerStatus.statuses.length}}
-        </q-chip>
-        <q-chip color='green' icon='mdi-check' class='q-mx-sm'>
-            {{$1t.taggerStatus.ok}}
-        </q-chip>
+    <!-- Info -->
+    <div class='row q-my-sm justify-center'>
+        <div class='row justify-around full-width text-subtitle1 q-my-sm q-px-xl'>
+            <div class='col'>
+                <q-icon name='mdi-check' class='q-mb-xs q-mr-sm'></q-icon>
+                <span>Successful: </span>
+                <span class='text-weight-bold'>{{countStatus('ok')}}</span>
+            </div>
+
+            <div class='col'>
+                <q-icon name='mdi-alert-circle' class='q-mb-xs q-mr-sm'></q-icon>
+                <span>Failed: </span>
+                <span class='text-weight-bold'>{{countStatus('error')}}</span>
+            </div>
+            
+            <div class='col'>
+                <q-icon name='mdi-debug-step-over' class='q-mb-xs q-mr-sm'></q-icon>
+                <span>Skipped: </span>
+                <span class='text-weight-bold'>{{countStatus('skipped')}}</span>
+            </div>
+            
+            <div class='col'>
+                <q-icon name='mdi-music-box-multiple-outline' class='q-mb-xs q-mr-sm'></q-icon>
+                <span>Total: </span>
+                <span class='text-weight-bold'>{{$1t.taggerStatus.total}}</span>
+            </div>
+            
+            <div class='col'>
+                <q-icon name='mdi-timelapse' class='q-mb-xs q-mr-sm'></q-icon>
+                <span>Elapsed time: </span><span class='text-weight-bold'>{{time}}</span>
+            </div>
+        </div>
     </div>
-    <!-- Failed -->
-    <div class='text-h7 text-grey-4 text-uppercase q-mt-md'>Failed tracks</div>
-    <q-list class='list q-mt-md text-left'>
+    <!-- Statuses -->
+    <q-list class='list q-mt-xl q-mb-xl text-left bg-dark q-py-sm'>
         <div v-for='(status, i) in $1t.taggerStatus.statuses' :key='i'>
-            <q-item class='item'>
+            <q-item>
                 <q-item-section>
                     <q-item-label overline>
                         <span>
-                            <span class='selectable' :class='color(status.platform)'>{{platformText(status.platform)}}</span>
-                            <span class='selectable'> | {{statusText(status.status.status)}}</span>
+                            <span v-if='$1t.taggerStatus.type != "af"' class='selectable' :class='color(status.platform)'>{{platformText(status.platform)}} | </span>
+                            <span class='selectable' :class='"text-" + statusColor(status.status.status)'>{{statusText(status.status.status)}}</span>
                         </span>
                     </q-item-label>
                     <span class='selectable'>{{status.status.path}}</span>
@@ -37,8 +57,14 @@
         <q-linear-progress 
             :value='$1t.taggerStatus.progress'
             color='primary' 
-            size='5px'
-        ></q-linear-progress>
+            size='20px'
+        >
+            <div class='absolute-full flex flex-center'>
+                <span class='text-black text-subtitle2'>
+                    {{Math.round($1t.taggerStatus.progress * 100) + "%"}}
+                </span>
+            </div>
+        </q-linear-progress>
     </div>
 
 </div>
@@ -77,6 +103,16 @@ export default {
         platformText(p) {
             if (p == 'junodownload') return 'JUNO DOWNLOAD';
             return p.toUpperCase();
+        },
+        statusColor(s) {
+            switch (s) {
+                case 'error': return 'red';
+                case 'ok': return 'green';
+                case 'skipped': return 'yellow';
+            }
+        },
+        countStatus(status) {
+            return this.$1t.taggerStatus.statuses.reduce((a, c) => (c.status.status == status) ? a + 1 : a, 0);
         }
     },
     mounted() {
@@ -111,15 +147,9 @@ export default {
     max-width: 80%;
     margin-left: 10%;    
 }
-.chips {
-    justify-content: center;
-}
 .progress {
     width: 100%;
     position: absolute;
     bottom: 0px;
-}
-.item {
-    background-color: #242626;
 }
 </style>

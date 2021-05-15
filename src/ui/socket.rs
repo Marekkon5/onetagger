@@ -131,7 +131,12 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 return Err(OTError::new("Invalid path!").into());
             }
             //Start
-            let rx = Tagger::tag_dir(&config);
+            let (rx, files) = Tagger::tag_dir(&config);
+            websocket.write_message(Message::from(json!({
+                "action": "startTagging",
+                "files": files
+            }).to_string())).ok();
+
             for status in rx {
                 //Update path for display
                 let mut s = status.to_owned();
@@ -251,17 +256,26 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }
             //Start tagging
             let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
-            let rx = AudioFeatures::start_tagging(config, spotify);
+            let (rx, files) = AudioFeatures::start_tagging(config.clone(), spotify);
+            websocket.write_message(Message::from(json!({
+                "action": "startTagging",
+                "files": files,
+                "type": "af"
+            }).to_string())).ok();
+
             for status in rx {
-                //Send to UI
+                //Update path for display
+                let mut s = status.to_owned();
+                s.status.path = s.status.path.to_owned().chars().skip(config.path.len()).collect();
+                //Send
                 websocket.write_message(Message::from(json!({
-                    "action": "audioFeaturesStatus",
+                    "action": "taggingProgress",
                     "status": status
                 }).to_string())).ok();
             }
-            //Mark as done
+            //Done
             websocket.write_message(Message::from(json!({
-                "action": "audioFeaturesDone",
+                "action": "taggingDone"
             }).to_string())).ok();
         },
         //Tag editor
