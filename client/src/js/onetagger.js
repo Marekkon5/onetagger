@@ -261,8 +261,8 @@ class OneTagger {
                 custom: [{
                     name: 'Vibe',
                     tag: {
-                        id3: 'STYLE',
-                        vorbis: 'STYLE',
+                        id3: 'COMM',
+                        vorbis: 'COMMENT',
                     },
                     values: [
                         {val: 'Afro', keybind: null},

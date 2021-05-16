@@ -657,7 +657,7 @@ export default {
     computed: {
         tagFormat() {
             if (!this.file) return null;
-            if (this.file.format == 'flac') return 'flac';
+            if (this.file.format == 'flac') return 'vorbis';
             return 'id3';
         },
         //Filter used types

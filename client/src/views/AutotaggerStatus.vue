@@ -6,32 +6,33 @@
     <div class='row q-my-sm justify-center'>
         <div class='row justify-around full-width text-subtitle1 q-my-sm q-px-xl'>
             <div class='col'>
-                <q-icon name='mdi-check' class='q-mb-xs q-mr-sm'></q-icon>
-                <span>Successful: </span>
+                <q-icon color='green' name='mdi-check' class='q-mb-xs q-mr-sm'></q-icon>
+                <span class='text-weight-bold text-green'>Successful: </span>
                 <span class='text-weight-bold'>{{countStatus('ok')}}</span>
             </div>
 
             <div class='col'>
-                <q-icon name='mdi-alert-circle' class='q-mb-xs q-mr-sm'></q-icon>
-                <span>Failed: </span>
+                <q-icon color='red' name='mdi-alert-circle' class='q-mb-xs q-mr-sm'></q-icon>
+                <span class='text-weight-bold text-red'>Failed: </span>
                 <span class='text-weight-bold'>{{countStatus('error')}}</span>
             </div>
             
             <div class='col'>
-                <q-icon name='mdi-debug-step-over' class='q-mb-xs q-mr-sm'></q-icon>
-                <span>Skipped: </span>
+                <q-icon color='yellow' name='mdi-debug-step-over' class='q-mb-xs q-mr-sm'></q-icon>
+                <span class='text-weight-bold text-yellow'>Skipped: </span>
                 <span class='text-weight-bold'>{{countStatus('skipped')}}</span>
             </div>
             
             <div class='col'>
-                <q-icon name='mdi-music-box-multiple-outline' class='q-mb-xs q-mr-sm'></q-icon>
-                <span>Total: </span>
+                <q-icon color='grey-6' name='mdi-music-box-multiple-outline' class='q-mb-xs q-mr-sm'></q-icon>
+                <span class='text-weight-bold text-grey-6'>Total: </span>
                 <span class='text-weight-bold'>{{$1t.taggerStatus.total}}</span>
             </div>
             
             <div class='col'>
-                <q-icon name='mdi-timelapse' class='q-mb-xs q-mr-sm'></q-icon>
-                <span>Elapsed time: </span><span class='text-weight-bold'>{{time}}</span>
+                <q-icon color='grey-6' name='mdi-timelapse' class='q-mb-xs q-mr-sm'></q-icon>
+                <span class='text-weight-bold text-grey-6'>Elapsed time: </span>
+                <span class='text-weight-bold'>{{time}}</span>
             </div>
         </div>
     </div>
@@ -42,7 +43,7 @@
                 <q-item-section>
                     <q-item-label overline>
                         <span>
-                            <span v-if='$1t.taggerStatus.type != "af"' class='selectable' :class='color(status.platform)'>{{platformText(status.platform)}} | </span>
+                            <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(status.platform)}} | </span>
                             <span class='selectable' :class='"text-" + statusColor(status.status.status)'>{{statusText(status.status.status)}}</span>
                         </span>
                     </q-item-label>
@@ -80,20 +81,6 @@ export default {
         }
     },
     methods: {
-        color(v) {
-            switch (v) {
-                case 'beatport':
-                    return 'text-lime-14';
-                case 'traxsource':
-                    return 'text-light-blue-7';
-                case 'discogs':
-                    return 'text-yellow-7';
-                case 'junodownload':
-                    return 'text-light-green-7'
-                default:
-                    return '';
-            }
-        },
         //Convert status
         statusText(s) {
             if (s == 'error') return 'NO MATCH';
