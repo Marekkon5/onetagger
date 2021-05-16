@@ -37,14 +37,7 @@
         <div class='text-subtitle1 q-mt-xs text-grey-6'>Converts most prominent audio features value (0-100) to a description - based on threshold - and writes to entered tagcode field.</div>
         <div class='text-subtitle2 q-mt-xs q-mb-sm text-grey-6'>e.g. #acoustic, #dynamics-low, #energy-high, #vocal-med, #live, #speech, #positive</div>
 
-        <div class='row q-mx-xl'>
-            <div class='col-6 q-px-sm'>
-                <TagField format='id3' :initial='config.mainTag.id3' @change='config.mainTag.id3 = $event'></TagField>
-            </div>
-            <div class='col-6 q-px-sm'>
-                <TagField format='flac' :initial='config.mainTag.flac' @change='config.mainTag.flac = $event'></TagField>
-            </div>
-        </div>
+        <TagFields class='q-mx-xl q-pl-md' v-model='config.mainTag'></TagFields>
 
         <!-- Values -->
         <div class='text-h5 q-mt-xl q-mb-md text-grey-4'>Properties</div>
@@ -75,23 +68,8 @@
                         <span class='text-subtitle1' style='text-transform: capitalize;'>{{key}}</span>
                     </div>
                     <!-- Tags -->
-                    <div class='col-3'>
-                        <TagField
-                            dense
-                            format='id3'
-                            class='q-px-sm q-pb-xs'
-                            :initial='config.properties[key].tag.id3'
-                            @change='config.properties[key].tag.id3 = $event'
-                        ></TagField>
-                    </div>
-                    <div class='col-3'>
-                        <TagField
-                            dense
-                            format='flac'
-                            class='q-px-sm q-pb-xs'
-                            :initial='config.properties[key].tag.flac'
-                            @change='config.properties[key].tag.flac = $event'
-                        ></TagField>
+                    <div class='col-6'>
+                        <TagFields dense v-model='config.properties[key].tag'></TagFields>
                     </div>
                     <!-- Range -->
                     <div class='col-3 q-px-md'>
@@ -117,7 +95,7 @@
                 class='col-4 q-px-sm'
             ></q-input>
             <q-input
-                v-model='config.flacSeparator'
+                v-model='config.vorbisSeparator'
                 filled
                 label='FLAC Separator (Leave empty for default)'
                 class='col-4 q-px-sm'
@@ -133,11 +111,11 @@
 </template>
 
 <script>
-import TagField from '../components/TagField';
+import TagFields from '../components/TagFields';
 
 export default {
     name: 'AudioFeatures',
-    components: {TagField},
+    components: {TagFields},
     data() {
         return {
             clientId: this.$1t.settings.audioFeatures.spotifyClientId,
@@ -145,17 +123,17 @@ export default {
             spotifyAuthorized: false,
             config: {
                 path: null,
-                mainTag: {id3: 'STYLE', flac: 'STYLE'},
+                mainTag: {id3: 'STYLE', vorbis: 'STYLE'},
                 id3Separator: ", ",
-                flacSeparator: null,
+                vorbisSeparator: null,
                 properties: {
-                    acousticness: {enabled: true, range: {min: 0, max: 90}, tag: {id3: '1T_ACOUSTICNESS', flac: '1T_ACOUSTICNESS'}},
-                    danceability: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_DANCEABILITY', flac: '1T_DANCEABILITY'}},
-                    energy: {enabled: true, range: {min: 20, max: 90}, tag: {id3: '1T_ENERGY', flac: '1T_ENERGY'}},
-                    instrumentalness: {enabled: true, range: {min: 50, max: 90}, tag: {id3: '1T_INSTRUMENTALNESS', flac: '1T_INSTRUMENTALNESS'}},
-                    liveness: {enabled: true, range: {min: 0, max: 80}, tag: {id3: '1T_LIVENESS', flac: '1T_LIVENESS'}},
-                    speechiness: {enabled: true, range: {min: 0, max: 70}, tag: {id3: '1T_SPEECHINESS', flac: '1T_SPEECHINESS'}},
-                    valence: {enabled: true, range: {min: 15, max: 85}, tag: {id3: '1T_VALENCE', flac: '1T_VALENCE'}}
+                    acousticness: {enabled: true, range: {min: 0, max: 90}, tag: {id3: '1T_ACOUSTICNESS', vorbis: '1T_ACOUSTICNESS'}},
+                    danceability: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_DANCEABILITY', vorbis: '1T_DANCEABILITY'}},
+                    energy: {enabled: true, range: {min: 20, max: 90}, tag: {id3: '1T_ENERGY', vorbis: '1T_ENERGY'}},
+                    instrumentalness: {enabled: true, range: {min: 50, max: 90}, tag: {id3: '1T_INSTRUMENTALNESS', vorbis: '1T_INSTRUMENTALNESS'}},
+                    liveness: {enabled: true, range: {min: 0, max: 80}, tag: {id3: '1T_LIVENESS', vorbis: '1T_LIVENESS'}},
+                    speechiness: {enabled: true, range: {min: 0, max: 70}, tag: {id3: '1T_SPEECHINESS', vorbis: '1T_SPEECHINESS'}},
+                    valence: {enabled: true, range: {min: 15, max: 85}, tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE'}}
                 }
             }
         }
@@ -174,7 +152,7 @@ export default {
         },
         //Browse folder
         browse() {
-            this.$1t.send('browse', {context: 'af'});
+            this.$1t.send('browse', {context: 'af', path: this.config.path});
         },
         //Start tagging
         start() {

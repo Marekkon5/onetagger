@@ -27,13 +27,13 @@
 const banned = {
     id3: ["APIC", "TXXX", "POPM", "TYER", "TDAT", "TORY", "TRDA", "TRCK", "TDTG", "TSOT", "TIT2",
         "TDOR", "TKEY", "TSOC", "TCMP", "TBPM", "TSOP", "TSO2", "TSOA", "SYLT", "TSRC"],
-    flac: ["METADATA_BLOCK_PICTURE", "DATE", "ORIGINALDATE", "TRACKNUMBER", "TAGGINGTIME", 
+    vorbis: ["METADATA_BLOCK_PICTURE", "DATE", "ORIGINALDATE", "TRACKNUMBER", "TAGGINGTIME", 
         "TRACK", "TITLESORT", "ORIGYEAR", "INITIALKEY", "KEY", "COMPOSERSORT", "COMPILATION", 
         "BPM", "ARTISTSORT", "ALBUMARTISTSORT", "ALBUMSORT", "POPULARIMETER", "RATING", "ISRC"]
 }
 const bannedTagEditor = {
     id3: ["APIC", "TXXX", "POPM", "COMM", "USLT"],
-    flac: []
+    vorbis: []
 }
 
 //Autocompletion
@@ -56,7 +56,7 @@ const options = {
         "COMM (Comment)",
         "USLT (Unsynchronized Lyrics)"
     ],
-    flac: [
+    vorbis: [
         "ALBUM",
         "ALBUMARTIST",
         "COMPOSER",
@@ -77,7 +77,7 @@ const options = {
 export default {
     name: 'TagField',
     props: {
-        //id3 or flac
+        //id3 or vorbis
         format: String,
         initial: String,
         dense: {
@@ -145,7 +145,7 @@ export default {
         label() {
             switch (this.format) {
                 case 'id3': return 'ID3 (MP3 + AIFF)';
-                case 'flac': return 'FLAC';
+                case 'vorbis': return 'FLAC';
             }
             return null;
         },

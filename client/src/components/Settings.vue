@@ -55,24 +55,15 @@
                     <div class='col-2 q-pr-md'>
                         <q-input v-model='$1t.settings.quickTag.energyTag.symbol' filled dense label='Symbol'></q-input>
                     </div>
-                    <div class='col-5 q-pr-md'>
-                        <TagField format='id3' dense :initial='$1t.settings.quickTag.energyTag.id3' @change='$1t.settings.quickTag.energyTag.id3 = $event'></TagField>
-                    </div>
-                    <div class='col-5 q-pr-md'>
-                        <TagField format='flac' dense :initial='$1t.settings.quickTag.energyTag.vorbis' @change='$1t.settings.quickTag.energyTag.vorbis = $event'></TagField>
+                    <div class='col-10'>
+                        <TagFields dense v-model='$1t.settings.quickTag.energyTag.tag'></TagFields>
                     </div>
                 </div>
                 <div class='q-mb-md'></div>
                 <!-- Mood tag -->
                 <div class='q-my-sm text-grey-6 text-bold'>Mood tag</div>
-                <div class='row q-mb-md'>
-                    <div class='col-6 q-pr-md'>
-                        <TagField format='id3' :initial='$1t.settings.quickTag.moodTag.id3' @change='$1t.settings.quickTag.moodTag.id3 = $event'></TagField>
-                    </div>
-                    <div class='col-6 q-pr-md'>
-                        <TagField format='flac' :initial='$1t.settings.quickTag.moodTag.vorbis' @change='$1t.settings.quickTag.moodTag.vorbis = $event'></TagField>
-                    </div>
-                </div>
+                <TagFields class='q-mb-md' v-model='$1t.settings.quickTag.moodTag'></TagFields>
+
                 <!-- Moods -->
                 <div class='q-my-sm text-bold text-grey-6'>Moods</div>
                 <div class='q-mb-md'>
@@ -146,20 +137,7 @@
                  <!-- Note tag -->
                 <div class='text-grey-6 text-bold q-mb-sm'>Custom note tag</div>
                 <div class='row'>
-                    <TagField 
-                        format='id3' 
-                        dense
-                        :initial='$1t.settings.quickTag.noteTag.id3' 
-                        @change='$1t.settings.quickTag.noteTag.id3 = $event'
-                        class='col-5 q-pr-sm'
-                    ></TagField>
-                    <TagField 
-                        format='flac'
-                        dense 
-                        :initial='$1t.settings.quickTag.noteTag.vorbis' 
-                        @change='$1t.settings.quickTag.noteTag.vorbis = $event'
-                        class='col-5 q-pl-sm'
-                    ></TagField>
+                    <TagFields class='col-10' dense v-model='$1t.settings.quickTag.noteTag.tag'></TagFields>
                     <Keybind 
                         class='col-2 text-center' 
                         @set='$1t.settings.quickTag.noteTag.keybind = $event'
@@ -184,10 +162,8 @@
                             <q-btn size='sm' flat round icon='mdi-delete' color='red' @click='deleteCustomQT(i)'></q-btn>
                         </div>
                     </div>
-                    <div class='row q-pt-sm'>
-                        <TagField class='col-6 q-pr-sm' format='id3' :initial='$1t.settings.quickTag.custom[i].id3' @change='$1t.settings.quickTag.custom[i].id3 = $event'></TagField>
-                        <TagField class='col-6 q-pr-sm' format='flac' :initial='$1t.settings.quickTag.custom[i].vorbis' @change='$1t.settings.quickTag.custom[i].vorbis = $event'></TagField>
-                    </div>
+                    
+                    <TagFields class='q-pt-sm' v-model='$1t.settings.quickTag.custom[i].tag'></TagFields>
                     <!-- Values -->
                     <div v-for='(value, j) in tag.values' :key='value.value+j.toString()'>
                         <div class='row'>
@@ -234,8 +210,14 @@
                 <br>
                 <q-checkbox
                     v-model='$1t.settings.autoTaggerSinglePage'
-                    label="Auto tagger as single page"
-                ></q-checkbox>
+                    label="Show Auto Tag as single page"
+                ></q-checkbox><br>
+                <!-- Open settings folder -->
+                <q-btn
+                    color='primary'
+                    class='text-black q-mt-md'
+                    @click='$1t.send("openSettingsFolder")'
+                >Open data folder</q-btn>
                 <!-- Color picker -->
                 <div class='q-pt-md q-my-sm text-bold text-grey-6'>Primary color</div>
                 <q-color 
@@ -260,13 +242,13 @@
 
 <script>
 import Keybind from './Keybind';
-import TagField from './TagField';
+import TagFields from './TagFields';
 import Vue from 'vue';
 import { colors } from 'quasar';
 
 export default {
     name: 'Settings',
-    components: {Keybind, TagField},
+    components: {Keybind, TagFields},
     data() {
         return {
             open: this.value,
@@ -315,7 +297,7 @@ export default {
             this.$1t.settings.quickTag.energyKeys[i] = key;
         },
         browseQuickTag() {
-            this.$1t.send('browse', {context: 'qt'});
+            this.$1t.send('browse', {context: 'qt', path: this.$1t.settings.path});
         },
         //Add new custom quicktag
         addCustomQT() {

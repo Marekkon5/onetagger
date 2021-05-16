@@ -18,7 +18,7 @@ pub struct AudioFeaturesConfig {
     pub path: String,
     pub main_tag: AFTag,
     pub id3_separator: String,
-    pub flac_separator: Option<String>,
+    pub vorbis_separator: Option<String>,
     pub properties: AFProperties
 }
 
@@ -101,14 +101,14 @@ pub struct AFProperty {
 #[serde(rename_all = "camelCase")]
 pub struct AFTag {
     pub id3: String,
-    pub flac: String
+    pub vorbis: String
 }
 
 impl AFTag {
     //Get tag by AudioFileFormat
     pub fn by_format(&self, format: &AudioFileFormat) -> String {
         if format.to_owned() == AudioFileFormat::FLAC {
-            self.flac.to_owned()
+            self.vorbis.to_owned()
         } else {
             self.id3.to_owned()
         }
@@ -233,7 +233,7 @@ impl AudioFeatures {
             id3.set_id3_separator(&config.id3_separator);
         }
         if let Some(flac) = tag_wrap.flac.as_mut() {
-            if let Some(s) = config.flac_separator.as_ref() {
+            if let Some(s) = config.vorbis_separator.as_ref() {
                 flac.set_separator(Some(s));
             }
         }

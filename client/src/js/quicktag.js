@@ -14,12 +14,12 @@ class QTTrack {
     }
 
     getNote() {
-        return this.tags[this.settings.noteTag[this.getTagField()]];
+        return this.tags[this.settings.noteTag.tag[this.getTagField()]];
     }
 
     setNote(note) {
         //Set
-        let tag = this.settings.noteTag[this.getTagField()];
+        let tag = this.settings.noteTag.tag[this.getTagField()];
         this.tags[tag] = note.split(',');
         //Create change
         let index = this._changes.findIndex((c) => c.type == 'raw' && c.tag == tag);
@@ -64,15 +64,15 @@ class QTTrack {
             return this.rating??0;
         }
         //Use custom symbols as energy
-        if (this.tags[this.settings.energyTag[this.getTagField()]]) {
-            return this.tags[this.settings.energyTag[this.getTagField()]].split(this.settings.energyTag.symbol).length - 1;
+        if (this.tags[this.settings.energyTag.tag[this.getTagField()]]) {
+            return this.tags[this.settings.energyTag.tag[this.getTagField()]].split(this.settings.energyTag.symbol).length - 1;
         }
         return 0;
     }
 
     //If has custom tag value
     hasCustom(custom, index) {
-        let field = custom[this.getTagField()];
+        let field = custom.tag[this.getTagField()];
         let tag = this.tags[field];
         if (!tag) return false;
         return tag.find((t) => custom.values[index].val.toLowerCase() == t.toLowerCase());
@@ -80,7 +80,7 @@ class QTTrack {
 
     //Toggle custom value
     toggleCustom(custom, index) {
-        let field = custom[this.getTagField()];
+        let field = custom.tag[this.getTagField()];
         //Add tag
         if (!this.tags[field]) Vue.set(this.tags, field, []);
         let value = custom.values[index].val;
@@ -106,7 +106,7 @@ class QTTrack {
     getAllCustom(custom) {
         let out = [];
         for(let i=0; i<custom.length; i++) {
-            let field = custom[i][this.getTagField()];
+            let field = custom[i].tag[this.getTagField()];
             let values = this.tags[field]??[];
             //Don't add duplicate tags
             out = out.concat(values.filter((v) => !out.includes(v)));
@@ -137,7 +137,7 @@ class QTTrack {
             } else {
                 changes.push({
                     type: 'raw',
-                    tag: this.settings.energyTag[this.getTagField()],
+                    tag: this.settings.energyTag.tag[this.getTagField()],
                     value: [this.settings.energyTag.symbol.repeat(this.energy)]
                 });
             }

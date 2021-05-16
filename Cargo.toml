@@ -10,6 +10,7 @@ categories = ["multimedia::audio"]
 build = "src/build.rs"
 
 [dependencies]
+opener = "0.4"
 dunce = "1.0"
 base64 = "0.13"
 image = "0.23"

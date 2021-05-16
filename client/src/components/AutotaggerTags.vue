@@ -40,7 +40,7 @@ export default {
     name: 'AutotaggerTags',
     methods: {
         browse() {
-            this.$1t.send('browse', {context: 'at'});
+            this.$1t.send('browse', {context: 'at', path: this.$1t.config.path});
         }
     }
 }

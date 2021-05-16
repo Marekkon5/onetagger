@@ -108,7 +108,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         },
         //Browse folder
         "browse" => {
-            if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", ".") {
+            let mut initial = json["path"].as_str().unwrap_or(".");
+            if initial.is_empty() {
+                initial = ".";
+            }
+            if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", initial) {
                 websocket.write_message(Message::from(json!({
                     "action": "browse",
                     "path": path,
@@ -121,6 +125,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             if let Some(url) = json["url"].as_str() {
                 webbrowser::open(url)?;
             }
+        },
+        //Open folder with settings and log
+        "openSettingsFolder" => {
+            opener::open(Settings::get_folder()?.to_str().unwrap())?;
         },
         //Start tagger
         "startTagging" => {

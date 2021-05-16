@@ -206,7 +206,13 @@ class OneTagger {
             volume: 0.05,
             helpButton: true,
             quickTag: {
-                noteTag: {id3: 'COMM', vorbis: 'COMMENT', keybind: null},
+                noteTag: {
+                    tag: {
+                        id3: 'COMM', 
+                        vorbis: 'COMMENT'
+                    }, 
+                    keybind: null
+                },
                 energyKeys: [null,null,null,null,null],
                 moods: [
                     {mood: 'Happy', color: 'amber'},
@@ -224,8 +230,10 @@ class OneTagger {
                     //rating = save to rating tag, symbol = save to custom tag with symbols
                     type: 'rating',
                     symbol: '*',
-                    id3: 'TCOM',
-                    vorbis: 'COMPOSER'
+                    tag: {
+                        id3: 'TCOM',
+                        vorbis: 'COMPOSER'
+                    }
                 },
                 genres: [
                     {genre: '2-step', keybind: null},
@@ -252,8 +260,10 @@ class OneTagger {
                 ],
                 custom: [{
                     name: 'Vibe',
-                    id3: 'STYLE',
-                    vorbis: 'STYLE',
+                    tag: {
+                        id3: 'STYLE',
+                        vorbis: 'STYLE',
+                    },
                     values: [
                         {val: 'Afro', keybind: null},
                         {val: 'Asian', keybind: null},
@@ -270,8 +280,10 @@ class OneTagger {
                     ],
                 }, {
                     name: 'Situation',
-                    id3: 'COMM',
-                    vorbis: 'COMMENT',
+                    tag: {
+                        id3: 'COMM',
+                        vorbis: 'COMMENT',
+                    },
                     values: [
                         {val: 'Start', keybind: null},
                         {val: 'Build', keybind: null},
@@ -281,8 +293,10 @@ class OneTagger {
                     ]
                 }, {
                     name: 'Instruments',
-                    id3: 'COMM',
-                    vorbis: 'COMMENT',
+                    tag: {
+                        id3: 'COMM',
+                        vorbis: 'COMMENT',
+                    },
                     values: [
                         {val: 'Vocals', keybind: null},
                         {val: 'Bass Heavy', keybind: null},
