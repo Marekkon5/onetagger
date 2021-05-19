@@ -2070,6 +2070,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mp4ameta"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43e1d183546f1d229a4939f5fe73f8a5dc1c5be4f75233cbbae41d8c3ee74acc"
+dependencies = [
+ "lazy_static",
+ "mp4ameta_proc",
+]
+
+[[package]]
+name = "mp4ameta_proc"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae8c32135ae7714c28698b429c7054846d420de755f7f5470a30795782565c94"
+
+[[package]]
 name = "multipart"
 version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2371,6 +2387,7 @@ dependencies = [
  "metaflac",
  "minify-html",
  "mp3-duration",
+ "mp4ameta",
  "ndarray",
  "opener",
  "regex",

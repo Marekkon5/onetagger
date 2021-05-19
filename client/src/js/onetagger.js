@@ -209,7 +209,8 @@ class OneTagger {
                 noteTag: {
                     tag: {
                         id3: 'COMM', 
-                        vorbis: 'COMMENT'
+                        vorbis: 'COMMENT',
+                        mp4: null
                     }, 
                     keybind: null
                 },
@@ -225,14 +226,15 @@ class OneTagger {
                     {mood: 'Powerful', color: 'light-blue'},
                     {mood: 'Sexy', color: 'purple'}
                 ],
-                moodTag: {vorbis: 'MOOD', id3: 'TMOO'},
+                moodTag: {vorbis: 'MOOD', id3: 'TMOO', mp4: null},
                 energyTag: {
                     //rating = save to rating tag, symbol = save to custom tag with symbols
                     type: 'rating',
                     symbol: '*',
                     tag: {
                         id3: 'TCOM',
-                        vorbis: 'COMPOSER'
+                        vorbis: 'COMPOSER',
+                        mp4: null
                     }
                 },
                 genres: [
@@ -263,6 +265,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM',
                         vorbis: 'COMMENT',
+                        mp4: null
                     },
                     values: [
                         {val: 'Afro', keybind: null},
@@ -283,6 +286,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM',
                         vorbis: 'COMMENT',
+                        mp4: null
                     },
                     values: [
                         {val: 'Start', keybind: null},
@@ -296,6 +300,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM',
                         vorbis: 'COMMENT',
+                        mp4: null
                     },
                     values: [
                         {val: 'Vocals', keybind: null},

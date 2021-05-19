@@ -29,11 +29,13 @@ const banned = {
         "TDOR", "TKEY", "TSOC", "TCMP", "TBPM", "TSOP", "TSO2", "TSOA", "SYLT", "TSRC"],
     vorbis: ["METADATA_BLOCK_PICTURE", "DATE", "ORIGINALDATE", "TRACKNUMBER", "TAGGINGTIME", 
         "TRACK", "TITLESORT", "ORIGYEAR", "INITIALKEY", "KEY", "COMPOSERSORT", "COMPILATION", 
-        "BPM", "ARTISTSORT", "ALBUMARTISTSORT", "ALBUMSORT", "POPULARIMETER", "RATING", "ISRC"]
+        "BPM", "ARTISTSORT", "ALBUMARTISTSORT", "ALBUMSORT", "POPULARIMETER", "RATING", "ISRC"],
+    mp4: []
 }
 const bannedTagEditor = {
     id3: ["APIC", "TXXX", "POPM", "COMM", "USLT"],
-    vorbis: []
+    vorbis: [],
+    mp4: []
 }
 
 //Autocompletion
@@ -71,13 +73,14 @@ const options = {
         "CONDUCTOR",
         "COMMENT",
         "LABEL"
-    ]
+    ],
+    mp4: []
 };
 
 export default {
     name: 'TagField',
     props: {
-        //id3 or vorbis
+        //id3, vorbis, mp4
         format: String,
         initial: String,
         dense: {
@@ -119,7 +122,7 @@ export default {
             this.warning = null;
             this.error = null;
 
-            if (v.toUpperCase() != v && !(this.format == 'id3' && v.length != 4))
+            if (this.format != 'mp4' && v.toUpperCase() != v && !(this.format == 'id3' && v.length != 4))
                 this.error = 'Tag names should be uppercase!';
 
             if (v.includes(' ') && !(this.format == 'id3' && v.length != 4))
@@ -146,12 +149,13 @@ export default {
             switch (this.format) {
                 case 'id3': return 'ID3 (MP3 + AIFF)';
                 case 'vorbis': return 'FLAC';
+                case 'mp4': return 'MP4/M4A';
             }
             return null;
         },
         //Different color if writing to comment/custom tag
         color() {
-            if (this.format == 'id3' && (this.value??'').length != 4) return 'yellow';
+            if ((this.format == 'id3' || this.format == 'mp4') && (this.value??'').length != 4) return 'yellow';
             return 'primary';
         }
     }

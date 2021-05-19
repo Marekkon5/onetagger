@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
-use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType};
+use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, EXTENSIONS};
 
 pub mod beatport;
 pub mod traxsource;
@@ -610,10 +610,9 @@ impl Tagger {
 
     //Get list of all files in with supported extensions
     pub fn get_file_list(path: &str) -> Vec<String> {
-        let supported_extensions = vec![".mp3", ".flac", ".aif", ".aiff"];
         let files: Vec<String> = WalkDir::new(path).into_iter().filter(
             |e| e.is_ok() && 
-            supported_extensions.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
+            EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
         ).map(|e| e.unwrap().path().to_str().unwrap().to_owned()).collect();
         files
     }

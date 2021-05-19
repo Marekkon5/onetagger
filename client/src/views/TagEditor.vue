@@ -127,6 +127,7 @@
                     </div>
                 </div>
 
+                <!-- Album art -->
                 <div class='text-subtitle1 text-weight-bold'>
                     Album art
                     <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
@@ -137,8 +138,8 @@
                     <div v-for='(image, i) in file.images' :key='"art"+i' class='q-mr-md'>
                         <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
                         <div class='q-pt-sm q-mb-md'>
-                            <div class='text-subtitle1'>{{image.kind}}</div>
-                            <div class='text-subtitle1'>{{image.description}}</div>
+                            <div v-if='file.format != "mp4"' class='text-subtitle1'>{{image.kind}}</div>
+                            <div v-if='file.format != "mp4"' class='text-subtitle1'>{{image.description}}</div>
                             <div class='text-subtitle2 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
                             <q-btn color='red' class='q-mt-sm' @click='removeArt(i)'>Remove</q-btn>
                         </div>
@@ -658,6 +659,7 @@ export default {
         tagFormat() {
             if (!this.file) return null;
             if (this.file.format == 'flac') return 'vorbis';
+            if (this.file.format == 'mp4') return 'mp4';
             return 'id3';
         },
         //Filter used types

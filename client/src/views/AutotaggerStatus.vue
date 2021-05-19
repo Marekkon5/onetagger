@@ -6,33 +6,33 @@
     <div class='row q-my-sm justify-center'>
         <div class='row justify-around full-width text-subtitle1 q-my-sm q-px-xl'>
             <div class='col'>
-                <q-icon color='green' name='mdi-check' class='q-mb-xs q-mr-sm'></q-icon>
-                <span class='text-weight-bold text-green'>Successful: </span>
-                <span class='text-weight-bold'>{{countStatus('ok')}}</span>
+                <q-chip icon='mdi-check' :label='countStatus("ok")' color='green'></q-chip>
+                <br>
+                <span class='text-weight-bold text-grey-6'>Match</span>
             </div>
 
             <div class='col'>
-                <q-icon color='red' name='mdi-alert-circle' class='q-mb-xs q-mr-sm'></q-icon>
-                <span class='text-weight-bold text-red'>Failed: </span>
-                <span class='text-weight-bold'>{{countStatus('error')}}</span>
+                <q-chip icon='mdi-alert-circle' :label='countStatus("error")' color='red'></q-chip>
+                <br>
+                <span class='text-weight-bold text-grey-6'>Failed</span>
             </div>
             
             <div class='col'>
-                <q-icon color='yellow' name='mdi-debug-step-over' class='q-mb-xs q-mr-sm'></q-icon>
-                <span class='text-weight-bold text-yellow'>Skipped: </span>
-                <span class='text-weight-bold'>{{countStatus('skipped')}}</span>
+                <q-chip class='text-black' icon='mdi-debug-step-over' :label='countStatus("skipped")' color='yellow'></q-chip>
+                <br>
+                <span class='text-weight-bold text-grey-6'>Skipped</span>
             </div>
             
             <div class='col'>
-                <q-icon color='grey-6' name='mdi-music-box-multiple-outline' class='q-mb-xs q-mr-sm'></q-icon>
-                <span class='text-weight-bold text-grey-6'>Total: </span>
-                <span class='text-weight-bold'>{{$1t.taggerStatus.total}}</span>
+                <q-chip class='text-black' icon='mdi-music-box-multiple-outline' :label='$1t.taggerStatus.total' color='grey-6'></q-chip>
+                <br>
+                <span class='text-weight-bold text-grey-6'>Total</span>
             </div>
             
             <div class='col'>
-                <q-icon color='grey-6' name='mdi-timelapse' class='q-mb-xs q-mr-sm'></q-icon>
-                <span class='text-weight-bold text-grey-6'>Elapsed time: </span>
-                <span class='text-weight-bold'>{{time}}</span>
+                <q-chip class='text-black' icon='mdi-timelapse' :label='time' color='primary'></q-chip>
+                <br>
+                <span class='text-weight-bold text-grey-6'>Elapsed time</span>
             </div>
         </div>
     </div>
@@ -44,7 +44,7 @@
                     <q-item-label overline>
                         <span>
                             <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(status.platform)}} | </span>
-                            <span class='selectable' :class='"text-" + statusColor(status.status.status)'>{{statusText(status.status.status)}}</span>
+                            <q-icon size='xs' class='q-mb-xs' :name='statusIcon(status.status.status)' :color='statusColor(status.status.status)'></q-icon>
                         </span>
                     </q-item-label>
                     <span class='selectable'>{{status.status.path}}</span>
@@ -81,15 +81,17 @@ export default {
         }
     },
     methods: {
-        //Convert status
-        statusText(s) {
-            if (s == 'error') return 'NO MATCH';
-            return s.toUpperCase();
-        },
         //Conver platform name
         platformText(p) {
             if (p == 'junodownload') return 'JUNO DOWNLOAD';
             return p.toUpperCase();
+        },
+        statusIcon(s) {
+            switch (s) {
+                case 'error': return 'mdi-alert-circle';
+                case 'ok': return 'mdi-check';
+                case 'skipped': return 'mdi-debug-step-over';
+            }
         },
         statusColor(s) {
             switch (s) {

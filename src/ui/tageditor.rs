@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 use serde::{Serialize, Deserialize};
 use image::{GenericImageView, io::Reader as ImageReader};
 
-use crate::tag::{AudioFileFormat, CoverType, Picture, Tag};
+use crate::tag::{AudioFileFormat, CoverType, Picture, Tag, EXTENSIONS};
 use crate::tag::id3::{ID3Comment, ID3Popularimeter};
 
 pub struct TagEditor {}
@@ -42,7 +42,6 @@ impl TagEditor {
 
     //Check if path is supported
     fn validate_path(path: PathBuf) -> Option<FolderEntry> {
-        let extensions = ["flac", "mp3", "aif", "aiff"];
         let dir = path.is_dir();
         //Filter extensions
         if !dir {
@@ -50,7 +49,7 @@ impl TagEditor {
                 return None;
             }
             let extension = path.extension().unwrap().to_str()?.to_lowercase();
-            if !extensions.iter().any(|e| e == &&extension) {
+            if !EXTENSIONS.iter().any(|e| e[1..] == extension) {
                 return None;
             }
         }
