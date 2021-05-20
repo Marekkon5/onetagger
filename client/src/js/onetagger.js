@@ -436,7 +436,7 @@ class OneTagger {
                 this._waveformLock.pop();
             }
             //Will be ignored, just for updating
-            ws.send('waveformRead');
+            ws.send(JSON.stringify({action: '_waveformRead'}));
         };
         ws.onopen = () => {
             ws.send(JSON.stringify({

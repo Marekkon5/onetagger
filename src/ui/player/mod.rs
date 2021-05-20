@@ -8,6 +8,8 @@ use crate::ui::OTError;
 pub mod mp3;
 pub mod flac;
 pub mod aiff;
+pub mod mp4;
+pub mod alac;
 
 pub struct AudioPlayer {
     tx: Sender<PlayerAction>,
@@ -139,7 +141,10 @@ impl AudioSources {
         if p.ends_with(".aiff") || p.ends_with(".aif") {
             return Ok(Box::new(aiff::AIFFSource::new(path)?));
         }
-
+        //MP4
+        if p.ends_with(".m4a") {
+            return Ok(Box::new(mp4::MP4Source::new(path)?));
+        }
 
         Err(OTError::new("Unsupported format!").into())
     }

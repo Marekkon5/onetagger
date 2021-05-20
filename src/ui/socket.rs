@@ -48,11 +48,12 @@ pub fn start_socket_server() {
                 match websocket.read_message() {
                     Ok(msg) => {
                         if msg.is_text() {
-                            match handle_message(msg.to_text().unwrap(), &mut websocket, &mut context) {
+                            let text = msg.to_text().unwrap();
+                            match handle_message(text, &mut websocket, &mut context) {
                                 Ok(_) => {},
                                 Err(err) => {
                                     //Send error to UI
-                                    error!("Websocket: {:?}", err);
+                                    error!("Websocket: {:?}, Data: {}", err, text);
                                     websocket.write_message(Message::from(json!({
                                         "action": "error",
                                         "message": &format!("{}", err)
