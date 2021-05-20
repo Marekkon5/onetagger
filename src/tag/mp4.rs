@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use mp4ameta::{Tag, Data};
 use mp4ameta::ident::DataIdent;
+use chrono::NaiveDate;
 
 use crate::tag::{TagImpl, TagDate, CoverType, Picture, Field};
 
@@ -10,6 +11,7 @@ const MAGIC: u8 = 0xa9;
 
 pub struct MP4Tag {
     tag: Tag,
+    date_year_only: bool
 }
 
 impl MP4Tag {
@@ -17,6 +19,7 @@ impl MP4Tag {
         let tag = Tag::read_from_path(&path)?;
         Ok(MP4Tag {
             tag,
+            date_year_only: false
         })
     }
 
@@ -107,15 +110,22 @@ impl TagImpl for MP4Tag {
     }
 
     fn set_date(&mut self, date: &TagDate, overwrite: bool) {
-        todo!()
+        let ident = DataIdent::fourcc(*b"\xa9day");
+        if self.raw_by_ident(&ident).is_none() || overwrite {
+            //Write year or ISO timestamp
+            let value = if self.date_year_only || !date.has_md() {
+                date.year.to_string()
+            } else {
+                let date = NaiveDate::from_ymd(date.year, date.month.unwrap() as u32, date.day.unwrap() as u32);
+                format!("{}", date.format("%+"))
+            };
+
+            self.tag.set_data(ident, Data::Utf8(value));
+        }
     }
 
-    fn get_date(&self) -> Option<String> {
-        todo!()
-    }
-
-    fn set_publish_date(&mut self, date: &TagDate, overwrite: bool) {
-        todo!()
+    fn set_publish_date(&mut self, _date: &TagDate, _overwrite: bool) {
+        //Unsupported (mp4 barely even supports dates)
     }
 
     //RATING NOT FINAL, used same as ID3

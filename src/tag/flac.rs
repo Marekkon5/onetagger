@@ -122,9 +122,6 @@ impl TagImpl for FLACTag {
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool) {
         self.set_date_inner("ORIGINALDATE", date, overwrite);
     }
-    fn get_date(&self) -> Option<String> {
-        self.get_raw("DATE")?.first().map(String::from)
-    }
 
     //Rating, in vorbis saved as 20,40,60,80,100
     fn get_rating(&self) -> Option<u8> {

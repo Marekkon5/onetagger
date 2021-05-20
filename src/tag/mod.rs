@@ -86,7 +86,6 @@ pub trait TagImpl {
 
     //Set/Get dates
     fn set_date(&mut self, date: &TagDate, overwrite: bool);
-    fn get_date(&self) -> Option<String>;
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool);
 
     //Get/Set rating as 1 - 5 stars value

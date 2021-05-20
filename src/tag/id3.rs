@@ -248,20 +248,6 @@ impl TagImpl for ID3Tag {
         }
     }
 
-    //Get release date
-    fn get_date(&self) -> Option<String> {
-        let date = self.tag.date_recorded()?;
-        //Generate string
-        let mut out = date.year.to_string();
-        if let Some(m) = date.month {
-            out += &format!("-{:02}", m);
-        }
-        if let Some(d) = date.day {
-            out += &format!("-{:02}", d);
-        }
-        Some(out)
-    }
-
     //Set album art
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
         let picture_type = self.picture_type(&kind);
