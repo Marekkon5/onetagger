@@ -215,6 +215,7 @@ pub struct ExtraArtist {
 pub struct DiscogsTrack {
     pub position: String,
     pub title: String,
+    pub artists: Option<Vec<ExtraArtist>>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -296,7 +297,11 @@ impl ReleaseMaster {
             platform: MusicPlatform::Discogs,
             title: self.tracks[track_index].title.to_string(),
             version: None,
-            artists: self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
+            artists: match self.tracks[track_index].artists.as_ref() {
+                //Use track artists if available
+                Some(artists) => artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
+                None => self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect()
+            },
             album: Some(self.title.to_string()),
             key: None,
             bpm: None,

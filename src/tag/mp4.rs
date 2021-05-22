@@ -128,7 +128,7 @@ impl TagImpl for MP4Tag {
         //Unsupported (mp4 barely even supports dates)
     }
 
-    //RATING NOT FINAL, used same as ID3
+    //RATING NOT FINAL, used same as KID3
     fn get_rating(&self) -> Option<u8> {
         let val = self.get_raw("rate")?.first()?.parse::<u8>().ok()?;
         let rating = val / 20;

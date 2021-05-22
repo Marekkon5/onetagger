@@ -455,13 +455,13 @@ export default {
             this.changes.push({
                 type: 'raw',
                 tag: this.newTag,
-                value: ''
+                value: []
             });
         },
         onChange(tag) {
             let value = this.file.tags[tag]
             //Split only for tags, MP3 write to single tag as id3 separator
-            if (this.file.format == 'flac') {
+            if (this.file.format != 'mp3') {
                 value = value.split(',');
             } else {
                 value = [value];
