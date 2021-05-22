@@ -310,6 +310,7 @@ import Vue from 'vue';
 import TagField from '../components/TagField';
 import AddAlbumArt from '../components/AddAlbumArt';
 import draggable from 'vuedraggable';
+import {ABSTRACTIONS} from '../js/tags';
 
 export default {
     name: 'TagEditor',
@@ -325,37 +326,7 @@ export default {
             showAlbumArt: false,
             addAlbumArtDialog: false,
             customList: this.$1t.settings.tagEditorCustom,
-            abstractions: {
-                "TIT2": "Title",
-                "TCON": "Genre",
-                "TALB": "Album",
-                "TPE2": "Album Artist",
-                "TCOM": "Composer",
-                "TEXT": "Lyricist",
-                "TIT3": "Mix Name",
-                "TOPE": "Original Artist",
-                "TIT1": "Content Group",
-                "GRP1": "Grouping iTunes",
-                "TPUB": "Label",
-                "TPE4": "Remixer",
-                "IPLS": "Producer ID3v2.3",
-                "TIPL": "Producer ID3v2.4",
-                "TPE3": "Conductor",
-                "TBPM": "BPM",
-                "TCOP": "Copyright",
-                "TDAT": "Release Date",
-                "TDOR": "Original Year",
-                "TDRL": "Releasetime",
-                "TKEY": "Key",
-                "TLEN": "Length",
-                "TMOO": "Mood",
-                "TPE1": "Artist",
-                "TPOS": "Discnumber",
-                "TRCK": "Tracknumber",
-                "TSRC": "ISRC",
-                "TYER": "Year",
-                "TDRC": "Date Recorded"
-            }
+            abstractions: ABSTRACTIONS
         } 
     },
     methods: {

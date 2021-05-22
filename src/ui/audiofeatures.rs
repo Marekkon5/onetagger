@@ -220,7 +220,7 @@ impl AudioFeatures {
         }
 
         //Get features
-        let features = spotify.audio_features(&track_id.ok_or("Invalid track")?)?;
+        let features = spotify.audio_features(&track_id.ok_or("Invalid track / no match")?)?;
         Ok(features)
     }
 

@@ -85,11 +85,8 @@
         <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
         <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
         <AutotaggerPlatforms dense></AutotaggerPlatforms>
-        <q-separator class='q-my-md section-separator'></q-separator>
         <AutotaggerTags></AutotaggerTags>
-        <q-separator class='q-my-md section-separator'></q-separator>
         <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
-        <q-separator class='q-my-md section-separator'></q-separator>
         <AutotaggerAdvanced></AutotaggerAdvanced>
         <q-btn 
             v-if='canStart' 
@@ -141,9 +138,5 @@ export default {
 }
 .q-stepper__step-inner {
     background: #1a1c1b;
-}
-.section-separator {
-    margin-left: 20% !important;
-    margin-right: 20% !important;
 }
 </style>

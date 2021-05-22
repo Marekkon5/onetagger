@@ -109,7 +109,9 @@ impl Spotify {
 
     //Search tracks by query
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
-        match self.spotify.search(query, SearchType::Track, limit, 0, None, None) {
+        //rspotify doesn't url encode for some reason
+        let q = urlencoding::encode(query);
+        match self.spotify.search(&q, SearchType::Track, limit, 0, None, None) {
             Ok(results) => {
                 let mut tracks = vec![];
                 if let SearchResult::Tracks(tracks_page) = results {

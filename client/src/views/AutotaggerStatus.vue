@@ -8,31 +8,31 @@
             <div class='col'>
                 <q-chip icon='mdi-check' :label='countStatus("ok")' color='green'></q-chip>
                 <br>
-                <span class='text-weight-bold text-grey-6'>Match</span>
+                <span class='text-grey-6'>Match</span>
             </div>
 
             <div class='col'>
                 <q-chip icon='mdi-alert-circle' :label='countStatus("error")' color='red'></q-chip>
                 <br>
-                <span class='text-weight-bold text-grey-6'>Failed</span>
+                <span class='text-grey-6'>Failed</span>
             </div>
             
             <div class='col'>
                 <q-chip class='text-black' icon='mdi-debug-step-over' :label='countStatus("skipped")' color='yellow'></q-chip>
                 <br>
-                <span class='text-weight-bold text-grey-6'>Skipped</span>
+                <span class='text-grey-6'>Skipped</span>
             </div>
             
             <div class='col'>
                 <q-chip class='text-black' icon='mdi-music-box-multiple-outline' :label='$1t.taggerStatus.total' color='grey-6'></q-chip>
                 <br>
-                <span class='text-weight-bold text-grey-6'>Total</span>
+                <span class='text-grey-6'>Total</span>
             </div>
             
             <div class='col'>
                 <q-chip class='text-black' icon='mdi-timelapse' :label='time' color='primary'></q-chip>
                 <br>
-                <span class='text-weight-bold text-grey-6'>Elapsed time</span>
+                <span class='text-grey-6'>Elapsed time</span>
             </div>
         </div>
     </div>
@@ -43,8 +43,8 @@
                 <q-item-section>
                     <q-item-label overline>
                         <span>
-                            <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(status.platform)}} | </span>
-                            <q-icon size='xs' class='q-mb-xs' :name='statusIcon(status.status.status)' :color='statusColor(status.status.status)'></q-icon>
+                            <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(status.platform)}}</span>
+                            <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(status.status.status)' :color='statusColor(status.status.status)'></q-icon>
                         </span>
                     </q-item-label>
                     <span class='selectable'>{{status.status.path}}</span>

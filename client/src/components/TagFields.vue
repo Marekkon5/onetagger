@@ -7,7 +7,7 @@
         :tageditor='tageditor'
         :initial='tag.id3'
         @change='tag.id3 = $event; onChange()'
-        class='col-4 q-pr-md'
+        class='col-4 q-pr-sm'
     ></TagField>
 
     <TagField
@@ -16,7 +16,7 @@
         :tageditor='tageditor'
         :initial='tag.vorbis'
         @change='tag.vorbis = $event; onChange()'
-        class='col-4 q-pr-md'
+        class='col-4 q-px-sm'
     ></TagField>
 
     <TagField
@@ -25,6 +25,7 @@
         :tageditor='tageditor'
         :initial='tag.mp4'
         @change='tag.mp4 = $event; onChange()'
+        class='col-4 q-pl-sm'
     ></TagField>
 
 </div>

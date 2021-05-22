@@ -23,6 +23,8 @@
 </div>
 </template>
 <script>
+import {MP4, VORBIS, ID3} from '../js/tags';
+
 //Tags you shouldn't use
 const banned = {
     id3: ["APIC", "TXXX", "POPM", "TYER", "TDAT", "TORY", "TRDA", "TRCK", "TDTG", "TSOT", "TIT2",
@@ -39,43 +41,7 @@ const bannedTagEditor = {
 }
 
 //Autocompletion
-const options = {
-    id3: [
-        "TCON (Genre)",
-        "TALB (Album)",
-        "TPE2 (Album Artist)",
-        "TCOM (Composer)",
-        "TEXT (Lyricist)",
-        "TIT3 (Mix Name)",
-        "TOPE (Original Artist)",
-        "TIT1 (Content Group)",
-        "GRP1 (Grouping iTunes)",
-        "TPUB (Label)",
-        "TPE4 (Remixer)",
-        "IPLS (Producer ID3v2.3)",
-        "TIPL (Producer ID3v2.4)",
-        "TPE3 (Conductor)",
-        "COMM (Comment)",
-        "USLT (Unsynchronized Lyrics)"
-    ],
-    vorbis: [
-        "ALBUM",
-        "ALBUMARTIST",
-        "COMPOSER",
-        "GENRE",
-        "LYRICS",
-        "VERSION",
-        "GROUPING",
-        "ORGANIZATION",
-        "PUBLISHER",
-        "MIXARTIST",
-        "REMIXER",
-        "CONDUCTOR",
-        "COMMENT",
-        "LABEL"
-    ],
-    mp4: []
-};
+const options = {id3: ID3, vorbis: VORBIS, mp4: MP4};
 
 export default {
     name: 'TagField',
@@ -103,7 +69,7 @@ export default {
     methods: {
         //Remove ID3 helper text
         removeHelper() {
-            if (this.format == 'id3' && this.value.match(/[A-Z0-9]{4} \(.*\)/)) {
+            if ((this.format == 'id3' || this.format == 'mp4') && this.value.match(/[©a-zA-Z0-9]{4} \(.*\)/)) {
                 this.value = this.value.replace(/ \(.*\)/, '');
             }
         },
