@@ -31,6 +31,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "alac"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "498a34d3cad5f3b23cc217ab489424ebcfffed186e30ad5ac02624e50df2c2b8"
+dependencies = [
+ "mp4parse",
+]
+
+[[package]]
 name = "alsa"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -188,6 +197,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "bitreader"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70a57a98015fc89125fae6054685a2586739fba82c8dbfe550dac9a5a76791a6"
+dependencies = [
+ "cfg-if 1.0.0",
+]
+
+[[package]]
 name = "blake2b_simd"
 version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -319,6 +337,9 @@ name = "cc"
 version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3c69b077ad434294d3ce9f1f6143a2a4b89a8a2d54ef813d85003a4fd1137fd"
+dependencies = [
+ "jobserver",
+]
 
 [[package]]
 name = "cef"
@@ -991,6 +1012,24 @@ dependencies = [
  "quote 1.0.9",
  "syn 1.0.63",
  "synstructure",
+]
+
+[[package]]
+name = "fdk-aac"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f295617a979ab0bdceab08e16f3edb82ae876b48c25354fa56fed4d276b0db"
+dependencies = [
+ "fdk-aac-sys",
+]
+
+[[package]]
+name = "fdk-aac-sys"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ccdef9ea77a8aa82f37b62ef0d847356e15f1f12b9f894b5ca7e8de048e17fc"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -1720,6 +1759,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
+name = "jobserver"
+version = "0.1.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "972f5ae5d1cb9c6ae417789196c803205313edde988685da5e3aae0827b9e7fd"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "jpeg-decoder"
 version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2070,6 +2118,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "mp4"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "369762a9ab26451c57e0860102029db0f5c6b142baf6f373e759f311a828b50e"
+dependencies = [
+ "byteorder",
+ "bytes 0.5.6",
+ "num-rational",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "mp4ameta"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43e1d183546f1d229a4939f5fe73f8a5dc1c5be4f75233cbbae41d8c3ee74acc"
+dependencies = [
+ "lazy_static",
+ "mp4ameta_proc",
+]
+
+[[package]]
+name = "mp4ameta_proc"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae8c32135ae7714c28698b429c7054846d420de755f7f5470a30795782565c94"
+
+[[package]]
+name = "mp4parse"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7316728464443fe5793a805dde3257864e9690cf46374daff3ce93de1df2f254"
+dependencies = [
+ "bitreader",
+ "byteorder",
+ "log 0.4.14",
+ "num-traits",
+]
+
+[[package]]
 name = "multipart"
 version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2219,6 +2309,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d0a3d5e207573f948a9e5376662aa743a2ea13f7c50a554d7af443a73fbfeba"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-complex"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2267,8 +2368,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12ac428b1cb17fce6f731001d307d351ec70a6d202fc2e60f7d4c5e42d8f4f07"
 dependencies = [
  "autocfg 1.0.1",
+ "num-bigint",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -2360,6 +2463,7 @@ checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
 name = "onetagger"
 version = "1.0.0"
 dependencies = [
+ "alac",
  "base64 0.13.0",
  "cef",
  "chrono",
@@ -2371,8 +2475,11 @@ dependencies = [
  "metaflac",
  "minify-html",
  "mp3-duration",
+ "mp4",
+ "mp4ameta",
  "ndarray",
  "opener",
+ "redlux",
  "regex",
  "reqwest 0.11.2",
  "rodio",
@@ -3076,6 +3183,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
 dependencies = [
  "rand_core 0.3.1",
+]
+
+[[package]]
+name = "redlux"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e7a408d9f0e00b824bb56469b3222d0aa17d754200cab4b4e00ebf2ea431e57"
+dependencies = [
+ "fdk-aac",
+ "mp4",
+ "rodio",
 ]
 
 [[package]]

@@ -10,6 +10,10 @@ categories = ["multimedia::audio"]
 build = "src/build.rs"
 
 [dependencies]
+alac = "0.5"
+mp4 = "0.8"
+redlux = "0.3"
+mp4ameta = "0.10"
 opener = "0.4"
 dunce = "1.0"
 base64 = "0.13"

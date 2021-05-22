@@ -43,7 +43,7 @@
     <!-- Footer -->
     <q-footer reveal class="bg-darker text-white" v-if='footer'>
       <QuickTagGenreBar v-if='$1t.quickTag.track'></QuickTagGenreBar>
-      <q-toolbar>
+      <q-toolbar class='q-mt-sm'>
         <div class='row'>
           <!-- Play button -->
           <q-btn 

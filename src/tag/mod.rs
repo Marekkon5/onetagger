@@ -4,10 +4,15 @@ use serde::{Serialize, Deserialize};
 
 pub mod id3;
 pub mod flac;
+pub mod mp4;
+
+//Supported extensions
+pub static EXTENSIONS : [&'static str; 5] = [".mp3", ".flac", ".aif", ".aiff", ".m4a"];
 
 pub struct Tag {
     pub flac: Option<flac::FLACTag>,
     pub id3: Option<id3::ID3Tag>,
+    pub mp4: Option<mp4::MP4Tag>,
     pub format: AudioFileFormat
 }
 
@@ -18,9 +23,20 @@ impl Tag {
             return Ok(Tag {
                 flac: Some(flac::FLACTag::load_file(path)?),
                 id3: None,
+                mp4: None,
                 format: AudioFileFormat::FLAC
             });
         }
+        //MP4
+        if path.to_lowercase().ends_with(".m4a") {
+            return Ok(Tag {
+                flac: None,
+                id3: None,
+                mp4: Some(mp4::MP4Tag::load_file(path)?),
+                format: AudioFileFormat::MP4
+            });
+        }
+
         //ID3
         let tag = id3::ID3Tag::load_file(path)?;
         let format = match tag.format {
@@ -30,6 +46,7 @@ impl Tag {
         return Ok(Tag {
             id3: Some(tag),
             flac: None,
+            mp4: None,
             format: format
         });
     }
@@ -42,6 +59,9 @@ impl Tag {
         if let Some(id3) = &self.id3 {
             return Some(Box::new(id3));
         }
+        if let Some(mp4) = &self.mp4 {
+            return Some(Box::new(mp4))
+        }
         None
     }
     pub fn tag_mut(&mut self) -> Option<Box<&mut dyn TagImpl>> {
@@ -50,6 +70,9 @@ impl Tag {
         }
         if let Some(id3) = &mut self.id3 {
             return Some(Box::new(id3));
+        }
+        if let Some(mp4) = &mut self.mp4 {
+            return Some(Box::new(mp4))
         }
         None 
     }
@@ -63,7 +86,6 @@ pub trait TagImpl {
 
     //Set/Get dates
     fn set_date(&mut self, date: &TagDate, overwrite: bool);
-    fn get_date(&self) -> Option<String>;
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool);
 
     //Get/Set rating as 1 - 5 stars value
@@ -90,7 +112,7 @@ pub trait TagImpl {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AudioFileFormat {
-    FLAC, AIFF, MP3
+    FLAC, AIFF, MP3, MP4
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -125,6 +147,18 @@ pub enum CoverType {
     BandLogo,
     PublisherLogo,
     Undefined
+}
+
+impl CoverType {
+    //Get all the types
+    pub fn types() -> [CoverType; 22] {
+        [CoverType::CoverFront, CoverType::CoverBack, CoverType::Other, CoverType::Artist,
+        CoverType::Icon, CoverType::OtherIcon, CoverType::Leaflet, CoverType::Media, CoverType::LeadArtist,
+        CoverType::Conductor, CoverType::Band, CoverType::Composer, CoverType::Lyricist,
+        CoverType::RecordingLocation, CoverType::DuringRecording, CoverType::DuringPerformance,
+        CoverType::ScreenCapture, CoverType::BrightFish, CoverType::Illustration, CoverType::BandLogo,
+        CoverType::PublisherLogo, CoverType::Undefined]
+    }
 }
 
 #[derive(Debug, Clone)]
