@@ -52,8 +52,7 @@
                     </q-icon>
                 </div>
                 <div class='col-2'>Audio feature</div>
-                <div class='col-3'>ID3 Tag Name (MP3/AIFF)</div>
-                <div class='col-3'>FLAC Tag Name</div>
+                <div class='col-6'>Tag name</div>
                 <div class='col-3'>Threshold</div>
             </div>
 
@@ -123,17 +122,24 @@ export default {
             spotifyAuthorized: false,
             config: {
                 path: null,
-                mainTag: {id3: 'STYLE', vorbis: 'STYLE'},
+                mainTag: {id3: 'AUDIO_FEATURES', vorbis: 'AUDIO_FEATURES', mp4: 'AUDIO_FEATURES'},
                 id3Separator: ", ",
                 vorbisSeparator: null,
                 properties: {
-                    acousticness: {enabled: true, range: {min: 0, max: 90}, tag: {id3: '1T_ACOUSTICNESS', vorbis: '1T_ACOUSTICNESS'}},
-                    danceability: {enabled: true, range: {min: 20, max: 80}, tag: {id3: '1T_DANCEABILITY', vorbis: '1T_DANCEABILITY'}},
-                    energy: {enabled: true, range: {min: 20, max: 90}, tag: {id3: '1T_ENERGY', vorbis: '1T_ENERGY'}},
-                    instrumentalness: {enabled: true, range: {min: 50, max: 90}, tag: {id3: '1T_INSTRUMENTALNESS', vorbis: '1T_INSTRUMENTALNESS'}},
-                    liveness: {enabled: true, range: {min: 0, max: 80}, tag: {id3: '1T_LIVENESS', vorbis: '1T_LIVENESS'}},
-                    speechiness: {enabled: true, range: {min: 0, max: 70}, tag: {id3: '1T_SPEECHINESS', vorbis: '1T_SPEECHINESS'}},
-                    valence: {enabled: true, range: {min: 15, max: 85}, tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE'}}
+                    acousticness: {enabled: true, range: {min: 0, max: 90}, 
+                        tag: {id3: '1T_ACOUSTICNESS', vorbis: '1T_ACOUSTICNESS', mp4: '1T_ACOUSTICNESS'}},
+                    danceability: {enabled: true, range: {min: 20, max: 80}, 
+                        tag: {id3: '1T_DANCEABILITY', vorbis: '1T_DANCEABILITY', mp4: '1T_DANCEABILITY'}},
+                    energy: {enabled: true, range: {min: 20, max: 90}, 
+                        tag: {id3: '1T_ENERGY', vorbis: '1T_ENERGY', mp4: '1T_ENERGY'}},
+                    instrumentalness: {enabled: true, range: {min: 50, max: 90}, 
+                        tag: {id3: '1T_INSTRUMENTALNESS', vorbis: '1T_INSTRUMENTALNESS', mp4: '1T_INSTRUMENTALNESS'}},
+                    liveness: {enabled: true, range: {min: 0, max: 80}, 
+                        tag: {id3: '1T_LIVENESS', vorbis: '1T_LIVENESS', mp4: '1T_LIVENESS'}},
+                    speechiness: {enabled: true, range: {min: 0, max: 70}, 
+                        tag: {id3: '1T_SPEECHINESS', vorbis: '1T_SPEECHINESS', mp4: '1T_SPEECHINESS'}},
+                    valence: {enabled: true, range: {min: 15, max: 85}, 
+                        tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE', mp4: '1T_VALENCE'}}
                 }
             }
         }

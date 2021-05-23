@@ -210,7 +210,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM', 
                         vorbis: 'COMMENT',
-                        mp4: null
+                        mp4: '©cmt'
                     }, 
                     keybind: null
                 },
@@ -226,7 +226,7 @@ class OneTagger {
                     {mood: 'Powerful', color: 'light-blue'},
                     {mood: 'Sexy', color: 'purple'}
                 ],
-                moodTag: {vorbis: 'MOOD', id3: 'TMOO', mp4: null},
+                moodTag: {vorbis: 'MOOD', id3: 'TMOO', mp4: 'com.apple.iTunes:MOOD'},
                 energyTag: {
                     //rating = save to rating tag, symbol = save to custom tag with symbols
                     type: 'rating',
@@ -234,7 +234,7 @@ class OneTagger {
                     tag: {
                         id3: 'TCOM',
                         vorbis: 'COMPOSER',
-                        mp4: null
+                        mp4: '©wrt'
                     }
                 },
                 genres: [
@@ -265,7 +265,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM',
                         vorbis: 'COMMENT',
-                        mp4: null
+                        mp4: '©cmt'
                     },
                     values: [
                         {val: 'Afro', keybind: null},
@@ -286,7 +286,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM',
                         vorbis: 'COMMENT',
-                        mp4: null
+                        mp4: '©cmt'
                     },
                     values: [
                         {val: 'Start', keybind: null},
@@ -300,7 +300,7 @@ class OneTagger {
                     tag: {
                         id3: 'COMM',
                         vorbis: 'COMMENT',
-                        mp4: null
+                        mp4: '©cmt'
                     },
                     values: [
                         {val: 'Vocals', keybind: null},

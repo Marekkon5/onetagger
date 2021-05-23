@@ -4,7 +4,7 @@
     <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
     <!-- Info -->
     <div class='row q-my-sm justify-center'>
-        <div class='row justify-around full-width text-subtitle1 q-my-sm q-px-xl'>
+        <div class='row justify-around full-width text-subtitle2 q-my-sm q-px-xl'>
             <div class='col'>
                 <q-chip icon='mdi-check' :label='countStatus("ok")' color='green'></q-chip>
                 <br>

@@ -30,15 +30,20 @@ pub struct Spotify {
 }
 
 impl Spotify {
-    //Generate authorization URL
-    pub fn generate_auth_url(client_id: &str, client_secret: &str) -> (String, SpotifyOAuth) {
-        let oauth = SpotifyOAuth::default()
+    //Create OAuth with parameters
+    fn create_oauth(client_id: &str, client_secret: &str) -> SpotifyOAuth {
+        SpotifyOAuth::default()
             .cache_path(Settings::get_folder().unwrap().join("spotify_token_cache.json"))
             .client_id(client_id)
             .client_secret(client_secret)
             .scope("user-read-private")
             .redirect_uri(&format!("http://localhost:{}/spotify", CALLBACK_PORT))
-            .build();
+            .build()
+    }
+
+    //Generate authorization URL
+    pub fn generate_auth_url(client_id: &str, client_secret: &str) -> (String, SpotifyOAuth) {
+        let oauth = Spotify::create_oauth(client_id, client_secret);
         (oauth.get_authorize_url(None, None), oauth)
     }
 
@@ -83,6 +88,19 @@ impl Spotify {
         Ok(Spotify {
             spotify
         })
+    }
+
+    //Try to authorize Spotify from cached token
+    pub fn try_cached_token(client_id: &str, client_secret: &str) -> Option<Spotify> {
+        let mut oauth = Spotify::create_oauth(client_id, client_secret);
+        let token = oauth.get_cached_token()?;
+        let credentials = SpotifyClientCredentials::default()
+            .token_info(token)
+            .build();
+        let spotify = client::Spotify::default()
+            .client_credentials_manager(credentials)
+            .build();
+        Some(Spotify { spotify })
     }
 
     //Handle error and sleep if rate limit

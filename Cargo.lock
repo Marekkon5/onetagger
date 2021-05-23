@@ -2464,6 +2464,7 @@ name = "onetagger"
 version = "1.1.0"
 dependencies = [
  "alac",
+ "backtrace",
  "base64 0.13.0",
  "cef",
  "chrono",

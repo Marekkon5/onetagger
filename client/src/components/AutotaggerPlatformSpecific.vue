@@ -3,7 +3,7 @@
 
     <!-- No settings available -->
     <div v-if='!beatport && !discogs'>
-        <div class='text-h5 q-mt-md text-grey-4'>
+        <div class='text-h5 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
             No platform specific settings available for the selected platforms!
         </div>
     </div>

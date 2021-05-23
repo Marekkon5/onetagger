@@ -10,6 +10,7 @@ use std::env;
 use std::panic;
 use std::fs::OpenOptions;
 use std::sync::Mutex;
+use backtrace::Backtrace;
 use slog::{Drain, Duplicate};
 
 //Get timestamp macro
@@ -46,9 +47,14 @@ fn main() {
     let _guard = slog_scope::set_global_logger(log);
     //Panic hook
     panic::set_hook(Box::new(|p| {
+        let bt = Backtrace::new();
         error!("PANIC: {}", p);
         if let Some(location) = p.location() {
             error!("LOCATION: File: {}, Line: {}", location.file(), location.line());
+        }
+        //Show backtrace
+        if env::var_os("RUST_BACKTRACE").is_some() {
+            debug!("BACKTRACE:\n{:?}", bt);
         }
     }));
 
