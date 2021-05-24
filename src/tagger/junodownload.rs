@@ -1,10 +1,13 @@
 use reqwest::blocking::Client;
+use reqwest::StatusCode;
 use scraper::{Html, Selector, ElementRef};
 use chrono::NaiveDate;
 use regex::Regex;
+use std::thread::sleep;
+use std::time::Duration;
 use std::error::Error;
 
-use crate::tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils};
+use crate::tagger::{Track, MusicPlatform, TrackMatcherST, AudioFileInfo, TaggerConfig, MatchingUtils};
 
 pub struct JunoDownload {
     client: Client
@@ -25,15 +28,21 @@ impl JunoDownload {
 
     //Search releases, generate tracks
     pub fn search(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
-        let mut response = self.client
+        let response = self.client
             .get("https://www.junodownload.com/search/")
             .query(&[("q[all][]", query), ("solrorder", "relevancy"), ("items_per_page", "50")])
-            .send()?
-            .text()?;
+            .send()?;
+        //Rate limitting
+        if response.status() == StatusCode::TOO_MANY_REQUESTS {
+            warn!("JunoDownload rate limit! Sleeping for 2s!");
+            sleep(Duration::from_secs(2));
+            return self.search(query);
+        }
 
         //Minify and parse
-        minify_html::in_place_str(&mut response, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
-        let document = Html::parse_document(&response);
+        let mut data = response.text()?;
+        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
+        let document = Html::parse_document(&data);
 
         let mut out = vec![];
         let release_selector = Selector::parse("div.jd-listing-item").unwrap();
@@ -138,8 +147,8 @@ impl JunoDownload {
     }
 }
 
-impl TrackMatcher for JunoDownload {
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+impl TrackMatcherST for JunoDownload {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         //Search
         let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
         let tracks = self.search(&query)?;

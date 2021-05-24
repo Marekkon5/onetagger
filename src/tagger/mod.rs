@@ -526,12 +526,30 @@ impl Tagger {
                             }
                         }
                     },
+                    //JunoDownload
+                    MusicPlatform::JunoDownload => {
+                        let juno = junodownload::JunoDownload::new();
+                        let rx = Tagger::tag_dir_single_thread(&files, juno, &config);
+                        info!("Starting JunoDownload!");
+                        //Tag
+                        for status in rx {
+                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::JunoDownload, status.status, status.accuracy, status.path);
+                            processed += 1;
+                            //Send to UI
+                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::JunoDownload, &status, 
+                                platform_index, config.platforms.len(), processed, total
+                            )).ok();
+                            //Fallback
+                            if status.status == TaggingState::Ok {
+                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                            }
+                        }
+                    },
                     platform => {
                         //No config platforms
                         let tagger: Box<dyn TrackMatcher + Send + Sync + 'static> = match platform {
                             MusicPlatform::Beatport => Box::new(beatport::Beatport::new()),
                             MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
-                            MusicPlatform::JunoDownload => Box::new(junodownload::JunoDownload::new()),
                             _ => unreachable!()
                         };
                         info!("Starting {:?}", platform);
