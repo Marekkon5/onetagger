@@ -157,10 +157,12 @@ impl TrackMatcher for Traxsource {
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
             //Extend track if requested tags
             if config.album_art || config.album {
-                self.extend_track(&mut track)?;
-                return Ok(Some((acc, track)));
+                match self.extend_track(&mut track) {
+                    Ok(_) => {},
+                    Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
+                }
             }
-            return Ok(None);
+            return Ok(Some((acc, track)));
         }
         Ok(None)
     }

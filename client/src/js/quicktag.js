@@ -46,8 +46,15 @@ class QTTrack {
 
     //Get name of field for tag
     getTagField() {
-        if (this.format == 'aiff' || this.format == 'mp3') return 'id3';
-        if (this.format == 'flac') return 'vorbis';
+        switch (this.format) {
+            case 'mp3':
+            case 'aiff':
+                return 'id3';
+            case 'flac':
+                return 'vorbis';
+            case 'mp4':
+                return 'mp4';
+        }
     }
 
     //Get mood tag value
