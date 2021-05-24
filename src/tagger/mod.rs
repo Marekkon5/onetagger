@@ -309,7 +309,10 @@ pub struct MatchingUtils {}
 impl MatchingUtils {
     //Clean title for searching
     pub fn clean_title(input: &str) -> String {
-        let step1 = input.to_lowercase();
+        let step1 = input.to_lowercase()
+            //Remove - because search engines
+            .replace("-", " ")
+            .replace("  ", " ");
         let step2 = step1.trim();
         //Remove original mix
         let mut re = Regex::new(r"((\(|\[)*)original( (mix|version|edit))*((\)|\])*)$").unwrap();
