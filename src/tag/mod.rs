@@ -231,6 +231,24 @@ impl TagChanges {
             }
         }
 
+        //MP4 doesn't have any way to distinguish between artwork types so abstraction to do that
+        //Not very efficient, but rarely used and should work
+        if let Some(mp4) = tag_wrap.mp4.as_mut() {
+            //Get album art indexes
+            let mut indicies: Vec<usize> = self.changes.iter().filter_map(|c| match c {
+                TagChange::RemovePicture {kind} => CoverType::types().iter().position(|k| k == kind),
+                _ => None
+            }).collect();
+            //Last to first
+            indicies.sort();
+            indicies.reverse();
+            let types = CoverType::types();
+            for i in indicies {
+                mp4.remove_art(types[i].to_owned());
+            };
+        }
+
+        let format = tag_wrap.format.clone();
         let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
         //Match changes
         for change in self.changes.clone() {
@@ -239,7 +257,7 @@ impl TagChanges {
                 TagChange::Rating {value} => tag.set_rating(value, true),
                 TagChange::Genre {value} => tag.set_field(Field::Genre, value, true),
                 TagChange::Remove {tag: t} => tag.remove_raw(&t),
-                TagChange::RemovePicture {kind} => tag.remove_art(kind),
+                TagChange::RemovePicture {kind} => if format != AudioFileFormat::MP4 { tag.remove_art(kind) },
                 TagChange::AddPictureBase64 {kind, description, data, mime} => tag.set_art(kind, &mime, Some(&description), base64::decode(&data)?),
                 _ => {}
             }

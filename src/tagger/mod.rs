@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
-use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, EXTENSIONS};
+use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 
 pub mod beatport;
 pub mod traxsource;
@@ -121,7 +121,7 @@ pub struct Track {
 
 impl Track {
     //Write tags to file
-    pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
         //Get tag
         let mut tag_wrap = Tag::load_file(&info.path)?;
         //Configure ID3 and FLAC
@@ -132,6 +132,13 @@ impl Track {
         if let Some(flac) = tag_wrap.flac.as_mut() {
             if let Some(s) = config.flac_separator.as_ref() {
                 flac.set_separator(Some(s));
+            }
+        }
+        //MP4 Album art override
+        if let Some(mp4) = tag_wrap.mp4.as_mut() {
+            //Has art
+            if (config.overwrite || mp4.get_art().is_empty()) && self.art.is_some() && config.album_art {
+                mp4.remove_all_artworks();
             }
         }
 

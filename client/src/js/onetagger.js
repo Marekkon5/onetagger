@@ -206,6 +206,7 @@ class OneTagger {
             volume: 0.05,
             helpButton: true,
             quickTag: {
+                autosave: false,
                 noteTag: {
                     tag: {
                         id3: 'COMM', 

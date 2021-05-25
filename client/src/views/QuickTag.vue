@@ -90,6 +90,12 @@ export default {
         async saveDialogCallback(save) {
             if (save) {
                 await this.$1t.saveQTTrack();
+                this.$q.notify({
+                    message: "Tags saved!",
+                    color: 'primary',
+                    textColor: 'black',
+                    timeout: 500,
+                })
             }
             this.$1t.loadQTTrack(null, true);
             this.saveDialog = false;
@@ -106,6 +112,12 @@ export default {
     mounted() {
         //Keybind callbacks
         this.$1t.onQTUnsavedChanges = () => {
+            //Autosave enabled
+            if (this.$1t.settings.quickTag.autosave) {
+                this.saveDialogCallback(true);
+                return;
+            }
+
             this.saveDialog = true;
             setTimeout(() => {
                 this.$refs.saveButton.$el.focus();

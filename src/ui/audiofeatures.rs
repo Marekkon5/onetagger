@@ -101,16 +101,17 @@ pub struct AFProperty {
 #[serde(rename_all = "camelCase")]
 pub struct AFTag {
     pub id3: String,
-    pub vorbis: String
+    pub vorbis: String,
+    pub mp4: String
 }
 
 impl AFTag {
     //Get tag by AudioFileFormat
     pub fn by_format(&self, format: &AudioFileFormat) -> String {
-        if format.to_owned() == AudioFileFormat::FLAC {
-            self.vorbis.to_owned()
-        } else {
-            self.id3.to_owned()
+        match format {
+            AudioFileFormat::FLAC => self.vorbis.to_owned(),
+            AudioFileFormat::MP4 => self.mp4.to_owned(),
+            _ => self.id3.to_owned()
         }
     }
 }
@@ -197,7 +198,7 @@ impl AudioFeatures {
             let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
             if let Some(track) = results.first() {
                 track_id = Some(track.id.as_ref().ok_or("Missing track ID")?.to_owned());
-                debug!("Found track by ISRC. {:?}", track_id);
+                info!("[AF] Found track by ISRC. {:?}", track_id);
             }
         }
         //Fallback
@@ -211,7 +212,7 @@ impl AudioFeatures {
                 let artists: Vec<String> = t.artists.iter().map(|a| a.name.to_owned()).collect();
                 if title_1 == title_2 && MatchingUtils::match_artist(&artists, &track.artists, 1.0) {
                     if let Some(id) = t.id {
-                        debug!("Matched by exact title. {}", id);
+                        info!("[AF] Matched by exact title. {}", id);
                         track_id = Some(id);
                         break;
                     }

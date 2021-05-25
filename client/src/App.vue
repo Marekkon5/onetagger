@@ -1,140 +1,202 @@
 <template>
-<div>
-  <q-layout view="hHh lpR fFf" class='bg-background'>
+  <div>
+    <q-layout view="hHh lpR fFf" class="bg-background">
+      <!-- Header -->
+      <q-header class="bg-darker text-white" height-hint="98">
+        <q-toolbar>
+          <!-- <q-toolbar-title class='topbar'> -->
+          <img
+            src="./assets/icon.png"
+            height="42"
+            @click="home"
+            class="logo q-py-xs"
+            :class="{ spin: $1t.lock.locked }"
+          />
+          <img
+            src="./assets/logo-text.png"
+            height="42"
+            @click="home"
+            class="logo"
+          />
+          <!-- </q-toolbar-title> -->
 
-    <!-- Header -->
-    <q-header class="bg-darker text-white" height-hint="98">
-      <q-toolbar>
-        <q-toolbar-title class='topbar'>
-          <img src="./assets/icon.png" height='42' @click='home' class='logo' :class='{spin: $1t.lock.locked}'>
-          <img src="./assets/logo-text.png" height='42' @click='home' class='logo'>
-        </q-toolbar-title>
-        <!-- Settings -->
-        <q-btn flat round dense icon='mdi-cog' @click='settings = true'></q-btn>
-        
-      </q-toolbar>
+          <q-space></q-space>
 
-      <q-tabs align="left">
-        <q-route-tab :disable='$1t.lock.locked' to="/" class='text-weight-bolder' @click='hideSide'><q-icon name='mdi-home' size='sm'></q-icon></q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/autotagger" class='text-weight-bolder' @click='hideSide'>Auto tag</q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/audiofeatures" class='text-weight-bolder' @click='audioFeatures'>Audio features</q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/quicktag" class='text-weight-bolder' @click='showSide'>Quick Tag</q-route-tab>
-        <q-route-tab :disable='$1t.lock.locked' to="/tageditor" class='text-weight-bolder' @click='hideSide'>Edit Tags</q-route-tab>
-      </q-tabs>
-    </q-header>
+          <q-tabs style='padding-top: 1px;'>
+            <q-route-tab
+              :disable="$1t.lock.locked"
+              to="/"
+              class="text-weight-bolder"
+              @click="hideSide"
+              ><q-icon name="mdi-home" size="sm"></q-icon
+            ></q-route-tab>
+            <q-route-tab
+              :disable="$1t.lock.locked"
+              to="/autotagger"
+              class="text-weight-bolder"
+              @click="hideSide"
+              >Auto tag</q-route-tab
+            >
+            <q-route-tab
+              :disable="$1t.lock.locked"
+              to="/audiofeatures"
+              class="text-weight-bolder"
+              @click="audioFeatures"
+              >Audio features</q-route-tab
+            >
+            <q-route-tab
+              :disable="$1t.lock.locked"
+              to="/quicktag"
+              class="text-weight-bolder"
+              @click="showSide"
+              >Quick Tag</q-route-tab
+            >
+            <q-route-tab
+              :disable="$1t.lock.locked"
+              to="/tageditor"
+              class="text-weight-bolder"
+              @click="hideSide"
+              >Edit Tags</q-route-tab
+            >
+          </q-tabs>
 
-    <HelpButton></HelpButton>
+          <q-space></q-space>
 
-    <!-- Drawers -->
-    <q-drawer :breakpoint='1000' v-model="left" side="left" :width='200'>
-      <QuickTagLeft></QuickTagLeft>
-    </q-drawer>
-    <q-drawer :breakpoint='1000' v-model="right" side="right" :width='200'>
-      <QuickTagRight></QuickTagRight>
-    </q-drawer>
-
-    <!-- Content -->
-    <q-page-container class='content' ref='contentContainer'>
-      <transition name='fade'>
-        <router-view />
-      </transition>
-    </q-page-container>
-
-    <!-- Footer -->
-    <q-footer reveal class="bg-darker text-white" v-if='footer'>
-      <QuickTagGenreBar v-if='$1t.quickTag.track'></QuickTagGenreBar>
-      <q-toolbar class='q-mt-sm'>
-        <div class='row'>
-          <!-- Play button -->
-          <q-btn 
-            round 
+          <!-- Settings -->
+          <q-btn
             flat
-            icon='mdi-play' 
-            class='q-mr-sm' 
-            :ripple='false' 
-            v-if='!$1t.player.playing'
-            @click='$1t.play()'
+            round
+            dense
+            icon="mdi-cog"
+            @click="settings = true"
+            class='q-mt-sm'
           ></q-btn>
-          <!-- Pause -->
-          <q-btn 
-            round 
-            flat
-            icon='mdi-pause' 
-            class='q-mr-sm' 
-            :ripple='false' 
-            v-if='$1t.player.playing'
-            @click='$1t.pause()'
-          ></q-btn>
-        </div>
-        <Waveform></Waveform>
-        <!-- Volume -->
-        <div class='volume-container'>
-          <q-slider
-            v-model='$1t.player.volume'
-            :min='0.00'
-            :max='1.00'
-            :step='0.01'
-            @input='$1t.setVolume($event)'
-            @change='$1t.saveSettings(false)'
-          ></q-slider>
-        </div>
-      </q-toolbar>
-    </q-footer>
+        </q-toolbar>
+      </q-header>
 
-  </q-layout>
+      <HelpButton></HelpButton>
 
-  <!-- Settings -->
-  <Settings v-model='settings' @close='settings = false'></Settings>
+      <!-- Drawers -->
+      <q-drawer :breakpoint="1000" v-model="left" side="left" :width="200">
+        <QuickTagLeft></QuickTagLeft>
+      </q-drawer>
+      <q-drawer :breakpoint="1000" v-model="right" side="right" :width="200">
+        <QuickTagRight></QuickTagRight>
+      </q-drawer>
 
-  <!-- Min size dialog -->
-  <q-dialog v-model='sizeDialog' persistent>
-    <q-card>
-      <q-card-section>
-        <div class='text-h6'>Warning</div>
-      </q-card-section>
-      <q-card-section>
-        One Tagger requires atleast 1024x550 window size. Please resize to continue.
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+      <!-- Content -->
+      <q-page-container class="content" ref="contentContainer">
+        <transition name="fade">
+          <router-view />
+        </transition>
+      </q-page-container>
 
-  <!-- Update dialog -->
-  <q-dialog v-model='updateDialog'>
-    <q-card v-if='update'>
-      <q-card-section>
-        <div class='text-h5'>New update available!</div>
-      </q-card-section>
-      <q-card-section>
-        <div class='text-center'>
-          <div class='text-h6 text-weight-bold'>{{update.version}}</div><br>
-          <div v-html='update.changelog' class='text-subtitle1'></div>
-        </div>
-      </q-card-section>
-      <q-card-section class='justify-center row'>
-        <q-btn color='primary' class='text-black' @click='$1t.url(update.url)'>
-          Download
-        </q-btn>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+      <!-- Footer -->
+      <q-footer reveal class="bg-darker text-white" v-if="footer">
+        <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
+        <q-toolbar class="q-mt-sm">
+          <div class="row">
+            <!-- Play button -->
+            <q-btn
+              round
+              flat
+              icon="mdi-play"
+              class="q-mr-sm"
+              :ripple="false"
+              v-if="!$1t.player.playing"
+              @click="$1t.play()"
+            ></q-btn>
+            <!-- Pause -->
+            <q-btn
+              round
+              flat
+              icon="mdi-pause"
+              class="q-mr-sm"
+              :ripple="false"
+              v-if="$1t.player.playing"
+              @click="$1t.pause()"
+            ></q-btn>
+          </div>
+          <Waveform></Waveform>
+          <!-- Volume -->
+          <div class="volume-container">
+            <q-slider
+              v-model="$1t.player.volume"
+              :min="0.0"
+              :max="1.0"
+              :step="0.01"
+              @input="$1t.setVolume($event)"
+              @change="$1t.saveSettings(false)"
+            ></q-slider>
+          </div>
+        </q-toolbar>
+      </q-footer>
+    </q-layout>
 
-</div>
+    <!-- Settings -->
+    <Settings v-model="settings" @close="settings = false"></Settings>
+
+    <!-- Min size dialog -->
+    <q-dialog v-model="sizeDialog" persistent>
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Warning</div>
+        </q-card-section>
+        <q-card-section>
+          One Tagger requires atleast 1024x550 window size. Please resize to
+          continue.
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Update dialog -->
+    <q-dialog v-model="updateDialog">
+      <q-card v-if="update">
+        <q-card-section>
+          <div class="text-h5">New update available!</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="text-center">
+            <div class="text-h6 text-weight-bold">{{ update.version }}</div>
+            <br />
+            <div v-html="update.changelog" class="text-subtitle1"></div>
+          </div>
+        </q-card-section>
+        <q-card-section class="justify-center row">
+          <q-btn
+            color="primary"
+            class="text-black"
+            @click="$1t.url(update.url)"
+          >
+            Download
+          </q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <script>
-import Waveform from './components/Waveform.vue';
-import QuickTagLeft from './components/QuickTagLeft';
-import Settings from './components/Settings';
-import QuickTagGenreBar from './components/QuickTagGenreBar';
-import QuickTagRight from './components/QuickTagRight';
-import HelpButton from './components/HelpButton';
+import Waveform from "./components/Waveform.vue";
+import QuickTagLeft from "./components/QuickTagLeft";
+import Settings from "./components/Settings";
+import QuickTagGenreBar from "./components/QuickTagGenreBar";
+import QuickTagRight from "./components/QuickTagRight";
+import HelpButton from "./components/HelpButton";
 
-import axios from 'axios';
-import compareVersions from 'compare-versions';
+import axios from "axios";
+import compareVersions from "compare-versions";
 
 export default {
   name: "App",
-  components: {Waveform, QuickTagLeft, Settings, QuickTagGenreBar, QuickTagRight, HelpButton},
+  components: {
+    Waveform,
+    QuickTagLeft,
+    Settings,
+    QuickTagGenreBar,
+    QuickTagRight,
+    HelpButton,
+  },
   data() {
     return {
       left: false,
@@ -143,7 +205,7 @@ export default {
       settings: false,
       sizeDialog: false,
       update: null,
-      updateDialog: false
+      updateDialog: false,
     };
   },
   methods: {
@@ -169,7 +231,7 @@ export default {
     audioFeatures() {
       if (!this.$1t.lock.locked) {
         this.hideSide();
-        this.$router.push('/audiofeatures');
+        this.$router.push("/audiofeatures");
       }
     },
     async checkUpdates() {
@@ -179,7 +241,9 @@ export default {
       try {
         let res = await axios.get(url);
         data = res.data;
-      } catch (e) {return;}
+      } catch (e) {
+        return;
+      }
       if (!data) return;
 
       //New version
@@ -192,18 +256,18 @@ export default {
               label: "Show",
               handler: () => {
                 this.updateDialog = true;
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
       }
-    }
+    },
   },
   mounted() {
     this.$q.dark.set(true);
 
     //Handle resize to apply min height/width
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       if (window.innerHeight < 550 || window.innerWidth < 1024) {
         this.sizeDialog = true;
       } else {
@@ -218,14 +282,14 @@ export default {
     //Dont show scrollbar while transition
     $route() {
       this.$refs.contentContainer.$el.style.overflowY = "hidden";
-    }
+    },
   },
   updated() {
     //Show again scrollbar after transition
     setTimeout(() => {
       this.$refs.contentContainer.$el.style.overflowY = "auto";
     }, 250);
-  }
+  },
 };
 </script>
 
@@ -238,28 +302,32 @@ export default {
 .logo {
   cursor: pointer;
 }
-.topbar {
-  padding-top: 12px !important;
-}
+
 .volume-container {
   padding-left: 40px;
   width: 18% !important;
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition-property: opacity;
-  transition-duration: .25s;
+  transition-duration: 0.25s;
 }
 .fade-enter-active {
-  transition-delay: .25s;
+  transition-delay: 0.25s;
 }
-.fade-enter, .fade-leave-active {
-  opacity: 0
+.fade-enter,
+.fade-leave-active {
+  opacity: 0;
 }
 
 @keyframes rotation {
-  from {transform: rotate(0deg);}
-  to {transform: rotate(360deg);}
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .spin {
   animation: rotation 2s infinite linear;

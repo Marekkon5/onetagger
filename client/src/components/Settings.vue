@@ -8,7 +8,7 @@
             <q-tabs v-model='tab'>
                 <q-tab label='Quick Tag' name='quicktag'></q-tab>
                 <q-tab label='Quick Tag Custom' name='quicktag-custom'></q-tab>
-                <q-tab label='Display' name='advanced'></q-tab>
+                <q-tab label='General' name='advanced'></q-tab>
             </q-tabs>
         </q-card-section>
         <!-- Content -->
@@ -197,20 +197,29 @@
 
             <!-- Advanced -->
             <div v-if='tab == "advanced"'>
-                <div class='text-bold text-grey-6'>General</div>
+                <div class='text-bold text-grey-6'>Display</div>
                 <q-checkbox
                     v-model='$1t.settings.helpButton'
                     label='Show help button'
+                    class='checkbox'
                 ></q-checkbox>
                 <br>
                 <q-checkbox
                     v-model='$1t.settings.tagEditorDouble'
                     label="Show 'Your list' in Edit Tags"
+                    class='checkbox'
                 ></q-checkbox>
                 <br>
                 <q-checkbox
                     v-model='$1t.settings.autoTaggerSinglePage'
                     label="Show Auto Tag as single page"
+                    class='checkbox'
+                ></q-checkbox><br>
+                <div class='text-bold text-grey-6'>General</div>
+                <q-checkbox
+                    v-model='$1t.settings.quickTag.autosave'
+                    label='Autosave track when clicked on different one'
+                    class='checkbox'
                 ></q-checkbox><br>
                 <!-- Open settings folder -->
                 <q-btn

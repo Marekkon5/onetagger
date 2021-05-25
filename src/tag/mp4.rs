@@ -84,6 +84,21 @@ impl MP4Tag {
         }
         Some(data)
     }
+
+    //Raw version of set_art
+    fn add_art(&mut self, mime: &str, data: Vec<u8>) {
+        if mime == "image/jpeg" || mime == "image/jpg" {
+            self.tag.add_artwork(Data::Jpeg(data));
+        } else if mime == "image/png" {
+            self.tag.add_artwork(Data::Png(data));
+        } else if mime == "image/bmp" {
+            self.tag.add_artwork(Data::Bmp(data));
+        }
+    }
+
+    pub fn remove_all_artworks(&mut self) {
+        self.tag.remove_artwork();
+    }
 }
 
 impl TagImpl for MP4Tag {
@@ -147,13 +162,7 @@ impl TagImpl for MP4Tag {
     }
 
     fn set_art(&mut self, _kind: CoverType, mime: &str, _description: Option<&str>, data: Vec<u8>) {
-        if mime == "image/jpeg" || mime == "image/jpg" {
-            self.tag.add_artwork(Data::Jpeg(data));
-        } else if mime == "image/png" {
-            self.tag.add_artwork(Data::Png(data));
-        } else if mime == "image/bmp" {
-            self.tag.add_artwork(Data::Bmp(data));
-        }
+        self.add_art(mime, data);
     }
 
     fn has_art(&self) -> bool {
@@ -197,7 +206,7 @@ impl TagImpl for MP4Tag {
         let artworks: Vec<&Picture> = arts.iter().filter(|p| p.kind != kind).collect();
         self.tag.remove_artwork();
         for art in artworks {
-            self.set_art(art.kind.clone(), &art.mime, None, art.data.clone());
+            self.add_art(&art.mime, art.data.clone());
         }
     }
 
