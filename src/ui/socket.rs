@@ -146,6 +146,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "files": files
             }).to_string())).ok();
 
+            let start = timestamp!();
             for status in rx {
                 //Update path for display
                 let mut s = status.to_owned();
@@ -156,6 +157,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     "status": status
                 }).to_string())).ok();
             }
+            info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             //Done
             websocket.write_message(Message::from(json!({
                 "action": "taggingDone"
@@ -165,7 +167,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         "waveform" => {
             let path = json["path"].as_str().unwrap();
             let source = AudioSources::from_path(path)?;
-            let (waveform_rx, cancel_tx) = source.generate_waveform(250)?;
+            let (waveform_rx, cancel_tx) = source.generate_waveform(180)?;
             //Streamed
             for wave in waveform_rx {
                 websocket.write_message(Message::from(json!({

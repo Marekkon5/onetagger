@@ -153,11 +153,11 @@ export default {
 }
 
 .qt-full-height {
-    height: calc(100vh - 172px);
+    height: calc(100vh - 132px);
 }
 
 .qt-height {
-    height: calc(100vh - 220px);
+    height: calc(100vh - 200px);
 }
 
 .keybind-icon {

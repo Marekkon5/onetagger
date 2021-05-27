@@ -5,7 +5,7 @@ use std::io::Cursor;
 use image::ImageOutputFormat;
 use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
-use crate::tag::{AudioFileFormat, Field, Tag};
+use crate::tag::{AudioFileFormat, Field, Tag, EXTENSIONS};
 
 pub struct QuickTag {}
 
@@ -27,9 +27,11 @@ impl QuickTag {
             //Load tags
             let path = entry.path();
             let path = path.to_str().unwrap();
-            match QuickTagFile::from_path(&path) {
-                Ok(t) => out.push(t),
-                Err(e) => error!("Error loading file: {} {}", path, e)
+            if EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
+                match QuickTagFile::from_path(&path) {
+                    Ok(t) => out.push(t),
+                    Err(e) => error!("Error loading file: {} {}", path, e)
+                }
             }
         }
 

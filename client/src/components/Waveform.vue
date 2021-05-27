@@ -39,11 +39,11 @@ export default {
         //Mouse hover fill
         onHover(e) {
             this.hover = true;
-            this.pos = ((e.clientX - 62) / (window.innerWidth * 0.75)) * this.$1t.WAVES;
+            this.pos = ((e.clientX - 276) / (window.innerWidth * 0.55)) * this.$1t.WAVES;
         },
         //On click seek
         seek(e) {
-            let pos = ((e.clientX - 62) / (window.innerWidth * 0.75)) * this.$1t.player.duration;
+            let pos = ((e.clientX - 276) / (window.innerWidth * 0.55)) * this.$1t.player.duration;
             this.$1t.seek(Math.round(pos));
         }
     },

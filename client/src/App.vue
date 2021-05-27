@@ -3,74 +3,73 @@
     <q-layout view="hHh lpR fFf" class="bg-background">
       <!-- Header -->
       <q-header class="bg-darker text-white" height-hint="98">
-        <q-toolbar>
-          <!-- <q-toolbar-title class='topbar'> -->
-          <img
-            src="./assets/icon.png"
-            height="42"
-            @click="home"
-            class="logo q-py-xs"
-            :class="{ spin: $1t.lock.locked }"
-          />
-          <img
-            src="./assets/logo-text.png"
-            height="42"
-            @click="home"
-            class="logo"
-          />
-          <!-- </q-toolbar-title> -->
+        <q-toolbar class="row justify-between">
+          <div class="col-3" style='height: 58px;'>
+            <img
+              src="./assets/icon.png"
+              height="42"
+              @click="home"
+              class="logo q-mt-sm"
+              :class="{ spin: $1t.lock.locked }"
+            />
+            <img
+              src="./assets/logo-text.png"
+              height="42"
+              @click="home"
+              class="logo"
+            />
+          </div>
 
-          <q-space></q-space>
-
-          <q-tabs style='padding-top: 1px;'>
-            <q-route-tab
-              :disable="$1t.lock.locked"
-              to="/"
-              class="text-weight-bolder"
-              @click="hideSide"
-              ><q-icon name="mdi-home" size="sm"></q-icon
-            ></q-route-tab>
-            <q-route-tab
-              :disable="$1t.lock.locked"
-              to="/autotagger"
-              class="text-weight-bolder"
-              @click="hideSide"
-              >Auto tag</q-route-tab
-            >
-            <q-route-tab
-              :disable="$1t.lock.locked"
-              to="/audiofeatures"
-              class="text-weight-bolder"
-              @click="audioFeatures"
-              >Audio features</q-route-tab
-            >
-            <q-route-tab
-              :disable="$1t.lock.locked"
-              to="/quicktag"
-              class="text-weight-bolder"
-              @click="showSide"
-              >Quick Tag</q-route-tab
-            >
-            <q-route-tab
-              :disable="$1t.lock.locked"
-              to="/tageditor"
-              class="text-weight-bolder"
-              @click="hideSide"
-              >Edit Tags</q-route-tab
-            >
-          </q-tabs>
-
-          <q-space></q-space>
+            <div class="col-6">
+            <q-tabs style='padding-top: 8px;'>
+                <q-route-tab
+                :disable="$1t.lock.locked"
+                to="/"
+                class="text-weight-bolder"
+                @click="hideSide"
+                ><q-icon name="mdi-home" size="sm"></q-icon
+                ></q-route-tab>
+                <q-route-tab
+                :disable="$1t.lock.locked"
+                to="/autotagger"
+                class="text-weight-bolder"
+                @click="hideSide"
+                >Auto tag</q-route-tab
+                >
+                <q-route-tab
+                :disable="$1t.lock.locked"
+                to="/audiofeatures"
+                class="text-weight-bolder"
+                @click="audioFeatures"
+                >Audio features</q-route-tab
+                >
+                <q-route-tab
+                :disable="$1t.lock.locked"
+                to="/quicktag"
+                class="text-weight-bolder"
+                @click="showSide"
+                >Quick Tag</q-route-tab
+                >
+                <q-route-tab
+                :disable="$1t.lock.locked"
+                to="/tageditor"
+                class="text-weight-bolder"
+                @click="hideSide"
+                >Edit Tags</q-route-tab
+                >
+            </q-tabs>
+          </div>
 
           <!-- Settings -->
-          <q-btn
-            flat
-            round
-            dense
-            icon="mdi-cog"
-            @click="settings = true"
-            class='q-mt-sm'
-          ></q-btn>
+          <div class="col-3 row justify-end items-center">
+            <q-btn
+              flat
+              round
+              dense
+              icon="mdi-cog"
+              @click="settings = true"
+            ></q-btn>
+          </div>
         </q-toolbar>
       </q-header>
 
@@ -94,42 +93,54 @@
       <!-- Footer -->
       <q-footer reveal class="bg-darker text-white" v-if="footer">
         <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
-        <q-toolbar class="q-mt-sm">
-          <div class="row">
-            <!-- Play button -->
-            <q-btn
-              round
-              flat
-              icon="mdi-play"
-              class="q-mr-sm"
-              :ripple="false"
-              v-if="!$1t.player.playing"
-              @click="$1t.play()"
-            ></q-btn>
-            <!-- Pause -->
-            <q-btn
-              round
-              flat
-              icon="mdi-pause"
-              class="q-mr-sm"
-              :ripple="false"
-              v-if="$1t.player.playing"
-              @click="$1t.pause()"
-            ></q-btn>
+            <div class='row q-mx-sm'>
+                <div class='col-3 row'>
+                    <div class='col-2 q-mt-sm'>
+                    <!-- Play button -->
+                    <q-btn
+                    round
+                    flat
+                    icon="mdi-play"
+                    class="q-mr-sm"
+                    :ripple="false"
+                    v-if="!$1t.player.playing"
+                    @click="$1t.play()"
+                    ></q-btn>
+                    <!-- Pause -->
+                    <q-btn
+                    round
+                    flat
+                    icon="mdi-pause"
+                    class="q-mr-sm"
+                    :ripple="false"
+                    v-if="$1t.player.playing"
+                    @click="$1t.pause()"
+                    ></q-btn>
+                </div>
+                    <div class='column col-9 q-pl-sm q-mt-sm q-pt-xs'>
+                        <div class='text-caption text-weight-bold full-width'>
+                            <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.title}}</div>
+                        </div>
+                        <div class='text-caption'>
+                            <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.artists.join(', ')}}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <Waveform class='col-7'></Waveform>
+                <!-- Volume -->
+                <div class="volume-container col-2 q-pt-sm">
+                    <q-slider
+                    v-model="$1t.player.volume"
+                    :min="0.0"
+                    :max="1.0"
+                    :step="0.01"
+                    @input="$1t.setVolume($event)"
+                    @change="$1t.saveSettings(false)"
+                    style='margin-top: 1px;'
+                    ></q-slider>
+                </div>
           </div>
-          <Waveform></Waveform>
-          <!-- Volume -->
-          <div class="volume-container">
-            <q-slider
-              v-model="$1t.player.volume"
-              :min="0.0"
-              :max="1.0"
-              :step="0.01"
-              @input="$1t.setVolume($event)"
-              @change="$1t.saveSettings(false)"
-            ></q-slider>
-          </div>
-        </q-toolbar>
       </q-footer>
     </q-layout>
 
@@ -301,11 +312,6 @@ export default {
 }
 .logo {
   cursor: pointer;
-}
-
-.volume-container {
-  padding-left: 40px;
-  width: 18% !important;
 }
 
 .fade-enter-active,

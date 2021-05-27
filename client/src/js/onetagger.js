@@ -5,7 +5,7 @@ import { QTTrack } from './quicktag';
 class OneTagger {
 
     constructor() {
-        this.WAVES = 250;
+        this.WAVES = 180;
         this.ws = new WebSocket('ws://localhost:36912');
 
         //WS error
@@ -432,7 +432,7 @@ class OneTagger {
                 waveformIndex++;
             }
             //Finish
-            if (json.action == 'waveformDone') {
+            if (json.action == 'waveformDone' || json.action == 'error') {
                 ws.close();
                 this._waveformLock.pop();
             }

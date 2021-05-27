@@ -4,53 +4,95 @@
     <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
     <!-- Info -->
     <div class='row q-my-sm justify-center'>
-        <div class='row justify-around full-width text-subtitle2 q-my-sm q-px-xl'>
-            <div class='col'>
-                <q-chip icon='mdi-check' :label='countStatus("ok")' color='green'></q-chip>
-                <br>
-                <span class='text-grey-6'>Match</span>
+        <div class='row justify-between full-width text-subtitle2 q-my-sm list'>
+            <div class='col q-mr-sm'>
+                <q-card flat>
+                    <div class='row'>
+                        <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
+                            <q-btn icon='mdi-check' round color='green'></q-btn>
+                        </div>
+                        <div class='col q-my-sm text-right q-pr-md'>
+                            <div class='text-subtitle2 text-grey-6'>Matched</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("ok")}}</div>
+                        </div>
+                    </div>
+                </q-card>
             </div>
 
-            <div class='col'>
-                <q-chip icon='mdi-alert-circle' :label='countStatus("error")' color='red'></q-chip>
-                <br>
-                <span class='text-grey-6'>Failed</span>
+            <div class='col q-mx-sm'>
+                <q-card flat>
+                    <div class='row'>
+                        <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
+                            <q-btn icon='mdi-alert-circle' round color='red'></q-btn>
+                        </div>
+                        <div class='col q-my-sm text-right q-pr-md'>
+                            <div class='text-subtitle2 text-grey-6'>Failed</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("error")}}</div>
+                        </div>
+                    </div>
+                </q-card>
             </div>
             
-            <div class='col'>
-                <q-chip class='text-black' icon='mdi-debug-step-over' :label='countStatus("skipped")' color='yellow'></q-chip>
-                <br>
-                <span class='text-grey-6'>Skipped</span>
+            <div class='col q-mx-sm'>
+                <q-card flat>
+                    <div class='row'>
+                        <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
+                            <q-btn icon='mdi-debug-step-over' round color='yellow' class='text-black'></q-btn>
+                        </div>
+                        <div class='col q-my-sm text-right q-pr-md'>
+                            <div class='text-subtitle2 text-grey-6'>Failed</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("skipped")}}</div>
+                        </div>
+                    </div>
+                </q-card>
             </div>
             
-            <div class='col'>
-                <q-chip class='text-black' icon='mdi-music-box-multiple-outline' :label='$1t.taggerStatus.total' color='grey-6'></q-chip>
-                <br>
-                <span class='text-grey-6'>Total</span>
+            <div class='col q-mx-sm'>
+                <q-card flat>
+                    <div class='row'>
+                        <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
+                            <q-btn icon='mdi-music-box-multiple-outline' round color='grey-6' class='text-black'></q-btn>
+                        </div>
+                        <div class='col q-my-sm text-right q-pr-md'>
+                            <div class='text-subtitle2 text-grey-6'>Total</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{$1t.taggerStatus.total}}</div>
+                        </div>
+                    </div>
+                </q-card>
             </div>
             
-            <div class='col'>
-                <q-chip class='text-black' icon='mdi-timelapse' :label='time' color='primary'></q-chip>
-                <br>
-                <span class='text-grey-6'>Elapsed time</span>
+            <div class='col q-ml-sm'>
+                <q-card flat>
+                    <div class='row'>
+                        <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
+                            <q-btn icon='mdi-timelapse' round color='primary' class='text-black'></q-btn>
+                        </div>
+                        <div class='col q-my-sm text-right q-pr-md'>
+                            <div class='text-subtitle2 text-grey-6'>Time</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{time}}</div>
+                        </div>
+                    </div>
+                </q-card>
             </div>
         </div>
     </div>
     <!-- Statuses -->
-    <q-list class='list q-mt-xl q-mb-xl text-left bg-dark q-py-sm'>
-        <div v-for='(status, i) in $1t.taggerStatus.statuses' :key='i'>
-            <q-item>
-                <q-item-section>
-                    <q-item-label overline>
-                        <span>
-                            <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(status.platform)}}</span>
-                            <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(status.status.status)' :color='statusColor(status.status.status)'></q-icon>
-                        </span>
-                    </q-item-label>
-                    <span class='selectable'>{{status.status.path}}</span>
-                </q-item-section>
-            </q-item>
-        </div>
+    <q-list class='list text-left bg-dark q-py-sm'>
+        <q-virtual-scroll :items='$1t.taggerStatus.statuses' class='status-list'>
+            <template v-slot="{item, i}">
+                <q-item :key='i'>
+                    <q-item-section>
+                        <q-item-label overline>
+                            <span>
+                                <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(item.platform)}}</span>
+                                <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'></q-icon>
+                            </span>
+                        </q-item-label>
+                        <span class='selectable'>{{item.status.path}}</span>
+                    </q-item-section>
+                </q-item>
+            </template>
+        </q-virtual-scroll>
     </q-list>
 
     <!-- Progressbar -->
@@ -140,5 +182,8 @@ export default {
     width: 100%;
     position: absolute;
     bottom: 0px;
+}
+.status-list {
+    height: calc(100vh - 248px);
 }
 </style>

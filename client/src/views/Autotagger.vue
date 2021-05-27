@@ -132,8 +132,8 @@ export default {
 
 <style>
 .step {
-    min-height: calc(100vh - 214px);
-    max-height: calc(100vh - 214px);
+    min-height: calc(100vh - 164px);
+    max-height: calc(100vh - 164px);
     background: #1a1c1b;
 }
 .q-stepper__step-inner {
