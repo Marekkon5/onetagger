@@ -157,7 +157,7 @@ export default {
 }
 
 .qt-height {
-    height: calc(100vh - 200px);
+    height: calc(100vh - 160px);
 }
 
 .keybind-icon {

@@ -1,6 +1,6 @@
 <template>
 <div>
-    <div class='row container' @mouseover='onHover' @mouseleave="hover = false" @click='seek'>
+    <div ref='waveform' class='row container' @mouseover='onHover' @mouseleave="hover = false" @click='seek'>
         <div v-for='(wave, i) in $1t.player.waveform' :key='i'>
             <Wave 
                 height='50px' 
@@ -36,14 +36,17 @@ export default {
             
             return 0;
         },
+        waveOffset(cx) {
+            return (cx - this.$refs.waveform.offsetLeft) / this.$refs.waveform.clientWidth;
+        },
         //Mouse hover fill
         onHover(e) {
             this.hover = true;
-            this.pos = ((e.clientX - 276) / (window.innerWidth * 0.55)) * this.$1t.WAVES;
+            this.pos = this.waveOffset(e.clientX) * this.$1t.WAVES;
         },
         //On click seek
         seek(e) {
-            let pos = ((e.clientX - 276) / (window.innerWidth * 0.55)) * this.$1t.player.duration;
+            let pos = this.waveOffset(e.clientX) * this.$1t.player.duration;
             this.$1t.seek(Math.round(pos));
         }
     },
@@ -62,6 +65,8 @@ export default {
     max-height: 60px;
     min-height: 60px;
     align-items: center;
+    /* WAVES * 0.3 */
+    width: 54vw;
 }
 .wave {
     margin-left: 0.1vw;

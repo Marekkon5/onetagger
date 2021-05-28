@@ -93,9 +93,19 @@
       <!-- Footer -->
       <q-footer reveal class="bg-darker text-white" v-if="footer">
         <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
-            <div class='row q-mx-sm'>
+            <div class='row q-mx-md'>
                 <div class='col-3 row'>
-                    <div class='col-2 q-mt-sm'>
+
+                    <div class='column q-mt-sm q-pt-xs' style='width: 200px;'>
+                        <div class='text-caption text-weight-bold full-width'>
+                            <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.title}}</div>
+                        </div>
+                        <div class='text-caption'>
+                            <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.artists.join(', ')}}</div>
+                        </div>
+                    </div>
+                    
+                    <div class='col q-mt-sm' style='margin-left: 16px;'>
                     <!-- Play button -->
                     <q-btn
                     round
@@ -117,17 +127,13 @@
                     @click="$1t.pause()"
                     ></q-btn>
                 </div>
-                    <div class='column col-9 q-pl-sm q-mt-sm q-pt-xs'>
-                        <div class='text-caption text-weight-bold full-width'>
-                            <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.title}}</div>
-                        </div>
-                        <div class='text-caption'>
-                            <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.artists.join(', ')}}</div>
-                        </div>
-                    </div>
+                    
                 </div>
 
-                <Waveform class='col-7'></Waveform>
+                <div class='col-7'>
+                    <Waveform ></Waveform>
+                </div>
+                
                 <!-- Volume -->
                 <div class="volume-container col-2 q-pt-sm">
                     <q-slider
