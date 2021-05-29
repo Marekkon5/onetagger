@@ -2,7 +2,7 @@
 <div class='index-container'>
 
     <!-- Background -->
-    <img src='../assets/bg.png' class='bg-image' ref='bgImage'>
+    <img src='bg.png' class='bg-image' ref='bgImage'>
 
     <!-- Right cards -->
     <div class='getting-started-cards'>

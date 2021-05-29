@@ -71,8 +71,14 @@ class QTTrack {
             return this.rating??0;
         }
         //Use custom symbols as energy
-        if (this.tags[this.settings.energyTag.tag[this.getTagField()]]) {
-            return this.tags[this.settings.energyTag.tag[this.getTagField()]].split(this.settings.energyTag.symbol).length - 1;
+        let t = this.tags[this.settings.energyTag.tag[this.getTagField()]];
+        if (t) {
+            //Use first element of array
+            if (typeof t == 'object') {
+                if (t.length == 0) return 0;
+                t = t[0];
+            }
+            return t.split(this.settings.energyTag.symbol).length - 1;
         }
         return 0;
     }

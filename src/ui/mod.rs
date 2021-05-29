@@ -4,8 +4,9 @@ extern crate web_view;
 use std::error::Error;
 use std::fmt;
 use std::thread;
+use std::fs;
 use std::io::prelude::*;
-use std::fs::{File, create_dir_all};
+use std::fs::File;
 use std::path::PathBuf;
 use rouille::{router, Response};
 use serde_json::Value;
@@ -20,25 +21,39 @@ pub mod tageditor;
 
 //UI
 static INDEX_HTML: &'static str = include_str!("../../client/dist/dist.html");
+static BG_PNG: &'static [u8] = include_bytes!("../../client/dist/bg.png");
+static FAVICON_PNG: &'static [u8] = include_bytes!("../../client/dist/favicon.png");
 
 //Onetagger settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
-    ui: Value
+    ui: Value,
+    version: Option<i32>
 }
 
 impl Settings {
     //Create settings from UI json
     pub fn from_ui(ui: &Value) -> Settings {
         Settings {
-            ui: ui.to_owned()
+            ui: ui.to_owned(),
+            version: Some(2)
         }
     }
 
     //Load settings from file
     pub fn load() -> Result<Settings, Box<dyn Error>> {
         let path = Settings::get_path()?;
-        let settings: Settings = serde_json::from_reader(File::open(path)?)?;
+        let settings: Settings = serde_json::from_reader(File::open(&path)?)?;
+
+        //v1.0 are not compatible with 1.1, create backup
+        if settings.version.unwrap_or(1) == 1 {
+            let new_path = format!("{}-1.0.bak", &path);
+            fs::copy(&path, &new_path)?;
+            info!("Backup of settings created: {}", new_path);
+            fs::remove_file(&path)?;
+            return Settings::load();
+        }
+
         Ok(settings)
     }
     
@@ -54,7 +69,7 @@ impl Settings {
     pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
         let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
         if !root.preference_dir().exists() {
-            create_dir_all(root.preference_dir())?;
+            fs::create_dir_all(root.preference_dir())?;
         }
         Ok(root.preference_dir().to_owned())
     }
@@ -95,11 +110,17 @@ pub fn start_webserver_thread() {
     thread::spawn(|| {
         rouille::start_server("127.0.0.1:36913", move |request| {
             router!(request, 
-                (GET) (/) => {
+                (GET) ["/"] => {
                     Response::html(INDEX_HTML)
                 },
+                (GET) ["/bg.png"] => {
+                    Response::from_data("image/png", BG_PNG)
+                },
+                (GET) ["/favicon.png"] => {
+                    Response::from_data("image/png", FAVICON_PNG)
+                },
                 //Get thumbnail of image from tag by path
-                (GET) (/thumb) => {
+                (GET) ["/thumb"] => {
                     match request.get_param("path") {
                         Some(path) => {
                             match quicktag::QuickTagFile::get_art(&path) {

@@ -21,6 +21,8 @@
         </q-icon>
     </q-toggle>
     <br>
+    <q-toggle v-model='$1t.config.camelot' label='Use Camelot key notation'></q-toggle>
+    <br>
     <!-- Strictness -->
     <div class='row'>
         <q-slider 

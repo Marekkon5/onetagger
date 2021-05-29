@@ -49,7 +49,7 @@
                     filled
                     label='Tag type'
                     :options='["rating", "symbol"]'
-                    class='q-mb-sm q-pr-md'
+                    class='q-mb-sm'
                 ></q-select>
                 <div v-if='$1t.settings.quickTag.energyTag.type != "rating"' class='row'>
                     <div class='col-2 q-pr-md'>
@@ -67,33 +67,35 @@
                 <!-- Moods -->
                 <div class='q-my-sm text-bold text-grey-6'>Moods</div>
                 <div class='q-mb-md'>
-                    <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
-                        <div class='row justify-around'>
-                            <q-input 
-                                clearable 
-                                @clear='$1t.settings.quickTag.moods.splice(i, 1)' 
-                                v-model='$1t.settings.quickTag.moods[i].mood' 
-                                filled 
-                                dense 
-                                class='col-5 q-pr-md q-mb-sm'
-                            ></q-input>
-                            <q-select 
-                                v-model='$1t.settings.quickTag.moods[i].color' 
-                                dense 
-                                filled 
-                                label='Color'
-                                :options='colors' 
-                                :label-color='$1t.settings.quickTag.moods[i].color'
-                                :color='$1t.settings.quickTag.moods[i].color'
-                                class='col-5 q-pr-md'
-                            ></q-select>
-                            <Keybind 
-                                class='col-2 text-center' 
-                                @set='setMoodKeybind(i, $event)'
-                                :initial='$1t.settings.quickTag.moods[i].keybind'
-                            ></Keybind>
+                    <draggable v-model='$1t.settings.quickTag.moods'>
+                        <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
+                            <div class='row justify-around'>
+                                <q-input 
+                                    clearable 
+                                    @clear='$1t.settings.quickTag.moods.splice(i, 1)' 
+                                    v-model='$1t.settings.quickTag.moods[i].mood' 
+                                    filled 
+                                    dense 
+                                    class='col-5 q-pr-md q-mb-sm'
+                                ></q-input>
+                                <q-select 
+                                    v-model='$1t.settings.quickTag.moods[i].color' 
+                                    dense 
+                                    filled 
+                                    label='Color'
+                                    :options='colors' 
+                                    :label-color='$1t.settings.quickTag.moods[i].color'
+                                    :color='$1t.settings.quickTag.moods[i].color'
+                                    class='col-5 q-pr-md'
+                                ></q-select>
+                                <Keybind 
+                                    class='col-2 text-center' 
+                                    @set='setMoodKeybind(i, $event)'
+                                    :initial='$1t.settings.quickTag.moods[i].keybind'
+                                ></Keybind>
+                            </div>
                         </div>
-                    </div>
+                    </draggable>
                     <!-- Add new mood -->
                     <div class='text-subtitle2 q-mb-sm'>Create new mood:</div>
                     <div class='row'>
@@ -105,23 +107,25 @@
                 <!-- Genres -->
                 <div class='q-my-sm text-bold text-grey-6'>Genres</div>
                 <div>
-                    <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
-                        <div class='row q-my-sm'>
-                            <q-input 
-                                clearable
-                                filled 
-                                dense 
-                                class='col-10' 
-                                v-model='$1t.settings.quickTag.genres[i].genre'
-                                @clear='$1t.settings.quickTag.genres.splice(i, 1)'
-                            ></q-input>
-                            <Keybind
-                                class='col-2 text-center'
-                                @set='$1t.settings.quickTag.genres[i].keybind = $event'
-                                :initial='$1t.settings.quickTag.genres[i].keybind'
-                            ></Keybind>
+                    <draggable v-model='$1t.settings.quickTag.genres'>
+                        <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
+                            <div class='row q-my-sm'>
+                                <q-input 
+                                    clearable
+                                    filled 
+                                    dense 
+                                    class='col-10' 
+                                    v-model='$1t.settings.quickTag.genres[i].genre'
+                                    @clear='$1t.settings.quickTag.genres.splice(i, 1)'
+                                ></q-input>
+                                <Keybind
+                                    class='col-2 text-center'
+                                    @set='$1t.settings.quickTag.genres[i].keybind = $event'
+                                    :initial='$1t.settings.quickTag.genres[i].keybind'
+                                ></Keybind>
+                            </div>
                         </div>
-                    </div>
+                    </draggable>
                     <!-- Add new genre -->
                     <div class='text-subtitle2 q-mb-sm'>Create new genre:</div>
                     <div class='row'>
@@ -165,24 +169,26 @@
                     
                     <TagFields class='q-pt-sm' v-model='$1t.settings.quickTag.custom[i].tag'></TagFields>
                     <!-- Values -->
-                    <div v-for='(value, j) in tag.values' :key='value.value+j.toString()'>
-                        <div class='row'>
-                            <q-btn class='col-1 q-mt-sm' round flat icon='mdi-close' @click='$1t.settings.quickTag.custom[i].values.splice(j, 1)'></q-btn>
-                            <q-input class='col-9 q-px-sm q-pt-sm' dense filled v-model='$1t.settings.quickTag.custom[i].values[j].val'></q-input>
-                            <Keybind
-                                class='col-2 text-center q-pt-sm'
-                                @set='$1t.settings.quickTag.custom[i].values[j].keybind = $event'
-                                :initial='$1t.settings.quickTag.custom[i].values[j].keybind'
-                            ></Keybind>
+                    <draggable v-model='tag.values'>
+                        <div v-for='(value, j) in tag.values' :key='value.value+j.toString()'>
+                            <div class='row'>
+                                <q-btn class='col-1 q-mt-sm' round flat icon='mdi-close' @click='$1t.settings.quickTag.custom[i].values.splice(j, 1)'></q-btn>
+                                <q-input class='col-9 q-px-sm q-pt-sm' dense filled v-model='$1t.settings.quickTag.custom[i].values[j].val'></q-input>
+                                <Keybind
+                                    class='col-2 text-center q-pt-sm'
+                                    @set='$1t.settings.quickTag.custom[i].values[j].keybind = $event'
+                                    :initial='$1t.settings.quickTag.custom[i].values[j].keybind'
+                                ></Keybind>
+                            </div>
                         </div>
-                    </div>
+                    </draggable>
                     <!-- Add new value -->
                     <q-btn 
                         flat 
                         color='primary' 
                         class='q-mt-sm' 
                         icon='mdi-plus'
-                        @click='$1t.settings.quickTag.custom[i].values.push({val: "New"})'
+                        @click='$1t.settings.quickTag.custom[i].values.push({val: "New", keybind: null})'
                     >Add new value</q-btn>
                 </div>
                 <!-- Add new tag -->
@@ -221,6 +227,11 @@
                     label='Autosave track when clicked on different one'
                     class='checkbox'
                 ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.continuePlayback'
+                    label='Continue playback on switching QT songs'
+                    class='checkbox'
+                ></q-checkbox><br>
                 <!-- Open settings folder -->
                 <q-btn
                     color='primary'
@@ -253,11 +264,12 @@
 import Keybind from './Keybind';
 import TagFields from './TagFields';
 import Vue from 'vue';
+import draggable from 'vuedraggable';
 import { colors } from 'quasar';
 
 export default {
     name: 'Settings',
-    components: {Keybind, TagFields},
+    components: {Keybind, TagFields, draggable},
     data() {
         return {
             open: this.value,
@@ -265,7 +277,7 @@ export default {
             colors: ['red', 'pink', 'purple', 'deep-purple', 'indigo', 'blue', 'light-blue',
                 'cyan', 'teal', 'green', 'light-green', 'lime', 'yellow', 'amber', 'orange',
                 'deep-orange', 'brown', 'grey', 'blue-grey'],
-            newMood: {mood: null, color: 'red'},
+            newMood: {mood: null, color: 'red', keybind: null},
             newGenre: null,
             newCustomQT: null,
             customQTEdit: [],
@@ -312,8 +324,11 @@ export default {
         addCustomQT() {
             this.$1t.settings.quickTag.custom.push({
                 name: this.newCustomQT,
-                id3: "CUSTOM",
-                vorbis: "CUSTOM",
+                tag: {
+                    id3: "CUSTOM",
+                    vorbis: "CUSTOM",
+                    mp4: "CUSTOM",
+                },
                 values: []
             });
             this.newCustomQT = null;
@@ -345,8 +360,8 @@ export default {
 .parent-card {
     max-height: 80vh;
     height: 80vh;
-    width: 60vw;
-    min-width: 500px;
+    width: 70vw;
+    min-width: 600px;
 }
 .energy-keybind {
     margin-top: -2px;

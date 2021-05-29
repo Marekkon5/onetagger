@@ -153,6 +153,7 @@ class OneTagger {
             "strictness": 0.7,
             "mergeGenres": false,
             "albumArtFile": false,
+            "camelot": false,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1
@@ -181,7 +182,8 @@ class OneTagger {
             playing: false,
             position: 0,
             duration: 1,
-            volume: 0.5
+            volume: 0.5,
+            wasPlaying: false
         });
         this.generateDefaultWaveform();
         //Player position updater
@@ -205,6 +207,7 @@ class OneTagger {
             discogsToken: null,
             volume: 0.05,
             helpButton: true,
+            continuePlayback: false,
             quickTag: {
                 autosave: false,
                 noteTag: {
@@ -217,17 +220,17 @@ class OneTagger {
                 },
                 energyKeys: [null,null,null,null,null],
                 moods: [
-                    {mood: 'Happy', color: 'amber'},
-                    {mood: 'Sad', color: 'indigo'},
-                    {mood: 'Bright', color: 'green'},
-                    {mood: 'Dark', color: 'deep-purple'},
-                    {mood: 'Angry', color: 'red'},
-                    {mood: 'Chill', color: 'teal'},
-                    {mood: 'Lovely', color: 'pink'},
-                    {mood: 'Powerful', color: 'light-blue'},
-                    {mood: 'Sexy', color: 'purple'}
+                    {mood: 'Happy', color: 'amber', keybind: null},
+                    {mood: 'Sad', color: 'indigo', keybind: null},
+                    {mood: 'Bright', color: 'green', keybind: null},
+                    {mood: 'Dark', color: 'deep-purple', keybind: null},
+                    {mood: 'Angry', color: 'red', keybind: null},
+                    {mood: 'Chill', color: 'teal', keybind: null},
+                    {mood: 'Lovely', color: 'pink', keybind: null},
+                    {mood: 'Powerful', color: 'light-blue', keybind: null},
+                    {mood: 'Sexy', color: 'purple', keybind: null}
                 ],
-                moodTag: {vorbis: 'MOOD', id3: 'TMOO', mp4: 'com.apple.iTunes:MOOD'},
+                moodTag: {vorbis: 'MOOD', id3: 'TMOO', mp4: 'iTunes:MOOD'},
                 energyTag: {
                     //rating = save to rating tag, symbol = save to custom tag with symbols
                     type: 'rating',
@@ -435,6 +438,14 @@ class OneTagger {
             if (json.action == 'waveformDone' || json.action == 'error') {
                 ws.close();
                 this._waveformLock.pop();
+
+                //Autoplay, delay just in case for windows
+                setTimeout(() => {
+                    if (this.settings.continuePlayback && this.player.wasPlaying) {
+                        this.play();
+                        this.player.wasPlaying = false;
+                    }
+                }, 100);
             }
             //Will be ignored, just for updating
             ws.send(JSON.stringify({action: '_waveformRead'}));
@@ -460,6 +471,9 @@ class OneTagger {
         if (!this.quickTag.track || force || !this.quickTag.track.isChanged()) {
             if (!track)
                 track = this._nextQTTrack;
+            //For autoplay
+            if (this.player.playing)
+                this.player.wasPlaying = true;
             this.quickTag.track = new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.quickTag);
             this.loadTrack(track.path);
             this._nextQTTrack = null;
@@ -491,6 +505,7 @@ class OneTagger {
     pause() {
         this.send("playerPause");
         this.player.playing = false;
+        this.player.wasPlaying = false;
     }
     seek(pos) {
         this.send("playerSeek", {pos})

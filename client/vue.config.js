@@ -21,7 +21,7 @@ module.exports = {
       .rule('images')
       .use('url-loader')
       .loader('url-loader')
-      .tap(options => Object.assign(options, { limit: true }));
+      .tap(options => Object.assign(options, { limit: 1024*128 }));
     
     config.module
       .rule('vue')

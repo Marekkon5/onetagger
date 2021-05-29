@@ -76,37 +76,37 @@ const MP4 = [
 const VORBIS = [
     "ALBUM", 
     "ALBUMARTIST", 
-    "COMPOSER", 
+    "COMMENT",
+    "COMPOSER",
+    "CONDUCTOR",  
     "GENRE", 
-    "LYRICS", 
-    "VERSION", 
     "GROUPING",
+    "LABEL",
+    "LYRICS", 
     "ORGANIZATION", 
     "PUBLISHER", 
     "MIXARTIST", 
     "REMIXER", 
-    "CONDUCTOR", 
-    "COMMENT",
-    "LABEL"
+    "VERSION", 
 ];
 
 const ID3 = [
-    "TCON (Genre)", 
     "TALB (Album)", 
     "TPE2 (Album Artist)", 
+    "COMM (Comment)",
     "TCOM (Composer)",
+    "TPE3 (Conductor)", 
+    "TIT1 (Content Group)",
+    "TCON (Genre)", 
+    "GRP1 (Grouping iTunes)", 
+    "TPUB (Label)", 
     "TEXT (Lyricist)", 
     "TIT3 (Mix Name)", 
     "TOPE (Original Artist)", 
-    "TIT1 (Content Group)",
-    "GRP1 (Grouping iTunes)", 
-    "TPUB (Label)", 
-    "TPE4 (Remixer)", 
     "IPLS (Producer ID3v2.3)",
     "TIPL (Producer ID3v2.4)", 
-    "TPE3 (Conductor)", 
-    "COMM (Comment)",
+    "TPE4 (Remixer)", 
     "USLT (Unsynchronized Lyrics)"
-]
+];
 
 export {ABSTRACTIONS, MP4, VORBIS, ID3};

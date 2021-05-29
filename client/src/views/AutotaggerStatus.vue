@@ -40,7 +40,7 @@
                             <q-btn icon='mdi-debug-step-over' round color='yellow' class='text-black'></q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
-                            <div class='text-subtitle2 text-grey-6'>Failed</div>
+                            <div class='text-subtitle2 text-grey-6'>Skipped</div>
                             <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("skipped")}}</div>
                         </div>
                     </div>

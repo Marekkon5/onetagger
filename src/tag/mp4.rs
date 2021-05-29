@@ -42,7 +42,11 @@ impl MP4Tag {
             return DataIdent::fourcc(bytes.try_into().unwrap());
         }
         //Convert string freeform
-        let ident = ident.replacen("----:", "", 1);
+        let mut ident = ident.replacen("----:", "", 1);
+        //iTunes:VALUE abstraction
+        if ident.starts_with("iTunes:") {
+            ident = format!("com.apple.{}", ident);
+        }
         let mut mean = "com.apple.iTunes";
         let mut name = ident.to_string();
         let split: Vec<&str> = ident.split(":").collect();

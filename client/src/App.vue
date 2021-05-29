@@ -4,7 +4,7 @@
       <!-- Header -->
       <q-header class="bg-darker text-white" height-hint="98">
         <q-toolbar class="row justify-between">
-          <div class="col-3" style='height: 58px;'>
+          <div class="col-2" style='height: 58px;'>
             <img
               src="./assets/icon.png"
               height="42"
@@ -20,7 +20,7 @@
             />
           </div>
 
-            <div class="col-6">
+            <div class="col-8">
             <q-tabs style='padding-top: 8px;'>
                 <q-route-tab
                 :disable="$1t.lock.locked"
@@ -61,7 +61,7 @@
           </div>
 
           <!-- Settings -->
-          <div class="col-3 row justify-end items-center">
+          <div class="col-2 row justify-end items-center">
             <q-btn
               flat
               round
@@ -94,7 +94,7 @@
       <q-footer reveal class="bg-darker text-white" v-if="footer">
         <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
             <div class='row q-mx-md'>
-                <div class='col-3 row'>
+                <div class='row q-mr-md' style='width: 264px;'>
 
                     <div class='column q-mt-sm q-pt-xs' style='width: 200px;'>
                         <div class='text-caption text-weight-bold full-width'>
@@ -130,7 +130,7 @@
                     
                 </div>
 
-                <div class='col-7'>
+                <div class='col'>
                     <Waveform ></Waveform>
                 </div>
                 

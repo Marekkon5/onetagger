@@ -86,7 +86,9 @@ impl Traxsource {
             let mut key = None;
             let mut bpm: Option<i64> = None;
             if key_bpm_values.len() == 2 {
-                key = Some(key_bpm_values[0].to_owned());
+                key = Some(key_bpm_values[0].to_owned()
+                    .replace("maj", "")
+                    .replace("min", "m"));
                 bpm = key_bpm_values[1].to_owned().parse().ok();
             }
             
