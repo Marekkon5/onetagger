@@ -169,7 +169,7 @@
     <!-- Update dialog -->
     <q-dialog v-model="updateDialog">
       <q-card v-if="update">
-        <q-card-section>
+        <q-card-section class='text-center'>
           <div class="text-h5">New update available!</div>
         </q-card-section>
         <q-card-section>
@@ -268,6 +268,8 @@ export default {
         this.update = data;
         this.$q.notify({
           message: `New update available (${data.version})!`,
+          timeout: 10000,
+          progress: true,
           actions: [
             {
               label: "Show",

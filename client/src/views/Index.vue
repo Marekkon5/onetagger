@@ -60,7 +60,7 @@
         <div class='q-pt-md text-subtitle1 text-grey-4'>
             Need help? Check out our <span class='text-primary'>Getting started sections</span>.<br>
             Found a bug or have a request? Post it on <span class='text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>GitHub</span>.<br>
-            Like the app? Contribute by donating through <span class='text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'>Patreon</span>.
+            Like the app? Contribute by donating through <span class='text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'>PayPal</span> or <span class='text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'>Patreon</span>.
         </div>
     </div>
 
