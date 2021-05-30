@@ -2,11 +2,12 @@
 <div>
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
-        <!-- Tracklist -->
-        <q-intersection v-for='(track, i) in $1t.quickTag.tracks' :key='i' style='height: 136px;'>
-            <QuickTagTile @click.native='trackClick(i)' :track='$1t.quickTag.track' v-if='$1t.quickTag.track && track.path == $1t.quickTag.track.path'></QuickTagTile>
-            <QuickTagTile @click.native='trackClick(i)' :track='track' v-if='!$1t.quickTag.track || track.path != $1t.quickTag.track.path'></QuickTagTile>
-        </q-intersection>
+        <div v-for='(item, i) in $1t.quickTag.tracks' :key='i'>
+            <q-intersection style='height: 136px;' @click.native='trackClick(i)'>
+                <QuickTagTile :track='$1t.quickTag.track' v-if='$1t.quickTag.track && item.path == $1t.quickTag.track.path'></QuickTagTile>
+                <QuickTagTile :track='item' v-if='!$1t.quickTag.track || item.path != $1t.quickTag.track.path'></QuickTagTile>
+            </q-intersection>
+        </div>
     </div>
 
     <!-- No path selected -->

@@ -1,3 +1,6 @@
+//MacOS Polyfill
+require('intersection-observer');
+
 import Vue from 'vue';
 import App from './App.vue';
 import router from './js/router';

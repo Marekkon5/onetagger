@@ -14,12 +14,12 @@ class QTTrack {
     }
 
     getNote() {
-        return this.tags[this.settings.noteTag.tag[this.getTagField()]];
+        return this.tags[this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()])];
     }
 
     setNote(note) {
         //Set
-        let tag = this.settings.noteTag.tag[this.getTagField()];
+        let tag = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
         this.tags[tag] = note.split(',');
         //Create change
         let index = this._changes.findIndex((c) => c.type == 'raw' && c.tag == tag);
@@ -57,10 +57,20 @@ class QTTrack {
         }
     }
 
+    removeAbstractions(input) {
+        if (this.format != 'mp4' || !input) return input;
+        //Leading
+        input = input.replace('----:', '');
+        //iTunes:VALUE -> com.apple.Itunes:VALUE
+        if (input.startsWith('iTunes:')) input = 'com.apple.' + input;
+        return input;
+    }
+
     //Get mood tag value
     getMood() {
-        if (this.tags[this.settings.moodTag[this.getTagField()]]??[].length >= 1) {
-            return this.tags[this.settings.moodTag[this.getTagField()]][0]
+        let field = this.removeAbstractions(this.settings.moodTag[this.getTagField()]);
+        if (this.tags[field]??[].length >= 1) {
+            return this.tags[field][0]
         }
         return null;
     }
@@ -71,7 +81,7 @@ class QTTrack {
             return this.rating??0;
         }
         //Use custom symbols as energy
-        let t = this.tags[this.settings.energyTag.tag[this.getTagField()]];
+        let t = this.tags[this.removeAbstractions(this.settings.energyTag.tag[this.getTagField()])];
         if (t) {
             //Use first element of array
             if (typeof t == 'object') {
@@ -85,7 +95,7 @@ class QTTrack {
 
     //If has custom tag value
     hasCustom(custom, index) {
-        let field = custom.tag[this.getTagField()];
+        let field = this.removeAbstractions(custom.tag[this.getTagField()]);
         let tag = this.tags[field];
         if (!tag) return false;
         return tag.find((t) => custom.values[index].val.toLowerCase() == t.toLowerCase());
@@ -93,7 +103,7 @@ class QTTrack {
 
     //Toggle custom value
     toggleCustom(custom, index) {
-        let field = custom.tag[this.getTagField()];
+        let field = this.removeAbstractions(custom.tag[this.getTagField()]);
         //Add tag
         if (!this.tags[field]) Vue.set(this.tags, field, []);
         let value = custom.values[index].val;
@@ -119,7 +129,7 @@ class QTTrack {
     getAllCustom(custom) {
         let out = [];
         for(let i=0; i<custom.length; i++) {
-            let field = custom[i].tag[this.getTagField()];
+            let field = this.removeAbstractions(custom[i].tag[this.getTagField()]);
             let values = this.tags[field]??[];
             //Don't add duplicate tags
             out = out.concat(values.filter((v) => !out.includes(v)));

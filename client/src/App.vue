@@ -100,7 +100,7 @@
                         <div class='text-caption text-weight-bold full-width'>
                             <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.title}}</div>
                         </div>
-                        <div class='text-caption'>
+                        <div class='text-caption full-width'>
                             <div v-if='$1t.quickTag.track' class='text-no-wrap overflow-hidden' style='text-overflow: ellipsis;'>{{$1t.quickTag.track.artists.join(', ')}}</div>
                         </div>
                     </div>
@@ -135,7 +135,7 @@
                 </div>
                 
                 <!-- Volume -->
-                <div class="volume-container col-2 q-pt-sm">
+                <div class="volume-container q-pt-sm" style='width: 140px;'>
                     <q-slider
                     v-model="$1t.player.volume"
                     :min="0.0"
