@@ -284,9 +284,14 @@
                 </div>
 
                 <!-- Save -->
-                <div class='q-my-md justify-center row'>
-                    <q-btn color='primary' class='text-black' @click='save'>Save</q-btn>
-                </div>
+                <q-page-sticky position='bottom-right' :offset='[18, 18]'>
+                    <q-btn 
+                        fab 
+                        icon='mdi-floppy' 
+                        color='primary'
+                        @click='save'
+                    ></q-btn>
+                </q-page-sticky>
 
             </div>
         </div>

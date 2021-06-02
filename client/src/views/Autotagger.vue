@@ -38,7 +38,7 @@
             :error='!$1t.config.path && step > 1'
             class='text-center step'>
 
-            <AutotaggerTags></AutotaggerTags>
+            <AutotaggerTags class='q-px-xl q-mx-xl'></AutotaggerTags>
             <q-stepper-navigation>
                 <q-btn v-if='$1t.config.path' @click="step+=1" color="primary" label="Next" class='q-mt-sm text-black'/>
             </q-stepper-navigation>
@@ -68,34 +68,37 @@
 
             <div class='text-h5 q-my-md text-grey-4'>Advanced</div>
             <AutotaggerAdvanced></AutotaggerAdvanced>
-            <q-btn 
-                v-if='canStart' 
-                size='md'
-                color='primary'
-                class='q-my-md text-black'
-                @click='startTagging'
-            >Start</q-btn>
         </q-step>
 
     </q-stepper>
 
     <!-- Single page -->
     <div v-if='$1t.settings.autoTaggerSinglePage' class='text-center'>
-        <!-- Platforms -->
-        <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
-        <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
-        <AutotaggerPlatforms dense></AutotaggerPlatforms>
-        <AutotaggerTags></AutotaggerTags>
-        <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
-        <AutotaggerAdvanced></AutotaggerAdvanced>
-        <q-btn 
-            v-if='canStart' 
-            size='md'
-            color='primary'
-            class='q-my-md text-black'
-            @click='startTagging'
-        >Start</q-btn>
+        <div class='row'>
+            <div class='col-6'>
+                <AutotaggerTags></AutotaggerTags>
+                <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
+            </div>
+            <div class='col-6'>
+                <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
+                <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
+                <AutotaggerPlatforms dense></AutotaggerPlatforms>
+                <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
+            </div>
+        </div>
+        
     </div>
+
+    <!-- Start FAB -->
+    <q-page-sticky position='bottom-right' :offset='[18, 18]'>
+        <q-btn 
+            fab 
+            icon='mdi-play' 
+            color='primary'
+            :disable='!canStart'
+            @click='startTagging'
+        ></q-btn>
+    </q-page-sticky>
 
 </div>
 </template>
@@ -139,4 +142,23 @@ export default {
 .q-stepper__step-inner {
     background: #1a1c1b;
 }
+
+.input {
+    max-width: 50vw;
+    margin: auto;
+    margin-top: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+.select {
+    max-width: 50vw;
+    margin: auto;
+    margin-top: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+.slider {
+    max-width: 40vw;
+}
+
 </style>

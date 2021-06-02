@@ -371,7 +371,6 @@ class OneTagger {
     saveSettings(notif = true) {
         //Very dirty way to clone a dict, but eh
         this.settings.autoTaggerConfig = JSON.parse(JSON.stringify(this.config));
-        this.settings.autoTaggerConfig.path = null;
         this.settings.volume = this.player.volume;
         //Save
         this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings))});

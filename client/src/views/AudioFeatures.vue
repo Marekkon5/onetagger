@@ -101,10 +101,20 @@
             ></q-input>
         </div>
 
+
         <!-- Start -->
-        <br>
-        <q-btn color='primary' class='text-black q-my-md' size='md' @click='start' v-if='config.path'>START</q-btn>
+        <q-page-sticky position='bottom-right' :offset='[18, 18]'>
+            <q-btn 
+                fab 
+                icon='mdi-play' 
+                color='primary'
+                :disable='!config.path'
+                @click='start'
+            ></q-btn>
+        </q-page-sticky>
     </div>
+
+
 
 </div>
 </template>

@@ -27,7 +27,9 @@
                     How many pages of search results to scan for tracks.
                 </q-tooltip>
             </q-chip>
-            <q-slider label-text-color='black' v-model='$1t.config.beatport.maxPages' :min='1' :max='10' label class='slider'></q-slider>
+            <div class='row justify-center'>
+                <q-slider label-text-color='black' v-model='$1t.config.beatport.maxPages' :min='1' :max='10' label class='slider'></q-slider>
+            </div>  
         </div>
     </div>
 
@@ -67,7 +69,9 @@
                     How many albums (search results) to check, due to rate limiting this increases tagging time by a lot.
                 </q-tooltip>
             </q-chip>
-            <q-slider label-text-color='black' v-model='$1t.config.discogs.maxResults' :min='1' :max='16' label class='slider'></q-slider>
+            <div class='row justify-center'>
+                <q-slider label-text-color='black' v-model='$1t.config.discogs.maxResults' :min='1' :max='16' label class='slider'></q-slider>
+            </div>
         </div>
     </div>  
 
@@ -104,21 +108,3 @@ export default {
     },
 }
 </script>
-
-<style>
-.select {
-    width: 50%;
-    margin-left: 25%;
-    margin-top: 8px;
-}
-.input {
-    width: 50%;
-    margin-left: 25%;
-    margin-top: 8px;
-}
-.slider {
-    max-width: 50%;
-    margin-left: 25%;
-}
-
-</style>

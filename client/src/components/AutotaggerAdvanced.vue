@@ -24,7 +24,7 @@
     <q-toggle v-model='$1t.config.camelot' label='Use Camelot key notation'></q-toggle>
     <br>
     <!-- Strictness -->
-    <div class='row'>
+    <div class='row justify-center'>
         <q-slider 
             v-model='$1t.config.strictness' 
             :min='0.0' 
@@ -44,7 +44,7 @@
         </q-icon>
     </div>
     <!-- Threads -->
-    <div class='row'>
+    <div class='row justify-center'>
         <q-slider 
             v-model='$1t.config.threads' 
             :min='1' 
@@ -54,26 +54,26 @@
             label-always
             class='slider q-mt-lg'
             label-text-color='black'
-            :label-value='"Threads: " + $1t.config.threads'
+            :label-value='"Search Threads: " + $1t.config.threads'
         ></q-slider>
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm slider-tooltip'>
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='slider-tooltip q-mx-sm'>
             <q-tooltip content-style="font-size: 13px">The higher, the faster, but uses more bandwidth, and not supported by all platforms.</q-tooltip>
         </q-icon>
     </div>
     <!-- Separators -->
     <div class='q-mt-md text-body1 text-grey-4'>Separators</div>
-    <div class='row q-mx-xl q-my-md justify-center'>
+    <div class='row q-py-md justify-center' style='max-width: 50vw; margin: auto;'>
         <q-input
             v-model='$1t.config.id3Separator'
             filled
             label='ID3 Separator (MP3 + AIFF)'
-            class='col-4 q-px-sm'
+            class='col-6 q-px-sm'
         ></q-input>
         <q-input
             v-model='$1t.config.flacSeparator'
             filled
             label='FLAC Separator (Leave empty for default)'
-            class='col-4 q-px-sm'
+            class='col-6 q-px-sm'
         ></q-input>
     </div>
 </div>

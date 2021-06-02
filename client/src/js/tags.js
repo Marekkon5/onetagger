@@ -69,8 +69,7 @@ const MP4 = [
     "©lyr (Lyrics)",
     "©ope (Original Artist)",
     "©wrk (Work)",
-    "©day (Year/Date)", 
-    "CATALOGNUMBER"
+    "©day (Year/Date)"
 ];
 
 const VORBIS = [
