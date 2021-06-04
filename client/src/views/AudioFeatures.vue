@@ -13,7 +13,7 @@
         <div class='row q-mt-xl auth-container justify-evenly'>
             <q-input v-model='clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
             <q-input v-model='clientSecret' type='password' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
-            <q-btn color='primary' class='text-black' @click='authorize'>Login</q-btn>
+            <q-btn push color='primary' @click='authorize'>Login</q-btn>
         </div>
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
@@ -78,7 +78,7 @@
                             :max='100' 
                             v-model='config.properties[key].range'
                             class='t-range'
-                            color='grey-8'
+                            color='grey-8'                            
                         ></q-range>
                     </div>
                 </div>
@@ -102,16 +102,21 @@
         </div>
 
 
-        <!-- Start -->
-        <q-page-sticky position='bottom-right' :offset='[18, 18]'>
+       <!-- Start -->
+        <q-page-sticky position='bottom-right' :offset='[36, 18]'>
             <q-btn 
-                fab 
+                fab push
                 icon='mdi-play' 
                 color='primary'
                 :disable='!config.path'
-                @click='start'
-            ></q-btn>
+                @click='start'                
+            >
+            <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                <span class='text-weight-bold'>START</span>
+            </q-tooltip>
+            </q-btn>
         </q-page-sticky>
+       
     </div>
 
 
@@ -222,6 +227,7 @@ export default {
     max-width: 1400px;
 }
 .t-range .q-slider__track-container {
-    background: var(--q-color-primary) !important;
+    background: var(--q-color-primary) !important;    
 }
+
 </style>

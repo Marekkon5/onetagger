@@ -52,14 +52,14 @@ export default {
                     name: 'Juno Download',
                     value: 'junodownload',
                     enabled: false,
-                    description: 'Overall a mixed bag with additionally a lot of niche genres<br><b class="text-subtitle3 text-grey-4">Slower because of rate limits</b>',
+                    description: 'Overall a mixed bag with a lot of niche genres<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~20 tracks / min)</b>',
                     image: require('../assets/junodownload.png')
                 },
                 {
                     name: 'Discogs',
                     value: 'discogs',
                     enabled: false,
-                    description: 'Most variety in genres <br><b class="text-subtitle3 text-grey-4">Due rate limits, process is slow (~20 tracks / min) & requires a free account</b>',
+                    description: 'Most variety in genres / styles<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~25 tracks / min) & requires a free account</b>',
                     image: require('../assets/discogs.png')
                 },
             ]

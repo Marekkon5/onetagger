@@ -7,7 +7,7 @@ use serde;
 use crate::tagger::MatchingUtils;
 use crate::tagger::spotify::Spotify;
 use crate::tagger::{Tagger, AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
-use crate::tag::{Tag, AudioFileFormat};
+use crate::tag::{Tag, AudioFileFormat, UITag};
 
 // CONFIG SERIALIZATION
 
@@ -16,7 +16,7 @@ use crate::tag::{Tag, AudioFileFormat};
 #[serde(rename_all = "camelCase")]
 pub struct AudioFeaturesConfig {
     pub path: String,
-    pub main_tag: AFTag,
+    pub main_tag: UITag,
     pub id3_separator: String,
     pub vorbis_separator: Option<String>,
     pub properties: AFProperties
@@ -91,29 +91,9 @@ impl AFPropertyMerged {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AFProperty {
-    pub tag: AFTag,
+    pub tag: UITag,
     pub range: AFRange,
     pub enabled: bool
-}
-
-//Tag info from UI
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AFTag {
-    pub id3: String,
-    pub vorbis: String,
-    pub mp4: String
-}
-
-impl AFTag {
-    //Get tag by AudioFileFormat
-    pub fn by_format(&self, format: &AudioFileFormat) -> String {
-        match format {
-            AudioFileFormat::FLAC => self.vorbis.to_owned(),
-            AudioFileFormat::MP4 => self.mp4.to_owned(),
-            _ => self.id3.to_owned()
-        }
-    }
 }
 
 //Threshold range in config

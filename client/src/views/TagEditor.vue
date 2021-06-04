@@ -284,12 +284,11 @@
                 </div>
 
                 <!-- Save -->
-                <q-page-sticky position='bottom-right' :offset='[18, 18]'>
-                    <q-btn 
-                        fab 
-                        icon='mdi-floppy' 
-                        color='primary'
+                <q-page-sticky position='bottom-right' :offset='[36, 18]'>
+                    <q-btn
                         @click='save'
+                        color="primary"
+                        label="Save"
                     ></q-btn>
                 </q-page-sticky>
 

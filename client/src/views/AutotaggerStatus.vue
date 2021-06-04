@@ -9,7 +9,11 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-check' round color='green'></q-btn>
+                            <q-btn icon='mdi-check' round color='green'>
+                                <q-tooltip>
+                                    <div class='text-subtitle3'>Total amount found</div>
+                                </q-tooltip>
+                            </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>Matched</div>
@@ -23,7 +27,11 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-alert-circle' round color='red'></q-btn>
+                            <q-btn icon='mdi-alert-circle' round color='red'>
+                                <q-tooltip>
+                                    <div class='text-subtitle3'>Total amount not found</div>
+                                </q-tooltip>
+                            </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>Failed</div>
@@ -37,7 +45,11 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-debug-step-over' round color='yellow' class='text-black'></q-btn>
+                            <q-btn icon='mdi-debug-step-over' round color='yellow' class='text-black'>
+                                <q-tooltip>
+                                    <div class='text-subtitle3'>Total amount skipped due missing tags or corruption</div>
+                                </q-tooltip>
+                            </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>Skipped</div>
@@ -51,7 +63,11 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-music-box-multiple-outline' round color='grey-6' class='text-black'></q-btn>
+                            <q-btn icon='mdi-music-box-multiple-outline' round color='grey-6' class='text-black'>
+                                <q-tooltip>
+                                    <div class='text-subtitle3'>Total amount of files to process</div>
+                                </q-tooltip>
+                            </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>Total</div>
@@ -65,7 +81,11 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-timelapse' round color='primary' class='text-black'></q-btn>
+                            <q-btn icon='mdi-timelapse' round color='primary' class='text-black'>
+                                <q-tooltip>
+                                    <div class='text-subtitle3'>Total amount of elapsed time</div>
+                                </q-tooltip>
+                            </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>Time</div>

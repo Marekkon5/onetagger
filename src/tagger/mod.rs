@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
-use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
+use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, EXTENSIONS};
 
 pub mod beatport;
 pub mod traxsource;
@@ -83,9 +83,11 @@ pub struct BeatportConfig {
 pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
-    pub styles: DiscogsStyles
+    pub styles: DiscogsStyles,
+    //Option to prevent update errors
+    pub styles_custom_tag: Option<UITag>
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum DiscogsStyles {
     Default,
@@ -94,7 +96,8 @@ pub enum DiscogsStyles {
     MergeToGenres,
     MergeToStyles,
     StylesToGenre,
-    GenresToStyle
+    GenresToStyle,
+    CustomTag
 }
 
 
@@ -152,6 +155,7 @@ impl Track {
     pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
         //Get tag
         let mut tag_wrap = Tag::load_file(&info.path)?;
+        let format = tag_wrap.format.to_owned();
         //Configure ID3 and FLAC
         if let Some(t) = tag_wrap.id3.as_mut() {
             t.set_id3_separator(&config.id3_separator);
@@ -210,16 +214,22 @@ impl Track {
             }
         }
         if config.style && !self.styles.is_empty() {
-            if config.merge_genres {
+            if config.discogs.styles == DiscogsStyles::CustomTag && config.discogs.styles_custom_tag.is_some() {
+                //Custom style tag
+                let ui_tag = config.discogs.styles_custom_tag.as_ref().unwrap();
+                tag.set_raw(&ui_tag.by_format(&format), self.styles.clone(), config.overwrite);
+
+            } else if config.merge_genres {
                 //Merge with existing ones
                 let mut current: Vec<String> = tag.get_field(Field::Style).unwrap_or(vec![]).iter().map(|s| s.to_lowercase()).collect();
                 let mut styles = self.styles.clone().into_iter().filter(|s| !current.iter().any(|i| i == &s.to_lowercase())).collect();
                 current.append(&mut styles);
                 tag.set_field(Field::Style, current, config.overwrite); 
+
             } else {
+                //Default write to style
                 tag.set_field(Field::Style, self.styles.clone(), config.overwrite);
             }
-            
         }
         //Release dates
         if config.release_date {

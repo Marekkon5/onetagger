@@ -221,15 +221,15 @@
                     label="Show Auto Tag as single page"
                     class='checkbox'
                 ></q-checkbox><br>
-                <div class='text-bold text-grey-6'>General</div>
+                <div class='text-bold text-grey-6'>Quick Tag</div>
                 <q-checkbox
                     v-model='$1t.settings.quickTag.autosave'
-                    label='Autosave track when clicked on different one'
+                    label='Autosave changes when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.continuePlayback'
-                    label='Continue playback on switching QT songs'
+                    label='Continue playback when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
                 <!-- Open settings folder -->

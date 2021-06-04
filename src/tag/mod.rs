@@ -115,6 +115,28 @@ pub enum AudioFileFormat {
     FLAC, AIFF, MP3, MP4
 }
 
+//Tag fields from UI
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+
+pub struct UITag {
+    pub id3: String,
+    pub vorbis: String,
+    pub mp4: String
+}
+
+impl UITag {
+    //Get raw value by format
+    pub fn by_format(&self, format: &AudioFileFormat) -> String {
+        match format.to_owned() {
+            AudioFileFormat::AIFF => self.id3.to_string(),
+            AudioFileFormat::MP3 => self.id3.to_string(),
+            AudioFileFormat::FLAC => self.vorbis.to_string(),
+            AudioFileFormat::MP4 => self.mp4.to_string()
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Picture {
     pub kind: CoverType,

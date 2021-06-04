@@ -10,7 +10,7 @@
 
     <!-- Beatport settings -->
     <div v-if='beatport' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md text-grey-4'>Beatport</div>
+        <div class='text-h5 text-grey-4'>Beatport</div>
         <!-- Album art resolution -->
         <q-select 
             dark 
@@ -62,6 +62,10 @@
             label='Genres/Styles tag'
             @input='updateDiscogsStyle'
         ></q-select>
+        <!-- Styles custom tag -->
+        <div v-if='$1t.config.discogs.styles == "customTag"' class='q-my-sm q-mx-md'>
+            <TagFields v-model='$1t.config.discogs.stylesCustomTag'></TagFields>
+        </div>
         <!-- Max results -->
         <div class='q-my-sm'>
             <q-chip text-color='black' color='primary'>Max albums to check: {{$1t.config.discogs.maxResults}}
@@ -79,23 +83,35 @@
 </template>
 
 <script>
+import TagFields from './TagFields.vue';
+
 export default {
     name: 'AutotaggerPlatformSpecific',
+    components: {TagFields},
     data() {
         return {
             resolutions: [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600],
             discogsStyles: ["Default", "Only genres", "Only styles", "Merge to genres tag", 
-                "Merge to styles tag", "Write styles to genre tag", "Write genres to style tag"],
+                "Merge to styles tag", "Write styles to genre tag", "Write genres to style tag",
+                "Write styles to custom tag"],
+            values: ["default", "onlyGenres", "onlyStyles", "mergeToGenres", "mergeToStyles",
+                "stylesToGenre", "genresToStyle", "customTag"],
             discogsStyle: "Default"
         }
     },
     methods: {
         //Update discogs style value
         updateDiscogsStyle() {
-            let values = ["default", "onlyGenres", "onlyStyles", "mergeToGenres", "mergeToStyles",
-                "stylesToGenre", "genresToStyle"];
-            this.$1t.config.discogs.styles = values[this.discogsStyles.indexOf(this.discogsStyle)];
+            this.$1t.config.discogs.styles = this.values[this.discogsStyles.indexOf(this.discogsStyle)];
         },
+    },
+    mounted() {
+        this.discogsStyle = this.discogsStyles[this.values.indexOf(this.$1t.config.discogs.styles)];
+
+        //In case of null because of update
+        if (!this.$1t.config.discogs.stylesCustomTag)
+            this.$1t.config.discogs.stylesCustomTag = {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'};
+
     },
     computed: {
         //If enabled

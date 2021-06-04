@@ -20,13 +20,9 @@
             :error='step > 0 && $1t.config.platforms.length == 0'
             class='text-center step'>
 
-            <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
+            <div class='text-h5 text-grey-4'>Select platforms</div>
             <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
-            <AutotaggerPlatforms></AutotaggerPlatforms>
-            
-            <q-stepper-navigation>
-                <q-btn @click="step+=1" color="primary" label="Next" class='text-black'/>
-            </q-stepper-navigation>
+            <AutotaggerPlatforms class='q-mb-xl'></AutotaggerPlatforms>
         </q-step>
 
         <!-- Tags -->
@@ -38,10 +34,7 @@
             :error='!$1t.config.path && step > 1'
             class='text-center step'>
 
-            <AutotaggerTags class='q-px-xl q-mx-xl'></AutotaggerTags>
-            <q-stepper-navigation>
-                <q-btn v-if='$1t.config.path' @click="step+=1" color="primary" label="Next" class='q-mt-sm text-black'/>
-            </q-stepper-navigation>
+            <AutotaggerTags class='q-px-xl q-mx-xl q-mb-xl'></AutotaggerTags>
         </q-step>
 
         <!-- Platform Specific -->
@@ -52,10 +45,7 @@
             icon='mdi-tune'
             class='text-center step'>
 
-            <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
-            <q-stepper-navigation>
-                <q-btn @click="step+=1" color="primary" label="Next" class='text-black'/>
-            </q-stepper-navigation>
+            <AutotaggerPlatformSpecific class='q-mb-xl'></AutotaggerPlatformSpecific>
         </q-step>
 
         <!-- Advanced -->
@@ -66,11 +56,20 @@
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-h5 q-my-md text-grey-4'>Advanced</div>
-            <AutotaggerAdvanced></AutotaggerAdvanced>
+            <div class='text-h5 q-my-s text-grey-4'>Advanced</div>
+            <AutotaggerAdvanced class='q-mb-xl'></AutotaggerAdvanced>
         </q-step>
 
     </q-stepper>
+
+    <!-- Stepper bar -->
+    <div class='at-stepper-bar row justify-center content-center' v-if='!$1t.settings.autoTaggerSinglePage'>
+        <div>
+            <q-btn color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
+                Next
+            </q-btn>
+        </div>
+    </div>
 
     <!-- Single page -->
     <div v-if='$1t.settings.autoTaggerSinglePage' class='text-center'>
@@ -90,14 +89,20 @@
     </div>
 
     <!-- Start FAB -->
-    <q-page-sticky position='bottom-right' :offset='[18, 18]'>
+    <q-page-sticky position='bottom-right' :offset='[36, 24]'>
         <q-btn 
             fab 
+            push
             icon='mdi-play' 
             color='primary'
             :disable='!canStart'
+            class='text-black'
             @click='startTagging'
-        ></q-btn>
+        >
+            <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                <span class='text-weight-bold'>START</span>
+            </q-tooltip>
+        </q-btn>
     </q-page-sticky>
 
 </div>
@@ -161,4 +166,11 @@ export default {
     max-width: 40vw;
 }
 
+.at-stepper-bar {
+    width: 100%;
+    position: absolute;
+    height: 64px;
+    bottom: 0%;
+    background-color: var(--q-color-accent);
+}
 </style>

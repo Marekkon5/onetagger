@@ -161,7 +161,8 @@ class OneTagger {
             "discogs": {
                 "token": null,
                 "maxResults": 4,
-                "styles": "default"
+                "styles": "default",
+                "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'}
             }
         });
         //Statuses
@@ -391,7 +392,11 @@ class OneTagger {
         Object.assign(this.settings, data);
         
         //Restore specific
+
+        //AT config (nested)
+        Object.assign(this.config.discogs, this.settings.autoTaggerConfig??{}.discogs??{});
         Object.assign(this.config, this.settings.autoTaggerConfig??{});
+        
         this.player.volume = this.settings.volume??0.5;
         this.setVolume(this.player.volume);
         colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');

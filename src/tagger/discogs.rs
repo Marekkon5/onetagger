@@ -274,10 +274,6 @@ impl ReleaseMaster {
         let styles_o = self.styles.clone().unwrap_or(vec![]);
         let genres_o = self.genres.clone();
         match styles_option {
-            DiscogsStyles::Default => {
-                genres = genres_o;
-                styles = styles_o;
-            },
             DiscogsStyles::OnlyGenres => genres = genres_o,
             DiscogsStyles::OnlyStyles => styles = styles_o,
             DiscogsStyles::MergeToGenres => {
@@ -290,7 +286,11 @@ impl ReleaseMaster {
             },
             DiscogsStyles::GenresToStyle => styles = genres_o,
             DiscogsStyles::StylesToGenre => genres = styles_o,
-            
+            //Default and custom
+            _ => {
+                genres = genres_o;
+                styles = styles_o;
+            }
         }
         //Generate track
         Track {
