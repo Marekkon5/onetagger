@@ -104,7 +104,7 @@
                     <q-item-section>
                         <q-item-label overline>
                             <span>
-                                <span v-if='$1t.taggerStatus.type != "af"' class='selectable'>{{platformText(item.platform)}}</span>
+                                <span v-if='$1t.taggerStatus.type != "audioFeatures"' class='selectable'>{{platformText(item.platform)}}</span>
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'></q-icon>
                             </span>
                         </q-item-label>

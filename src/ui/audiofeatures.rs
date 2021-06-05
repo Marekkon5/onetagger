@@ -6,7 +6,7 @@ use serde;
 
 use crate::tagger::MatchingUtils;
 use crate::tagger::spotify::Spotify;
-use crate::tagger::{Tagger, AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
+use crate::tagger::{AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
 use crate::tag::{Tag, AudioFileFormat, UITag};
 
 // CONFIG SERIALIZATION
@@ -119,9 +119,7 @@ impl AFRange {
 pub struct AudioFeatures {}
 impl AudioFeatures {
     //Returtns progress receiver, and file count
-    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify) -> (Receiver<TaggingStatusWrap>, usize) {
-        //Load files
-        let files = Tagger::get_file_list(&config.path);
+    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> (Receiver<TaggingStatusWrap>, usize) {
         let file_count = files.len();
         //Start
         let (tx, rx) = channel();

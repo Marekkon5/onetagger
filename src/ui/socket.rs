@@ -7,17 +7,33 @@ use tungstenite::{Message, WebSocket};
 use serde_json::{Value, json};
 use directories::UserDirs;
 use dunce::canonicalize;
+use serde::{Serialize, Deserialize};
 
 use crate::tag::TagChanges;
 use crate::tagger::{TaggerConfig, Tagger};
 use crate::tagger::spotify::Spotify;
-use crate::ui::{Settings, OTError};
+use crate::ui::{Settings};
 use crate::ui::player::{AudioSources, AudioPlayer};
 use crate::ui::quicktag::{QuickTag, QuickTagFile};
 use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use crate::ui::tageditor::TagEditor;
+use crate::playlist::UIPlaylist;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+//Wrap of tagger config, so playlists can be passed too
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TaggerConfigWrap {
+    config: TaggerConfigs,
+    playlist: Option<UIPlaylist>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type")]
+enum TaggerConfigs {
+    AutoTagger(TaggerConfig), 
+    AudioFeatures(AudioFeaturesConfig)
+}
 
 //Shared variables in socket
 struct SocketContext {
@@ -133,25 +149,35 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         },
         //Start tagger
         "startTagging" => {
-            //Parse config
-            let config: TaggerConfig = serde_json::from_value(json["config"].clone())?;
-            //Validate path
-            if !(Path::new(&config.path).exists()) {
-                return Err(OTError::new("Invalid path!").into());
-            }
+            //Exctract hidden properties manually
+            let tagger_type = json["config"]["type"].clone();
+            let path = json["config"]["path"].as_str().ok_or("Invalid path!")?.to_string();
+            let wrap: TaggerConfigWrap = serde_json::from_value(json)?;
+            //Get files
+            let files = if let Some(playlist) = wrap.playlist {
+                playlist.get_files()?
+            } else {
+                Tagger::get_file_list(&path)
+            };
+
+            //Get tagger
+            let (rx, files) = match wrap.config {
+                TaggerConfigs::AutoTagger(config) => Tagger::tag_files(&config, files),
+                TaggerConfigs::AudioFeatures(config) => {
+                    let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
+                    AudioFeatures::start_tagging(config.clone(), spotify, files)
+                }
+            };
+
             //Start
-            let (rx, files) = Tagger::tag_dir(&config);
             websocket.write_message(Message::from(json!({
                 "action": "startTagging",
-                "files": files
+                "files": files,
+                "type": tagger_type
             }).to_string())).ok();
 
             let start = timestamp!();
             for status in rx {
-                //Update path for display
-                let mut s = status.to_owned();
-                s.status.path = s.status.path.to_owned().chars().skip(config.path.len()).collect();
-                //Send
                 websocket.write_message(Message::from(json!({
                     "action": "taggingProgress",
                     "status": status
@@ -260,37 +286,6 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             websocket.write_message(Message::from(json!({
                 "action": "spotifyAuthorized",
                 "value": context.spotify.is_some()
-            }).to_string())).ok();
-        },
-        //Start audio features tagging
-        "audioFeaturesStart" => {
-            let config: AudioFeaturesConfig = serde_json::from_value(json["config"].clone())?;
-            //Validate path
-            if !(Path::new(&config.path).exists()) {
-                return Err(OTError::new("Invalid path!").into());
-            }
-            //Start tagging
-            let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
-            let (rx, files) = AudioFeatures::start_tagging(config.clone(), spotify);
-            websocket.write_message(Message::from(json!({
-                "action": "startTagging",
-                "files": files,
-                "type": "af"
-            }).to_string())).ok();
-
-            for status in rx {
-                //Update path for display
-                let mut s = status.to_owned();
-                s.status.path = s.status.path.to_owned().chars().skip(config.path.len()).collect();
-                //Send
-                websocket.write_message(Message::from(json!({
-                    "action": "taggingProgress",
-                    "status": status
-                }).to_string())).ok();
-            }
-            //Done
-            websocket.write_message(Message::from(json!({
-                "action": "taggingDone"
             }).to_string())).ok();
         },
         //Tag editor

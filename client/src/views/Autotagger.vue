@@ -73,12 +73,12 @@
 
     <!-- Single page -->
     <div v-if='$1t.settings.autoTaggerSinglePage' class='text-center'>
-        <div class='row'>
-            <div class='col-6'>
+        <div class='row q-mx-xl'>
+            <div class='col q-px-xl'>
                 <AutotaggerTags></AutotaggerTags>
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
-            <div class='col-6'>
+            <div class='col q-px-xl'>
                 <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
                 <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
@@ -125,14 +125,26 @@ export default {
     methods: {
         startTagging() {
             this.$1t.saveSettings();
-            this.$1t.send('startTagging', {config: this.$1t.config});
+            this.$1t.config.type = 'autoTagger';
+
+            //Tag playlist rather than folder
+            let playlist = null;
+            if (this.$1t.autoTaggerPlaylist && this.$1t.autoTaggerPlaylist.data)
+                playlist = this.$1t.autoTaggerPlaylist;
+
+            this.$1t.send('startTagging', {
+                config: this.$1t.config,
+                playlist
+            });
             this.$router.push('/autotagger/status');
         }
     },
     computed: {
         //If tagging can be started
         canStart() {
-            return this.$1t.config.path && this.$1t.config.platforms.length > 0;
+            //Path or playlist & atleast 1 platform
+            return (this.$1t.config.path || (this.$1t.autoTaggerPlaylist && this.$1t.autoTaggerPlaylist.data)) && 
+                this.$1t.config.platforms.length > 0;
         }
     }
 };

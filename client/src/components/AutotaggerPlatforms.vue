@@ -90,7 +90,8 @@ export default {
 
 <style lang='scss'>
 .card {
-    width: 500px;
+    max-width: 500px;
+    min-width: 400px;
     user-select: none;
 }
 .cb svg {

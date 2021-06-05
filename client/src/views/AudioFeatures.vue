@@ -13,7 +13,7 @@
         <div class='row q-mt-xl auth-container justify-evenly'>
             <q-input v-model='clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
             <q-input v-model='clientSecret' type='password' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
-            <q-btn push color='primary' @click='authorize'>Login</q-btn>
+            <q-btn push color='primary' class='text-black' @click='authorize'>Login</q-btn>
         </div>
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
@@ -31,6 +31,16 @@
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
             </template>
         </q-input>
+
+        <!-- Drag and drop -->
+        <div class='row justify-center' style='width: 100%'>
+            <PlaylistDropZone 
+                :value='playlist' 
+                @input='Object.assign(playlist, $event)'
+                class='q-my-sm q-py-md' 
+                style='width: 50%'
+            ></PlaylistDropZone>
+        </div>
 
         <!-- Main tag -->
         <div class='text-h5 q-mt-xl text-grey-4'>Prominent tag</div>
@@ -126,15 +136,17 @@
 
 <script>
 import TagFields from '../components/TagFields';
+import PlaylistDropZone from '../components/PlaylistDropZone.vue';
 
 export default {
     name: 'AudioFeatures',
-    components: {TagFields},
+    components: {TagFields, PlaylistDropZone},
     data() {
         return {
             clientId: this.$1t.settings.audioFeatures.spotifyClientId,
             clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret,
             spotifyAuthorized: false,
+            playlist: {filename: null, data: null, format: null},
             config: {
                 path: null,
                 mainTag: {id3: 'AUDIO_FEATURES', vorbis: 'AUDIO_FEATURES', mp4: 'AUDIO_FEATURES'},
@@ -180,8 +192,14 @@ export default {
             //Save config
             this.$1t.settings.audioFeatures.config = this.config;
             this.$1t.saveSettings();
+
+            let playlist = null;
+            if (this.playlist && this.playlist.data)
+                playlist = this.playlist;
+
             //Start
-            this.$1t.send('audioFeaturesStart', {config: this.config});
+            this.config.type = 'audioFeatures';
+            this.$1t.send('startTagging', {config: this.config, playlist});
             this.$router.push('/audiofeatures/status');
         }
     },

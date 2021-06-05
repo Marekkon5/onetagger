@@ -531,9 +531,7 @@ pub struct Tagger {}
 impl Tagger {
 
     //Returtns progress receiver, and file count
-    pub fn tag_dir(cfg: &TaggerConfig) -> (Receiver<TaggingStatusWrap>, usize) {
-        //Load files
-        let mut files = Tagger::get_file_list(&cfg.path);
+    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>) -> (Receiver<TaggingStatusWrap>, usize) {
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 

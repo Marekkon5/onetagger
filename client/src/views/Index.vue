@@ -91,12 +91,9 @@ export default {
     max-width: 400px;    
 }
 .bg-image {
-    width: 100%;
-    max-height: 100%;
-    max-width: 100%;
-    position: fixed;
-    z-index: -100;
-    transform: scale(1.0);
+    max-width: 100%;    
+    position: fixed;    
+    z-index: -100;    
     animation: anim 30s infinite;
 }
 @keyframes anim {

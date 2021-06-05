@@ -346,6 +346,9 @@ class OneTagger {
 
         //So can be triggered globally
         this.helpDialog = Vue.observable({open: false, route: null});
+
+        //Because the config is global and playlist is passed in wrapper element
+        this.autoTaggerPlaylist = Vue.observable({filename: null, data: null, format: null});
     }
 
     //SHOULD BE OVERWRITTEN

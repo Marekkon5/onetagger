@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
     <!-- Path -->
-    <div class='text-h5 q-mt-s text-grey-4'>Select folder</div>
+    <div class='text-h5 q-mt-md text-grey-4'>Select folder</div>
     <div class='text-subtitle1 q-mt-xs q-pb-md text-grey-6'>Subfolders are included</div>
     <div class='path q-mt-md'>
         <q-input standout='text-grey-4 bg-dark' class='text-grey-4 input' label='Path' v-model='$1t.config.path'>
@@ -9,6 +9,14 @@
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
             </template>
         </q-input>
+    </div>
+    <div class='row justify-center' style='width: 100%'>
+        <PlaylistDropZone 
+            :value='$1t.autoTaggerPlaylist' 
+            @input='Object.assign($1t.autoTaggerPlaylist, $event)'
+            class='q-my-sm q-py-md' 
+            style='width: 50%'
+        ></PlaylistDropZone>
     </div>
 
     <!-- Tags -->
@@ -38,8 +46,11 @@
 </template>
 
 <script>
+import PlaylistDropZone from './PlaylistDropZone.vue';
+
 export default {
     name: 'AutotaggerTags',
+    components: {PlaylistDropZone},
     methods: {
         browse() {
             this.$1t.send('browse', {context: 'at', path: this.$1t.config.path});

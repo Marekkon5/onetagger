@@ -285,9 +285,10 @@
 
                 <!-- Save -->
                 <q-page-sticky position='bottom-right' :offset='[36, 18]'>
-                    <q-btn
+                    <q-btn push
                         @click='save'
                         color="primary"
+                        class='text-black'
                         label="Save"
                     ></q-btn>
                 </q-page-sticky>

@@ -23,6 +23,7 @@ macro_rules! timestamp {
 mod tagger;
 mod tag;
 mod ui;
+mod playlist;
 
 fn main() {
     //Logging setup
