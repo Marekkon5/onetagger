@@ -1,27 +1,23 @@
 <template>
 <div>
-
-    <q-card :class='{"bg-darker": drag}'>
+    <q-card class='inset-shadow-down' :class='{"bg-darker": drag}' >
         <q-card-section>
             <div 
-                style='width: 100%; height: 64px;'
+                style='width: 100%; height: 50px;'
                 @dragover.prevent='drag = true'
                 @dragleave.prevent='drag = false'
                 @drop.prevent='drop'
                 class='justify-center text-center row items-center'
             >
-                <span class='text-subtitle1' v-if='!filename'>Drag and drop your M3U file</span>
+            <span class='text-subtitle1 text-grey-4' v-if='!filename'><q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs text-grey-6'></q-icon>Drag and drop M3U Playlist file</span>
                 <div v-if='filename'>
-
-                    <q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs'></q-icon>
-                    <span class='text-subtitle1'>{{filename}}</span>
+                    <q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs' color='primary'></q-icon>
+                    <span class='text-subtitle1 text-grey-4'>{{filename}}</span>
                     <q-btn @click='remove' icon='mdi-close' color='red' flat round class='q-ml-sm q-mb-xs'></q-btn>
-
                 </div>
             </div>
         </q-card-section>
     </q-card>
-
 </div>
 </template>
 
@@ -64,6 +60,7 @@ export default {
         //Get type from mime
         getType(mime) {
             switch (mime.toLowerCase()) {
+                case 'audio/mpegurl':
                 case 'audio/x-mpegurl':
                     return 'm3u';
                 default: 

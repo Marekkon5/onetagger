@@ -525,9 +525,14 @@ class OneTagger {
     }
 
     //Quicktag
-    loadQuickTag() {
-        if (!this.settings.path) return;
-        this.send('quicktagLoad', {path: this.settings.path});
+    loadQuickTag(playlist = null) {
+        if (playlist) {
+            this.send('quicktagLoad', {playlist});
+            return;
+        }
+           
+        if (this.settings.path)
+            this.send('quicktagLoad', {path: this.settings.path});
     }
 
     //Handle keydown event for keyboard bindings

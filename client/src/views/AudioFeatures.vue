@@ -26,7 +26,7 @@
     <div v-if='spotifyAuthorized' class='af-content'>
         <!-- Path -->
         <div class='text-h5 q-mt-md q-mb-md text-grey-4'>Select folder</div>
-        <q-input filled class='path-field' label='Path' v-model='config.path'>
+        <q-input filled class='path-field inset-shadow-down' label='Path' v-model='config.path'>
             <template v-slot:append>
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
             </template>

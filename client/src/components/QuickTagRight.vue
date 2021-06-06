@@ -1,6 +1,6 @@
 <template>
 
-<div class='q-pb-md q-pl-md'>
+<div class='q-pa-md'>
     <!-- Note -->
     <div class='full-width row justify-center'>
         <q-btn class='q-mt-md text-bold' flat color='primary' v-if='$1t.quickTag.track' @click='$1t.onQTNoteTag'>

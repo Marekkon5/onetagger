@@ -1,22 +1,36 @@
 <template>
 <div class='text-center'>
     <!-- Path -->
-    <div class='text-h5 q-mt-md text-grey-4'>Select folder</div>
-    <div class='text-subtitle1 q-mt-xs q-pb-md text-grey-6'>Subfolders are included</div>
-    <div class='path q-mt-md'>
-        <q-input standout='text-grey-4 bg-dark' class='text-grey-4 input' label='Path' v-model='$1t.config.path'>
+    <div class='text-h5 text-grey-4 q-mb-md'>Select folder</div>
+    <div class='row input'>
+        <div class='col-1'></div>
+        <q-input filled class='col-10' label='Path' v-model='$1t.config.path'>
             <template v-slot:append>
                 <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
             </template>
         </q-input>
+
+        <div class='col-1'>
+            <q-icon name='mdi-help-circle-outline text-grey-6' class='path-tooltip q-mx-sm q-pt-md q-mt-xs'>
+                <q-tooltip content-style="font-size: 13px">Subfolders are included</q-tooltip>
+            </q-icon>
+        </div>
     </div>
-    <div class='row justify-center' style='width: 100%'>
+
+    <!-- Drag and drop -->
+    <div class='row justify-center input'>
+        <div class='col-1'></div>
         <PlaylistDropZone 
-            :value='$1t.autoTaggerPlaylist' 
+            :value='$1t.autoTaggerPlaylist'
             @input='Object.assign($1t.autoTaggerPlaylist, $event)'
-            class='q-my-sm q-py-md' 
-            style='width: 50%'
+            class='q-my-sm q-py-md col-10' 
         ></PlaylistDropZone>
+        
+        <div class='col-1'>
+            <q-icon name='mdi-help-circle-outline text-grey-6' class='playlist-tooltip q-mx-sm q-mt-xl q-pt-sm'>
+                <q-tooltip content-style="font-size: 13px">.m3u and .m3u8 extensions are supported</q-tooltip>
+            </q-icon>
+        </div>
     </div>
 
     <!-- Tags -->
@@ -89,4 +103,5 @@ export default {
 .tags {
     max-width: 40vw !important;
 }
+
 </style>

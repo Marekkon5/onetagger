@@ -4,7 +4,7 @@
     <!-- No settings available -->
     <div v-if='!beatport && !discogs'>
         <div class='text-h5 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
-            No platform specific settings available for the selected platforms!
+            No platform specific settings available for the selected platform(s)
         </div>
     </div>
 
@@ -24,7 +24,7 @@
         <div class='q-my-sm'>
             <q-chip text-color='black' color='primary'>Max pages: {{$1t.config.beatport.maxPages}}
                 <q-tooltip content-style="font-size: 13px">
-                    How many pages of search results to scan for tracks.
+                    How many pages of search results to scan for tracks
                 </q-tooltip>
             </q-chip>
             <div class='row justify-center'>
@@ -47,7 +47,7 @@
             <template v-slot:append>
                 <q-icon name='mdi-help-circle-outline text-grey-6' size='xs'>
                     <q-tooltip content-style='font-size: 13px'>
-                        To obtain token, create a free account on discogs.com. More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right.
+                        To obtain token, create a free account on discogs.com<br> More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
                     </q-tooltip>
                 </q-icon>
             </template>
@@ -70,7 +70,7 @@
         <div class='q-my-sm'>
             <q-chip text-color='black' color='primary'>Max albums to check: {{$1t.config.discogs.maxResults}}
                 <q-tooltip content-style="font-size: 13px">
-                    How many albums (search results) to check, due to rate limiting this increases tagging time by a lot.
+                    How many albums (search results) to check<br>Due to rate limiting this increases tagging time by a lot
                 </q-tooltip>
             </q-chip>
             <div class='row justify-center'>

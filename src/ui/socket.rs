@@ -28,6 +28,13 @@ struct TaggerConfigWrap {
     playlist: Option<UIPlaylist>
 }
 
+//loadQuickTag message
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct QuickTagLoad {
+    path: Option<String>,
+    playlist: Option<UIPlaylist>
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 enum TaggerConfigs {
@@ -245,10 +252,19 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         }
         //Quicktag
         "quicktagLoad" => {
-            let path = json["path"].as_str().ok_or("Missing path")?;
+            let msg: QuickTagLoad = serde_json::from_value(json)?;
+            let mut files = vec![];
+            //Playlist
+            if let Some(playlist) = msg.playlist {
+                files = QuickTag::load_files_playlist(&playlist)?;
+            }
+            //Path
+            if let Some(path) = msg.path {
+                files = QuickTag::load_files_path(&path)?;
+            }
             websocket.write_message(Message::from(json!({
                 "action": "quicktagLoad",
-                "data": QuickTag::load_files(path)?
+                "data": files
             }).to_string())).ok();
         },
         //Save quicktag

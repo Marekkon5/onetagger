@@ -28,10 +28,10 @@
         <!-- Tags -->
         <q-step
             :name='1'
-            title='Path & Tags'
-            :done='$1t.config.path != null && $1t.config.path.trim().length != 0 && step > 1'
+            title='Input & Tags'
+            :done='canStart && step > 1'
             icon='mdi-label-multiple'
-            :error='!$1t.config.path && step > 1'
+            :error='!canStart && step > 1'
             class='text-center step'>
 
             <AutotaggerTags class='q-px-xl q-mx-xl q-mb-xl'></AutotaggerTags>
@@ -65,7 +65,7 @@
     <!-- Stepper bar -->
     <div class='at-stepper-bar row justify-center content-center' v-if='!$1t.settings.autoTaggerSinglePage'>
         <div>
-            <q-btn color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
+            <q-btn push color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
                 Next
             </q-btn>
         </div>
@@ -75,7 +75,7 @@
     <div v-if='$1t.settings.autoTaggerSinglePage' class='text-center'>
         <div class='row q-mx-xl'>
             <div class='col q-px-xl'>
-                <AutotaggerTags></AutotaggerTags>
+                <AutotaggerTags class='q-mt-md'></AutotaggerTags>
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
@@ -96,7 +96,6 @@
             icon='mdi-play' 
             color='primary'
             :disable='!canStart'
-            class='text-black'
             @click='startTagging'
         >
             <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            

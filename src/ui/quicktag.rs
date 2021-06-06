@@ -6,14 +6,15 @@ use image::ImageOutputFormat;
 use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
 use crate::tag::{AudioFileFormat, Field, Tag, EXTENSIONS};
+use crate::playlist::UIPlaylist;
 
 pub struct QuickTag {}
 
 impl QuickTag {
 
-    //Load all supported files from folder
-    pub fn load_files(path: &str) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
-        let mut out = vec![];
+    //Load all files from folder
+    pub fn load_files_path(path: &str) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+        let mut files = vec![];
         for entry in read_dir(path)? {
             //Check if valid
             if entry.is_err() {
@@ -24,9 +25,22 @@ impl QuickTag {
             if entry.path().is_dir() {
                 continue;
             }
-            //Load tags
             let path = entry.path();
             let path = path.to_str().unwrap();
+            files.push(path.to_string());
+        }
+        QuickTag::load_files(files)
+    }
+
+    //Load all files from playlist
+    pub fn load_files_playlist(playlist: &UIPlaylist) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+        QuickTag::load_files(playlist.get_files()?)
+    }
+
+    //Check extension and load file
+    pub fn load_files(files: Vec<String>) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+        let mut out = vec![];
+        for path in files {
             if EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
                 match QuickTagFile::from_path(&path) {
                     Ok(t) => out.push(t),
@@ -34,9 +48,9 @@ impl QuickTag {
                 }
             }
         }
-
         Ok(out)
     }
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

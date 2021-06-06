@@ -3,13 +3,13 @@
 
     <q-toggle v-model='$1t.config.overwrite' label='Overwrite tags'>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Overwrite the existing tags in the song.</q-tooltip>
+            <q-tooltip content-style="font-size: 13px">Overwrite the existing tags in the song</q-tooltip>
         </q-icon>
     </q-toggle>
     <br>
     <q-toggle v-model='$1t.config.id3v24' label='ID3v2.4'>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files.</q-tooltip>
+            <q-tooltip content-style="font-size: 13px">Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files</q-tooltip>
         </q-icon>
     </q-toggle>
     <br>
@@ -17,7 +17,7 @@
     <br>
     <q-toggle v-model='$1t.config.mergeGenres' label='Merge/append genres and styles'>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Merge the new genres and styles with existing ones, rather than replacing.</q-tooltip>
+            <q-tooltip content-style="font-size: 13px">Merge the new genres and styles with existing ones, rather than replacing</q-tooltip>
         </q-icon>
     </q-toggle>
     <br>
@@ -39,7 +39,7 @@
         </q-slider>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm slider-tooltip'>
             <q-tooltip content-style="font-size: 13px">
-                The higher, the more accurate results, but less potential matches.
+                The higher, the more accurate results, but less potential matches
             </q-tooltip>
         </q-icon>
     </div>
@@ -57,7 +57,7 @@
             :label-value='"Search Threads: " + $1t.config.threads'
         ></q-slider>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='slider-tooltip q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">The higher, the faster, but uses more bandwidth, and not supported by all platforms.</q-tooltip>
+            <q-tooltip content-style="font-size: 13px">The higher, the faster, but uses more bandwidth, and not supported by all platforms</q-tooltip>
         </q-icon>
     </div>
     <!-- Separators -->

@@ -23,6 +23,11 @@
                         <q-btn round flat icon='mdi-open-in-app' @click='browseQuickTag'></q-btn>
                     </div>
                 </div>
+                <PlaylistDropZone 
+                    v-model='qtPlaylist' 
+                    @input='loadQTPlaylist' 
+                    class='q-mb-sm'
+                ></PlaylistDropZone>
 
                 <!-- Energy keybinds -->
                 <div class='q-mb-sm text-bold text-grey-6'>Energy keybinds</div>
@@ -263,13 +268,14 @@
 <script>
 import Keybind from './Keybind';
 import TagFields from './TagFields';
+import PlaylistDropZone from './PlaylistDropZone.vue';
 import Vue from 'vue';
 import draggable from 'vuedraggable';
 import { colors } from 'quasar';
 
 export default {
     name: 'Settings',
-    components: {Keybind, TagFields, draggable},
+    components: {Keybind, TagFields, PlaylistDropZone, draggable},
     data() {
         return {
             open: this.value,
@@ -281,6 +287,7 @@ export default {
             newGenre: null,
             newCustomQT: null,
             customQTEdit: [],
+            qtPlaylist: {}
         }
     },
     props: {
@@ -339,6 +346,15 @@ export default {
         },
         editCustomQT(i) {
             Vue.set(this.customQTEdit, i, !this.customQTEdit[i]);
+        },
+
+        //Load quicktag playlist
+        loadQTPlaylist(playlist) {
+            if (!playlist || !playlist.data) {
+                this.$1t.loadQuickTag();
+                return;
+            }
+            this.$1t.loadQuickTag(playlist)
         },
 
         //Save on close
