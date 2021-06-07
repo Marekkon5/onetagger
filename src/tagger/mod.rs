@@ -36,7 +36,7 @@ pub enum MusicPlatform {
 pub struct TaggerConfig {
     //Global
     pub platforms: Vec<MusicPlatform>,
-    pub path: String,
+    pub path: Option<String>,
 
     //Tags
     pub title: bool,

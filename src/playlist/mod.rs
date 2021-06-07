@@ -1,7 +1,12 @@
 use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
 use serde::{Serialize, Deserialize};
 
 use crate::tag::EXTENSIONS;
+use crate::ui::OTError;
+
+pub const PLAYLIST_EXTENSIONS: [&str; 2] = [".m3u", ".m3u8"];
 
 //Playlist info from UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,26 +40,24 @@ pub enum PlaylistFormat {
     M3U
 }
 
-/*
-    CURRENTLY UNUSED
-*/ 
-// pub fn get_files_from_playlist_file(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
-//     //Validate extension
-//     if !PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
-//         return Err(OTError::new("Unsupported playlist!").into());
-//     };
+
+pub fn get_files_from_playlist_file(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
+    //Validate extension
+    if !PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
+        return Err(OTError::new("Unsupported playlist!").into());
+    };
     
-//     //Load file
-//     let mut file = File::open(path)?;
-//     let mut buf = vec![];
-//     file.read_to_end(&mut buf)?;
+    //Load file
+    let mut file = File::open(path)?;
+    let mut buf = vec![];
+    file.read_to_end(&mut buf)?;
 
-//     //TODO: Check format if multiple
+    //TODO: Check format if multiple
 
-//     //M3U
-//     let data = String::from_utf8(buf)?;
-//     Ok(get_files_from_m3u(&data))
-// }
+    //M3U
+    let data = String::from_utf8(buf)?;
+    Ok(get_files_from_m3u(&data))
+}
 
 
 //Get file list from M3U playlist

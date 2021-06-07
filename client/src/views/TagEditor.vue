@@ -30,11 +30,12 @@
                     <div v-for='file in files' :key='file.filename'>
                         <div 
                             class='clickable te-file' 
-                            @click='file.dir ? loadFiles(file.filename) : loadFile(file.path)'
+                            @click='(file.dir || file.playlist) ? loadFiles(file.filename) : loadFile(file.path)'
                             :class='{"text-primary": isSelected(file.path), "text-grey-4": !isSelected(file.path)}'
                         >
-                            <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='!file.dir' name='mdi-music'></q-icon>
+                            <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='!file.dir && !file.playlist' name='mdi-music'></q-icon>
                             <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.dir' name='mdi-folder'></q-icon>
+                            <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.playlist' name='mdi-playlist-music'></q-icon>
                             <span class='q-ml-sm text-subtitle2'>{{file.filename}}</span>
                         </div>
                     </div>
@@ -59,8 +60,7 @@
                 </div>
             </div>
             
-
-            <draggable group='files' :move='onFileMove' :list='customList' @change='onFileDrag'  style='height: calc(100% - 32px)'>
+            <draggable group='files' :move='onFileMove' :list='customList' @change='onFileDrag' style='height: calc(100% - 32px)'>
                 <div v-for='(f, i) in customList' :key='"c"+i'>
                     <div class='row'>
                         <div 
@@ -360,7 +360,7 @@ export default {
         //Vue draggable file drag process
         onFileDrag(e) {
             if (e.added) {
-                if (e.added.element.dir) {
+                if (e.added.element.dir || e.added.element.playlist) {
                     this.$1t.send('tagEditorFolder', {path: this.path, subdir: e.added.element.filename, recursive: true});
                     //Don't copy
                     this.customList.splice(e.added.newIndex, 1);

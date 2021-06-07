@@ -118,7 +118,7 @@
                 fab push
                 icon='mdi-play' 
                 color='primary'
-                :disable='!config.path'
+                :disable='!config.path && !playlist'
                 @click='start'                
             >
             <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            

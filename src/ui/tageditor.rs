@@ -9,11 +9,21 @@ use image::{GenericImageView, io::Reader as ImageReader};
 
 use crate::tag::{AudioFileFormat, CoverType, Picture, Tag, EXTENSIONS};
 use crate::tag::id3::{ID3Comment, ID3Popularimeter};
+use crate::playlist::{PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
 
 pub struct TagEditor {}
 
 impl TagEditor {
     pub fn list_dir(path: &str) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
+        //Load playlist tracks
+        if !Path::new(path).is_dir() {
+            let files = get_files_from_playlist_file(path)?;
+            return Ok(files.iter().filter_map(|e| 
+                TagEditor::validate_path(Path::new(e).to_owned())
+            ).collect());
+        }
+        
+        //Load files from directory
         let mut out = vec![];
         for e in read_dir(path)? {
             if let Ok(e) = e {
@@ -27,6 +37,11 @@ impl TagEditor {
 
     //Get only supported files from all subdirectories
     pub fn list_dir_recursive(path: &str) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
+        //Check if playlist
+        if !Path::new(path).is_dir() {
+            return TagEditor::list_dir(path);
+        }
+
         let mut out = vec![];
         for e in WalkDir::new(path) {
             if let Ok(e) = e {
@@ -43,22 +58,31 @@ impl TagEditor {
     //Check if path is supported
     fn validate_path(path: PathBuf) -> Option<FolderEntry> {
         let dir = path.is_dir();
+        let mut playlist = false;
+        let filename = path.file_name()?.to_str()?.to_owned();
         //Filter extensions
         if !dir {
-            if path.extension().is_none() {
-                return None;
-            }
-            let extension = path.extension().unwrap().to_str()?.to_lowercase();
-            if !EXTENSIONS.iter().any(|e| e[1..] == extension) {
-                return None;
+            //Playlist
+            if PLAYLIST_EXTENSIONS.iter().any(|e| filename.to_lowercase().ends_with(e)) {
+                playlist = true;
+            } else {
+                //Music files
+                if path.extension().is_none() {
+                    return None;
+                }
+                let extension = path.extension().unwrap().to_str()?.to_lowercase();
+                if !EXTENSIONS.iter().any(|e| e[1..] == extension) {
+                    return None;
+                }
             }
         }
-        let filename = path.file_name()?.to_str()?.to_owned();
+        
         if filename.starts_with('.') {
             return None;
         }
         Some(FolderEntry {
             dir,
+            playlist,
             path: path.to_str()?.to_string(),
             filename
         })
@@ -111,7 +135,8 @@ impl TagEditor {
 pub struct FolderEntry {
     pub path: String,
     pub filename: String,
-    pub dir: bool
+    pub dir: bool,
+    pub playlist: bool
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

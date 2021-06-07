@@ -12,7 +12,7 @@ use serde::{Serialize, Deserialize};
 use crate::tag::TagChanges;
 use crate::tagger::{TaggerConfig, Tagger};
 use crate::tagger::spotify::Spotify;
-use crate::ui::{Settings};
+use crate::ui::{OTError, Settings};
 use crate::ui::player::{AudioSources, AudioPlayer};
 use crate::ui::quicktag::{QuickTag, QuickTagFile};
 use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
@@ -158,12 +158,15 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         "startTagging" => {
             //Exctract hidden properties manually
             let tagger_type = json["config"]["type"].clone();
-            let path = json["config"]["path"].as_str().ok_or("Invalid path!")?.to_string();
+            let path = json["config"]["path"].as_str().unwrap_or("").to_string();
             let wrap: TaggerConfigWrap = serde_json::from_value(json)?;
             //Get files
             let files = if let Some(playlist) = wrap.playlist {
                 playlist.get_files()?
             } else {
+                if path.is_empty() {
+                    return Err(OTError::new("Invalid path!").into());
+                }
                 Tagger::get_file_list(&path)
             };
 
@@ -313,7 +316,17 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             );
             //Get parent
             let subdir = json["subdir"].as_str().unwrap_or("");
-            let path = canonicalize(Path::new(path_raw).join(subdir))?;
+            let path = Path::new(path_raw);
+            //Override for playlists
+            let path = if !path.is_dir() {
+                if subdir == ".." {
+                    path.parent().ok_or("Invalid playlist parent!")?.to_owned()
+                } else {
+                    path.to_owned()
+                }
+            } else {
+                canonicalize(Path::new(path_raw).join(subdir))?
+            };
             //Load
             let path = path.to_str().unwrap();
             let files = match recursive {
@@ -327,6 +340,31 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 //Stateless
                 "recursive": recursive
             }).to_string())).ok();
+        },
+        //Load playlist from data
+        "tagEditorPlaylist" => {
+            let playlist: UIPlaylist = serde_json::from_value(json)?;
+            let files = playlist.get_files()?;
+            //Keep only existing files, and clean path
+            let files: Vec<String> = files.iter().filter_map(|f| {
+                let path = Path::new(f);
+                match path.exists() {
+                    true => match canonicalize(path) {
+                        Ok(p) => Some(p.to_str().unwrap().to_string()),
+                        Err(_) => None
+                    }
+                    false => None
+                }
+            }).collect();
+
+            websocket.write_message(Message::from(json!({
+                "action": "tagEditorFolder",
+                "files": files,
+                "path": "",
+                //To add to custom list
+                "recursive": true
+            }).to_string())).ok();
+
         },
         "tagEditorLoad" => {
             let path = Path::new(json["path"].as_str().ok_or("Missing path!")?);
