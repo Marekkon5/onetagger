@@ -1,12 +1,13 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::fs::read_dir;
+use std::path::Path;
 use std::io::Cursor;
 use image::ImageOutputFormat;
 use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
 use crate::tag::{AudioFileFormat, Field, Tag, EXTENSIONS};
-use crate::playlist::UIPlaylist;
+use crate::playlist::{UIPlaylist, get_files_from_playlist_file};
 
 pub struct QuickTag {}
 
@@ -14,6 +15,11 @@ impl QuickTag {
 
     //Load all files from folder
     pub fn load_files_path(path: &str) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+        //Check if path to playlist
+        if !Path::new(path).is_dir() {
+            return QuickTag::load_files(get_files_from_playlist_file(path)?);
+        }
+        
         let mut files = vec![];
         for entry in read_dir(path)? {
             //Check if valid

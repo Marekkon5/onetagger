@@ -1,15 +1,16 @@
 <template>
-<div>
-    <q-card class='inset-shadow-down' :class='{"bg-darker": drag}' >
+<div
+    @dragover.prevent='drag = true'
+    @dragleave.prevent='drag = false'
+    @drop.prevent='drop'
+>
+    <q-card class='inset-shadow-down' :class='{"bg-darker": drag}' v-if='!tiny'>
         <q-card-section>
             <div 
                 style='width: 100%; height: 50px;'
-                @dragover.prevent='drag = true'
-                @dragleave.prevent='drag = false'
-                @drop.prevent='drop'
                 class='justify-center text-center row items-center'
             >
-            <span class='text-subtitle1 text-grey-4' v-if='!filename'><q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs text-grey-6'></q-icon>Drag and drop M3U Playlist file</span>
+                <span class='text-subtitle1 text-grey-4' v-if='!filename'><q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs text-grey-6'></q-icon>Drag and drop M3U Playlist file</span>
                 <div v-if='filename'>
                     <q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs' color='primary'></q-icon>
                     <span class='text-subtitle1 text-grey-4'>{{filename}}</span>
@@ -18,6 +19,21 @@
             </div>
         </q-card-section>
     </q-card>
+
+    <!-- Tiny mode -->
+    <div>
+        <q-btn
+            round
+            flat
+            icon='mdi-playlist-music'
+            :color='(drag || filename) ? "primary" : null'
+            @click='filename ? remove() : true'
+        >
+            <q-tooltip content-style="font-size: 13px">
+                Drag and drop playlist here, click to remove it
+            </q-tooltip>
+        </q-btn>
+    </div>
 </div>
 </template>
 
@@ -25,7 +41,11 @@
 export default { 
     name: 'PlaylistDropZone',
     props: {
-        value: Object
+        value: Object,
+        tiny: {
+            default: false,
+            type: Boolean
+        }
     },
     data() {
         return { 

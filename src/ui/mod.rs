@@ -90,7 +90,7 @@ pub fn start_webview() {
         .user_data(())
         .title("One Tagger")
         .size(1280, 750)
-        .min_size(1024, 550)
+        .min_size(1150, 550)
         .resizable(true)
         .debug(true)
         .build()

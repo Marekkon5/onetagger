@@ -391,13 +391,14 @@ impl MatchingUtils {
         for c in special.chars() {
             out = out.replace(c, "");
         }
+        out = out.replace("  ", " ");
         out.trim().to_string()
     }
 
     //Clean list of artists
     pub fn clean_artists(input: &Vec<String>) -> Vec<String> {
         let mut clean: Vec<String> = input.into_iter().map(
-            |a| MatchingUtils::remove_special(&a.to_lowercase())
+            |a| MatchingUtils::remove_special(&a.to_lowercase()).trim().to_string()
         ).collect();
         clean.sort();
         clean
@@ -414,6 +415,7 @@ impl MatchingUtils {
 
     //Match atleast 1 artist
     pub fn match_artist(a: &Vec<String>, b: &Vec<String>, strictness: f64) -> bool {
+        //Exact match atleast 1 artist
         let clean_a = MatchingUtils::clean_artists(a);
         let clean_b = MatchingUtils::clean_artists(b);
         for artist in &clean_a {
@@ -421,8 +423,23 @@ impl MatchingUtils {
                 return true;
             }
         }
+
+        //String exact match (for separator problems)
+        let clean_a_joined = clean_a.join(" ");
+        for artist in &clean_b {
+            if clean_a_joined.contains(artist) {
+                return true;
+            }
+        }
+        let clean_b_joined = clean_b.join(" ");
+        for artist in &clean_a {
+            if clean_b_joined.contains(artist) {
+                return true;
+            }
+        }
+
         //Fuzzy
-        let acc = normalized_levenshtein(&clean_a.join(", "), &clean_b.join(", "));
+        let acc = normalized_levenshtein(&clean_a.join(" "), &clean_b.join(", "));
         if acc >= strictness {
             return true;
         }
