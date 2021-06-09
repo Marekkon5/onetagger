@@ -330,7 +330,7 @@
                         </div>                        
                         </div>
                         </div>
-                        <div class='row' style='width: 93%; margin-left:7%'>
+                        <div class='row' style='width: 93%; margin-left:7%; margin-top: -1px;'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Step-by-step guide</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>  
                             <span class='text-number text-bold text-grey-6'>1. </span>On top right click the <q-icon name='mdi-cog' class='q-mb-xs q-pr-xs'></q-icon>icon. <br>

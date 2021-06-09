@@ -10,6 +10,7 @@ categories = ["multimedia::audio"]
 build = "src/build.rs"
 
 [dependencies]
+msgbox = "0.6"
 backtrace = "0.3"
 urlencoding = "1.3"
 alac = "0.5"

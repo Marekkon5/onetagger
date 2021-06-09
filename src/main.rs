@@ -25,6 +25,9 @@ mod tag;
 mod ui;
 mod playlist;
 
+//Testing and benchmarking
+mod test;
+
 fn main() {
     //Logging setup
     let drain1 = slog_term::FullFormat::new(slog_term::TermDecorator::new().build()).build();
@@ -66,6 +69,20 @@ fn main() {
         ui::socket::start_socket_server();
         return;
     }
+    //Benchmarking
+    if env::args().any(|a| a == "--benchmark") {
+        #[cfg(target_os = "windows")]
+        msgbox::create(
+            "One Tagger", 
+            "After you press OK benchmark mode will start. Messagebox will appear when it's done.", 
+            msgbox::IconType::Info
+        ).unwrap();
+        test::run_benchmark();
+        #[cfg(target_os = "windows")]
+        msgbox::create("One Tagger", "Benchmarking finished! Results are in logs.", msgbox::IconType::Info).unwrap();
+        return;
+    }
+
     //UI
     ui::start_all();
 }

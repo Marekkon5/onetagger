@@ -21,7 +21,7 @@
     </q-card>
 
     <!-- Tiny mode -->
-    <div>
+    <div v-if='tiny'>
         <q-btn
             round
             flat

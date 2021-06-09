@@ -2,6 +2,7 @@ use std::error::Error;
 use std::thread;
 use std::path::Path;
 use std::fs::File;
+use std::default::Default;
 use std::io::prelude::*;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver};
@@ -31,7 +32,7 @@ pub enum MusicPlatform {
     Spotify
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
     //Global
@@ -70,7 +71,7 @@ pub struct TaggerConfig {
 }
 
 //Beatport specific settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct BeatportConfig {
     pub art_resolution: i64,
@@ -78,7 +79,7 @@ pub struct BeatportConfig {
 }
 
 //Discogs specific settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscogsConfig {
     pub token: Option<String>,
@@ -100,6 +101,11 @@ pub enum DiscogsStyles {
     CustomTag
 }
 
+impl Default for DiscogsStyles {
+    fn default() -> Self {
+        Self::Default
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Track {
@@ -740,4 +746,3 @@ impl Tagger {
         rx
     }
 }
-
