@@ -139,7 +139,8 @@ impl JunoDownload {
                 release_year: None,
                 release_date: Some(release_date),
                 art: Some(album_art.to_string()),
-                url: Some(format!("https://www.junodownload.com{}", url))
+                url: Some(format!("https://www.junodownload.com{}", url)),
+                catalog_number: None
             });
         }
 

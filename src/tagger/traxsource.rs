@@ -117,6 +117,7 @@ impl Traxsource {
                 release_year: None,
                 publish_date: None,
                 publish_year: None,
+                catalog_number: None
             })
         }
 

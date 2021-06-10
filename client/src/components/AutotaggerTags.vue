@@ -54,6 +54,8 @@
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Other (URLs)' v-model='$1t.config.otherTags'></q-checkbox>
             <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.albumArt'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.catalogNumber'></q-checkbox>
         </div>
     </div>
 </div>

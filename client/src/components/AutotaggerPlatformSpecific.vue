@@ -64,7 +64,7 @@
         ></q-select>
         <!-- Styles custom tag -->
         <div v-if='$1t.config.discogs.styles == "customTag"' class='q-my-sm q-mx-md'>
-            <TagFields v-model='$1t.config.discogs.stylesCustomTag'></TagFields>
+            <TagFields v-model='$1t.config.discogs.stylesCustomTag' class='input'></TagFields>
         </div>
         <!-- Max results -->
         <div class='q-my-sm'>

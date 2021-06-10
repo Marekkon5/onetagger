@@ -165,7 +165,27 @@ impl TrackMatcherST for Discogs {
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &config.discogs.styles));
             }
-            if let Some((acc, track)) = MatchingUtils::match_track_no_artist(&info, &tracks, &config) {
+            if let Some((acc, mut track)) = MatchingUtils::match_track_no_artist(&info, &tracks, &config) {
+                //Get catalog number if enabled from release rather than master
+                if config.catalog_number && track.catalog_number.is_none() && (release.labels.is_none() && release.main_release.is_some()) {
+                    info!("Discogs fetching release for catalog number...");
+                    match self.full_release(ReleaseType::Release, release.main_release.unwrap()) {
+                        //Get CN from release
+                        Ok(r) => {
+                            if let Some(labels) = r.labels {
+                                if let Some(label) = labels.first() {
+                                    if let Some(cn) = label.catno.as_ref() {
+                                        if cn != "none" {
+                                            track.catalog_number = Some(cn.to_owned());
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        Err(e) => warn!("Failed fetching release info for catalog number! {}", e)
+                    }
+                }
+                
                 return Ok(Some((acc, track)));
             }
         }
@@ -221,7 +241,8 @@ pub struct DiscogsTrack {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Label {
     pub id: i64,
-    pub name: String
+    pub name: String,
+    pub catno: Option<String>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -251,7 +272,8 @@ pub struct ReleaseMaster {
     pub images: Option<Vec<Image>>,
     #[serde(rename = "tracklist")]
     pub tracks: Vec<DiscogsTrack>,
-    pub released: Option<String>
+    pub released: Option<String>,
+    pub main_release: Option<i64>
 }
 
 impl ReleaseMaster {
@@ -292,6 +314,19 @@ impl ReleaseMaster {
                 styles = styles_o;
             }
         }
+
+        //Get catalog number
+        let mut catalog_number = None;
+        if let Some(labels) = &self.labels {
+            if let Some(label) = labels.first() {
+                if let Some(cn) = label.catno.as_ref() {
+                    if cn != "none" {
+                        catalog_number = Some(cn.to_string());
+                    }
+                }
+            }
+        }
+
         //Generate track
         Track {
             platform: MusicPlatform::Discogs,
@@ -322,7 +357,8 @@ impl ReleaseMaster {
             release_year: self.year,
             release_date,
             publish_date: None,
-            publish_year: None
+            publish_year: None,
+            catalog_number
         }
     }
 }

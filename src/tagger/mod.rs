@@ -52,6 +52,7 @@ pub struct TaggerConfig {
     pub publish_date: bool,
     pub album_art: bool,
     pub other_tags: bool,
+    pub catalog_number: bool,
 
     //Advanced
     pub id3_separator: String,
@@ -107,7 +108,7 @@ impl Default for DiscogsStyles {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Track {
     pub platform: MusicPlatform,
     pub title: String,
@@ -121,6 +122,7 @@ pub struct Track {
     pub art: Option<String>,
     pub url: Option<String>,
     pub label: Option<String>,
+    pub catalog_number: Option<String>,
     
     //Only year OR date should be available
     pub release_year: Option<i64>,
@@ -274,6 +276,10 @@ impl Track {
             if self.url.is_some() {
                 tag.set_raw("WWWAUDIOFILE", vec![self.url.as_ref().unwrap().to_string()], config.overwrite);
             }
+        }
+        //Catalog number
+        if config.catalog_number && self.catalog_number.is_some() {
+            tag.set_field(Field::CatalogNumber, vec![self.catalog_number.as_ref().unwrap().to_string()], config.overwrite);
         }
         //Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {

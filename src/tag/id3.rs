@@ -145,6 +145,7 @@ impl ID3Tag {
             Field::Label => "TPUB".to_string(),
             Field::Style => "STYLE".to_string(),
             Field::ISRC => "TSRC".to_string(),
+            Field::CatalogNumber => "CATALOGNUMBER".to_string()
         }
     }
 }

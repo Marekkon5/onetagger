@@ -90,7 +90,8 @@ impl FLACTag {
             Field::Genre => "GENRE".to_string(),
             Field::Label => "LABEL".to_string(),
             Field::Style => "STYLE".to_string(),
-            Field::ISRC => "ISRC".to_string()
+            Field::ISRC => "ISRC".to_string(),
+            Field::CatalogNumber => "CATALOGNUMBER".to_string()
         }
     }
 

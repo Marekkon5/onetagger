@@ -207,7 +207,8 @@ pub enum Field {
     Genre,
     Style,
     Label,
-    ISRC
+    ISRC,
+    CatalogNumber
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

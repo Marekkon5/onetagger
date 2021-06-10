@@ -154,6 +154,7 @@ class OneTagger {
             "mergeGenres": false,
             "albumArtFile": false,
             "camelot": false,
+            "catalogNumber": false,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1
