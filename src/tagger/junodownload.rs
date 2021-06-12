@@ -79,8 +79,10 @@ impl JunoDownload {
         //Info text
         selector = Selector::parse("div.col.text-right div.text-sm").unwrap();
         let mut info_text = elem.select(&selector).next()?.text().collect::<Vec<_>>();
-        //Date, genres, remove bardcode
+        //Date, genres, catalog number
+        let mut catalog_number = None;
         if info_text.len() == 3 {
+            catalog_number = Some(info_text[0].to_string());
             info_text = info_text[1..].to_vec();
         }
         let release_date = NaiveDate::parse_from_str(info_text[0], "%d %b %y").ok()?;
@@ -140,7 +142,7 @@ impl JunoDownload {
                 release_date: Some(release_date),
                 art: Some(album_art.to_string()),
                 url: Some(format!("https://www.junodownload.com{}", url)),
-                catalog_number: None
+                catalog_number: catalog_number.clone()
             });
         }
 

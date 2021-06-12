@@ -133,7 +133,7 @@ impl BeatportTrack {
                 .to_owned()
             ),
             catalog_number: None,
-            art: self.get_image().map(|i| i.get_url(art_resolution))
+            art: self.get_image().map(|i| i.get_url(art_resolution)).flatten()
         }
     }
 
@@ -173,23 +173,28 @@ pub struct BeatportRelease {
 }
 
 impl BeatportImage {
-    pub fn get_url(&self, resolution: i64) -> String {
+    pub fn get_url(&self, resolution: i64) -> Option<String> {
+        if self.url.contains("ab2d1d04-233d-4b08-8234-9782b34dcab8") {
+            return None;
+        }
+
         let r = resolution.to_string();
         let dynamic = &self.url;
         //Normal dynamic
         if dynamic.contains("{w}") || dynamic.contains("{x}") {
-            return dynamic.replace("{w}", &r)
+            return Some(dynamic
+                .replace("{w}", &r)
                 .replace("{h}", &r)
                 .replace("{x}", &r)
                 .replace("{y}", &r)
-                .to_owned();
+                .to_owned());
         }
         //Undocumented dynamic
         if dynamic.contains("/image_size/") {
             let re = Regex::new(r"/image_size/\d+x\d+/").unwrap();
-            return re.replace(&dynamic, |_: &Captures| format!("/image_size/{}x{}/", r, r)).to_string();
+            return Some(re.replace(&dynamic, |_: &Captures| format!("/image_size/{}x{}/", r, r)).to_string());
         }
-        dynamic.to_owned()
+        Some(dynamic.to_owned())
     }
 }
 

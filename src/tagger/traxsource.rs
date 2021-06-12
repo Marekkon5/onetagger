@@ -1,6 +1,5 @@
 use std::error::Error;
 use reqwest::blocking::Client;
-use reqwest::Method;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use crate::tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, TrackMatcher, MatchingUtils};
@@ -23,7 +22,7 @@ impl Traxsource {
 
     pub fn search_tracks(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
         //Fetch
-        let mut data = self.client.request(Method::GET, "https://www.traxsource.com/search/tracks")
+        let mut data = self.client.get("https://www.traxsource.com/search/tracks")
             .query(&[("term", query)])
             .send()?
             .text()?;
@@ -125,9 +124,9 @@ impl Traxsource {
     }
 
     //Tracks in search don't have album name and art
-    pub fn extend_track(&self, track: &mut Track) -> Result<(), Box<dyn Error>> {
+    pub fn extend_track(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
         //Fetch
-        let mut data = self.client.request(Method::GET, &format!("https://www.traxsource.com{}", track.url.as_ref().unwrap()))
+        let mut data = self.client.get(&format!("https://www.traxsource.com{}", track.url.as_ref().unwrap()))
             .send()?
             .text()?;
         
@@ -138,6 +137,7 @@ impl Traxsource {
         //Select album element
         let mut selector = Selector::parse("div.ttl-info.ellip a").unwrap();
         let album_element = document.select(&selector).next().unwrap();
+        let album_url = album_element.value().attr("href").unwrap();
         let album_text = album_element.text().collect::<Vec<_>>();
         track.album = Some(album_text.first().unwrap().to_owned().to_owned());
 
@@ -146,6 +146,28 @@ impl Traxsource {
         let img_element = document.select(&selector).next().unwrap();
         let art_url = img_element.value().attr("src").unwrap();
         track.art = Some(art_url.to_owned());
+
+        //Album metadata
+        if !album_meta { 
+            return Ok(());
+        }
+        let mut data = self.client.get(format!("https://www.traxsource.com{}", album_url))
+            .send()?
+            .text()?;
+        //Minify and parse
+        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
+        let document = Html::parse_document(&data);
+
+        //Select catalog number
+        selector = Selector::parse("div.cat-rdate").unwrap();
+        let rdate_element = document.select(&selector).next().unwrap();
+        let release_date = rdate_element.text().collect::<Vec<_>>().join(" ");
+        let rd_split = release_date.split(" | ").collect::<Vec<_>>();
+        let mut catalog_number = None;
+        if rd_split.len() >= 2 {
+            catalog_number = Some(rd_split[0].trim().to_string());
+        }
+        track.catalog_number = catalog_number;
 
         Ok(())
     }
@@ -159,8 +181,8 @@ impl TrackMatcher for Traxsource {
         //Match
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
             //Extend track if requested tags
-            if config.album_art || config.album {
-                match self.extend_track(&mut track) {
+            if config.album_art || config.album || config.catalog_number {
+                match self.extend_track(&mut track, config.catalog_number) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
                 }

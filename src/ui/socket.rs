@@ -12,7 +12,7 @@ use serde::{Serialize, Deserialize};
 use crate::tag::TagChanges;
 use crate::tagger::{TaggerConfig, Tagger};
 use crate::tagger::spotify::Spotify;
-use crate::ui::{OTError, Settings};
+use crate::ui::{OTError, Settings, StartContext};
 use crate::ui::player::{AudioSources, AudioPlayer};
 use crate::ui::quicktag::{QuickTag, QuickTagFile};
 use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
@@ -45,25 +45,28 @@ enum TaggerConfigs {
 //Shared variables in socket
 struct SocketContext {
     player: AudioPlayer,
-    spotify: Option<Spotify>
+    spotify: Option<Spotify>,
+    start_context: StartContext
 } 
 
 impl SocketContext {
-    pub fn new() -> SocketContext {
+    pub fn new(start_context: StartContext) -> SocketContext {
         SocketContext {
             player: AudioPlayer::new(),
-            spotify: None
+            spotify: None,
+            start_context
         }
     }
 }
 
 //Start WebSocket UI server
-pub fn start_socket_server() {
+pub fn start_socket_server(context: StartContext) {
     let server = TcpListener::bind("127.0.0.1:36912").unwrap();
     for stream in server.incoming() {
+        let context = context.clone();
         thread::spawn(move || {
             //Create shared
-            let mut context = SocketContext::new();
+            let mut context = SocketContext::new(context);
 
             //Websocket loop
             let mut websocket = accept(stream.unwrap()).unwrap();
@@ -108,7 +111,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         "init" => {
             websocket.write_message(Message::from(json!({
                 "action": "init",
-                "version": VERSION
+                "version": VERSION,
+                "startContext": context.start_context
             }).to_string())).ok();
         },
         //Save, load settings from UI

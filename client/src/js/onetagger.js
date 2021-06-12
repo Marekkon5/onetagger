@@ -17,9 +17,11 @@ class OneTagger {
         }
         //Load settings on load
         this.ws.onopen = () => {
-            this.send('init');
             this.send('loadSettings');
-            this.send('spotifyAuthorized');
+            setTimeout(() => {
+                this.send('init');
+                this.send('spotifyAuthorized');
+            }, 100);
         }
 
         this.info = Vue.observable({version: '0.0.0'});
@@ -34,6 +36,11 @@ class OneTagger {
                 //Initial info
                 case 'init':
                     this.info.version = json.version;
+                    //Path from args
+                    if (json.startContext.startPath) {
+                        this.settings.path = json.startContext.startPath;
+                        this.config.path = json.startContext.startPath;
+                    }
                     break;
                 //Settings loaded
                 case 'loadSettings':

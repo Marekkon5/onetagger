@@ -81,6 +81,14 @@ impl Settings {
     }
 }
 
+//Should have data from arguments and other flags (eg. port / host in future)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartContext {
+    pub server_mode: bool,
+    pub start_path: Option<String>
+}
+
 //Start webview window
 pub fn start_webview() {
     //Normal webview
@@ -99,9 +107,9 @@ pub fn start_webview() {
 }
 
 //Start WebSocket server
-pub fn start_socket_thread() {
-    thread::spawn(|| {
-        socket::start_socket_server();
+pub fn start_socket_thread(context: StartContext) {
+    thread::spawn(move || {
+        socket::start_socket_server(context);
     });
 }
 
@@ -141,7 +149,15 @@ pub fn start_webserver_thread() {
 }
 
 //Start everything
-pub fn start_all() {
+pub fn start_all(context: StartContext) {
+    //Server mode
+    if context.server_mode {
+        info!("Starting server mode! http://localhost:36913 ws://localhost:36912");
+        start_webserver_thread();
+        socket::start_socket_server(context);
+        return;
+    }
+
     //Windows CEF
     #[cfg(target_os = "windows")]
     {
@@ -155,7 +171,7 @@ pub fn start_all() {
             "--type=renderer".to_string()
         ];
         if !env::args().any(|a| cef_args.contains(&a.to_lowercase())) {
-            start_socket_thread();
+            start_socket_thread(context);
             start_webserver_thread();
             start_webview_cef();
             //CEF will spawn threads, keep servers running
@@ -164,13 +180,15 @@ pub fn start_all() {
             }
         }
         start_webview_cef();
-        return;
     }
 
     //Normal
-    start_socket_thread();
-    start_webserver_thread();
-    start_webview();
+    #[cfg(not(target_os = "windows"))]
+    {
+        start_socket_thread(context);
+        start_webserver_thread();
+        start_webview();
+    }
 }
 
 

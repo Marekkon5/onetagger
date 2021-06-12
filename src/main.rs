@@ -8,6 +8,7 @@ extern crate slog_term;
 
 use std::env;
 use std::panic;
+use std::path::Path;
 use std::fs::OpenOptions;
 use std::sync::Mutex;
 use backtrace::Backtrace;
@@ -62,27 +63,40 @@ fn main() {
         }
     }));
 
-    //Server mode
-    if env::args().any(|a| a == "--server") {
-        info!("Starting server mode! http://localhost:36913 ws://localhost:36912");
-        ui::start_webserver_thread();
-        ui::socket::start_socket_server();
-        return;
+    //Parse arguments
+    let args: Vec<String> = env::args().skip(1).collect();
+    let mut server_mode = false;
+    let mut start_path = None;
+    for arg in args {
+        match arg.as_str() {
+            "--server" => server_mode = true,
+            "-S" => server_mode = true,
+            //Benchmark mode
+            "--benchmark" => {
+                #[cfg(target_os = "windows")]
+                msgbox::create(
+                    "One Tagger", 
+                    "After you press OK benchmark mode will start. Messagebox will appear when it's done.", 
+                    msgbox::IconType::Info
+                ).unwrap();
+                test::run_benchmark();
+                #[cfg(target_os = "windows")]
+                msgbox::create("One Tagger", "Benchmarking finished! Results are in logs.", msgbox::IconType::Info).unwrap();
+                return;
+            },
+            _ => {
+                //Use argument as start path
+                if !arg.starts_with("-") {
+                    if Path::new(&arg).exists() {
+                        start_path = Some(arg.to_string());
+                    }
+                }
+            }
+        }
     }
-    //Benchmarking
-    if env::args().any(|a| a == "--benchmark") {
-        #[cfg(target_os = "windows")]
-        msgbox::create(
-            "One Tagger", 
-            "After you press OK benchmark mode will start. Messagebox will appear when it's done.", 
-            msgbox::IconType::Info
-        ).unwrap();
-        test::run_benchmark();
-        #[cfg(target_os = "windows")]
-        msgbox::create("One Tagger", "Benchmarking finished! Results are in logs.", msgbox::IconType::Info).unwrap();
-        return;
-    }
-
-    //UI
-    ui::start_all();
+    //Start
+    let context = ui::StartContext {
+        start_path, server_mode
+    };
+    ui::start_all(context);
 }

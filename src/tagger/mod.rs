@@ -7,6 +7,7 @@ use std::io::prelude::*;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver};
 use regex::Regex;
+use reqwest::StatusCode;
 use walkdir::WalkDir;
 use threadpool::ThreadPool;
 use strsim::normalized_levenshtein;
@@ -131,18 +132,27 @@ pub struct Track {
     pub publish_date: Option<NaiveDate>
 }
 
-const CAMELOT_NOTES: [(&str, &str); 24] = [
+const CAMELOT_NOTES: [(&str, &str); 35] = [
     ("Abm", "1A"),
+    ("G#m", "1A"),
     ("B",   "1B"),
+    ("D#m", "2A"),
     ("Ebm", "2A"),
+    ("Gb",  "2B"),
     ("F#",  "2B"),
+    ("A#m", "3A"),
     ("Bbm", "3A"),
+    ("C#",  "3B"),
+    ("Db",  "3B"),
     ("Dd",  "3B"),
     ("Fm",  "4A"),
+    ("G#",  "4B"),
     ("Ab",  "4B"),
     ("Cm",  "5A"),
+    ("D#",  "5B"),
     ("Eb",  "5B"),
     ("Gm",  "6A"),
+    ("A#",  "6B"),
     ("Bb",  "6B"),
     ("Dm",  "7A"),
     ("F",   "7B"),
@@ -152,8 +162,10 @@ const CAMELOT_NOTES: [(&str, &str); 24] = [
     ("G",   "9B"),
     ("Bm",  "10A"),
     ("D",   "10B"),
+    ("Gbm", "11A"),
     ("F#m", "11A"),
     ("A",   "11B"),
+    ("C#m", "12A"),
     ("Dbm", "12A"),
     ("E",   "12B"),
 ];
@@ -285,16 +297,21 @@ impl Track {
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
             match self.download_art(self.art.as_ref().unwrap()) {
                 Ok(data) => {
-                    tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
-                    //Save to file
-                    if config.album_art_file {
-                        let path = Path::new(&info.path).parent().unwrap().join("cover.jpg");
-                        if !path.exists() {
-                            if let Ok(mut file) = File::create(path) {
-                                file.write_all(&data).ok();
+                    match data {
+                        Some(data) => {
+                            tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
+                            //Save to file
+                            if config.album_art_file {
+                                let path = Path::new(&info.path).parent().unwrap().join("cover.jpg");
+                                if !path.exists() {
+                                    if let Ok(mut file) = File::create(path) {
+                                        file.write_all(&data).ok();
+                                    }
+                                }
                             }
-                        }
-                    }
+                        },
+                        None => warn!("Invalid album art!")
+                    } 
                 },
                 Err(e) => warn!("Error downloading album art! {}", e)
             }
@@ -305,9 +322,27 @@ impl Track {
         Ok(())
     }
 
-    //Download album art
-    fn download_art(&self, url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-        Ok(reqwest::blocking::get(url)?.bytes()?.to_vec())
+    //Download album art, None if invalid album art
+    fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+        let response = reqwest::blocking::get(url)?;
+        if response.status() != StatusCode::OK {
+            return Ok(None);
+        }
+        //Too small, most likely a text response
+        if let Some(cl) = response.content_length() {
+            if cl < 2048 {
+                return Ok(None);
+            }
+        }
+        //Content-type needs image
+        let headers = response.headers();
+        if let Some(ct) = headers.get("content-type") {
+            if !ct.to_str()?.contains("image") {
+                return Ok(None);
+            }
+        }
+        
+        Ok(Some(response.bytes()?.to_vec()))
     }
 }
 
