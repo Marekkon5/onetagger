@@ -173,9 +173,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 }
                 Tagger::get_file_list(&path)
             };
+            let file_count = files.len();
 
             //Get tagger
-            let (rx, files) = match wrap.config {
+            let rx = match wrap.config {
                 TaggerConfigs::AutoTagger(config) => Tagger::tag_files(&config, files),
                 TaggerConfigs::AudioFeatures(config) => {
                     let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
@@ -186,7 +187,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             //Start
             websocket.write_message(Message::from(json!({
                 "action": "startTagging",
-                "files": files,
+                "files": file_count,
                 "type": tagger_type
             }).to_string())).ok();
 

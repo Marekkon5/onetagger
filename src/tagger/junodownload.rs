@@ -41,7 +41,8 @@ impl JunoDownload {
 
         //Minify and parse
         let mut data = response.text()?;
-        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
+        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false})
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e)))?;
         let document = Html::parse_document(&data);
 
         let mut out = vec![];

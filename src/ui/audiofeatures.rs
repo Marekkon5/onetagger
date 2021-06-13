@@ -119,7 +119,7 @@ impl AFRange {
 pub struct AudioFeatures {}
 impl AudioFeatures {
     //Returtns progress receiver, and file count
-    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> (Receiver<TaggingStatusWrap>, usize) {
+    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> Receiver<TaggingStatusWrap> {
         let file_count = files.len();
         //Start
         let (tx, rx) = channel();
@@ -165,7 +165,7 @@ impl AudioFeatures {
                 )).ok();
             }
         });
-        (rx, file_count)
+        rx
     }
 
     //Get features from track

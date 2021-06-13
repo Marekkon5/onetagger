@@ -67,7 +67,7 @@ impl Traxsource {
             //Get URL
             selector = Selector::parse("a").unwrap();
             let title_link = title_elem.select(&selector).next().unwrap();
-            let url = title_link.value().attr("href").unwrap();
+            let url = format!("https://www.traxsource.com{}", title_link.value().attr("href").unwrap());
 
             //Artists
             selector = Selector::parse("div.artists a").unwrap();
@@ -106,7 +106,7 @@ impl Traxsource {
                 platform: MusicPlatform::Traxsource,
                 version, artists, bpm, key,
                 title: full_title,
-                url: Some(url.to_owned()),
+                url: Some(url),
                 label: Some(label.to_string()),
                 release_date: NaiveDate::parse_from_str(&release_date, "%Y-%m-%d").ok(),
                 genres: vec![genre.to_owned()],
@@ -126,7 +126,7 @@ impl Traxsource {
     //Tracks in search don't have album name and art
     pub fn extend_track(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
         //Fetch
-        let mut data = self.client.get(&format!("https://www.traxsource.com{}", track.url.as_ref().unwrap()))
+        let mut data = self.client.get(track.url.as_ref().unwrap())
             .send()?
             .text()?;
         
