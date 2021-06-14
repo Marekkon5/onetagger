@@ -7,7 +7,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
 
-use crate::tagger::{Track, MusicPlatform, TrackMatcherST, AudioFileInfo, TaggerConfig, MatchingUtils};
+use crate::tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils};
 
 pub struct JunoDownload {
     client: Client
@@ -91,7 +91,11 @@ impl JunoDownload {
         //Album art
         selector = Selector::parse("div.col img").unwrap();
         let image_elem = elem.select(&selector).next()?;
-        let album_art_small = image_elem.value().attr("src")?;
+        let mut album_art_small = image_elem.value().attr("src")?;
+        //Placeholder image
+        if album_art_small.starts_with("data:image/") {
+            album_art_small = image_elem.value().attr("data-src")?;
+        }
         //Full resolution img
         let album_art = format!("https://imagescdn.junodownload.com/full/{}-BIG.jpg", 
             album_art_small.split("/").last().unwrap().replace(".jpg", ""));
@@ -116,7 +120,7 @@ impl JunoDownload {
                 split[1].replace("\"", "")
             };
             //BPM
-            let bpm: Option<i64> = if text.len() == 2 {
+            let bpm: Option<i64> = if text.len() >= 2 && text[1].contains("BPM") {
                 Some(text[1].replace("\u{a0}BPM", "").parse::<i64>().ok()?)
             } else {
                 None
@@ -151,8 +155,8 @@ impl JunoDownload {
     }
 }
 
-impl TrackMatcherST for JunoDownload {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+impl TrackMatcher for JunoDownload {
+    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         //Search
         let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
         let tracks = self.search(&query)?;
