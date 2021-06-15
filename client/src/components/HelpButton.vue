@@ -52,8 +52,8 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
                             It reads the Artist & Title tag from your local MP3/MP4/AIFF/FLAC files, <br>feeds it into the search engine of the several platforms and writes the data to your tags.<br>
                                            
-                            <span @click='$1t.url("https://beatport.com")' class='clickable text-primary'>Beatport</span>, <span @click='$1t.url("https://junodownload.com")' class='clickable text-primary'>Juno Download</span> & <span @click='$1t.url("https://traxsource.com")' class='clickable text-primary'>Traxsource</span> are based on a method called scraping. <br>
-                            <span @click='$1t.url("https://discogs.com")' class='clickable text-primary'>Discogs</span> is based on its API. Therefor it needs you to sign up for a free account.
+                            <span @click='$1t.url("https://beatport.com")' class='dotted-underline clickable text-primary'>Beatport</span>, <span @click='$1t.url("https://junodownload.com")' class='dotted-underline clickable text-primary'>Juno Download</span> & <span @click='$1t.url("https://traxsource.com")' class='dotted-underline clickable text-primary'>Traxsource</span> are based on a method called scraping. <br>
+                            <span @click='$1t.url("https://discogs.com")' class='dotted-underline clickable text-primary'>Discogs</span> is based on its API. Therefor it needs you to sign up for a free account.
                         
                         </div>
                         </div>
@@ -72,7 +72,7 @@
                             <div class='col-3 q-mt-xs'>OTHER URL(s)</div>  <div class='col-3 q-mt-xs'>ALBUM ART</div>
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-py-sm q-my-md text-center'>
+                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-py-sm q-my-md text-center'>
                             * Key is only available from Beatport & Traxsource <br>
                             * Style is only available from Discogs <br>
                             * Publish Date is only available from Beatport
@@ -84,34 +84,34 @@
                         <div class='row' style='width: 90%; margin-left:10%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Step-by-step guide</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
-                            <span class='text-number text-bold text-grey-6'>1. </span>Use the checkbox to enable/disable to fetch from particular platform. <br>
-                            <span class='text-number text-bold text-grey-6'>2. </span>Drag & drop the cards to reorder fallback. <br>
-                            <span class='text-number text-bold text-grey-6'>3. </span>Select folder to process (subfolders included) by clicking on the icon or copy/paste the path directly. <br>
-                            <span class='text-number text-bold text-grey-6'>4. </span>Use the checkboxes to enable/disable to fetch the stated tag & hit ‘Next’. <br>
+                            <span class='text-number text-bold text-grey-6'>1.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Use the checkbox to enable/disable to fetch from particular platform</span> <br>
+                            <span class='text-number text-bold text-grey-6'>2. </span><span class='q-pl-sm'>Drag & drop the cards to reorder fallback</span><br>
+                            <span class='text-number text-bold text-grey-6'>3. </span><span class='q-pl-sm'>Select folder to process (subfolders included) by clicking on the icon or copy/paste the path directly</span> <br>
+                            <span class='text-number text-bold text-grey-6'>4. </span><span class='q-pl-sm'>Use the checkboxes to enable/disable to fetch the stated tag & hit ‘Next’</span> <br>
                         </div>
                         </div>
                         <div class='row' style='width: 90%; margin-left:10%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Beatport</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
-                            <span class='text-number text-bold text-grey-6'>5. </span>Select Album art resolution (500x500 is native resolution; above will upscale). <br>
-                            <span class='text-number text-bold text-grey-6'>6. </span>Drag slider to determine amount of search page results to scan for the most corresponding track. <br>
+                            <span class='text-number text-bold text-grey-6'>5. </span><span class='q-pl-sm'>Select Album art resolution (500x500 is native resolution; above will upscale)</span> <br>
+                            <span class='text-number text-bold text-grey-6'>6. </span><span class='q-pl-sm'>Drag slider to determine amount of search page results to scan for the most corresponding track</span> <br>
                         </div>
                         </div>
                         <div class='row' style='width: 90%; margin-left:10%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Discogs</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
-                            <span class='text-number text-bold text-grey-6'>7. </span>Enter token. To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable text-primary'>discogs.com</span> <br>
-                            Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='clickable text-primary'>discogs.com/settings/developers</span> and click ‘Generate token’. <br>
-                            Select it & copy/paste the current token - <span @click='$1t.url("https://youtu.be/IvAiMkfdLCw")' class='clickable text-primary'>see video demo</span>.<br>
-                            <span class='text-number text-bold text-grey-6'>8. </span>Select Genres/Styles tag to either fetch genre, style or both and if it should merge them, or write elsewhere. <br>
-                            <span class='text-number text-bold text-grey-6'>9. </span>Drag slider to determine amount of album search results to check. Hit ‘Next’. <br>
+                            <span class='text-number text-bold text-grey-6'>7. </span><span class='q-pl-sm'>Enter token. To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='dotted-underline clickable text-primary'>discogs.com</span></span> <br>
+                            <span class='text-number text-bold text-grey-10'>_</span><span class='q-pl-md'>Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='dotted-underline clickable text-primary'>discogs.com/settings/developers</span> and click ‘Generate token’</span> <br>
+                            <span class='text-number text-bold text-grey-10'>_</span><span class='q-pl-md'>Select it & copy/paste the current token - <span @click='$1t.url("https://youtu.be/IvAiMkfdLCw")' class='dotted-underline clickable text-primary'>see video demo</span></span><br>
+                            <span class='text-number text-bold text-grey-6'>8. </span><span class='q-pl-sm'>Select Genres/Styles tag to either fetch genre, style or both and if it should merge them, or write elsewhere</span> <br>
+                            <span class='text-number text-bold text-grey-6'>9. </span><span class='q-pl-sm'>Drag slider to determine amount of album search results to check. Hit ‘Next’</span><br>
                         </div>
                         </div>
                         <div class='row' style='width: 90%; margin-left:10%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Advanced</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
-                            <span class='text-number text-bold text-grey-6'>10. </span>Set the settings to your likings. Hover over the <q-icon name='mdi-help-circle-outline' class='q-pb-xs'></q-icon> icons for more info. <br>
-                            Hit ‘Start’ to process.<br><br>
+                            <span class='text-number text-bold text-grey-6'>10.</span><span class='q-pl-sm'>Set the settings to your likings. Hover over the <q-icon name='mdi-help-circle-outline' class='q-pb-xs'></q-icon> icons for more info</span> <br>
+                            <span class='q-pl-lg q-mt-lg text-subtitle2 text-grey-4'>Click <q-icon name='mdi-play' class='q-pb-xs q-pr-xs'></q-icon>icon to start processing</span> <br><br>
                         </div>
                         </div>
                         
@@ -140,9 +140,9 @@
                         <div class='row' style='width: 88%; margin-left:12%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>How does it work?</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>                        
-                            Follow the setup described on the Audio Features entrance - <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable text-primary'>see video demo</span>. <br>
+                            Follow the setup described on the Audio Features entrance - <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='dotted-underline clickable text-primary'>see video demo</span>. <br>
                             <br>Select a folder with tracks you want to get their audio features fetched for. <br>
-                            Based on the <span class='clickable text-primary' @click='$1t.url(isrcWiki)'>ISRC</span> inside the metadata it will search up the track in Spotify's API and return these values. <br>
+                            Based on the <span class='dotted-underline clickable text-primary' @click='$1t.url(isrcWiki)'>ISRC</span> inside the metadata it will search up the track in Spotify's API and return these values. <br>
                             If no ISRC exists, it will search by artist and title tag using an exact match. <br>
                             Eventually it will write the audio features to the metadata and its value derived from Spotify.
                         </div>
@@ -152,19 +152,21 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
                                
                         <div class='row text-subtitle2 text-grey-4' style='width: 70%; margin-left: 0%;'>
-                            <div class='col-4 text-grey-4'>ACOUSTICNESS</div>     <div class='text-right text-grey-4 col-8'>acoustic <span class='text-grey-6'>vs.</span> electronic</div> 
-                            <div class='col-4 text-grey-4'>DANCEABILITY</div>     <div class='text-right text-grey-4 col-8'>dynamics-low <span class='text-grey-6'>vs.</span> dynamics-med <span class='text-grey-6'>vs.</span> dynamics-high</div> 
-                            <div class='col-4 text-grey-4'>ENERGY</div>           <div class='text-right text-grey-4 col-8'>energy-low <span class='text-grey-6'>vs.</span> energy-med <span class='text-grey-6'>vs.</span> energy-high</div> 
-                            <div class='col-4 text-grey-4'>INSTRUMENTALNESS</div> <div class='text-right text-grey-4 col-8'>vocal-low <span class='text-grey-6'>vs.</span> vocal-med <span class='text-grey-6'>vs.</span> vocal-high</div> 
-                            <div class='col-4 text-grey-4'>LIVENESS</div>         <div class='text-right text-grey-4 col-8'>live <span class='text-grey-6'>vs.</span> recording</div> 
-                            <div class='col-4 text-grey-4'>SPEECHINESS</div>      <div class='text-right text-grey-4 col-8'>speech <span class='text-grey-6'>vs.</span> music</div> 
-                            <div class='col-4 text-grey-4 q-mb-xs'>VALENCE</div>          <div class='text-right text-grey-4 col-8'>positive <span class='text-grey-6'>vs.</span> neutral <span class='text-grey-6'>vs.</span> negative <span class='text-grey-4'>(happy <span class='text-grey-6'>vs.</span> sad/angry)<br><br></span>  </div>
+                            <div class='col-4 text-grey-4'>ACOUSTICNESS</div>     <div class='text-right text-grey-4 col-8'>acoustic <span class='text-grey-6'>/</span> electronic</div> 
+                            <div class='col-4 text-grey-4'>DANCEABILITY</div>     <div class='text-right text-grey-4 col-8'>dynamics-low <span class='text-grey-6'>/</span> dynamics-med <span class='text-grey-6'>/</span> dynamics-high</div> 
+                            <div class='col-4 text-grey-4'>ENERGY</div>           <div class='text-right text-grey-4 col-8'>energy-low <span class='text-grey-6'>/</span> energy-med <span class='text-grey-6'>/</span> energy-high</div> 
+                            <div class='col-4 text-grey-4'>INSTRUMENTALNESS</div> <div class='text-right text-grey-4 col-8'>vocal-low <span class='text-grey-6'>/</span> vocal-med <span class='text-grey-6'>/</span> vocal-high</div> 
+                            <div class='col-4 text-grey-4'>LIVENESS</div>         <div class='text-right text-grey-4 col-8'>live <span class='text-grey-6'>/</span> recording</div> 
+                            <div class='col-4 text-grey-4'>SPEECHINESS</div>      <div class='text-right text-grey-4 col-8'>speech <span class='text-grey-6'>/</span> music</div> 
+                            <div class='col-4 text-grey-4 q-mb-xs'>VALENCE</div>          <div class='text-right text-grey-4 col-8'>positive <span class='text-grey-6'>/</span> neutral <span class='text-grey-6'>/</span> negative<br> <span class='text-grey-4'>(happy <span class='text-grey-6'>/</span> sad or angry)<br></span>  </div>
                         </div>
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center'>
-                            For a more in-depth description, check out <span class='clickable text-primary' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#object-audiofeaturesobject")'>Spotify’s official AudioFeaturesObject</span> section.<br>
-                            To look up audio features online for other tracks, check out <span class='text-primary clickable' @click='$1t.url("https://songdata.io")'>SongData.io</span> - Ignore the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify</span> though.
+                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-px-md q-py-md q-my-md text-center'>
+                            For a more in-depth description, check out <span class='dotted-underline clickable text-primary' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#object-audiofeaturesobject")'>Spotify’s official AudioFeaturesObject</span> section.<br>
+                            <div class='bg-grey-10 text-subtitle2 text-grey-5 text-center q-pt-xs'>
+                            To look up audio features online for other tracks, check out <span class='dotted-underline text-primary clickable' @click='$1t.url("https://songdata.io")'>SongData.io</span> - Ignore the <span class='dotted-underline text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify</span> though.
+                            </div>
                         </div>
                     </div>
 
@@ -173,128 +175,174 @@
                         <div class='row' style='width: 100%; margin-left:1%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Prominent tag</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm q-pb-sm'>
-                            You can customize the threshold, so it doesn't only write the simple value from 0-100 per audio feature, <br>
-                            but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>
-                            Look up which tag code represents what tag name by clicking on the icon of your DJ app below. <br>
-                            Also shows you recommended tags to use.
+                            You can customize the threshold, so it doesn't only write the simple value from <q-badge color='grey-8'><span class='textnumber text-grey-2'>0-100</span></q-badge> per audio feature, <br>
+                            but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>                            
                         </div>
                         </div>
 
-                        <div class='row' style='width: 100%; margin-left:1%'>
-                        <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Acousticness</div>
+                        <div class='row' style='width: 100%; margin-left:3%'>
+                        <div class='col-1 text-primary text-bold q-mt-lg text-right'>Acousticness<br>
+                                    <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0*</span>
+                                    </q-badge>
+                                    <br>
+                                    <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>90-100</span>
+                                    </q-badge>                        
+                        </div>
                         <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
-                                <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
+                                <div class='q-pl-xs text-grey-6'>Treshold default</div>
                                 <span class='text-subtitle2 text-grey-4'>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>0*</span>
-                                    </q-badge>  <span class='text-grey-10'>-</span>#electronic <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>90-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#acoustic
+                                    <span class='text-grey-10'>-</span>#electronic <br>
+                                    <span class='text-grey-10'>-</span>#acoustic
                                 </span>
                             </div>
                             
                             
-                                <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Danceability</div>
-                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
-                                    <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
-                                    <span class='text-subtitle2 text-grey-4'>
+                                <div class='col-1 text-primary text-bold q-mt-lg text-right'>Danceability<br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0-20</span>
+                                    </q-badge>
+                                    <br>
                                     <q-badge color='grey-8'>
-                                        <span class='textnumber'>0-20</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#dynamics-high <br>
+                                        <span class='textnumber text-grey-2'>21-79</span>
+                                    </q-badge>  
+                                    <br>
                                     <q-badge color='grey-8'>
-                                        <span class='textnumber'>21-79</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#dynamics-med <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>80-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#dynamics-low <br>
-                                </span>
-                            </div>
-                            
-                            <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Energy</div>
-                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
-                                    <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
-                                    <span class='text-subtitle2 text-grey-4'>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>0-20</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#energy-low <br>
-                                      <q-badge color='grey-8'>
-                                        <span class='textnumber'>21-89</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#energy-mid <br>
-                                      <q-badge color='grey-8'>
-                                        <span class='textnumber'>90-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#energy-high
-                                </span>
-                            </div>
+                                        <span class='textnumber text-grey-2'>80-100</span>
+                                    </q-badge>
+                                </div>
 
-                           <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Instrumental</div>
                                 <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
-                                    <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
+                                    <div class='q-pl-xs text-grey-6'>Treshold default</div>
+                                    <span class='text-subtitle2 text-grey-4'>
+                                    <span class='text-grey-10'>-</span>#dynamics-high <br>
+                                    <span class='text-grey-10'>-</span>#dynamics-med <br>
+                                    <span class='text-grey-10'>-</span>#dynamics-low <br>
+                                    </span>
+                            </div>
+                            
+                            <div class='col-1 text-primary text-bold q-mt-lg text-right'>Energy<br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0-20</span>
+                                </q-badge>
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>21-79</span>
+                                </q-badge>  
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>80-100</span>
+                                </q-badge>
+                                </div>
+                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
+                                    <div class='q-pl-xs text-grey-6'>Treshold default</div>
+                                        <span class='text-subtitle2 text-grey-4'>
+                                        <span class='text-grey-10'>-</span>#energy-low <br>
+                                        <span class='text-grey-10'>-</span>#energy-med <br>
+                                        <span class='text-grey-10'>-</span>#energy-high
+                                        </span>
+                                </div>
+
+                           <div class='col-1 text-primary text-bold q-mt-lg text-right'>Instrumental<br>
+                           <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0-50</span>
+                                </q-badge>
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>51-89</span>
+                                </q-badge>  
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>90-100</span>
+                                </q-badge>
+                                </div>
+
+                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
+                                    <div class='q-pl-xs text-grey-6'>Treshold default</div>
                                 <span class='text-subtitle2 text-grey-4'>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>0-50</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#vocal-high <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>51-89</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#vocal-med <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>90-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#vocal-low
+                                <span class='text-grey-10'>-</span>#vocal-high <br>
+                                <span class='text-grey-10'>-</span>#vocal-med <br>
+                                <span class='text-grey-10'>-</span>#vocal-low
                                 </span>
                             </div>
 
                             <div class='row' style='width: 100%; margin-left:17%'>
-                            <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Liveness</div>
-                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
-                                    <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
+                            <div class='col-1 text-primary text-bold q-mt-lg text-right'>Liveness<br>
+                            <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0*</span>
+                                </q-badge>
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>80-100</span>
+                                </q-badge>                                  
+                                </div>
+
+                                <div class='col-2 q-mt-lg q-pl-sm'>
+                                    <div class='q-pl-xs text-grey-6'>Treshold default</div>
                                 <span class='text-subtitle2 text-grey-4'>
-                                 <q-badge color='grey-8'>
-                                        <span class='textnumber'>0*</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#recording <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>80-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#live <br>
+                                <span class='text-grey-10'>-</span>#recording <br>
+                                <span class='text-grey-10'>-</span>#live <br>
                                 </span>                                
                             </div>
                             
 
-                            <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Speechiness</div>
-                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-md'>
-                                    <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
+                            <div class='col-1 text-primary text-bold q-mt-lg text-right'>Speechiness<br>
+                            <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0*</span>
+                                </q-badge>
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>70-100</span>
+                                </q-badge>                                  
+                                </div>    
+                                
+                                <div class='col-2 q-mt-lg q-pl-sm'>
+                                    <div class='q-pl-xs text-grey-6'>Treshold default</div>
                                 <span class='text-subtitle2 text-grey-4'>
-                                 <q-badge color='grey-8'>
-                                        <span class='textnumber'>0*</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#music <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>70-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#speech <br>
+                                <span class='text-grey-10'>-</span>#music<br>
+                                <span class='text-grey-10'>-</span>#speech<br>
                                 </span>                                
                             </div>
-                            <div class='col-1 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Valence</div>
-                                <div class='col-2 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm'>
-                                    <div class='text-subtitle2 text-grey-6'>Threshold default: </div>
-                                <span class='text-subtitle2 text-grey-4'>
-                                 <q-badge color='grey-8'>
-                                        <span class='textnumber'>0-15</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#negative <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>16-84</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#neutral <br>
-                                    <q-badge color='grey-8'>
-                                        <span class='textnumber'>85-100</span>
-                                    </q-badge> <span class='text-grey-10'>-</span>#positive <br>
-                                </span>                                
-                            </div>
-                        </div>
-                        </div>
-                            <div class='text-subtitle2 q-my-md text-grey-6 text-center'>
-                                0* = When threshold is 0, it won't write the prominent tag.
-                            </div>
+                            
+                            
+                            <div class='col-1 text-primary text-bold q-mt-lg text-right'>Valence<br>
+                            <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0-15</span>
+                                </q-badge>
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>16-84</span>
+                                </q-badge>  
+                                    <br>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>85-100</span>
+                                </q-badge>
+                                </div>
 
-                        
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center'>
-                            <DJAppIcons></DJAppIcons>
+                                <div class='col-2 q-mt-lg q-pl-sm'>
+                                    <div class='q-pl-xs text-grey-6'>Treshold default</div>
+                                <span class='text-subtitle2 text-grey-4'>
+                                <span class='text-grey-10'>-</span>#negative <br>
+                                <span class='text-grey-10'>-</span>#neutral <br>
+                                <span class='text-grey-10'>-</span>#positive <br>
+                                </span>                                
+                            </div>
                         </div>
+                        </div>
+                            <div class='q-py-xs text-subtitle2 q-my-md text-grey-6 text-center'>
+                                <q-badge color='grey-8'>
+                                        <span class='textnumber text-grey-2'>0*</span>
+                                </q-badge> = When threshold is 0, it won't write the prominent tag.
+                            </div>
+                        
+                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center text-caption'>
+                            <DJAppIcons></DJAppIcons>                                                                           
+                        </div>
+                        <div class='text-subtitle2 text-grey-5 text-center text-caption'>
+                            Click on the icon of your DJ app to look up which tag code represents what tag name.<br>
+                            Also shows you recommended tags to use.  
+                            </div>   
                     </div>
 
                 </q-card-section>
@@ -320,31 +368,28 @@
                         <div class='row' style='width: 93%; margin-left:7%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>How does it work?</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
-                            Ever felt like the genre of downloaded tracks are simply not what you think it is?<br>
-                            Ever felt like you wanted the mood or other characteristics of a song in your tag too?<br>                            
-                         <div class='col-10 q-mt-md text-subtitle2 text-grey-4'>   
-                            Set the path to a folder with tracks you like to quick tag. Predefine energy, moods, genres and other characteristics. <br>
+                            Set the path to a folder with tracks you like to quick tag.<br>
+                            Predefine energy, moods, genres and other characteristics. <br>
                             Decide in which tag you want them to write, so you are able to read them out in your favorite DJ software. <br>
-                            Key bind them for quick access. Skip through a song to determine the mentioned elements. <br>
+                            Key bind them for quick access. Skip through a track to determine the mentioned elements. <br>
                             Hit the key binds (or point ’nd click).<br>   
                         </div>                        
                         </div>
-                        </div>
                         <div class='row' style='width: 93%; margin-left:7%; margin-top: -1px;'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Step-by-step guide</div>
-                        <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>  
-                            <span class='text-number text-bold text-grey-6'>1. </span>On top right click the <q-icon name='mdi-cog' class='q-mb-xs q-pr-xs'></q-icon>icon. <br>
-                            <span class='text-number text-bold text-grey-6'>2. </span>Set path to a folder which you like to quick tag. <br>
-                            <span class='text-number text-bold text-grey-6'>3. </span>Predefine energy level to write to either Rating or a tag field (as symbol). <br>
-                            <span class='text-number text-bold text-grey-6'>4. </span>Predefine moods (and color code them), genres and other characteristics. <br>
-                            <span class='text-number text-bold text-grey-6'>5. </span>Key bind them all to a character on your keyboard for quick access. <br>
-                            <span class='text-number text-bold text-grey-6'>6. </span>Decide where you want all the above data written to. <br>
-                            <span class='text-number text-bold text-grey-6'>7. </span>Play a song and listen - or quickly skip through a track using the arrow keys on your keyboard. <br>
-                            <span class='text-number text-bold text-grey-6'>8. </span>Tag ‘em quickly using the keyboard key binds (or point ’nd click). <br>
+                        <div class='col-10 q-mt-lg q-mb-xs text-subtitle2 text-grey-4'>  
+                            <span class='text-number text-bold text-grey-6'>1. <span class='text-number text-bold text-grey-10'>.</span></span><span class='q-pl-sm'>Click the <q-icon name='mdi-cog' class='q-mb-xs q-mb-xs q-pr-xs'></q-icon>icon on top right</span> <br>
+                            <span class='text-number text-bold text-grey-6'>2. </span><span class='q-pl-sm'>Set path to a folder which you like to quick tag</span> <br>
+                            <span class='text-number text-bold text-grey-6'>3. </span><span class='q-pl-sm'>Predefine energy level to write to either Rating or a tag field (as symbol)</span> <br>
+                            <span class='text-number text-bold text-grey-6'>4. </span><span class='q-pl-sm'>Predefine moods (and color code them), genres and other characteristics</span> <br>
+                            <span class='text-number text-bold text-grey-6'>5. </span><span class='q-pl-sm'>Key bind them all to a character on your keyboard for quick access</span> <br>
+                            <span class='text-number text-bold text-grey-6'>6. </span><span class='q-pl-sm'>Decide where you want all the above data written to</span> <br>
+                            <span class='text-number text-bold text-grey-6'>7. </span><span class='q-pl-sm'>Play a track and listen - or quickly skip through a track using the arrow keys on your keyboard</span> <br>
+                            <span class='text-number text-bold text-grey-6'>8. </span><span class='q-pl-sm'>Tag ‘em quickly using the keyboard key binds (or point ’nd click)</span> <br>
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-py-lg q-my-lg text-center'>
-                            For inspiration, check out the <span class='text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
+                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-py-lg q-my-lg text-center'>
+                            For inspiration, check out the <span class='dotted-underline text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
                         </div> 
                         
                     </div>
@@ -355,20 +400,17 @@
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Energy</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>  
                             Tag energy level using stars. <br>
-                            Set it to 1-3-5 stars to show low-mid-high energy level, or go with the 1-2-3-4-5 scale.  <br>
-                            Some DJ software can’t read out the Rating tag, or simply don’t have the ability to show it.  <br>
-                            Then you can alternatively set the output to ‘symbol’ instead. Predefine the symbol, (an asterisk * for example).  <br>
+                            Some DJ software can’t read out the Rating tag, or simply don’t have the ability to show it. <br>
+                            Then you can alternatively set the output to ‘symbol’ instead. Predefine the symbol, (an asterisk * for example). <br>
                             Also predefine where to write the energy rating by entering the proper tag code. <br>                            
                         </div>
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Mood</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>  
-                            Predefine your moods and additionally color code them. Use key bindings for quick access.  <br>
-                            For inspiration what moods you could use, see this <span class='text-primary clickable' @click='$1t.url(moodOverview)'>Moods and other characteristics overview.</span> <br>
-                            Since the native mood tag isn’t read by any DJ software, we need to write it elsewhere. <br>
-                            Look up which tag code represents what tag name by clicking on the icon of your DJ app below. <br>
-                            Also shows you recommended tags to use.
+                            Predefine your moods and additionally color code them. Use key bindings for quick access. <br>
+                            For inspiration what moods you could use, see this <span class='dotted-underline text-primary clickable' @click='$1t.url(moodOverview)'>Moods and other characteristics overview.</span> <br>
+                            Since the native mood tag isn’t read by any DJ software, we need to write it elsewhere. <br>                            
                         </div>
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%'>
@@ -376,19 +418,23 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>  
                             If the genre stated in the original genre tag of your tracks (or the ones fetched with Auto Tag) are still not to your liking, <br>
                             predefine them in Settings and use key bindings for quick access.<br>
-                            <q-icon name='mdi-information-outline text-grey-6' class='q-pb-xs q-pr-xs'></q-icon>
-                            <span class='text-grey-6'>Pro-tip: Use <span class='monospace'>SHIFT + character</span> for genres. This way you can keep <span class='monospace'>characters</span> for moods.</span>                            
+                            <q-icon name='mdi-information-outline text-grey-5' class='q-pb-xs q-pr-xs'></q-icon>                            
+                            <span class='text-grey-5'>Pro-tip: Use <span class='monospace'>SHIFT + character</span> for genres. This way you can keep <span class='monospace'>characters</span> for moods.</span>                            
                         </div>
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Custom</div>
-                        <div class='col-10 q-mt-lg text-subtitle2 text-grey-4 q-mb-sm'>  
-                            Whatever you want! For example focus on different elements like vibe, instruments, vocals, time to play or situation, etc. 
+                        <div class='col-10 q-mt-lg text-subtitle2 text-grey-4 q-mb-md'>  
+                            Whatever you want! For example focus on different elements like vibe, instruments, vocals, time to play or situation, etc.<br>
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-lg text-center'>
-                            <DJAppIcons></DJAppIcons>
+                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center text-caption'>
+                            <DJAppIcons></DJAppIcons>                                                                           
                         </div>
+                        <div class='text-subtitle2 text-grey-5 text-center text-caption'>
+                            Click on the icon of your DJ app to look up which tag code represents what tag name.<br>
+                            Also shows you recommended tags to use.  
+                            </div>
                                                
                     </div>
 
@@ -428,7 +474,7 @@
                         
                         <div class='row' style='width: 82%; margin-left:18%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'></div>
-                        <div class='text-subtitle2 q-my-md text-grey-6'>
+                        <div class='text-subtitle2 q-my-md text-grey-5'>
                             *Comments, (Unsynchronized) lyrics & Popularimeter (Rating) are special tag fields.<br>
                             They show at the bottom below the album art.
                         </div>
@@ -441,7 +487,7 @@
                             This allows you to drag 'nd drop audio files from the treelist into 'Your list'.
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center'>
+                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-px-md q-py-md q-my-md text-center'>
                             The path selected in Quick Tag will overwrite the path of Edit Tags.<br>
                             This way it becomes easy to review where your custom tags got written, by switching between the two tabs.
                         </div>
@@ -507,6 +553,9 @@ export default {
 </script>
 
 <style>
+.dotted-underline { 
+    border-bottom: 1px dotted;
+}
 .help-button-container {
     position: fixed;
     right: -36px;
@@ -534,8 +583,6 @@ export default {
         min-width: 1000px;
     }
 }
-
-
 .help-page-icon {
     position: absolute !important;
     top: calc(50% - 23px);
