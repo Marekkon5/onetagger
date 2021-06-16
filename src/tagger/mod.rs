@@ -66,6 +66,8 @@ pub struct TaggerConfig {
     pub merge_genres: bool,
     pub album_art_file: bool,
     pub camelot: bool,
+    pub parse_filename: bool,
+    pub filename_template: Option<String>,
 
     //Platform specific
     pub beatport: BeatportConfig,
@@ -357,18 +359,63 @@ pub struct AudioFileInfo {
 
 impl AudioFileInfo {
     //Load audio file info from path
-    pub fn load_file(path: &str) -> Result<AudioFileInfo, Box<dyn Error>> {
+    pub fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(&path)?;
         let tag = tag_wrap.tag().unwrap();
+        //Get title artist from tag
+        let mut title = tag.get_field(Field::Title).map(|t| t.first().map(|t| t.to_owned())).flatten();
+        let mut artists = tag.get_field(Field::Artist)
+            .map(|a| AudioFileInfo::parse_artist_tag(a.iter().map(|a| a.as_str()).collect()));
+
+        //Parse filename
+        if (title.is_none() || artists.is_none()) && filename_template.is_some() {
+            let p = Path::new(path);
+            let filename = p.file_name().ok_or("Missing filename!")?.to_str().ok_or("Missing filename")?;
+
+            if let Some(captures) = filename_template.unwrap().captures(filename) {
+                //Title
+                if title.is_none() {
+                    if let Some(m) = captures.name("title") {
+                        title = Some(m.as_str().trim().to_string());
+                    }
+                }
+                //Artists
+                if artists.is_none() {
+                    if let Some(m) = captures.name("artists") {
+                        artists = Some(AudioFileInfo::parse_artist_tag(vec![m.as_str().trim()]));
+                    }
+                }
+            }
+        }
 
         Ok(AudioFileInfo {
             format: tag_wrap.format.to_owned(),
-            title: tag.get_field(Field::Title).ok_or("Missing title!")?.first().unwrap().to_owned().to_owned(),
-            artists: AudioFileInfo::parse_artist_tag(tag.get_field(Field::Artist).ok_or("Missing artists!")?
-                .iter().map(|a| a.as_ref()).collect()),
+            title: title.ok_or("Missing title!")?,
+            artists: artists.ok_or("Missing artists!")?,
             path: path.to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from)
         })
+    }
+
+    //Convert template into a regex
+    pub fn parse_template(template: &str) -> Option<Regex> {
+        //Regex reserved
+        let reserved = ".?+*$^()[]/|";
+        let mut template = template.to_string();
+        for c in reserved.chars() {
+            template = template.replace(c, &format!("\\{}", c));
+        };
+        //Replace variables
+        template = template
+            .replace("%title%", "(?P<title>.+)")
+            .replace("%artists%", "(?P<artists>.+)");
+        //Remove all remaining variables
+        let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
+        template = re.replace(&template, "(.+)").to_string();
+        //Extension
+        template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template);
+        //Final regex
+        Regex::new(&template).ok()
     }
 
     //Try to split artist string with common separators
@@ -696,7 +743,15 @@ impl Tagger {
             message: None
         };
 
-        match AudioFileInfo::load_file(path) {
+        //Filename template
+        let mut template = None;
+        if config.parse_filename {
+            if let Some(t) = &config.filename_template {
+                template = AudioFileInfo::parse_template(&t);
+            }
+        }
+
+        match AudioFileInfo::load_file(path, template) {
             Ok(info) => {
                 //Match track
                 let result = if let Some(tagger) = tagger_mt {
@@ -730,6 +785,7 @@ impl Tagger {
             //Failed loading file
             Err(e) => {
                 out.status = TaggingState::Skipped;
+                warn!("Error loading file: {}", e);
                 out.message = Some(format!("Error loading file: {}", e));
             }
         }

@@ -162,6 +162,8 @@ class OneTagger {
             "albumArtFile": false,
             "camelot": false,
             "catalogNumber": false,
+            "parseFilename": false,
+            "filenameTemplate": "%trackNumber% - %artists% - %title%",
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1

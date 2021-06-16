@@ -23,6 +23,19 @@
     <br>
     <q-toggle v-model='$1t.config.camelot' label='Use Camelot key notation'></q-toggle>
     <br>
+
+    <!-- Parse meta from filename -->
+    <q-toggle v-model='$1t.config.parseFilename' label='Parse metadata from filename'></q-toggle>
+    <div v-if='$1t.config.parseFilename'>
+        <q-input
+            v-model='$1t.config.filenameTemplate'
+            filled
+            label='Filename template (variables: %title%, %artists%, anything between %% gets treated as dynamic content)'
+            class='input'
+        ></q-input>
+    </div>
+
+    <br>
     <!-- Strictness -->
     <div class='row justify-center'>
         <q-slider 

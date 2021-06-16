@@ -132,7 +132,7 @@ impl AudioFeatures {
                     message: None, accuracy: None
                 };
                 //Load file
-                if let Ok(info) = AudioFileInfo::load_file(&file) {
+                if let Ok(info) = AudioFileInfo::load_file(&file, None) {
                     //Match and get features
                     match AudioFeatures::find_features(&spotify, &info) {
                         Ok(features) => {
