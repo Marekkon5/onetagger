@@ -17,7 +17,7 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn load_file(path: &str) -> Result<Tag, Box<dyn Error>> {
+    pub fn load_file(path: &str, allow_new: bool) -> Result<Tag, Box<dyn Error>> {
         //FLAC
         if path.to_lowercase().ends_with(".flac") {
             return Ok(Tag {
@@ -38,7 +38,11 @@ impl Tag {
         }
 
         //ID3
-        let tag = id3::ID3Tag::load_file(path)?;
+        let tag = if allow_new {
+            id3::ID3Tag::load_or_new(path)
+        } else {
+            id3::ID3Tag::load_file(path)?
+        };
         let format = match tag.format {
             id3::ID3AudioFormat::MP3 => AudioFileFormat::MP3,
             id3::ID3AudioFormat::AIFF => AudioFileFormat::AIFF
@@ -240,7 +244,7 @@ pub struct TagChanges {
 impl TagChanges {
     //Save all changes to file
     pub fn commit(&self) -> Result<Tag, Box<dyn Error>> {
-        let mut tag_wrap = Tag::load_file(&self.path)?;
+        let mut tag_wrap = Tag::load_file(&self.path, false)?;
 
         //Format specific changes
         if let Some(id3) = tag_wrap.id3.as_mut() {

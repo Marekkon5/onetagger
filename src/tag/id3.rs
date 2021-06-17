@@ -78,6 +78,25 @@ impl ID3Tag {
         Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unsupported format!").into())
     }
 
+    //Load tag from file or create new
+    pub fn load_or_new(path: &str) -> ID3Tag {
+        let format = if path.to_lowercase().ends_with(".mp3") {
+            ID3AudioFormat::MP3
+        } else {
+            ID3AudioFormat::AIFF
+        };
+
+        match ID3Tag::load_file(path) {
+            Ok(tag) => tag,
+            Err(_) => ID3Tag {
+                tag: Tag::new(),
+                format,
+                id3_separator: String::from(", "),
+                id3v24: true
+            }
+        }
+    }
+
     //ID3 Settings
     pub fn set_id3_separator(&mut self, separator: &str) {
         self.id3_separator = separator.to_owned();

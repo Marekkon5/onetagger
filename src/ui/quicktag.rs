@@ -75,7 +75,7 @@ pub struct QuickTagFile {
 impl QuickTagFile {
     //Load tags from path
     pub fn from_path(path: &str) -> Result<QuickTagFile, Box<dyn Error>> {
-        let tag_wrap = Tag::load_file(path)?;
+        let tag_wrap = Tag::load_file(path, false)?;
         Ok(QuickTagFile::from_tag(path, &tag_wrap).ok_or("Unable to load tags!")?)
     }
 
@@ -108,7 +108,7 @@ impl QuickTagFile {
     //Load album art from tag and downscale
     pub fn get_art(path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         //Load
-        let tag_wrap = Tag::load_file(path)?;
+        let tag_wrap = Tag::load_file(path, false)?;
         let tag = tag_wrap.tag().ok_or("Missing tag!")?;
         let pictures = tag.get_art();
         let picture = pictures.first().ok_or("Missing album art!")?;

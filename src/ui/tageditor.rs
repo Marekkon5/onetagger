@@ -91,7 +91,7 @@ impl TagEditor {
     //Load tags from file
     pub fn load_file(path: &str) -> Result<TagEditorFile, Box<dyn Error>> {
         let filename = Path::new(path).file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename!")?;
-        let tag_wrap = Tag::load_file(path)?;
+        let tag_wrap = Tag::load_file(path, true)?;
         let id3_binary = ID3Binary::from_tag(&tag_wrap);
         //Load tags
         let tag = tag_wrap.tag().ok_or("No tag")?;

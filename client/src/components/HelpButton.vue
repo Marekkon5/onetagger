@@ -175,7 +175,7 @@
                         <div class='row' style='width: 100%; margin-left:1%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg text-right'>Prominent tag</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4 q-pl-sm q-pb-sm'>
-                            You can customize the threshold, so it doesn't only write the simple value from <q-badge color='grey-8'><span class='textnumber text-grey-2'>0-100</span></q-badge> per audio feature, <br>
+                            You can customize the threshold, so it doesn't only write the simple value from <q-badge color='grey-8'><span class='textnumber text-grey-2 q-py-xs'>0-100</span></q-badge> per audio feature, <br>
                             but also determine when it should translate the value into a meaningful description and write to a custom predefined tag field. <br>                            
                         </div>
                         </div>
@@ -389,7 +389,7 @@
                         </div>
                         </div>
                         <div class='bg-grey-10 text-subtitle2 text-grey-5 q-py-lg q-my-lg text-center'>
-                            For inspiration, check out the <span class='dotted-underline text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span>tagging system by u/nonomomomo
+                            For inspiration, check out the <span class='dotted-underline text-primary clickable' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love</span> tagging system by u/nonomomomo
                         </div> 
                         
                     </div>
@@ -409,7 +409,7 @@
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Mood</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>  
                             Predefine your moods and additionally color code them. Use key bindings for quick access. <br>
-                            For inspiration what moods you could use, see this <span class='dotted-underline text-primary clickable' @click='$1t.url(moodOverview)'>Moods and other characteristics overview.</span> <br>
+                            For inspiration what moods you could use, see this <span class='dotted-underline text-primary clickable' @click='$1t.url(moodOverview)'>Moods and other characteristics overview</span>. <br>
                             Since the native mood tag isn’t read by any DJ software, we need to write it elsewhere. <br>                            
                         </div>
                         </div>

@@ -206,7 +206,7 @@ impl AudioFeatures {
     //Write to path
     fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
         //Load tag
-        let mut tag_wrap = Tag::load_file(path)?;
+        let mut tag_wrap = Tag::load_file(path, false)?;
         //Set separators
         if let Some(id3) = tag_wrap.id3.as_mut() {
             id3.set_id3_separator(&config.id3_separator);

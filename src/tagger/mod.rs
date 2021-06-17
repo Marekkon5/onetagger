@@ -176,7 +176,7 @@ impl Track {
     //Write tags to file
     pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
         //Get tag
-        let mut tag_wrap = Tag::load_file(&info.path)?;
+        let mut tag_wrap = Tag::load_file(&info.path, true)?;
         let format = tag_wrap.format.to_owned();
         //Configure ID3 and FLAC
         if let Some(t) = tag_wrap.id3.as_mut() {
@@ -360,7 +360,7 @@ pub struct AudioFileInfo {
 impl AudioFileInfo {
     //Load audio file info from path
     pub fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
-        let tag_wrap = Tag::load_file(&path)?;
+        let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag().unwrap();
         //Get title artist from tag
         let mut title = tag.get_field(Field::Title).map(|t| t.first().map(|t| t.to_owned())).flatten();
