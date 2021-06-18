@@ -10,8 +10,8 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-check' round color='green'>
-                                <q-tooltip>
-                                    <div class='text-subtitle3'>Total amount found</div>
+                                <q-tooltip content-style="font-size: 13px">
+                                    Total amount found
                                 </q-tooltip>
                             </q-btn>
                         </div>
@@ -28,8 +28,8 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-alert-circle' round color='red'>
-                                <q-tooltip>
-                                    <div class='text-subtitle3'>Total amount not found</div>
+                                <q-tooltip content-style="font-size: 13px">
+                                    Total amount not found
                                 </q-tooltip>
                             </q-btn>
                         </div>
@@ -46,8 +46,8 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-debug-step-over' round color='yellow' class='text-black'>
-                                <q-tooltip>
-                                    <div class='text-subtitle3'>Total amount skipped due missing tags or corruption</div>
+                                <q-tooltip content-style="font-size: 13px">
+                                    Total amount skipped due missing tags or corruption
                                 </q-tooltip>
                             </q-btn>
                         </div>
@@ -64,8 +64,8 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-music-box-multiple-outline' round color='grey-6' class='text-black'>
-                                <q-tooltip>
-                                    <div class='text-subtitle3'>Total amount of files to process</div>
+                                <q-tooltip content-style="font-size: 13px">
+                                    Total amount of files to process
                                 </q-tooltip>
                             </q-btn>
                         </div>
@@ -82,8 +82,8 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-timelapse' round color='primary' class='text-black'>
-                                <q-tooltip>
-                                    <div class='text-subtitle3'>Total amount of elapsed time</div>
+                                <q-tooltip content-style="font-size: 13px">
+                                    Total amount of elapsed time
                                 </q-tooltip>
                             </q-btn>
                         </div>

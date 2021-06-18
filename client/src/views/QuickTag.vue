@@ -13,8 +13,8 @@
     <!-- No path selected -->
     <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container qt-full-height' @click='selectFolder'>
         <div>
-            <div class='text-center text-grey-6 text-h3'>No folder selected!</div>
-            <div class='text-center text-grey-6 text-h5 q-pt-md'>Click here to select folder</div>
+            <div class='text-center text-h4 text-grey-6 q-my-sm'>No folder selected!</div>
+            <div class='text-center text-grey-6 text-h6'>Click here to select folder</div>
             <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
                 Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
                 Seek -10s: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon><br>

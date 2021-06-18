@@ -26,7 +26,8 @@
                 <PlaylistDropZone 
                     v-model='qtPlaylist' 
                     @input='loadQTPlaylist' 
-                    class='q-mb-sm'
+                    class='q-mb-lg'
+                    dark
                 ></PlaylistDropZone>
 
                 <!-- Energy keybinds -->
@@ -64,7 +65,7 @@
                         <TagFields dense v-model='$1t.settings.quickTag.energyTag.tag'></TagFields>
                     </div>
                 </div>
-                <div class='q-mb-md'></div>
+                <div class='q-mb-lg'></div>
                 <!-- Mood tag -->
                 <div class='q-my-sm text-grey-6 text-bold'>Mood tag</div>
                 <TagFields class='q-mb-md' v-model='$1t.settings.quickTag.moodTag'></TagFields>
@@ -102,13 +103,14 @@
                         </div>
                     </draggable>
                     <!-- Add new mood -->
-                    <div class='text-subtitle2 q-mb-sm'>Create new mood:</div>
+                    <div class='text-subtitle2 q-mb-sm'>Add new mood:</div>
                     <div class='row'>
-                        <q-input v-model='newMood.mood' filled dense class='col-6 q-pr-md'></q-input>
+                        <q-input v-model='newMood.mood' filled dense class='col-6 q-pr-md q-mb-md'></q-input>
                         <q-select v-model='newMood.color' :options='colors' filled dense class='col-5 q-pr-md'></q-select>
                         <q-btn @click='addMood' round flat dense icon='mdi-plus' class='col-1 text-primary'></q-btn>
                     </div>
                 </div>
+                <div class='q-mb-lg'></div>
                 <!-- Genres -->
                 <div class='q-my-sm text-bold text-grey-6'>Genres</div>
                 <div>
@@ -132,7 +134,7 @@
                         </div>
                     </draggable>
                     <!-- Add new genre -->
-                    <div class='text-subtitle2 q-mb-sm'>Create new genre:</div>
+                    <div class='text-subtitle2 q-mb-sm'>Add new genre:</div>
                     <div class='row'>
                         <q-input filled dense class='col-11 q-pr-md' v-model='newGenre'></q-input>
                         <div class='col-1'>
@@ -146,7 +148,7 @@
                  <!-- Note tag -->
                 <div class='text-grey-6 text-bold q-mb-sm'>Custom note tag</div>
                 <div class='row'>
-                    <TagFields class='col-10' dense v-model='$1t.settings.quickTag.noteTag.tag'></TagFields>
+                    <TagFields class='col-10 q-mb-md' dense v-model='$1t.settings.quickTag.noteTag.tag'></TagFields>
                     <Keybind 
                         class='col-2 text-center' 
                         @set='$1t.settings.quickTag.noteTag.keybind = $event'

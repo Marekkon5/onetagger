@@ -174,7 +174,7 @@ export default {
     padding-right: 16px;
 }
 .slider {
-    max-width: 40vw;
+    max-width: 34vw;
 }
 
 .at-stepper-bar {

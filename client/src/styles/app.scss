@@ -95,3 +95,10 @@ input {
 .monospace {
     font-family: monospace !important;
 }
+
+.dotted-underline { 
+    border-bottom: 1px dotted;
+}
+.dotted-underline:hover { 
+    border-bottom: 1px dotted white;    
+}

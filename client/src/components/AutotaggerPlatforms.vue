@@ -52,7 +52,7 @@ export default {
                     name: 'Juno Download',
                     value: 'junodownload',
                     enabled: false,
-                    description: 'Overall a mixed bag with a lot of niche genres<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~70 tracks / min)</b>',
+                    description: 'Overall a mixed bag with a lot of niche genres',
                     image: require('../assets/junodownload.png')
                 },
                 {

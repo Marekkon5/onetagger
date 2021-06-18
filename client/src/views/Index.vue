@@ -13,7 +13,7 @@
                 <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm'>
                     Auto Tag lets you automatically tag from Beatport,
                     Discogs, Junodownload & Traxsource, to your local
-                    audio files, based on Artist & Title tag.<br>
+                    audio files, based on Artist & Title tag, filename or playlist.<br>
                     
                     <q-btn dense push color='primary' class='rounded-borders q-mt-sm text-black text-weight-medium text-caption' @click='help("autotagger")'>More info</q-btn>
                     
@@ -52,24 +52,24 @@
     </div>
 
     <!-- Welcome -->
-    <div class='q-pl-xl q-pt-lg'>
+    <div class='q-pl-xl q-pt-xl'>
        
-        <img svg-inline src="../assets/logo.svg" height='180' width='250' class='q-mt-xs' style='margin-left: -15px; margin-bottom: -30px;'>
+        <img svg-inline src="../assets/logo.svg" height='180' width='250' style='margin-left: -15px; margin-bottom: -30px;'>
         
-        <div class='q-pt-md text-h4 text-grey-4 text-weight-medium'>The ultimate cross-platform</div>
-        <div class='q-pt-xs text-h4 text-grey-4 text-weight-medium'>music tagger for DJs</div>
+        <div class='q-pt-md text-h5 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
+        
         
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.version}}</div>
         <span class='dotted-underline q-pt-md text-subtitle1 text-primary clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
-        <div class='q-pt-md text-subtitle1 text-grey-4'>
+        <div class='q-pt-lg text-subtitle1 text-grey-4'>
             Developed by Marekkon5<br>
             UI & logo design by Bas Curtiz
         </div>
         
         <div class='q-pt-lg text-subtitle1 text-grey-4'>
             Need help? Check out our <span class='text-bold'>Getting started</span> sections.<br>
-            Found a bug or have a request? Post it on <span class='text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img src="../assets/github.png" width='64px'></span><br>
-            Like the app? Contribute by donating through <span class='text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'><img src="../assets/paypal.png" width='64px'></span> or <span class='text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'><img src="../assets/patreon.png" width='70px'></span>
+            Found a bug or have a request? Post it on <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img src="../assets/github.png" width='64px'></span><br>
+            Like the app? Contribute by donating through <span class='tiny-logo text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'><img src="../assets/paypal.png" width='64px'></span> or <span class='tiny-logo text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'><img src="../assets/patreon.png" width='70px'></span>
         </div>
     </div>
 
@@ -89,11 +89,11 @@ export default {
 </script>
 
 <style>
-.dotted-underline { 
-    border-bottom: 1px dotted;
+.tiny-logo {
+    filter: brightness(90%)
 }
-.dotted-underline:hover { 
-    border-bottom: 1px dotted white;    
+.tiny-logo:hover {
+    filter: brightness(1)
 }
 .index-container {
     overflow: hidden;

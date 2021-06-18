@@ -87,8 +87,9 @@
             style='max-height: 100%; overflow-y: scroll;'
         >
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
-                <div class='col-12 text-h4 text-grey-7 text-center q-my-sm'>No file selected!</div><br>
-                <div class='text-h6 text-grey-7'>Tip: Click the path to select folder using your OS's picker.</div>
+                
+                <div class='col-12 text-h4 text-grey-6 text-center q-my-sm'>No file selected!</div><br>
+                <span class='text-h6 text-grey-6'>Tip: Click the path to select folder using your OS's picker</span>
             </div>
 
             <div v-if='file' class='q-px-md'>

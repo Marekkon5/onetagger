@@ -159,14 +159,6 @@
                         <Waveform></Waveform>
                     </div>
 
-                    <!-- Playlist -->
-                    <PlaylistDropZone
-                        tiny
-                        v-model="qtPlaylist"
-                        @input="loadQTPlaylist"
-                        class="q-mt-sm q-mr-sm"
-                    ></PlaylistDropZone>
-
                     <!-- Browse button -->
                     <div class="q-mt-sm q-pr-sm">
                         <q-btn
@@ -184,6 +176,14 @@
                             </q-tooltip>
                         </q-btn>
                     </div>
+
+                    <!-- Playlist -->
+                    <PlaylistDropZone
+                        tiny
+                        v-model="qtPlaylist"
+                        @input="loadQTPlaylist"
+                        class="q-mt-sm q-mr-sm"
+                    ></PlaylistDropZone>
 
                     <!-- Volume -->
                     <div class="volume-container q-pt-sm" style="width: 90px">
