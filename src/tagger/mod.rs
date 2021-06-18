@@ -13,7 +13,7 @@ use threadpool::ThreadPool;
 use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
-use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, EXTENSIONS};
+use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, TagSeparators, EXTENSIONS};
 
 pub mod beatport;
 pub mod traxsource;
@@ -56,8 +56,7 @@ pub struct TaggerConfig {
     pub catalog_number: bool,
 
     //Advanced
-    pub id3_separator: String,
-    pub flac_separator: Option<String>,
+    pub separators: TagSeparators,
     pub id3v24: bool,
     pub overwrite: bool,
     pub threads: i16,
@@ -177,16 +176,11 @@ impl Track {
     pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
         //Get tag
         let mut tag_wrap = Tag::load_file(&info.path, true)?;
+        tag_wrap.set_separators(&config.separators);
         let format = tag_wrap.format.to_owned();
-        //Configure ID3 and FLAC
+        //Configure format specific
         if let Some(t) = tag_wrap.id3.as_mut() {
-            t.set_id3_separator(&config.id3_separator);
             t.set_id3v24(config.id3v24);
-        }
-        if let Some(flac) = tag_wrap.flac.as_mut() {
-            if let Some(s) = config.flac_separator.as_ref() {
-                flac.set_separator(Some(s));
-            }
         }
         //MP4 Album art override
         if let Some(mp4) = tag_wrap.mp4.as_mut() {

@@ -98,9 +98,6 @@ impl ID3Tag {
     }
 
     //ID3 Settings
-    pub fn set_id3_separator(&mut self, separator: &str) {
-        self.id3_separator = separator.to_owned();
-    }
     pub fn set_id3v24(&mut self, id3v24: bool) {
         self.id3v24 = id3v24;
     }
@@ -185,6 +182,10 @@ impl TagImpl for ID3Tag {
             self.tag.write_to_aiff(path, version)?;
         }
         Ok(())
+    }
+
+    fn set_separator(&mut self, separator: &str) {
+        self.id3_separator = separator.to_owned();
     }
 
     //Get all tags

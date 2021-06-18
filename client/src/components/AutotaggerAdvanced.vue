@@ -76,25 +76,20 @@
     <!-- Separators -->
     <div class='q-mt-md text-body1 text-grey-4'>Separators</div>
     <div class='row q-py-md justify-center' style='max-width: 50vw; margin: auto;'>
-        <q-input
-            v-model='$1t.config.id3Separator'
-            filled
-            label='ID3 Separator (MP3 + AIFF)'
-            class='col-6 q-px-sm'
-        ></q-input>
-        <q-input
-            v-model='$1t.config.flacSeparator'
-            filled
-            label='FLAC Separator (Leave empty for default)'
-            class='col-6 q-px-sm'
-        ></q-input>
+        <Separators
+            :initial='$1t.config.separators'
+            @input='$1t.config.separators = $event'
+        ></Separators>
     </div>
 </div>
 </template>
 
 <script>
+import Separators from './Separators';
+
 export default {
     name: 'AutotaggerAdvanced',
+    components: {Separators},
 }
 </script>
 

@@ -94,11 +94,6 @@ impl FLACTag {
             Field::CatalogNumber => "CATALOGNUMBER".to_string()
         }
     }
-
-    //If separator is set, all values are written to single tag, separated by commas for compatibility reasons
-    pub fn set_separator(&mut self, separator: Option<&str>) {
-        self.separator = separator.map(String::from);
-    }
 }
 
 impl TagImpl for FLACTag {
@@ -106,6 +101,15 @@ impl TagImpl for FLACTag {
     fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>> {
         self.tag.write_to_path(path)?;
         Ok(())
+    }
+
+    //If separator is set, all values are written to single tag, separated by commas for compatibility reasons
+    fn set_separator(&mut self, separator: &str) {
+        if separator.is_empty() {
+            self.separator = None;
+        } else {
+            self.separator = Some(separator.to_string())
+        }
     }
 
     //Get all tags

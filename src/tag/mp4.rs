@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use mp4ameta::{Tag, Data};
+use mp4ameta::{Tag, Data, Img, ImgFmt};
 use mp4ameta::ident::DataIdent;
 use chrono::{DateTime, NaiveDate, Utc};
 
@@ -11,7 +11,8 @@ const MAGIC: u8 = 0xa9;
 
 pub struct MP4Tag {
     tag: Tag,
-    date_year_only: bool
+    date_year_only: bool,
+    separator: String
 }
 
 impl MP4Tag {
@@ -19,7 +20,8 @@ impl MP4Tag {
         let tag = Tag::read_from_path(&path)?;
         Ok(MP4Tag {
             tag,
-            date_year_only: false
+            date_year_only: false,
+            separator: ", ".to_string()
         })
     }
 
@@ -76,7 +78,7 @@ impl MP4Tag {
 
     //Get raw tag value by identifier
     fn raw_by_ident(&self, ident: &DataIdent) -> Option<Vec<String>> {
-        let data: Vec<String> = self.tag.data(ident).filter_map(|data| {
+        let data: Vec<String> = self.tag.data_of(ident).filter_map(|data| {
             //Save only text values
             match data {
                 Data::Utf8(d) => Some(d.to_owned()),
@@ -87,22 +89,23 @@ impl MP4Tag {
         if data.is_empty() {
             return None;
         }
-        Some(data)
+        //Convert multi tag to single with separator
+        Some(data.join(&self.separator).split(&self.separator).map(String::from).collect())
     }
 
     //Raw version of set_art
     fn add_art(&mut self, mime: &str, data: Vec<u8>) {
         if mime == "image/jpeg" || mime == "image/jpg" {
-            self.tag.add_artwork(Data::Jpeg(data));
+            self.tag.add_artwork(Img::jpeg(data));
         } else if mime == "image/png" {
-            self.tag.add_artwork(Data::Png(data));
+            self.tag.add_artwork(Img::png(data));
         } else if mime == "image/bmp" {
-            self.tag.add_artwork(Data::Bmp(data));
+            self.tag.add_artwork(Img::bmp(data));
         }
     }
 
     pub fn remove_all_artworks(&mut self) {
-        self.tag.remove_artwork();
+        self.tag.set_artworks(vec![]);
     }
 }
 
@@ -112,20 +115,26 @@ impl TagImpl for MP4Tag {
         Ok(())
     }
 
+    fn set_separator(&mut self, separator: &str) {
+        self.separator = separator.to_owned();
+    }
+
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
         let mut out = HashMap::new();
-        for atom in self.tag.atoms.clone() {
+
+        for (ident, data) in self.tag.data() {
             let mut values = vec![];
-            for data in atom.data {
-                //Save only text values
-                match data {
-                    Data::Utf8(d) => values.push(d),
-                    Data::Utf16(d) => values.push(d),
-                    _ => {}
-                }
+            //Save only text values
+            match data {
+                Data::Utf8(d) => values = d.split(&self.separator).map(String::from).collect(),
+                Data::Utf16(d) => values = d.split(&self.separator).map(String::from).collect(),
+                _ => {}
             }
-            out.insert(MP4Tag::ident_to_string(&atom.ident), values);
+            if !values.is_empty() {
+                out.insert(MP4Tag::ident_to_string(ident), values);
+            }
         }
+        
         out
     }
 
@@ -177,30 +186,19 @@ impl TagImpl for MP4Tag {
     fn get_art(&self) -> Vec<Picture> {
         let types = CoverType::types();
         let mut type_i = 0;
-        self.tag.artworks().filter_map(|data| {
+        self.tag.artworks().filter_map(|img| {
             //Use all cover types in order to not break removing covers
             let kind = types[type_i].clone();
             type_i += 1;
             let description = String::new();
             //Convert to mime from type
-            match data {
-                Data::Jpeg(d) => Some(Picture {
-                    data: d.to_owned(),
-                    mime: "image/jpeg".to_string(),
-                    description, kind
-                }),
-                Data::Png(d) => Some(Picture {
-                    data: d.to_owned(),
-                    mime: "image/png".to_string(),
-                    description, kind
-                }),
-                Data::Bmp(d) => Some(Picture {
-                    data: d.to_owned(),
-                    mime: "image/bmp".to_string(),
-                    description, kind
-                }),
-                _ => None
-            }
+            let mime = match img.fmt {
+                ImgFmt::Bmp => "image/bmp",
+                ImgFmt::Jpeg => "image/jpeg",
+                ImgFmt::Png => "image/png"
+            }.to_string();
+            let data = img.data.to_vec();
+            Some(Picture {data, mime, description, kind})
         }).collect()
     }
 
@@ -209,7 +207,7 @@ impl TagImpl for MP4Tag {
         //to make removing possible, so it acts as index
         let arts = self.get_art();
         let artworks: Vec<&Picture> = arts.iter().filter(|p| p.kind != kind).collect();
-        self.tag.remove_artwork();
+        self.tag.remove_artworks();
         for art in artworks {
             self.add_art(&art.mime, art.data.clone());
         }
@@ -217,8 +215,8 @@ impl TagImpl for MP4Tag {
 
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool) {
         let ident = MP4Tag::field_to_ident(field);
-        if self.tag.data(&ident).next().is_none() || overwrite {
-            self.tag.remove_data(&ident);
+        if self.tag.data_of(&ident).next().is_none() || overwrite {
+            self.tag.remove_data_of(&ident);
             //Add each data separately
             for v in value {
                 self.tag.add_data(ident.clone(), Data::Utf8(v));
@@ -233,11 +231,8 @@ impl TagImpl for MP4Tag {
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool) {
         if self.get_raw(tag).is_none() || overwrite {
             let ident = MP4Tag::string_to_ident(tag);
-            self.tag.remove_data(&ident);
-            //Add each data separately
-            for v in value {
-                self.tag.add_data(ident.clone(), Data::Utf8(v));
-            }
+            self.tag.remove_data_of(&ident);
+            self.tag.add_data(ident.clone(), Data::Utf8(value.join(&self.separator)));
         }
     }
 
@@ -247,6 +242,6 @@ impl TagImpl for MP4Tag {
     }
 
     fn remove_raw(&mut self, tag: &str) {
-        self.tag.remove_data(&MP4Tag::string_to_ident(tag));
+        self.tag.remove_data_of(&MP4Tag::string_to_ident(tag));
     }
 }

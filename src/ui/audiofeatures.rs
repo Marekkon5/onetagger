@@ -7,7 +7,7 @@ use serde;
 use crate::tagger::MatchingUtils;
 use crate::tagger::spotify::Spotify;
 use crate::tagger::{AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
-use crate::tag::{Tag, AudioFileFormat, UITag};
+use crate::tag::{Tag, AudioFileFormat, UITag, TagSeparators};
 
 // CONFIG SERIALIZATION
 
@@ -17,8 +17,7 @@ use crate::tag::{Tag, AudioFileFormat, UITag};
 pub struct AudioFeaturesConfig {
     pub path: String,
     pub main_tag: UITag,
-    pub id3_separator: String,
-    pub vorbis_separator: Option<String>,
+    pub separators: TagSeparators,
     pub properties: AFProperties
 }
 
@@ -207,15 +206,7 @@ impl AudioFeatures {
     fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
         //Load tag
         let mut tag_wrap = Tag::load_file(path, false)?;
-        //Set separators
-        if let Some(id3) = tag_wrap.id3.as_mut() {
-            id3.set_id3_separator(&config.id3_separator);
-        }
-        if let Some(flac) = tag_wrap.flac.as_mut() {
-            if let Some(s) = config.vorbis_separator.as_ref() {
-                flac.set_separator(Some(s));
-            }
-        }
+        tag_wrap.set_separators(&config.separators);
 
         let format = tag_wrap.format.clone();
         let tag = tag_wrap.tag_mut().ok_or("No tag!")?;

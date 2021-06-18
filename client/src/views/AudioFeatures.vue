@@ -97,18 +97,7 @@
 
         <!-- Separators -->
         <div class='row q-mx-xl q-my-md justify-center'>
-            <q-input
-                v-model='config.id3Separator'
-                filled
-                label='ID3 Separator (MP3 + AIFF)'
-                class='col-4 q-px-sm'
-            ></q-input>
-            <q-input
-                v-model='config.vorbisSeparator'
-                filled
-                label='FLAC Separator (Leave empty for default)'
-                class='col-4 q-px-sm'
-            ></q-input>
+            <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
         </div>
 
 
@@ -137,10 +126,11 @@
 <script>
 import TagFields from '../components/TagFields';
 import PlaylistDropZone from '../components/PlaylistDropZone.vue';
+import Separators from '../components/Separators.vue';
 
 export default {
     name: 'AudioFeatures',
-    components: {TagFields, PlaylistDropZone},
+    components: {TagFields, PlaylistDropZone, Separators},
     data() {
         return {
             clientId: this.$1t.settings.audioFeatures.spotifyClientId,
@@ -150,8 +140,7 @@ export default {
             config: {
                 path: null,
                 mainTag: {id3: 'AUDIO_FEATURES', vorbis: 'AUDIO_FEATURES', mp4: 'AUDIO_FEATURES'},
-                id3Separator: ", ",
-                vorbisSeparator: null,
+                separators: {id3: ', ', vorbis: null, mp4: ', '},
                 properties: {
                     acousticness: {enabled: true, range: {min: 0, max: 90}, 
                         tag: {id3: '1T_ACOUSTICNESS', vorbis: '1T_ACOUSTICNESS', mp4: '1T_ACOUSTICNESS'}},

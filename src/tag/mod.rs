@@ -9,6 +9,24 @@ pub mod mp4;
 //Supported extensions
 pub static EXTENSIONS : [&'static str; 5] = [".mp3", ".flac", ".aif", ".aiff", ".m4a"];
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TagSeparators {
+    pub id3: String,
+    pub vorbis: Option<String>,
+    pub mp4: String
+}
+
+impl Default for TagSeparators {
+    fn default() -> Self {
+        TagSeparators {
+            id3: ", ".to_string(),
+            vorbis: None,
+            mp4: ", ".to_string()
+        }
+    }
+}
+
+
 pub struct Tag {
     pub flac: Option<flac::FLACTag>,
     pub id3: Option<id3::ID3Tag>,
@@ -55,6 +73,19 @@ impl Tag {
         });
     }
 
+    //Set proper separators for every format
+    pub fn set_separators(&mut self, separators: &TagSeparators) {
+        if let Some(flac) = &mut self.flac {
+            flac.set_separator(separators.vorbis.as_ref().unwrap_or(&String::new()));
+        }
+        if let Some(id3) = &mut self.id3 {
+            id3.set_separator(&separators.id3);
+        }
+        if let Some(mp4) = &mut self.mp4 {
+            mp4.set_separator(&separators.mp4);
+        }
+    }
+
     //Get generic
     pub fn tag(&self) -> Option<Box<&dyn TagImpl>> {
         if let Some(flac) = &self.flac {
@@ -84,6 +115,9 @@ impl Tag {
 
 pub trait TagImpl {
     fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>>;
+
+    //Since all formats right now support separators
+    fn set_separator(&mut self, separator: &str);
 
     //Get all string tags
     fn all_tags(&self) -> HashMap<String, Vec<String>>;
