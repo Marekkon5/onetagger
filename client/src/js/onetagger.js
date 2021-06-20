@@ -219,6 +219,7 @@ class OneTagger {
             helpButton: true,
             continuePlayback: false,
             quickTag: {
+                recursive: false,
                 autosave: false,
                 noteTag: {
                     tag: {
@@ -541,7 +542,10 @@ class OneTagger {
         }
            
         if (this.settings.path)
-            this.send('quicktagLoad', {path: this.settings.path});
+            this.send('quicktagLoad', {
+                path: this.settings.path,
+                recursive: this.settings.quickTag.recursive
+            });
     }
 
     //Handle keydown event for keyboard bindings

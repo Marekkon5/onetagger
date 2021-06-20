@@ -32,7 +32,8 @@ struct TaggerConfigWrap {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct QuickTagLoad {
     path: Option<String>,
-    playlist: Option<UIPlaylist>
+    playlist: Option<UIPlaylist>,
+    recursive: Option<bool>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -268,7 +269,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }
             //Path
             if let Some(path) = msg.path {
-                files = QuickTag::load_files_path(&path)?;
+                files = QuickTag::load_files_path(&path, msg.recursive.unwrap_or(false))?;
             }
             websocket.write_message(Message::from(json!({
                 "action": "quicktagLoad",

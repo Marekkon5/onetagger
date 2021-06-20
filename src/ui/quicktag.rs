@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fs::read_dir;
 use std::path::Path;
 use std::io::Cursor;
+use walkdir::WalkDir;
 use image::ImageOutputFormat;
 use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
@@ -14,27 +15,40 @@ pub struct QuickTag {}
 impl QuickTag {
 
     //Load all files from folder
-    pub fn load_files_path(path: &str) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+    pub fn load_files_path(path: &str, recursive: bool) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
         //Check if path to playlist
         if !Path::new(path).is_dir() {
             return QuickTag::load_files(get_files_from_playlist_file(path)?);
         }
         
         let mut files = vec![];
-        for entry in read_dir(path)? {
-            //Check if valid
-            if entry.is_err() {
-                continue;
+        //Load recursivly
+        if recursive {
+            for e in WalkDir::new(path) {
+                if let Ok(e) = e {
+                    if let Some(path) = e.path().to_str() {
+                        files.push(path.to_owned());
+                    }
+                }
             }
-            let entry = entry.unwrap();
-            //Skip dirs
-            if entry.path().is_dir() {
-                continue;
+        } else {
+            // Load just dir
+            for entry in read_dir(path)? {
+                //Check if valid
+                if entry.is_err() {
+                    continue;
+                }
+                let entry = entry.unwrap();
+                //Skip dirs
+                if entry.path().is_dir() {
+                    continue;
+                }
+                let path = entry.path();
+                let path = path.to_str().unwrap();
+                files.push(path.to_string());
             }
-            let path = entry.path();
-            let path = path.to_str().unwrap();
-            files.push(path.to_string());
         }
+        
         QuickTag::load_files(files)
     }
 

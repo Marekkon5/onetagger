@@ -17,11 +17,19 @@
             <div v-if='tab == "quicktag"'>
                 <!-- Path options -->
                 <div class='text-grey-6 text-bold'>Folder</div>
-                <div class='row q-mb-sm items-center'>
+                <div class='row items-center'>
                     <div class='col-11 text-subtitle2 monospace text-bold text-primary'>{{$1t.settings.path}}</div>
                     <div class='col-1'>
                         <q-btn round flat icon='mdi-open-in-app' @click='browseQuickTag'></q-btn>
                     </div>
+                </div>
+                <div class='q-mb-sm'>
+                    <q-checkbox 
+                        v-model='$1t.settings.quickTag.recursive'
+                        label='Load also subdirectories'
+                        class='checkbox'
+                        @input="$1t.loadQuickTag()"
+                    ></q-checkbox>
                 </div>
                 <PlaylistDropZone 
                     v-model='qtPlaylist' 
