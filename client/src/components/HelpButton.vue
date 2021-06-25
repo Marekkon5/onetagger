@@ -50,7 +50,7 @@
                         <div class='row' style='width: 92%; margin-left:8%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>How does it work?</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4'>
-                            It reads the Artist & Title tag from your local MP3/MP4/AIFF/FLAC files (or filename or playlist), <br>feeds it into the search engine of the several platforms and writes the data to your tags.<br>
+                            It reads the Artist & Title tag from your local MP3/M4A/AIFF/FLAC files (or filename or playlist), <br>feeds it into the search engine of the several platforms and writes the data to your tags.<br>
                                            
                             <span @click='$1t.url("https://beatport.com")' class='dotted-underline clickable text-primary'>Beatport</span>, <span @click='$1t.url("https://junodownload.com")' class='dotted-underline clickable text-primary'>Juno Download</span> & <span @click='$1t.url("https://traxsource.com")' class='dotted-underline clickable text-primary'>Traxsource</span> are based on a method called scraping. <br>
                             <span @click='$1t.url("https://discogs.com")' class='dotted-underline clickable text-primary'>Discogs</span> is based on its API. Therefor it needs you to sign up for a free account.
@@ -68,7 +68,7 @@
                             <div class='col-3 q-mt-xs'>ALBUM</div>  <div class='col-3 q-mt-xs'>LABEL</div>
                             <div class='col-3 q-mt-xs'>BPM</div>  <div class='col-3 q-mt-xs'>KEY *</div>
                             <div class='col-3 q-mt-xs'>GENRE</div>  <div class='col-3 q-mt-xs'>STYLE *</div>
-                            <div class='col-3 q-mt-xs'>RELEASE DATE</div>  <div class='col-3 q-mt-xs'>PUBLISH DATE *</div>
+                            <div class='col-3 q-mt-xs'>RELEASE, PUBLISH DATE *</div>  <div class='col-3 q-mt-xs'>CATALOG NUMBER</div>
                             <div class='col-3 q-mt-xs'>OTHER URL(s)</div>  <div class='col-3 q-mt-xs'>ALBUM ART</div>
                         </div>
                         </div>
@@ -374,7 +374,7 @@
                             Predefine energy, moods, genres and other characteristics. <br>
                             Decide in which tag you want them to write, so you are able to read them out in your favorite DJ software. <br>
                             Key bind them for quick access. Skip through a track to determine the mentioned elements. <br>
-                            Hit the key binds (or point ’nd click).<br>   
+                            Hit the key binds (or point & click).<br>   
                         </div>                        
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%; margin-top: -1px;'>
@@ -459,7 +459,7 @@
                         
                         <div class='text-subtitle2 text-grey-4 q-mt-md text-center'>
                             Edit Tags lets you do what it says... Edit tags.<br>
-                            It reads the metadata of MP3, AIFF and FLAC files within a folder.<br>
+                            It reads the metadata of MP3, AIFF, FLAC and M4A files within a folder.<br>
                             You can review what tags got written where inside the metadata, edit them, add a new tag or delete.<br>
                         </div>
                         

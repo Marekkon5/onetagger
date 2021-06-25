@@ -26,7 +26,7 @@
                 <div class='q-mb-sm'>
                     <q-checkbox 
                         v-model='$1t.settings.quickTag.recursive'
-                        label='Load also subdirectories'
+                        label='Include subfolders'
                         class='checkbox'
                         @input="$1t.loadQuickTag()"
                     ></q-checkbox>
