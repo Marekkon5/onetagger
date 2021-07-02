@@ -82,7 +82,13 @@
 
     <!-- Duration -->
     <br>
-    <q-toggle v-model='$1t.config.matchDuration' label='Match duration (WARNING: strict)'></q-toggle>
+    <div class='row justify-center items-center'>
+        <q-toggle v-model='$1t.config.matchDuration' label='Match duration'></q-toggle>
+        <div class='text-grey-6 q-ml-sm'>
+            <q-icon name='mdi-alert-circle-outline' class='q-mb-xs'></q-icon>
+            Warning: Strict
+        </div>
+    </div>
     <br>
     <div class='row justify-center' v-if='$1t.config.matchDuration'>
         <q-slider

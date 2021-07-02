@@ -169,7 +169,7 @@ class OneTagger {
             "filenameTemplate": "%trackNumber% - %artists% - %title%",
             "shortTitle": false,
             "matchDuration": false,
-            "maxDurationDifference": 10,
+            "maxDurationDifference": 30,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1
