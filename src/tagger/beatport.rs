@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::time::Duration;
 use std::collections::HashMap;
 use regex::{Regex, Captures};
 use reqwest::blocking::Client;
@@ -88,23 +89,14 @@ pub struct BeatportTrack {
     pub release: BeatportSmall,
     pub slug: String,
     pub title: Option<String>,
+    pub duration: BeatportDuration
 }
 
 impl BeatportTrack {
     pub fn to_track(&self, art_resolution: i64) -> Track {
-        //If no title use name + mix
-        let mut title = self.title.as_ref().unwrap_or(&String::new()).to_owned();
-        if title.trim().is_empty() {
-            if let Some(mix) = &self.mix {
-                title = format!("{} ({})", self.name, mix);
-            } else {
-                title = self.name.to_string();
-            }
-        }
-
         Track {
             platform: MusicPlatform::Beatport,
-            title,
+            title: self.name.to_string(),
             version: self.mix.as_ref().map(String::from),
             artists: self.artists.iter().map(|a| a.name.to_string()).collect(),
             album: Some(self.release.name.to_string()),
@@ -112,7 +104,7 @@ impl BeatportTrack {
             genres: self.genres.iter().map(|g| g.name.to_string()).collect(),
             styles: vec![],
             label: self.label.as_ref().map(|l| l.name.to_string()),
-            url: Some(format!("https://beatport.com/track/{}/{}", &self.slug, &self.id)),
+            url: format!("https://beatport.com/track/{}/{}", &self.slug, &self.id),
             //Parse year only if 4 digits
             release_year: if let Some(date) = &self.date.released {
                 if date.len() == 4 { date.parse().ok() } else { None }
@@ -133,7 +125,13 @@ impl BeatportTrack {
                 .to_owned()
             ),
             catalog_number: None,
-            art: self.get_image().map(|i| i.get_url(art_resolution)).flatten()
+            art: self.get_image().map(|i| i.get_url(art_resolution)).flatten(),
+            other: vec![
+                ("UNIQUEFILEID".to_string(), format!("https://beatport.com|{}", &self.id))
+            ],
+            track_id: Some(self.id.to_string()),
+            release_id: self.release.id.to_string(),
+            duration: self.duration.to_duration()
         }
     }
 
@@ -170,6 +168,18 @@ pub struct BeatportRelease {
     pub id: i64,
     pub slug: String,
     pub catalog: Option<String>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportDuration {
+    pub milliseconds: u64,
+    pub minutes: String
+}
+
+impl BeatportDuration {
+    pub fn to_duration(&self) -> Duration {
+        Duration::from_millis(self.milliseconds)
+    }
 }
 
 impl BeatportImage {

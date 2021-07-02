@@ -13,6 +13,12 @@
         </q-icon>
     </q-toggle>
     <br>
+    <q-toggle v-model='$1t.config.shortTitle' label='Short title'>
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
+            <q-tooltip content-style="font-size: 13px">Write title without version, currently supported only for Beatport and Traxsource</q-tooltip>
+        </q-icon>
+    </q-toggle>
+    <br>
     <q-toggle v-model='$1t.config.albumArtFile' label='Save album art to file'></q-toggle>
     <br>
     <q-toggle v-model='$1t.config.mergeGenres' label='Merge/append genres and styles'>
@@ -73,6 +79,26 @@
             <q-tooltip content-style="font-size: 13px">The higher, the faster, but uses more bandwidth, and not supported by all platforms</q-tooltip>
         </q-icon>
     </div>
+
+    <!-- Duration -->
+    <br>
+    <q-toggle v-model='$1t.config.matchDuration' label='Match duration (WARNING: strict)'></q-toggle>
+    <br>
+    <div class='row justify-center' v-if='$1t.config.matchDuration'>
+        <q-slider
+            v-model='$1t.config.maxDurationDifference'
+            :min='1'
+            :max='60'
+            :step='1'
+            label
+            label-always
+            class='slider q-mt-lg'
+            label-text-color='black'
+            :label-value='"Max difference: " + $1t.config.maxDurationDifference + "s"'
+        ></q-slider>
+    </div>
+    <br>
+
     <!-- Separators -->
     <div class='q-mt-md text-body1 text-grey-4'>Separators</div>
     <div class='row q-py-md justify-center' style='max-width: 50vw; margin: auto;'>

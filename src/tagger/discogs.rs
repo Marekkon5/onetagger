@@ -9,7 +9,7 @@ use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use serde;
-use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, DiscogsStyles};
+use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, DiscogsStyles, parse_duration};
 
 pub struct Discogs {
     client: Client,
@@ -235,7 +235,8 @@ pub struct ExtraArtist {
 pub struct DiscogsTrack {
     pub position: String,
     pub title: String,
-    pub artists: Option<Vec<ExtraArtist>>
+    pub artists: Option<Vec<ExtraArtist>>,
+    pub duration: String
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -346,7 +347,7 @@ impl ReleaseMaster {
                 Some(image) => Some(image.url.to_string()),
                 None => None
             },
-            url: Some(self.url.to_string()),
+            url: self.url.to_string(),
             label: if let Some(labels) = &self.labels {
                 if labels.is_empty() {
                     None
@@ -358,7 +359,11 @@ impl ReleaseMaster {
             release_date,
             publish_date: None,
             publish_year: None,
-            catalog_number
+            catalog_number,
+            other: vec![],
+            track_id: None,
+            release_id: self.id.to_string(),
+            duration: parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO)
         }
     }
 }

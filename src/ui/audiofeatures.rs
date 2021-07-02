@@ -15,7 +15,7 @@ use crate::tag::{Tag, AudioFileFormat, UITag, TagSeparators};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioFeaturesConfig {
-    pub path: String,
+    pub path: Option<String>,
     pub main_tag: UITag,
     pub separators: TagSeparators,
     pub properties: AFProperties

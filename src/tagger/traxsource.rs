@@ -2,7 +2,7 @@ use std::error::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use crate::tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, TrackMatcher, MatchingUtils};
+use crate::tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, TrackMatcher, MatchingUtils, parse_duration};
 
 pub struct Traxsource {
     client: Client
@@ -43,31 +43,25 @@ impl Traxsource {
             let title_elem = track_element.select(&selector).next().unwrap();
             let title_vec = title_elem.text().collect::<Vec<_>>();
             let title = title_vec[0].to_owned();
-            let version = match title_vec.len() {
+            let (version, duration) = match title_vec.len() {
                 3 => {
                     //Remove space at end because of duration
                     let mut v = title_vec[1].to_owned();
                     v.pop();
-                    Some(v)
+                    //Parse duration
+                    let duration = parse_duration(title_vec[2]).unwrap();
+                    (Some(v), duration)
                 },
-                _ => None
-            };
-            //Full title with version
-            let full_title = match &version {
-                Some(v) => {
-                    if !v.is_empty() && v != " " {
-                        format!("{} ({})", title, v)
-                    } else {
-                        title.to_string()
-                    }
-                },
-                None => title.to_string()
+                _ => (None, parse_duration(title_vec[1]).unwrap())
             };
 
-            //Get URL
+            //Get URL, ID
             selector = Selector::parse("a").unwrap();
             let title_link = title_elem.select(&selector).next().unwrap();
-            let url = format!("https://www.traxsource.com{}", title_link.value().attr("href").unwrap());
+            let title_href = title_link.value().attr("href").unwrap();
+            let mut track_id = title_href.replace("/track/", "");
+            track_id = track_id[..track_id.find("/").unwrap()].to_string();
+            let url = format!("https://www.traxsource.com{}", title_href);
 
             //Artists
             selector = Selector::parse("div.artists a").unwrap();
@@ -104,9 +98,7 @@ impl Traxsource {
             //Create track
             tracks.push(Track {
                 platform: MusicPlatform::Traxsource,
-                version, artists, bpm, key,
-                title: full_title,
-                url: Some(url),
+                version, artists, bpm, key, title, url,
                 label: Some(label.to_string()),
                 release_date: NaiveDate::parse_from_str(&release_date, "%Y-%m-%d").ok(),
                 genres: vec![genre.to_owned()],
@@ -116,7 +108,11 @@ impl Traxsource {
                 release_year: None,
                 publish_date: None,
                 publish_year: None,
-                catalog_number: None
+                catalog_number: None,
+                other: vec![],
+                track_id: Some(track_id),
+                release_id: String::new(),
+                duration
             })
         }
 
@@ -126,7 +122,7 @@ impl Traxsource {
     //Tracks in search don't have album name and art
     pub fn extend_track(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
         //Fetch
-        let mut data = self.client.get(track.url.as_ref().unwrap())
+        let mut data = self.client.get(&track.url)
             .send()?
             .text()?;
         
@@ -146,6 +142,10 @@ impl Traxsource {
         let img_element = document.select(&selector).next().unwrap();
         let art_url = img_element.value().attr("src").unwrap();
         track.art = Some(art_url.to_owned());
+
+        //Get release id
+        let release_id = album_url.replace("/title/", "");
+        track.release_id = release_id[..release_id.find("/").unwrap()].to_string();
 
         //Album metadata
         if !album_meta { 
@@ -181,7 +181,7 @@ impl TrackMatcher for Traxsource {
         //Match
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
             //Extend track if requested tags
-            if config.album_art || config.album || config.catalog_number {
+            if config.album_art || config.album || config.catalog_number || config.release_id {
                 match self.extend_track(&mut track, config.catalog_number) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)

@@ -7,7 +7,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
 
-use crate::tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils};
+use crate::tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils, parse_duration};
 
 pub struct JunoDownload {
     client: Client
@@ -74,6 +74,9 @@ impl JunoDownload {
         let title_elem = elem.select(&selector).next()?;
         let title = title_elem.text().collect::<Vec<_>>().join(" ");
         let url = title_elem.value().attr("href")?;
+        let mut release_id = url.split("/").collect::<Vec<&str>>();
+        release_id.pop();
+        let release_id = release_id.last().unwrap().to_string();
         //Label
         selector = Selector::parse("a.juno-label").unwrap();
         let label = elem.select(&selector).next()?.text().collect::<Vec<_>>().join(" ");
@@ -105,8 +108,14 @@ impl JunoDownload {
         for track_elem in elem.select(&track_selector) {
             let text = track_elem.text().collect::<Vec<_>>();
             let full = text[0].replace("\u{a0}", " ");
-            //Delete duration
-            let re = Regex::new(r" - \(\d+:\d\d\) ?$").unwrap();
+            //Duration
+            let re = Regex::new(r" - \((\d+:\d\d)\) ?$").unwrap();
+            let duration = if let Some(captures) = re.captures(&full) {
+                if let Some(m) = captures.get(1) {
+                    parse_duration(m.as_str()).unwrap_or(Duration::ZERO)
+                } else { Duration::ZERO }
+            } else { Duration::ZERO };
+            // Remove duration
             let no_duration = re.replace(&full, "");
             //Check if title or artist - title
             let split: Vec<&str> = no_duration.split(" - \"").collect();
@@ -146,8 +155,13 @@ impl JunoDownload {
                 release_year: None,
                 release_date: Some(release_date),
                 art: Some(album_art.to_string()),
-                url: Some(format!("https://www.junodownload.com{}", url)),
-                catalog_number: catalog_number.clone()
+                url: format!("https://www.junodownload.com{}", url),
+                catalog_number: catalog_number.clone(),
+                other: vec![],
+                //Only release id
+                track_id: None,
+                release_id: release_id.clone(),
+                duration
             });
         }
 

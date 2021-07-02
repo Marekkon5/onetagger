@@ -70,6 +70,7 @@ impl MP4Tag {
             Field::Label => DataIdent::freeform("com.apple.iTunes", "LABEL"),
             Field::ISRC => DataIdent::freeform("com.apple.iTunes", "ISRC"),
             Field::CatalogNumber => DataIdent::freeform("com.apple.iTunes", "CATALOGNUMBER"),
+            Field::Version => DataIdent::fourcc(*b"desc"),
             //Custom/Unofficial
             Field::Key => DataIdent::freeform("com.apple.iTunes", "KEY"),
             Field::Style => DataIdent::freeform("com.apple.iTunes", "STYLE"),

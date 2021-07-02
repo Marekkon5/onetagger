@@ -2,6 +2,7 @@ use std::error::Error;
 use std::thread;
 use std::path::Path;
 use std::fs::File;
+use std::time::Duration;
 use std::default::Default;
 use std::io::prelude::*;
 use std::sync::Arc;
@@ -14,6 +15,7 @@ use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
 use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, TagSeparators, EXTENSIONS};
+use crate::ui::player::AudioSources;
 
 pub mod beatport;
 pub mod traxsource;
@@ -54,6 +56,10 @@ pub struct TaggerConfig {
     pub album_art: bool,
     pub other_tags: bool,
     pub catalog_number: bool,
+    pub url: bool,
+    pub track_id: bool,
+    pub release_id: bool,
+    pub version: bool,
 
     //Advanced
     pub separators: TagSeparators,
@@ -67,6 +73,10 @@ pub struct TaggerConfig {
     pub camelot: bool,
     pub parse_filename: bool,
     pub filename_template: Option<String>,
+    pub short_title: bool,
+    pub match_duration: bool,
+    //In seconds
+    pub max_duration_difference: u64,
 
     //Platform specific
     pub beatport: BeatportConfig,
@@ -113,6 +123,7 @@ impl Default for DiscogsStyles {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Track {
     pub platform: MusicPlatform,
+    //Short title
     pub title: String,
     pub version: Option<String>,
     pub artists: Vec<String>,
@@ -122,9 +133,14 @@ pub struct Track {
     pub genres: Vec<String>,
     pub styles: Vec<String>,
     pub art: Option<String>,
-    pub url: Option<String>,
+    pub url: String,
     pub label: Option<String>,
     pub catalog_number: Option<String>,
+    // Tag name, Value
+    pub other: Vec<(String, String)>,
+    pub track_id: Option<String>,
+    pub release_id: String,
+    pub duration: Duration,
     
     //Only year OR date should be available
     pub release_year: Option<i64>,
@@ -191,10 +207,16 @@ impl Track {
         }
 
         let tag = tag_wrap.tag_mut().unwrap();
-
         //Set tags
         if config.title {
-            tag.set_field(Field::Title, vec![self.title.to_string()], config.overwrite);
+            match config.short_title {
+                true => tag.set_field(Field::Title, vec![self.title.to_string()], config.overwrite),
+                false => tag.set_field(Field::Title, vec![self.full_title()], config.overwrite)
+            }
+        }
+        //Version
+        if config.version && self.version.is_some() {
+            tag.set_field(Field::Version, vec![self.version.as_ref().unwrap().to_string()], config.overwrite);
         }
         if config.artist {
             tag.set_field(Field::Artist, self.artists.clone(), config.overwrite);
@@ -279,11 +301,24 @@ impl Track {
                 }, config.overwrite);
             }
         }
+        //URL
+        if config.url {
+            tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite);
+        }
         //Other tags
         if config.other_tags {
-            if self.url.is_some() {
-                tag.set_raw("WWWAUDIOFILE", vec![self.url.as_ref().unwrap().to_string()], config.overwrite);
+            for (t, value) in &self.other {
+                tag.set_raw(t.as_str(), vec![value.to_string()], config.overwrite);
             }
+        }
+        //IDs
+        if config.track_id && self.track_id.is_some() {
+            let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
+            tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite);
+        }
+        if config.release_id {
+            let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
+            tag.set_raw(&t, vec![self.release_id.to_string()], config.overwrite);
         }
         //Catalog number
         if config.catalog_number && self.catalog_number.is_some() {
@@ -340,6 +375,15 @@ impl Track {
         
         Ok(Some(response.bytes()?.to_vec()))
     }
+
+    //Get title with version
+    pub fn full_title(&self) -> String {
+        if let Some(v) = self.version.as_ref() {
+            format!("{} ({})", self.title, v)
+        } else {
+            self.title.to_string()
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -348,7 +392,8 @@ pub struct AudioFileInfo {
     pub artists: Vec<String>,
     pub format: AudioFileFormat,
     pub path: String,
-    pub isrc: Option<String>
+    pub isrc: Option<String>,
+    pub duration: Option<Duration>
 }
 
 impl AudioFileInfo {
@@ -387,8 +432,20 @@ impl AudioFileInfo {
             title: title.ok_or("Missing title!")?,
             artists: artists.ok_or("Missing artists!")?,
             path: path.to_owned(),
-            isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from)
+            isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
+            duration: None,
         })
+    }
+
+    //Load duration from file
+    pub fn load_duration(&mut self) {
+        //Mark as loaded
+        self.duration = Some(Duration::ZERO);
+        if let Ok(source) = AudioSources::from_path(&self.path) {
+            self.duration = Some(Duration::from_millis(source.duration() as u64))
+        } else {
+            warn!("Failed loading duration from file! {}", self.path);
+        }
     }
 
     //Convert template into a regex
@@ -431,6 +488,21 @@ impl AudioFileInfo {
         }
         vec![src.to_owned().to_owned()]
     }
+}
+
+//Parse duration from String
+pub fn parse_duration(input: &str) -> Result<Duration, Box<dyn Error>> {
+    let clean = input.replace("(", "").replace(")", "");
+    let mut parts = clean.trim().split(":").collect::<Vec<&str>>();
+    parts.reverse();
+    let mut seconds: u64 = parts.first().ok_or("Invalid timestamp!")?.parse()?;
+    if parts.len() > 1 {
+        seconds += parts[1].parse::<u64>()? * 60;
+    }
+    if parts.len() > 2 {
+        seconds += parts[2].parse::<u64>()? * 3600;
+    }
+    Ok(Duration::from_secs(seconds))
 }
 
 //For all the platforms
@@ -540,6 +612,10 @@ impl MatchingUtils {
         let clean_title = MatchingUtils::clean_title_matching(&info.title);
         //Exact match
         for track in tracks {
+            if !MatchingUtils::match_duration(info, track, config) {
+                continue;
+            }
+            
             if clean_title == MatchingUtils::clean_title_matching(&track.title) {
                 if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
                     return Some((1.0, track.clone()));
@@ -574,6 +650,10 @@ impl MatchingUtils {
         let clean_title = MatchingUtils::clean_title_matching(&info.title);
         //Exact match
         for track in tracks {
+            if !MatchingUtils::match_duration(info, track, config) {
+                continue;
+            }
+
             if clean_title == MatchingUtils::clean_title_matching(&track.title) {
                 return Some((1.0, track.clone()));
             }
@@ -595,6 +675,21 @@ impl MatchingUtils {
         //Sort
         fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
         Some((fuzz[0].0, fuzz[0].1.to_owned()))
+    }
+
+    //Match duration
+    pub fn match_duration(info: &AudioFileInfo, track: &Track, config: &TaggerConfig) -> bool {
+        //Disabled
+        if !config.match_duration || info.duration.is_none() {
+            return true;
+        }
+        let duration = *info.duration.as_ref().unwrap();
+        // No duration available
+        if duration == Duration::ZERO || track.duration == Duration::ZERO {
+            return true;
+        }
+        let diff = (duration.as_secs() as i64 - track.duration.as_secs() as i64).abs() as u64;
+        diff <= config.max_duration_difference
     }
 }
 
@@ -746,7 +841,11 @@ impl Tagger {
         }
 
         match AudioFileInfo::load_file(path, template) {
-            Ok(info) => {
+            Ok(mut info) => {
+                // Load duration for matching
+                if config.match_duration {
+                    info.load_duration();
+                }
                 //Match track
                 let result = if let Some(tagger) = tagger_mt {
                     tagger.match_track(&info, &config)

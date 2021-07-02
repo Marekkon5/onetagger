@@ -152,6 +152,10 @@ class OneTagger {
             "publishDate": false,
             "albumArt": false,
             "otherTags": false,
+            "url": false,
+            "trackId": false,
+            "releaseId": false,
+            "version": false,
             "separators": {id3: ', ', vorbis: null, mp4: ', '},
             "id3v24": true,
             "overwrite": true,
@@ -163,6 +167,9 @@ class OneTagger {
             "catalogNumber": false,
             "parseFilename": false,
             "filenameTemplate": "%trackNumber% - %artists% - %title%",
+            "shortTitle": false,
+            "matchDuration": false,
+            "maxDurationDifference": 10,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1
