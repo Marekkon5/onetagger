@@ -117,7 +117,7 @@ impl TagImpl for MP4Tag {
     }
 
     fn set_separator(&mut self, separator: &str) {
-        self.separator = separator.to_owned();
+        self.separator = separator.replace("\\0", "\0");
     }
 
     fn all_tags(&self) -> HashMap<String, Vec<String>> {

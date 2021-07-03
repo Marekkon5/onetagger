@@ -109,7 +109,7 @@ impl TagImpl for FLACTag {
         if separator.is_empty() {
             self.separator = None;
         } else {
-            self.separator = Some(separator.to_string())
+            self.separator = Some(separator.replace("\\0", "\0"))
         }
     }
 

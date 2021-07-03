@@ -1,6 +1,6 @@
 [package]
 name = "onetagger"
-version = "1.2.0"
+version = "1.2.1"
 authors = ["Marekkon5"]
 edition = "2018"
 license = "Apache"
@@ -67,7 +67,7 @@ opt-level = 'z'
 name = "OneTagger"
 identifier = "com.marekkon5.onetagger"
 icon = ["assets/32x32.png", "assets/128x128.png", "assets/128x128@2x.png", "assets/icon.icns", "assets/icon.ico"]
-version = "1.2.0"
+version = "1.2.1"
 resources = []
 copyright = "Copyright (c) Marekkon5 2021. All rights reserved."
 category = "Music"

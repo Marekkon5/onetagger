@@ -26,9 +26,13 @@ impl Beatport {
     }
 
     //Search for tracks on beatport
-    pub fn search(&self, query: &str, page: i64) -> Result<BeatportSearchResults, Box<dyn Error>> {
+    pub fn search(&self, query: &str, page: i64, results_per_page: usize) -> Result<BeatportSearchResults, Box<dyn Error>> {
         let response = self.client.get("https://www.beatport.com/search/tracks")
-            .query(&[("q", query), ("page", &page.to_string())])
+            .query(&[
+                ("q", query), 
+                ("page", &page.to_string()),
+                ("per-page", &results_per_page.to_string())
+            ])
             .send()?
             .text()?;
         
@@ -214,11 +218,10 @@ impl TrackMatcher for Beatport {
         //Search
         let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
         for page in 1..config.beatport.max_pages+1 {
-            match self.search(&query, page) {
+            match self.search(&query, page, 150) {
                 Ok(res) => {
                     //Convert tracks
                     let tracks = res.tracks.iter().map(|t| t.to_track(config.beatport.art_resolution)).collect();
-
                     //Match
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
                         //Get catalog number

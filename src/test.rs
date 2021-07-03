@@ -54,7 +54,7 @@ pub fn benchmark_beatport(threads: usize) {
     for _ in 0..50 {
         let tx = tx.clone();
         pool.execute(move || {
-            Beatport::new().search("test", 1).ok();
+            Beatport::new().search("test", 1, 150).ok();
             tx.send(()).ok();
         })
     }

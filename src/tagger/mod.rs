@@ -546,7 +546,7 @@ impl MatchingUtils {
 
     //Remove spacial characters
     pub fn remove_special(input: &str) -> String {
-        let special = ".,()[]&_\"'-";
+        let special = ".,()[]&_\"'-/\\^";
         let mut out = input.to_string();
         for c in special.chars() {
             out = out.replace(c, "");
@@ -615,8 +615,7 @@ impl MatchingUtils {
             if !MatchingUtils::match_duration(info, track, config) {
                 continue;
             }
-            
-            if clean_title == MatchingUtils::clean_title_matching(&track.title) {
+            if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
                 if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
                     return Some((1.0, track.clone()));
                 }
@@ -630,7 +629,7 @@ impl MatchingUtils {
                 continue;
             }
             //Match title
-            let clean = MatchingUtils::clean_title_matching(&track.title);
+            let clean = MatchingUtils::clean_title_matching(&track.full_title());
             let l = normalized_levenshtein(&clean, &clean_title);
             if l >= config.strictness {
                 fuzz.push((l, track));
@@ -654,7 +653,7 @@ impl MatchingUtils {
                 continue;
             }
 
-            if clean_title == MatchingUtils::clean_title_matching(&track.title) {
+            if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
                 return Some((1.0, track.clone()));
             }
         }
@@ -662,7 +661,7 @@ impl MatchingUtils {
         let mut fuzz: Vec<(f64, &Track)> = vec![];
         for track in tracks {
             //Match title
-            let clean = MatchingUtils::clean_title_matching(&track.title);
+            let clean = MatchingUtils::clean_title_matching(&track.full_title());
             let l = normalized_levenshtein(&clean, &clean_title);
             if l >= config.strictness {
                 fuzz.push((l, track));

@@ -186,7 +186,7 @@ impl TagImpl for ID3Tag {
     }
 
     fn set_separator(&mut self, separator: &str) {
-        self.id3_separator = separator.to_owned();
+        self.id3_separator = separator.replace("\\0", "\0");
     }
 
     //Get all tags
