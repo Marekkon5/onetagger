@@ -21,6 +21,8 @@ macro_rules! timestamp {
     };
 }
 
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 mod tagger;
 mod tag;
 mod ui;
@@ -62,6 +64,8 @@ fn main() {
             debug!("BACKTRACE:\n{:?}", bt);
         }
     }));
+
+    info!("\n\nStarting OneTagger v{} Commit: {} OS: {}\n", VERSION, env!("COMMIT"), env::consts::OS);
 
     //Parse arguments
     let args: Vec<String> = env::args().skip(1).collect();

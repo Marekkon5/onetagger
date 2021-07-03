@@ -19,8 +19,6 @@ use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use crate::ui::tageditor::TagEditor;
 use crate::playlist::UIPlaylist;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-
 //Wrap of tagger config, so playlists can be passed too
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct TaggerConfigWrap {
@@ -41,6 +39,22 @@ struct QuickTagLoad {
 enum TaggerConfigs {
     AutoTagger(TaggerConfig), 
     AudioFeatures(AudioFeaturesConfig)
+}
+
+impl TaggerConfigs {
+    //Print to log for later easier debug
+    pub fn debug_print(&self) {
+        match self {
+            TaggerConfigs::AutoTagger(c) => {
+                let mut c = c.clone();
+                c.discogs.token = None;
+                info!("AutoTagger config: {:?}", c);
+            },
+            TaggerConfigs::AudioFeatures(c) => {
+                info!("AudioFeatures Config: {:?}", c);
+            }
+        }
+    }
 }
 
 //Shared variables in socket
@@ -112,7 +126,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         "init" => {
             websocket.write_message(Message::from(json!({
                 "action": "init",
-                "version": VERSION,
+                "version": crate::VERSION,
                 "startContext": context.start_context
             }).to_string())).ok();
         },
@@ -138,7 +152,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         //Browse folder
         "browse" => {
             let mut initial = json["path"].as_str().unwrap_or(".");
-            if initial.is_empty() {
+            if initial.is_empty() || !Path::new(initial).exists() {
                 initial = ".";
             }
             if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", initial) {
@@ -165,6 +179,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             let tagger_type = json["config"]["type"].clone();
             let path = json["config"]["path"].as_str().unwrap_or("").to_string();
             let wrap: TaggerConfigWrap = serde_json::from_value(json)?;
+            wrap.config.debug_print();
             //Get files
             let files = if let Some(playlist) = wrap.playlist {
                 playlist.get_files()?
