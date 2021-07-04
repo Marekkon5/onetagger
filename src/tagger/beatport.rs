@@ -7,7 +7,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 
-use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils};
+use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, parse_duration};
 
 pub struct Beatport {
     client: Client
@@ -176,13 +176,19 @@ pub struct BeatportRelease {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportDuration {
-    pub milliseconds: u64,
-    pub minutes: String
+    pub milliseconds: Option<u64>,
+    pub minutes: Option<String>
 }
 
 impl BeatportDuration {
     pub fn to_duration(&self) -> Duration {
-        Duration::from_millis(self.milliseconds)
+        if let Some(ms) = self.milliseconds {
+            return Duration::from_millis(ms);
+        }
+        if let Some(m) = self.minutes.as_ref() {
+            return parse_duration(&m).unwrap_or(Duration::ZERO);
+        }
+        Duration::ZERO
     }
 }
 
@@ -236,7 +242,8 @@ impl TrackMatcher for Beatport {
                         return Ok(Some((f, track)));
                     }
                 },
-                Err(_) => {
+                Err(e) => {
+                    warn!("Beatport search failed, query: {}. {}", query, e);
                     return Ok(None);
                 }
             }

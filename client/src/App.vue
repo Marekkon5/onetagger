@@ -141,6 +141,7 @@
                                 :ripple="false"
                                 v-if="!$1t.player.playing"
                                 @click="$1t.play()"
+                                ref='playButton'
                             ></q-btn>
                             <!-- Pause -->
                             <q-btn
@@ -151,6 +152,7 @@
                                 :ripple="false"
                                 v-if="$1t.player.playing"
                                 @click="$1t.pause()"
+                                ref='playButton'
                             ></q-btn>
                         </div>
                     </div>
@@ -171,7 +173,7 @@
                                 })
                             "
                         >
-                            <q-tooltip content-style="font-size: 13px">
+                            <q-tooltip content-style="font-size: 13px;">
                                 Click here to browse for new path
                             </q-tooltip>
                         </q-btn>
@@ -202,7 +204,7 @@
         </q-layout>
 
         <!-- Settings -->
-        <Settings v-model="settings" @close="settings = false"></Settings>
+        <Settings v-model="settings" @close="settingsClosed"></Settings>
 
         <!-- Min size dialog -->
         <q-dialog v-model="sizeDialog" persistent>
@@ -348,6 +350,14 @@
                     });
                 }
             },
+            settingsClosed() {
+                this.settings = false;
+                //QT Bugfix
+                if (this.$router.currentRoute.path.includes('quicktag')) {
+                    this.$refs.playButton.$el.focus();
+                    this.$refs.playButton.$el.blur();
+                }
+            }
         },
         mounted() {
             this.$q.dark.set(true);
@@ -360,6 +370,11 @@
                     this.sizeDialog = false;
                 }
             });
+
+            //Show QT sidebar
+            if (this.$router.currentRoute.path.includes('quicktag')) {
+                this.showSide();
+            }
 
             //Wait for app to load
             setTimeout(() => this.checkUpdates(), 2000);
