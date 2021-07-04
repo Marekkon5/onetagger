@@ -55,6 +55,7 @@ class OneTagger {
                     if (json.context == 'qt') {
                         Vue.set(this.settings, 'path', json.path);
                         this.loadQuickTag();
+                        this.saveSettings();
                     }
                     //Audio features path
                     if (json.context == 'af')

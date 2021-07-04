@@ -5,7 +5,7 @@ It can fetch metadata from Beatport, Traxsource, Juno Download and Discogs.
 It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
 There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts.
 
-MP3, AIFF & FLAC supported.
+MP3, AIFF, FLAC, M4A (AAC, ALAC) supported.
 
 For more info check out our [website](https://onetagger.github.io/).
 

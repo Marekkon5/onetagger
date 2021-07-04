@@ -166,12 +166,7 @@
                         <q-btn
                             round
                             icon="mdi-open-in-app"
-                            @click="
-                                $1t.send('browse', {
-                                    context: 'qt',
-                                    path: $1t.settings.path,
-                                })
-                            "
+                            @click="browseQuickTag"
                         >
                             <q-tooltip content-style="font-size: 13px;">
                                 Click here to browse for new path
@@ -183,7 +178,8 @@
                     <PlaylistDropZone
                         tiny
                         v-model="qtPlaylist"
-                        @input="loadQTPlaylist"
+                        @input="loadQTPlaylist(); quickTagUnfocus()"
+                        @click.native='quickTagUnfocus'
                         class="q-mt-sm q-mr-sm"
                     ></PlaylistDropZone>
 
@@ -350,13 +346,23 @@
                     });
                 }
             },
-            settingsClosed() {
-                this.settings = false;
-                //QT Bugfix
+            //Unfocus from current element to make shortcuts work
+            quickTagUnfocus() {
                 if (this.$router.currentRoute.path.includes('quicktag')) {
                     this.$refs.playButton.$el.focus();
                     this.$refs.playButton.$el.blur();
                 }
+            },
+            settingsClosed() {
+                this.settings = false;
+                this.quickTagUnfocus();
+            },
+            browseQuickTag() {
+                this.$1t.send('browse', {
+                    context: 'qt',
+                    path: this.$1t.settings.path,
+                });
+                this.quickTagUnfocus();
             }
         },
         mounted() {
