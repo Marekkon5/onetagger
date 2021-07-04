@@ -379,7 +379,11 @@ impl Track {
     //Get title with version
     pub fn full_title(&self) -> String {
         if let Some(v) = self.version.as_ref() {
-            format!("{} ({})", self.title, v)
+            if v.trim().is_empty() {
+                self.title.to_string()
+            } else {
+                format!("{} ({})", self.title, v.trim())
+            }
         } else {
             self.title.to_string()
         }
