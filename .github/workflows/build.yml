@@ -44,23 +44,33 @@ jobs:
       
     - name: Install Dependencies
       run: |
-        choco install nsis 7zip -y
+        choco install nsis -y
 
-    - name: Run build script
+    - name: Build
       run: |
-        python assets/compile-win.py
-      env: 
-        VCPKG_ROOT: C:\vcpkg
-    
+        cd client
+        npm i
+        npm run build
+        cd ..
+        copy assets\sndfile.lib .
+        cargo build --release
+        
+    - name: Bundle
+      run: |
+        mkdir dist
+        powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
+        "C:\Program Files (x86)\NSIS\makensis.exe" assets\installer.nsi
+        copy target\release\onetagger.exe dist\OneTagger-windows.exe
+
     - name: Upload Archive
       uses: actions/upload-artifact@v2
       with:
         name: onetagger-win
-        path: dist/OneTagger-windows.7z
+        path: dist/OneTagger-windows.exe
     
     - name: Upload Archive
       uses: actions/upload-artifact@v2
       with:
         name: onetagger-win-setup
-        path: dist/OneTagger-windows.exe
+        path: dist/OneTagger-windows-setup.exe
       

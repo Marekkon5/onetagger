@@ -18,7 +18,7 @@
 ;-------------------------------------------------------------------------------
 ; Attributes
 Name "One Tagger"
-OutFile "..\dist\OneTagger-windows.exe"
+OutFile "..\dist\OneTagger-windows-setup.exe"
 InstallDir "$PROGRAMFILES\OneTagger"
 RequestExecutionLevel admin ; user|highest|admin
 SetCompressor /SOLID lzma
@@ -69,13 +69,22 @@ VIAddVersionKey "FileVersion" "${SETUP_VERSION}"
 ;-------------------------------------------------------------------------------
 ; Installer Sections
 Section "One Tagger" OneTagger
+	; Clean old
+	ExecWait "taskkill /f /im onetagger.exe"
+	RMDir /r "$INSTDIR\*"
+	; Copy new
 	SetOutPath $INSTDIR
-	File /r "..\dist\unpacked\*"
+	File "..\target\release\onetagger.exe"
+	File "..\assets\icon.ico"
+	File "..\vc_redist.x64.exe"
+	; Uninstaller
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
-	
 	CreateDirectory "$SMPROGRAMS\OneTagger"
 	CreateShortcut "$SMPROGRAMS\OneTagger\${PRODUCT_NAME}.lnk" "$INSTDIR\onetagger.exe" "" "$INSTDIR\icon.ico"
-	
+	; Dependencies
+	ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet'
+	ExecWait '"$INSTDIR\onetagger.exe" --bootstrap-webview2'
+	Delete "$INSTDIR\vc_redist.x64.exe"
 SectionEnd
 
 ;-------------------------------------------------------------------------------

@@ -88,6 +88,12 @@ fn main() {
                 msgbox::create("One Tagger", "Benchmarking finished! Results are in logs.", msgbox::IconType::Info).unwrap();
                 return;
             },
+            //Webview2 bootstrap
+            #[cfg(target_os = "windows")]
+            "--bootstrap-webview2" => {
+                ui::bootstrap_webview2_wrap();
+                return;
+            },
             _ => {
                 //Use argument as start path
                 if !arg.starts_with("-") {

@@ -15,19 +15,24 @@ Vue.config.productionTip = false;
 Vue.prototype.$1t = new OneTagger();
 
 new Vue({
-  router,
-  mounted() {
-    //Backend error dialog
-    this.$1t.onError = (msg) => {
-      console.log(msg);
-      this.$q.dialog({
-        title: 'Error',
-        message: msg,
-        ok: {
-          color: 'primary',
-        }
-      });
-    }
-  },
-  render: h => h(App)
+	router,
+	mounted() {
+		//Backend error dialog
+		this.$1t.onError = (msg) => {
+			console.log(msg);
+			this.$q.dialog({
+				title: 'Error',
+				message: msg,
+				ok: {
+					color: 'primary',
+				}
+			});
+		}
+
+		//Windows webview
+		window.chrome.webview.addEventListener('message', e => {
+			this.$1t.onOSMessage(JSON.parse(e.data), this);
+		});
+	},
+	render: h => h(App)
 }).$mount('#app');

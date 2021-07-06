@@ -52,17 +52,20 @@ assets/compile-nix.sh
 Output files will be in the `dist/` directory.
 
 ### Windows
-Build script is also designed to run on Github Actions environment, so you need to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/), [python3](https://www.python.org/downloads/) (has to be accesible as `python`), [vcpkg](https://github.com/microsoft/vcpkg) (create enviromnent variable `VCPKG_ROOT` with path to it), Visual Studio Build Tools.  
-7z and nsis can be installed using `chocolatey`
-```
-choco install nsis 7zip -y
-```
-(`nsis` is expected to be installed at default path in the script).
+You need to install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://visualstudio.microsoft.com/downloads/)
 
-**Compile**
+**Compile UI:**
 ```
-python assets/compile-win.py
+cd client
+npm i
+npm run build
+cd ..
 ```
-**Don't start the script directly or from assets dir. It has to be relative to the parent**  
-Output files will be in the `dist/` directory.  
-**NOTE:** If your build on Windows fails, try running it inside `x64 Native Tools Command Prompt for VS`
+
+**Compile OneTagger:**
+```
+copy assets\sndfile.lib .
+cargo build --release
+```
+
+Output will be inside `target\release` folder.

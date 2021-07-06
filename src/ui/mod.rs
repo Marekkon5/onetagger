@@ -1,6 +1,3 @@
-extern crate rouille;
-extern crate web_view;
-
 use std::error::Error;
 use std::fmt;
 use std::thread;
@@ -90,6 +87,7 @@ pub struct StartContext {
 }
 
 //Start webview window
+#[cfg(not(target_os = "windows"))]
 pub fn start_webview() {
     //Normal webview
     let webview = web_view::builder()
@@ -158,142 +156,193 @@ pub fn start_all(context: StartContext) {
         return;
     }
 
-    //Windows CEF
-    #[cfg(target_os = "windows")]
-    {
-        use std::env;
-        use std::thread::sleep;
-        use std::time::Duration;
-        //Check if running inside CEF
-        let cef_args = vec![
-            "--type=gpu-process".to_string(), 
-            "--type=utility".to_string(), 
-            "--type=renderer".to_string()
-        ];
-        if !env::args().any(|a| cef_args.contains(&a.to_lowercase())) {
-            start_socket_thread(context);
-            start_webserver_thread();
-            start_webview_cef();
-            //CEF will spawn threads, keep servers running
-            loop {
-                sleep(Duration::from_secs(10));
-            }
-        }
-        start_webview_cef();
-    }
-
-    //Normal
-    #[cfg(not(target_os = "windows"))]
-    {
-        start_socket_thread(context);
-        start_webserver_thread();
-        start_webview();
-    }
+    start_socket_thread(context);
+    start_webserver_thread();
+    start_webview();
 }
 
 
-//CEF Webview, intended for Windows only
+//Windows webview
 #[cfg(target_os = "windows")]
-pub fn start_webview_cef() {
-    use winapi::um::winuser::{WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_OVERLAPPEDWINDOW, 
-        WS_VISIBLE, WM_SETICON, ICON_BIG, ICON_SMALL, SendMessageA, CreateIconIndirect, 
-        ICONINFO, GetDC};
-    use winapi::shared::ntdef::NULL;
-    use winapi::um::wingdi::{CreateBitmap, CreateCompatibleBitmap};
-    use winapi::ctypes::c_void;
-    use cef::{
-        app::{App, AppCallbacks},
-        browser::{Browser, BrowserSettings},
-        browser_host::BrowserHost,
-        client::{
-            Client, ClientCallbacks,
-            life_span_handler::{LifeSpanHandler, LifeSpanHandlerCallbacks},
-        },
-        settings::{Settings, LogSeverity},
-        window::WindowInfo,
-        Context
-    };
+pub fn start_webview() {
+    use std::mem;
+    use std::rc::Rc;
+    use std::path::Path;
+    use once_cell::sync::OnceCell;
+    use winit::event_loop::{ControlFlow, EventLoop};
+    use winit::event::{Event, WindowEvent};
+    use winit::dpi::Size;
+    use winit::window::{WindowBuilder, Icon};
+    use winit::platform::windows::WindowExtWindows;
+    use winapi::shared::windef::{HWND, RECT};
+    use winapi::um::winuser::GetClientRect;
+    use webview2::Environment;
+    use serde_json::json;
+    use urlencoding::decode;
 
-    //Callback structs
-    struct AppCallbacksImpl {}
-    impl AppCallbacks for AppCallbacksImpl {}
+    //Install webview2 runtime
+    bootstrap_webview2_wrap();
+    
+    //winit
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new()
+        .with_title("One Tagger")
+        .with_inner_size(Size::Logical((1280, 750).into()))
+        .with_min_inner_size(Size::Logical((1150, 550).into()))
+        .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
+        .build(&event_loop)
+        .unwrap();
+    
+    //webview2
+    let controller = Rc::new(OnceCell::new());
+    {
+        let controller_clone = controller.clone();
+        let hwnd = window.hwnd() as HWND;
+        let data_dir = Settings::get_folder().unwrap().join("webview2");
 
-    struct ClientCallbacksImpl {
-        life_span_handler: LifeSpanHandler,
-    }
-    impl ClientCallbacks for ClientCallbacksImpl {
-        fn get_life_span_handler(&self) -> Option<LifeSpanHandler> {
-            Some(self.life_span_handler.clone())
+        //Build webview2
+        Environment::builder()
+            .with_user_data_folder(data_dir.as_path())    
+            .build(move |env| {
+                env.unwrap().create_controller(hwnd, move |controller| {
+                    let controller = controller?;
+                    let w = controller.get_webview()?;
+
+                    w.get_settings().map(|settings| {
+                        settings.put_is_status_bar_enabled(false).ok();
+                        settings.put_are_default_context_menus_enabled(false).ok();
+                        settings.put_is_zoom_control_enabled(false).ok();
+                    })?;
+
+                    unsafe {
+                        let mut rect = mem::zeroed();
+                        GetClientRect(hwnd, &mut rect);
+                        controller.put_bounds(rect)?;
+                    }
+
+                    //Start webview
+                    w.navigate("http://127.0.0.1:36913")?;
+                    w.add_new_window_requested(|w, a| {
+                        let uri = a.get_uri().unwrap();
+                        if uri.starts_with("file://") {
+                            //Windowsify
+                            let uri = uri.replace("file:///", "");
+                            let decoded = decode(&uri).unwrap().replace("/", "\\");
+                            let path = Path::new(&decoded);
+                            if path.exists() && path.is_dir() {
+                                //Send to UI
+                                w.post_web_message_as_string(&json!({
+                                    "action": "browse",
+                                    "path": decoded
+                                }).to_string())?;
+                            }
+                        }
+
+                        //Drag and drop don't create new window
+                        a.put_new_window(w)
+                    })?;
+                    w.add_navigation_starting(|_w, n| {
+                        let uri = n.get_uri()?;
+                        //Cancel redirect on dropping a file
+                        if uri.starts_with("file://") {
+                            n.put_cancel(true)?;
+                        }
+                        Ok(())
+                    })?;
+
+                    controller_clone.set(controller).unwrap();
+                    Ok(())
+                }
+            )
+        })
+    }.unwrap();
+
+    //winit EventLoop
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::CloseRequested => {
+                    if let Some(webview) = controller.get() {
+                        webview.close().unwrap();
+                    }
+                    *control_flow = ControlFlow::Exit;
+                }
+                WindowEvent::Moved(_) => {
+                    if let Some(webview) = controller.get() {
+                        webview.notify_parent_window_position_changed().ok();
+                    }
+                }
+                WindowEvent::Resized(new_size) => {
+                    if let Some(webview) = controller.get() {
+                        let r = RECT { 
+                            left: 0,
+                            top: 0,
+                            right: new_size.width as i32,
+                            bottom: new_size.height as i32
+                        };
+                        webview.put_bounds(r).ok();
+                    }
+                }
+                _ => {}
+            }
+            Event::MainEventsCleared => {
+                //Updates here
+                window.request_redraw();
+            }
+            Event::RedrawRequested(_) => {}
+            _ => {}
         }
-    }
-
-    struct LifeSpanHandlerImpl {}
-    impl LifeSpanHandlerCallbacks for LifeSpanHandlerImpl {
-        fn on_before_close(&self, _browser: Browser) {
-            cef::quit_message_loop().unwrap();
-        }
-    }
-
-    //Create app
-    let app = App::new(AppCallbacksImpl {});
-    cef::execute_process(Some(app.clone()), None);
-
-    //Init
-    let settings = Settings::new().log_severity(LogSeverity::Info);
-    let context = Context::initialize(settings, Some(app), None).unwrap();
-    // let logger = Box::new(Logger::builder().level(log::LevelFilter::Info).build());
-    info!("Starting CEF");
-
-    //Create window
-    let mut window_info = WindowInfo::new();
-    window_info.platform_specific.style = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE;
-    window_info.window_name = "One Tagger".into();
-    window_info.width = 1280;
-    window_info.height = 750;
-    window_info.x = 300;
-    window_info.y = 100;
-
-    let browser_settings = BrowserSettings::new();
-    let client = Client::new(ClientCallbacksImpl {
-        life_span_handler: LifeSpanHandler::new(LifeSpanHandlerImpl {})
     });
+}
 
-    info!("Opening CEF Window");
-    let browser = BrowserHost::create_browser_sync(
-        &window_info,
-        client,
-        "http://127.0.0.1:36913/",
-        &browser_settings,
-        None,
-        None
-    );
-    //Set icon
-    unsafe {
-        if let Some(handle) = browser.get_host().get_window_handle() {
-            let raw = handle.to_cef_handle();
-            //Create bitmap
-            let mut icon_data = include_bytes!("../../assets/64x64.bin").to_owned();
-            let bitmap = CreateBitmap(64, 64, 1, 32, icon_data.as_mut_ptr() as *mut c_void);
-            let dc = GetDC(raw);
-            let mask = CreateCompatibleBitmap(dc, 64, 64);
-            //Create icon
-            let mut icon = ICONINFO {
-                fIcon: 1,
-                xHotspot: NULL as u32,
-                yHotspot: NULL as u32,
-                hbmMask: mask,
-                hbmColor: bitmap
-            };
-            let icon = CreateIconIndirect(&mut icon);
-            //Set icon
-            SendMessageA(raw, WM_SETICON, ICON_BIG as usize, icon as isize);
-            SendMessageA(raw, WM_SETICON, ICON_SMALL as usize, icon as isize);
+//Wrapper for exitting and logging
+#[cfg(target_os = "windows")]
+pub fn bootstrap_webview2_wrap() {
+    use std::process::exit;
+    match bootstrap_webview2() {
+        Ok(r) => match r {
+            true => {}
+            false => {
+                error!("webview2 bootstrap installation was successful, however webview2 failed to detect it.");
+                exit(2);
+            }
+        },
+        Err(e) => {
+            error!("Failed bootstrapping webview2: {}", e);
+            exit(1);
         }
     }
+}
 
-    context.run_message_loop();
+//Install evergreen webview2 for Windows
+#[cfg(target_os = "windows")]
+fn bootstrap_webview2() -> Result<bool, Box<dyn Error>> {
+    use tempfile::tempdir;
+    use std::process::Command;
+    //Already installed
+    if webview2::get_available_browser_version_string(None).is_ok() {
+        return Ok(true);
+    }
 
-    info!("CEF Quit");
+    info!("Bootstrapping webview2...");
+    //Download
+    let dir = tempdir()?;
+    let path = dir.path().join("evergreen.exe");
+    {
+        let mut file = File::create(&path)?;
+        let mut res = reqwest::blocking::get("https://go.microsoft.com/fwlink/p/?LinkId=2124703")?;
+        std::io::copy(&mut res, &mut file)?;
+    }
+
+    //Run
+    Command::new(path.to_str().ok_or("Invalid path")?)
+        .status()?;
+    dir.close().ok();
+
+    //Verify
+    Ok(webview2::get_available_browser_version_string(None).is_ok())
 }
 
 //OneTagger Error, meant for UI

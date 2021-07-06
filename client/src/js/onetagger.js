@@ -135,7 +135,39 @@ class OneTagger {
                     console.log(json);
                     break;
             }
-        } 
+        }
+
+        //Webview/OS message. vue = instance
+        this.onOSMessage = (json, vue) => {
+            switch (json.action) {
+                //Drag and drop path
+                case 'browse':
+                    //Callback by route
+                    let route = vue.$router.currentRoute.path.substring(1).split('/')[0];
+                    switch (route) {
+                        case 'autotagger':
+                            this.config.path = json.path;
+                            break;
+                        case 'audiofeatures':
+                            this.onAudioFeaturesEvent(json);
+                            break;
+                        case 'tageditor':
+                            this.onTagEditorEvent(json);
+                            break;
+                        case 'quicktag':
+                            this.settings.path = json.path;
+                            this.loadQuickTag(null);
+                            break;
+                        default:
+                            this.settings.path = json.path;
+                            break;
+                    }
+                    break;
+                default:
+                    console.log(`Unknown OS action: ${json}`);
+                    break;
+            }
+        }
 
         //Default autotagger config
         this.config = Vue.observable({
