@@ -59,7 +59,7 @@ jobs:
       run: |
         mkdir dist
         powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
-        "C:\Program Files (x86)\NSIS\makensis.exe" assets\installer.nsi
+        &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
         copy target\release\onetagger.exe dist\OneTagger-windows.exe
 
     - name: Upload Archive
