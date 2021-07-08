@@ -54,7 +54,7 @@
     <!-- Welcome -->
     <div class='q-pl-xl q-pt-xl'>
        
-        <img svg-inline src="../assets/logo.svg" height='180' width='250' style='margin-left: -15px; margin-bottom: -30px;'>
+        <img svg-inline src="../assets/logo.svg" height='180' width='280' style='margin-left: -25px; margin-bottom: -30px;'>
         
         <div class='q-pt-md text-h5 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
@@ -68,8 +68,8 @@
         
         <div class='q-pt-lg text-subtitle1 text-grey-4'>
             Need help? Check out our <span class='text-bold'>Getting started</span> sections.<br>
-            Found a bug or have a request? Post it on <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img src="../assets/github.png" width='64px'></span><br>
-            Like the app? Contribute by donating through <span class='tiny-logo text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'><img src="../assets/paypal.png" width='64px'></span> or <span class='tiny-logo text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'><img src="../assets/patreon.png" width='70px'></span>
+            Found a bug or have a request? Post it on <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img src="../assets/github.svg" width='64px'></span><br>
+            Like the app? Contribute by donating through <span class='tiny-logo text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'><img src="../assets/paypal.svg" width='64px'></span> or <span class='tiny-logo text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'><img src="../assets/patreon.svg" width='70px'></span>
         </div>
     </div>
 
