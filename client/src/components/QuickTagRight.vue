@@ -15,8 +15,8 @@
             <div 
                 @mouseenter="mouseOver.index = j; mouseOver.tag = i"
                 class='text-subtitle2 clickable' 
-                :class='{"text-bold text-primary": selected(tag, j) || (mouseOver.index == j && mouseOver.tag == i), "text-grey-6": !selected(tag, j)}'
-                @click='valueClick(tag, j)'
+                :class='{"text-bold text-primary": selected(i, value.val) || (mouseOver.index == j && mouseOver.tag == i), "text-grey-6": !selected(i, value.val)}'
+                @click='valueClick(i, value.val)'
             >{{value.val}}</div>
         </div>
     </div>
@@ -34,14 +34,21 @@ export default {
     },
     methods: {
         //If the value is present in tag
-        selected(tag, j) {
+        selected(tag, value) {
             if (!this.$1t.quickTag.track) return false;
-            return this.$1t.quickTag.track.hasCustom(tag, j);
+            return this.$1t.quickTag.track.custom[tag].includes(value);
         },
         //Tag value click
-        valueClick(tag, j) {
+        valueClick(tag, value) {
             if (!this.$1t.quickTag.track) return false;
-            this.$1t.quickTag.track.toggleCustom(tag, j);
+            let i = this.$1t.quickTag.track.custom[tag].indexOf(value);
+            // Add or remove
+            if (i == -1) {
+                this.$1t.quickTag.track.custom[tag].push(value);
+            } else {
+                this.$1t.quickTag.track.custom[tag].splice(i, 1);
+            }
+            
         }
     }
 }

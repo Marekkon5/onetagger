@@ -544,7 +544,6 @@ class OneTagger {
         if (this.quickTag.track) {
             let changes = this.quickTag.track.getOutput();
             this.send('quickTagSave', {changes});
-            this.quickTag.track.clearChanges();
         }
     }
 

@@ -55,8 +55,8 @@
                     dense
                     label="Note tag"
                     style='width: 256px;'
-                    @input='$1t.quickTag.track.setNote($event)'
                     :value='$1t.quickTag.track.getNote()'
+                    @input='$1t.quickTag.track.setNote($event)'
                     @keyup.enter="noteDialog = false"
                     ref='noteDialogInput'
                 ></q-input>

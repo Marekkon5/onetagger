@@ -1,50 +1,40 @@
-import Vue from 'vue';
-
 class QTTrack {
-    //From backend
+    // From backend
     constructor(data, settings) {
         Object.assign(this, data);
         this.settings = settings;
 
-        //Load mood, energy
+        // Load mood, energy etc
         this.mood = this.getMood();
         this.energy = this.getEnergy();
-
-        this._changes = [];
+        this.note = this.getNote();
+        this._originalNote = this.note;
+        this.genre = this.genres[0];
+        this.custom = this.loadCustom();
     }
 
+    // Get note from tags
     getNote() {
-        return this.tags[this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()])];
-    }
-
-    setNote(note) {
-        //Set
-        let tag = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
-        this.tags[tag] = note.split(',');
-        //Create change
-        let index = this._changes.findIndex((c) => c.type == 'raw' && c.tag == tag);
-        if (index > -1) this._changes.splice(index, 1);
-        this._changes.push({
-            type: 'raw',
-            tag,
-            value: note.split(',')
-        });
-    }
-
-    //Set new genre
-    setGenre(genre) {
-        this.genres = [genre];
-        //Generate change
-        let change = {
-            type: 'genre',
-            value: [genre]
+        if (this.note) {
+            return this.note;
         }
-        let index = this._changes.findIndex((c) => c.type == 'genre');
-        if (index == -1) this._changes.push(change);
-        else this._changes[index] = change;
+        let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
+        let note = this.tags[field];
+        // Remove custom tags from note
+        for (let custom of this.settings.custom) {
+            if (custom.tag[this.getTagField()] == field) {
+                note = note.filter(v => !custom.values.map(i => i.val).includes(v));
+            }
+        }
+        return note.join(',');
     }
 
-    //Get name of field for tag
+    // Update note field
+    setNote(note) {
+        this.note = note;
+    }
+
+    // Get name of field for tag
     getTagField() {
         switch (this.format) {
             case 'mp3':
@@ -59,14 +49,14 @@ class QTTrack {
 
     removeAbstractions(input) {
         if (this.format != 'mp4' || !input) return input;
-        //Leading
+        // Leading
         input = input.replace('----:', '');
-        //iTunes:VALUE -> com.apple.Itunes:VALUE
+        // iTunes:VALUE -> com.apple.Itunes:VALUE
         if (input.startsWith('iTunes:')) input = 'com.apple.' + input;
         return input;
     }
 
-    //Get mood tag value
+    // Get mood tag value
     getMood() {
         let field = this.removeAbstractions(this.settings.moodTag[this.getTagField()]);
         if (this.tags[field]??[].length >= 1) {
@@ -76,14 +66,14 @@ class QTTrack {
     }
 
     getEnergy() {
-        //Use rating as energy
+        // Use rating as energy
         if (this.settings.energyTag.type == 'rating') {
             return this.rating??0;
         }
-        //Use custom symbols as energy
+        // Use custom symbols as energy
         let t = this.tags[this.removeAbstractions(this.settings.energyTag.tag[this.getTagField()])];
         if (t) {
-            //Use first element of array
+            // Use first element of array
             if (typeof t == 'object') {
                 if (t.length == 0) return 0;
                 t = t[0];
@@ -93,54 +83,33 @@ class QTTrack {
         return 0;
     }
 
-    //If has custom tag value
-    hasCustom(custom, index) {
-        let field = this.removeAbstractions(custom.tag[this.getTagField()]);
-        let tag = this.tags[field];
-        if (!tag) return false;
-        return tag.find((t) => custom.values[index].val.toLowerCase() == t.toLowerCase());
-    }
-
-    //Toggle custom value
-    toggleCustom(custom, index) {
-        let field = this.removeAbstractions(custom.tag[this.getTagField()]);
-        //Add tag
-        if (!this.tags[field]) Vue.set(this.tags, field, []);
-        let value = custom.values[index].val;
-        let i = this.tags[field].findIndex((t) => t.toLowerCase() == value.toLowerCase());
-        //Add or remove tag if exists
-        if (i == -1) this.tags[field].push(value)
-        else this.tags[field].splice(i, 1);
-        //Clean
-        this.tags[field] = this.tags[field].filter((t) => t && t.trim() != "");
-        //Generate change
-        let change = {
-            type: 'raw',
-            tag: field,
-            value: this.tags[field]
-        };
-        //Update change
-        i = this._changes.findIndex((c) => c.tag == field);
-        if (i == -1) this._changes.push(change);
-        else this._changes[i] = change;
-    }
-
-    //Get all selected custom values
-    getAllCustom(custom) {
-        let out = [];
-        for(let i=0; i<custom.length; i++) {
-            let field = this.removeAbstractions(custom[i].tag[this.getTagField()]);
-            let values = this.tags[field]??[];
-            //Don't add duplicate tags
-            out = out.concat(values.filter((v) => !out.includes(v)));
+    // Load custom tags
+    loadCustom() {
+        let output = [];
+        for (let custom of this.settings.custom) {
+            let t = this.tags[this.removeAbstractions(custom.tag[this.getTagField()])]??[];
+            // Filter atributes if multiple custom tags use the same tag
+            t = t.filter(t => custom.values.findIndex(v => v.val == t) != -1)
+            output.push(t);
         }
+        return output;
+    }
+
+    // Get all selected custom values + note (for chips)
+    getAllCustom() {
+        let out = [];
+        for (let custom of this.custom) {
+            out = out.concat(custom.filter(v => !out.includes(v)));
+        }
+        // Add note tag
+        out = out.concat(this.note.split(',').filter(v => !out.includes(v)));
         return out;
     }
 
-    //Get output tags
+    // Get output tags
     getOutput() {
-        let changes = this._changes;
-        //Mood change
+        let changes = [];
+        // Mood change
         if (this.getMood() != this.mood) {
             changes.push({
                 type: 'raw',
@@ -148,15 +117,15 @@ class QTTrack {
                 value: [this.mood]
             });
         }
-        //Energy change
+        // Energy change
         if (this.getEnergy() != this.energy && this.energy != 0) {
-            //Rating tag
+            // Rating tag
             if (this.settings.energyTag.type == 'rating') {
                 changes.push({
                     type: 'rating',
                     value: this.energy
                 });
-            //Custom symbol
+            // Custom symbol
             } else {
                 changes.push({
                     type: 'raw',
@@ -165,19 +134,62 @@ class QTTrack {
                 });
             }
         }
-        //Genre change
+        // Genre change
+        if (this.genre != this.genres[0]) {
+            changes.push({
+                type: 'genre',
+                value: [this.genre]
+            })
+        }
+        // Note change
+        if (this._originalNote != this.note) {
+            let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
+            // Remove original note from tags, add new one
+            let original = this._originalNote.split(',');
+            let value = (this.tags[field]??[]).filter(t => !original.includes(t));
+            changes.push({
+                type: 'raw',
+                tag: field,
+                value: value.concat(this.note.split(','))
+            })
+        }
+        
+        // Custom tags
+        let original = this.loadCustom();
+        for(let i=0; i<original.length; i++) {
+            if (original[i].length != this.custom[i].length) {
+                
+                let field = this.removeAbstractions(this.settings.custom[i].tag[this.getTagField()]);
+                let values = [];
+                let existingIndex = changes.findIndex(c => c.tag == field);
+                // Original tag data
+                if (existingIndex == -1) {
+                    values = this.tags[field]??[];
+                    values = values.filter(v => !this.settings.custom[i].values.find(t => t.val == v));
+                }
+                // Multiple changes for the same tag
+                while (existingIndex != -1) {
+                    values = values.concat(changes[existingIndex].value
+                        .filter(v => !this.settings.custom[i].values.find(t => t.val == v))
+                    );
+                    changes.splice(existingIndex, 1);
+                    existingIndex = changes.findIndex(c => c.tag == field);
+                }
+                changes.push({
+                    type: 'raw',
+                    tag: field,
+                    value: values.concat(this.custom[i])
+                })
+            }
+        }
         return {changes, path: this.path};
     }
 
-    //Wether the track has changes
+    // Wether the track has changes
     isChanged() {
         return this.getOutput().changes.length > 0
     }
 
-    //Remove all changes (on save)
-    clearChanges() {
-        this._changes = [];
-    }
 }
 
 export {QTTrack};
