@@ -9,9 +9,9 @@ use crate::tagger::spotify::Spotify;
 use crate::tagger::{AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
 use crate::tag::{Tag, AudioFileFormat, UITag, TagSeparators};
 
-// CONFIG SERIALIZATION
+//  CONFIG SERIALIZATION
 
-//Config from UI
+// Config from UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioFeaturesConfig {
@@ -21,7 +21,7 @@ pub struct AudioFeaturesConfig {
     pub properties: AFProperties
 }
 
-//Audio features
+// Audio features
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AFProperties {
@@ -35,7 +35,7 @@ pub struct AFProperties {
 }
 
 impl AFProperties {
-    //Merge properties into list with actual values
+    // Merge properties into list with actual values
     pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
         vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
@@ -56,7 +56,7 @@ impl AFProperties {
     }
 }
 
-//Property merged with value
+// Property merged with value
 pub struct AFPropertyMerged {
     pub tag: String,
     pub value: i8,
@@ -66,7 +66,7 @@ pub struct AFPropertyMerged {
 }
 
 impl AFPropertyMerged {
-    //Create new merged property, value = rspotify value
+    // Create new merged property, value = rspotify value
     pub fn new(value: f32, property: &AFProperty, format: &AudioFileFormat) -> AFPropertyMerged {
         AFPropertyMerged {
             value: (value * 100.0) as i8,
@@ -77,7 +77,7 @@ impl AFPropertyMerged {
         }
     }
 
-    //Set main values by range
+    // Set main values by range
     pub fn add_main_value(mut self, under: &str, middle: &str, over: &str) -> Self {
         if self.enabled {
             self.main_value = self.range.select(self.value, under, middle, over);
@@ -86,7 +86,7 @@ impl AFPropertyMerged {
     }
 }
 
-//Audio Features property
+// Audio Features property
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AFProperty {
@@ -95,7 +95,7 @@ pub struct AFProperty {
     pub enabled: bool
 }
 
-//Threshold range in config
+// Threshold range in config
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AFRange {
@@ -103,7 +103,7 @@ pub struct AFRange {
     pub max: i8
 }
 impl AFRange {
-    //Select value under or over range
+    // Select value under or over range
     pub fn select(&self, v: i8, under: &str, middle: &str, over: &str) -> String {
         if v < self.min {
             return under.to_owned();
@@ -117,25 +117,25 @@ impl AFRange {
 
 pub struct AudioFeatures {}
 impl AudioFeatures {
-    //Returtns progress receiver, and file count
+    // Returtns progress receiver, and file count
     pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> Receiver<TaggingStatusWrap> {
         let file_count = files.len();
-        //Start
+        // Start
         let (tx, rx) = channel();
         thread::spawn(move || {
             for (i, file) in files.iter().enumerate() {
-                //Create status
+                // Create status
                 let mut status = TaggingStatus {
                     status: TaggingState::Error,
                     path: file.to_owned(),
                     message: None, accuracy: None
                 };
-                //Load file
+                // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None) {
-                    //Match and get features
+                    // Match and get features
                     match AudioFeatures::find_features(&spotify, &info) {
                         Ok(features) => {
-                            //Write to file
+                            // Write to file
                             match AudioFeatures::write_to_path(&file, &features, &config) {
                                 Ok(_) => {
                                     status.status = TaggingState::Ok;
@@ -146,14 +146,14 @@ impl AudioFeatures {
                                 }
                             };
                         },
-                        //Failed searching track
+                        // Failed searching track
                         Err(e) => {
                             error!("Audio features search track by ISRC error: {}", e);
                             status.status = TaggingState::Error;
                         }
                     }
                 }
-                //Send status
+                // Send status
                 tx.send(TaggingStatusWrap::wrap(
                     MusicPlatform::Spotify, 
                     &status, 
@@ -167,10 +167,10 @@ impl AudioFeatures {
         rx
     }
 
-    //Get features from track
+    // Get features from track
     fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<rspotify::model::audio::AudioFeatures, Box<dyn Error>> {
         let mut track_id: Option<String> = None;
-        //Get by ISRC
+        // Get by ISRC
         if let Some(isrc) = track.isrc.as_ref() {
             let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
             if let Some(track) = results.first() {
@@ -178,11 +178,11 @@ impl AudioFeatures {
                 info!("[AF] Found track by ISRC. {:?}", track_id);
             }
         }
-        //Fallback
+        // Fallback
         if track_id.is_none() {
             let q = format!("{} {}", track.artists[0].to_lowercase(), MatchingUtils::clean_title(&track.title));
             let results = spotify.search_tracks(&q, 20)?;
-            //Match
+            // Match
             for t in results {
                 let title_1 = MatchingUtils::clean_title_matching(&t.name);
                 let title_2 = MatchingUtils::clean_title_matching(&track.title);
@@ -197,21 +197,21 @@ impl AudioFeatures {
             }
         }
 
-        //Get features
+        // Get features
         let features = spotify.audio_features(&track_id.ok_or("Invalid track / no match")?)?;
         Ok(features)
     }
 
-    //Write to path
+    // Write to path
     fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
-        //Load tag
+        // Load tag
         let mut tag_wrap = Tag::load_file(path, false)?;
         tag_wrap.set_separators(&config.separators);
 
         let format = tag_wrap.format.clone();
         let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
 
-        //Get properties
+        // Get properties
         let mut main_tag = vec![];
         for property in config.properties.merge_with_values(features, format.clone()) {
             if !property.tag.is_empty() {
@@ -221,12 +221,12 @@ impl AudioFeatures {
                 main_tag.push(property.main_value);
             }
         }
-        //Set main tag
+        // Set main tag
         if !main_tag.is_empty() {
             tag.set_raw(&config.main_tag.by_format(&format), main_tag, true);
         }
 
-        //Save
+        // Save
         tag.save_file(path)?;
         Ok(())
     }

@@ -25,7 +25,7 @@ impl MP4Tag {
         })
     }
 
-    //Convert DataIdent to string value
+    // Convert DataIdent to string value
     pub fn ident_to_string(ident: &DataIdent) -> String {
         match ident {
             DataIdent::Fourcc(d) => format!("{}", d),
@@ -35,17 +35,17 @@ impl MP4Tag {
 
     pub fn string_to_ident(ident: &str) -> DataIdent {
         let mut bytes = ident.as_bytes().to_owned();
-        //Replace UTF-8 © with the proper character
+        // Replace UTF-8 © with the proper character
         if bytes.len() == 5 && bytes[0..2] == [194, 169] {
             bytes = vec![MAGIC, bytes[2], bytes[3], bytes[4]];
         }
-        //Fourcc
+        // Fourcc
         if bytes.len() == 4 {
             return DataIdent::fourcc(bytes.try_into().unwrap());
         }
-        //Convert string freeform
+        // Convert string freeform
         let mut ident = ident.replacen("----:", "", 1);
-        //iTunes:VALUE abstraction
+        // iTunes:VALUE abstraction
         if ident.starts_with("iTunes:") {
             ident = format!("com.apple.{}", ident);
         }
@@ -59,7 +59,7 @@ impl MP4Tag {
         DataIdent::freeform(mean, name)
     }
 
-    //Convert field to MP4 tag
+    // Convert field to MP4 tag
     fn field_to_ident(field: Field) -> DataIdent {
         match field {
             Field::Title => DataIdent::fourcc(*b"\xa9nam"),
@@ -71,16 +71,16 @@ impl MP4Tag {
             Field::ISRC => DataIdent::freeform("com.apple.iTunes", "ISRC"),
             Field::CatalogNumber => DataIdent::freeform("com.apple.iTunes", "CATALOGNUMBER"),
             Field::Version => DataIdent::fourcc(*b"desc"),
-            //Custom/Unofficial
+            // Custom/Unofficial
             Field::Key => DataIdent::freeform("com.apple.iTunes", "KEY"),
             Field::Style => DataIdent::freeform("com.apple.iTunes", "STYLE"),
         }
     }
 
-    //Get raw tag value by identifier
+    // Get raw tag value by identifier
     fn raw_by_ident(&self, ident: &DataIdent) -> Option<Vec<String>> {
         let data: Vec<String> = self.tag.data_of(ident).filter_map(|data| {
-            //Save only text values
+            // Save only text values
             match data {
                 Data::Utf8(d) => Some(d.to_owned()),
                 Data::Utf16(d) => Some(d.to_owned()),
@@ -90,11 +90,11 @@ impl MP4Tag {
         if data.is_empty() {
             return None;
         }
-        //Convert multi tag to single with separator
+        // Convert multi tag to single with separator
         Some(data.join(&self.separator).split(&self.separator).map(String::from).collect())
     }
 
-    //Raw version of set_art
+    // Raw version of set_art
     fn add_art(&mut self, mime: &str, data: Vec<u8>) {
         if mime == "image/jpeg" || mime == "image/jpg" {
             self.tag.add_artwork(Img::jpeg(data));
@@ -125,7 +125,7 @@ impl TagImpl for MP4Tag {
 
         for (ident, data) in self.tag.data() {
             let mut values = vec![];
-            //Save only text values
+            // Save only text values
             match data {
                 Data::Utf8(d) => values = d.split(&self.separator).map(String::from).collect(),
                 Data::Utf16(d) => values = d.split(&self.separator).map(String::from).collect(),
@@ -142,7 +142,7 @@ impl TagImpl for MP4Tag {
     fn set_date(&mut self, date: &TagDate, overwrite: bool) {
         let ident = DataIdent::fourcc(*b"\xa9day");
         if self.raw_by_ident(&ident).is_none() || overwrite {
-            //Write year or ISO timestamp
+            // Write year or ISO timestamp
             let value = if self.date_year_only || !date.has_md() {
                 date.year.to_string()
             } else {
@@ -157,10 +157,10 @@ impl TagImpl for MP4Tag {
     }
 
     fn set_publish_date(&mut self, _date: &TagDate, _overwrite: bool) {
-        //Unsupported (mp4 barely even supports dates)
+        // Unsupported (mp4 barely even supports dates)
     }
 
-    //RATING NOT FINAL, used same as KID3
+    // RATING NOT FINAL, used same as KID3
     fn get_rating(&self) -> Option<u8> {
         let val = self.get_raw("rate")?.first()?.parse::<u8>().ok()?;
         let rating = val / 20;
@@ -188,11 +188,11 @@ impl TagImpl for MP4Tag {
         let types = CoverType::types();
         let mut type_i = 0;
         self.tag.artworks().filter_map(|img| {
-            //Use all cover types in order to not break removing covers
+            // Use all cover types in order to not break removing covers
             let kind = types[type_i].clone();
             type_i += 1;
             let description = String::new();
-            //Convert to mime from type
+            // Convert to mime from type
             let mime = match img.fmt {
                 ImgFmt::Bmp => "image/bmp",
                 ImgFmt::Jpeg => "image/jpeg",
@@ -204,8 +204,8 @@ impl TagImpl for MP4Tag {
     }
 
     fn remove_art(&mut self, kind: CoverType) {
-        //Because M4A doesn't really have cover types, 1t assigns them in sequence
-        //to make removing possible, so it acts as index
+        // Because M4A doesn't really have cover types, 1t assigns them in sequence
+        // to make removing possible, so it acts as index
         let arts = self.get_art();
         let artworks: Vec<&Picture> = arts.iter().filter(|p| p.kind != kind).collect();
         self.tag.remove_artworks();
@@ -218,7 +218,7 @@ impl TagImpl for MP4Tag {
         let ident = MP4Tag::field_to_ident(field);
         if self.tag.data_of(&ident).next().is_none() || overwrite {
             self.tag.remove_data_of(&ident);
-            //Add each data separately
+            // Add each data separately
             for v in value {
                 self.tag.add_data(ident.clone(), Data::Utf8(v));
             }

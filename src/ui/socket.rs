@@ -60,7 +60,7 @@ enum TaggerConfigs {
 }
 
 impl TaggerConfigs {
-    //Print to log for later easier debug
+    // Print to log for later easier debug
     pub fn debug_print(&self) {
         match self {
             TaggerConfigs::AutoTagger(c) => {
@@ -75,7 +75,7 @@ impl TaggerConfigs {
     }
 }
 
-//Shared variables in socket
+// Shared variables in socket
 struct SocketContext {
     player: AudioPlayer,
     spotify: Option<Spotify>,
@@ -93,7 +93,7 @@ impl SocketContext {
 }
 
 
-//Start WebSocket UI server
+// Start WebSocket UI server
 pub fn start_socket_server(context: StartContext) {
     let host = match context.expose {
         true => "0.0.0.0:36912",
@@ -103,10 +103,10 @@ pub fn start_socket_server(context: StartContext) {
     for stream in server.incoming() {
         let context = context.clone();
         thread::spawn(move || {
-            //Create shared
+            // Create shared
             let mut context = SocketContext::new(context);
 
-            //Websocket loop
+            // Websocket loop
             let mut websocket = accept(stream.unwrap()).unwrap();
             loop {
                 match websocket.read_message() {
@@ -116,7 +116,7 @@ pub fn start_socket_server(context: StartContext) {
                             match handle_message(text, &mut websocket, &mut context) {
                                 Ok(_) => {},
                                 Err(err) => {
-                                    //Send error to UI
+                                    // Send error to UI
                                     error!("Websocket: {:?}, Data: {}", err, text);
                                     websocket.write_message(Message::from(json!({
                                         "action": "error",
@@ -127,7 +127,7 @@ pub fn start_socket_server(context: StartContext) {
                         }
                     },
                     Err(e) => {
-                        //Connection closed
+                        // Connection closed
                         if !websocket.can_read() || !websocket.can_write() {
                             warn!("{} - Websocket can't read or write, closing connection!", e);
                             break;
@@ -142,10 +142,10 @@ pub fn start_socket_server(context: StartContext) {
 
 
 fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Box<dyn Error>> {
-    //Parse JSON
+    // Parse JSON
     let action: Action = serde_json::from_str(text)?;
     match action {
-        //Get initial info
+        // Get initial info
         Action::Init => {
             websocket.write_message(Message::from(json!({
                 "action": "init",
@@ -161,10 +161,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     "settings": settings.ui
                 }).to_string())).ok();
             }
-            //Ignore settings if they don't exist (might be initial load)
+            // Ignore settings if they don't exist (might be initial load)
             Err(e) => error!("Failed loading settings, using defaults. {}", e)
         },
-        //Browse for folder
+        // Browse for folder
         Action::Browse { path, context } => {
             let mut initial = path.unwrap_or(".".to_string());
             if initial.is_empty() || !Path::new(&initial).exists() {
@@ -178,21 +178,21 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 }).to_string())).ok();
             }
         },
-        //Open URL in external browser
+        // Open URL in external browser
         Action::Browser { url } => { webbrowser::open(&url)?; },
         Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
         Action::StartTagging { config, playlist } => {
             config.debug_print();
 
-            //Load playlist
+            // Load playlist
             let mut files = if let Some(playlist) = playlist {
                 playlist.get_files()?
             } else { vec![] };
             let mut file_count = files.len();
-            //Load taggers
+            // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
-                    //Load file list
+                    // Load file list
                     if files.is_empty() {
                         files = Tagger::get_file_list(&c.path.as_ref().unwrap_or(&String::new()));
                         file_count = files.len();
@@ -205,20 +205,20 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                         files = Tagger::get_file_list(&c.path.as_ref().unwrap_or(&String::new()));
                         file_count = files.len();
                     }
-                    //Authorize spotify
+                    // Authorize spotify
                     let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
                     let rx = AudioFeatures::start_tagging(c.clone(), spotify, files);
                     ("audioFeatures", rx)
                 },
             };
 
-            //Start
+            // Start
             websocket.write_message(Message::from(json!({
                 "action": "startTagging",
                 "files": file_count,
                 "type": tagger_type
             }).to_string())).ok();
-            //Tagging
+            // Tagging
             let start = timestamp!();
             for status in rx {
                 websocket.write_message(Message::from(json!({
@@ -227,7 +227,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 }).to_string())).ok();
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
-            //Done
+            // Done
             websocket.write_message(Message::from(json!({
                 "action": "taggingDone"
             }).to_string())).ok();
@@ -235,35 +235,35 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::Waveform { path } => {
             let source = AudioSources::from_path(&path)?;
             let (waveform_rx, cancel_tx) = source.generate_waveform(180)?;
-            //Streamed
+            // Streamed
             for wave in waveform_rx {
                 websocket.write_message(Message::from(json!({
                     "action": "waveformWave",
                     "wave": wave
                 }).to_string())).ok();
-                //Check reply
+                // Check reply
                 websocket.read_message().ok();
                 if !websocket.can_write() {
                     cancel_tx.send(true).ok();
                 }
             }
-            //Done
+            // Done
             websocket.write_message(Message::from(json!({
                 "action": "waveformDone",
             }).to_string())).ok();
         },
-        //Load player file
+        // Load player file
         Action::PlayerLoad { path } => {
             let source = AudioSources::from_path(&path)?;
-            //Send to UI
+            // Send to UI
             websocket.write_message(Message::from(json!({
                 "action": "playerLoad",
                 "duration": source.duration() as u64
             }).to_string())).ok();
-            //Load
+            // Load
             context.player.load_file(source);
         },
-        // Controls
+        //  Controls
         Action::PlayerPlay => context.player.play(),
         Action::PlayerPause => context.player.pause(),
         Action::PlayerSeek { pos } => {
@@ -273,14 +273,14 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }).to_string())).ok();
         },
         Action::PlayerVolume { volume } => context.player.volume(volume),
-        //Load quicktag files or playlist
+        // Load quicktag files or playlist
         Action::QuickTagLoad { path, playlist, recursive } => {
             let mut files = vec![];
-            //Playlist
+            // Playlist
             if let Some(playlist) = playlist {
                 files = QuickTag::load_files_playlist(&playlist)?;
             }
-            //Path
+            // Path
             if let Some(path) = path {
                 files = QuickTag::load_files_path(&path, recursive.unwrap_or(false))?;
             }
@@ -289,7 +289,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "data": files
             }).to_string())).ok();
         },
-        //Save quicktag changes
+        // Save quicktag changes
         Action::QuickTagSave { changes } => {
             let tag = changes.commit()?;
             websocket.write_message(Message::from(json!({
@@ -299,14 +299,14 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }).to_string())).ok();
         },
         Action::SpotifyAuthorize { client_id, client_secret } => {
-            //Authorize cached
+            // Authorize cached
             if let Some(spotify) = Spotify::try_cached_token(&client_id, &client_secret) {
                 context.spotify = Some(spotify);
-            //Authorize new
+            // Authorize new
             } else {
                 let (auth_url, mut oauth) = Spotify::generate_auth_url(&client_id, &client_secret);
                 webbrowser::open(&auth_url)?;
-                let spotify = Spotify::auth_server(&mut oauth)?;
+                let spotify = Spotify::auth_server(&mut oauth, context.start_context.expose)?;
                 context.spotify = Some(spotify);
             }
             websocket.write_message(Message::from(json!({
@@ -314,7 +314,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "value": true
             }).to_string())).ok();
         },
-        //Check if authorized
+        // Check if authorized
         Action::SpotifyAuthorized => {
             websocket.write_message(Message::from(json!({
                 "action": "spotifyAuthorized",
@@ -324,10 +324,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::TagEditorFolder { path, subdir, recursive } => {
             let user_dirs = UserDirs::new().ok_or("Invalid home dir!")?;
             let path_raw = path.unwrap_or(user_dirs.audio_dir().ok_or("Missing path!")?.to_str().ok_or("Invalid path!")?.to_string());
-            //Get parent
+            // Get parent
             let path = Path::new(&path_raw);
             let subdir = subdir.unwrap_or(String::new());
-            //Override for playlists
+            // Override for playlists
             let path = if !path.is_dir() {
                 if subdir == ".." {
                     path.parent().ok_or("Invalid playlist parent!")?.to_owned()
@@ -337,7 +337,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             } else {
                 canonicalize(Path::new(&path_raw).join(subdir))?
             };
-            //Load
+            // Load
             let path = path.to_str().unwrap();
             let files = match recursive.unwrap_or(false) {
                 true => TagEditor::list_dir_recursive(path)?,
@@ -347,11 +347,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "tagEditorFolder",
                 "files": files,
                 "path": path,
-                //Stateless
+                // Stateless
                 "recursive": recursive
             }).to_string())).ok();
         },
-        //Load tags of file
+        // Load tags of file
         Action::TagEditorLoad { path } => {
             let data = TagEditor::load_file(&path)?;
             websocket.write_message(Message::from(json!({
@@ -359,7 +359,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "data": data
             }).to_string())).ok();
         },
-        //Save changes
+        // Save changes
         Action::TagEditorSave { changes } => {
             let _tag = changes.commit()?;
             websocket.write_message(Message::from(json!({

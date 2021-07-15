@@ -8,14 +8,14 @@ class OneTagger {
         this.WAVES = 180;
         this.ws = new WebSocket(`ws://${window.location.hostname}:36912`);
 
-        //WS error
+        // WS error
         this.ws.onerror = (_, e) => {
             this.onError(e ?? "WebSocket error!");
         };
         this.ws.onclose = () => {
             this.onError('WebSocket closed!');
         }
-        //Load settings on load
+        // Load settings on load
         this.ws.onopen = () => {
             this.send('loadSettings');
             setTimeout(() => {
@@ -26,14 +26,14 @@ class OneTagger {
 
         this.info = Vue.observable({version: '0.0.0'});
 
-        //WS Message handler
+        // WS Message handler
         this.ws.onmessage = (event) => {
             let json = JSON.parse(event.data);
             if (!json.action) return;
 
-            //Action
+            // Action
             switch (json.action) {
-                //Initial info
+                // Initial info
                 case 'init':
                     this.info.version = json.version;
                     //Path from args
@@ -42,31 +42,31 @@ class OneTagger {
                         this.config.path = json.startContext.startPath;
                     }
                     break;
-                //Settings loaded
+                // Settings loaded
                 case 'loadSettings':
                     this.loadSettings(json.settings);
                     break;
-                //Path selected
+                // Path selected
                 case 'browse':
-                    //Autotagger path
+                    // Autotagger path
                     if (json.context == 'at')
                         this.config.path = json.path;
-                    //Quicktag path
+                    // Quicktag path
                     if (json.context == 'qt') {
                         Vue.set(this.settings, 'path', json.path);
                         this.loadQuickTag();
                         this.saveSettings();
                     }
-                    //Audio features path
+                    // Audio features path
                     if (json.context == 'af')
                         this.onAudioFeaturesEvent(json);
-                    //Tag editor
+                    // Tag editor
                     if (json.context == 'te')
                         this.onTagEditorEvent(json);
                     break;
-                //Error
+                // Error
                 case 'error':
-                    //Unlock, callback
+                    // Unlock, callback
                     this.lock.locked = false;
                     this.onError(json.message);
                     break;
@@ -80,24 +80,24 @@ class OneTagger {
                     this.taggerStatus.total = json.files;
                     this.taggerStatus.type = json.type;
                     break;
-                //Status
+                // Status
                 case 'taggingProgress':
                     this.taggerStatus.progress = json.status.progress;
-                    //De duplicate failed
+                    // De duplicate failed
                     this.taggerStatus.statuses = this.taggerStatus.statuses.filter((s) => {
                         return s.status.path != json.status.status.path;
                     });
                     this.taggerStatus.statuses.push(json.status);
                     
                     break;
-                //Tagging done
+                // Tagging done
                 case 'taggingDone':
                     this.lock.locked = false;
                     this.taggerStatus.done = true;
                     this.taggerStatus.progress = 1.0;
                     this.onTaggingDone();
                     break;
-                //Player load track
+                // Player load track
                 case 'playerLoad':
                     this.player.duration = json.duration;
                     this.player.position = 0;
@@ -106,7 +106,7 @@ class OneTagger {
                 case 'playerSync':
                     this.player.playing = json.playing;
                     break;
-                //Quicktag
+                // Quicktag
                 case 'quickTagLoad':
                     this.quickTag.tracks = json.data.map(t => new QTTrack(t, this.settings.quickTag));
                     break;
@@ -119,13 +119,13 @@ class OneTagger {
                         this.onError('quickTagSaved: Invalid track');
                     }
                     break;
-                //Audio features Spotify
+                // Audio features Spotify
                 case 'spotifyAuthorized':
                     this.onAudioFeaturesEvent(json);
                     break;
-                //Debug
+                // Debug
                 default:
-                    //Tag editor
+                    // Tag editor
                     if (json.action.startsWith('tagEditor')) {
                         this.onTagEditorEvent(json);
                         break;
@@ -136,12 +136,12 @@ class OneTagger {
             }
         }
 
-        //Webview/OS message. vue = instance
+        // Webview/OS message. vue = instance
         this.onOSMessage = (json, vue) => {
             switch (json.action) {
-                //Drag and drop path
+                // Drag and drop path
                 case 'browse':
-                    //Callback by route
+                    // Callback by route
                     let route = vue.$router.currentRoute.path.substring(1).split('/')[0];
                     switch (route) {
                         case 'autotagger':
@@ -168,7 +168,7 @@ class OneTagger {
             }
         }
 
-        //Default autotagger config
+        // Default autotagger config
         this.config = Vue.observable({
             "platforms": ["beatport"],
             "path": null,
@@ -213,7 +213,7 @@ class OneTagger {
                 "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'}
             }
         });
-        //Statuses
+        // Statuses
         this.taggerStatus = Vue.observable({
             statuses: [],
             started: 0,
@@ -222,10 +222,10 @@ class OneTagger {
             total: 0,
             type: null
         });
-        //Lock, enable when tagging
+        // Lock, enable when tagging
         this.lock = Vue.observable({locked: false});
 
-        //Player
+        // Player
         this.player = Vue.observable({
             waveform: [],
             playing: false,
@@ -235,19 +235,19 @@ class OneTagger {
             wasPlaying: false
         });
         this.generateDefaultWaveform();
-        //Player position updater
+        // Player position updater
         setInterval(() => {
             if (this.player.playing)
                 this.player.position += 150;
         }, 150);
 
-        //Quick tag
+        // Quick tag
         this.quickTag = Vue.observable({
             tracks: [],
             track: null,
         });
 
-        //Settings for UI
+        // Settings for UI
         this.settings = Vue.observable({
             path: null,
             autoTaggerConfig: {},
@@ -378,13 +378,13 @@ class OneTagger {
             tagEditorCustom: []
         });
 
-        //If unsaved changes to track
+        // If unsaved changes to track
         this._nextQTTrack = null;
-        //Waveform loading lock
+        // Waveform loading lock
         this._waveformLock = [];
         this._waveformPath = null;
 
-        //Keybinds
+        // Keybinds
         document.addEventListener('keydown', (e) => {
             if (e.target.nodeName == "INPUT") return true;
             if (this.handleKeyDown(e)) {
@@ -393,14 +393,14 @@ class OneTagger {
             }
         });
 
-        //So can be triggered globally
+        // So can be triggered globally
         this.helpDialog = Vue.observable({open: false, route: null});
 
-        //Because the config is global and playlist is passed in wrapper element
+        // Because the config is global and playlist is passed in wrapper element
         this.autoTaggerPlaylist = Vue.observable({filename: null, data: null, format: null});
     }
 
-    //SHOULD BE OVERWRITTEN
+    // SHOULD BE OVERWRITTEN
     onError(msg) {console.error(msg);}
     onTaggingDone() {}
     onQTUnsavedChanges() {}
@@ -408,26 +408,26 @@ class OneTagger {
     onTagEditorEvent() {}
     onAudioFeaturesEvent() {}
 
-    //Send to socket
+    // Send to socket
     send(action, params = {}) {
         let data = { action };
         Object.assign(data, params);
         this.ws.send(JSON.stringify(data));
     }
 
-    //Open URL in external browser
+    // Open URL in external browser
     url(url) {
         this.send("browser", {url});
     }
 
-    //Save settings to file
+    // Save settings to file
     saveSettings(notif = true) {
-        //Very dirty way to clone a dict, but eh
+        // Very dirty way to clone a dict, but eh
         this.settings.autoTaggerConfig = JSON.parse(JSON.stringify(this.config));
         this.settings.volume = this.player.volume;
-        //Save
+        // Save
         this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings))});
-        //Notification
+        // Notification
         if (notif)
             Notify.create({
                 message: "Settings saved!",
@@ -436,16 +436,16 @@ class OneTagger {
                 timeout: 500,
             });
     }
-    //Load settings from JSON
+    // Load settings from JSON
     loadSettings(data) {
-        //Load depper dicts separately
+        // Load depper dicts separately
         Object.assign(this.settings.quickTag, data.quickTag);
         delete data.quickTag;
         Object.assign(this.settings, data);
         
-        //Restore specific
+        // Restore specific
 
-        //AT config (nested)
+        // AT config (nested)
         Object.assign(this.config.discogs, this.settings.autoTaggerConfig??{}.discogs??{});
         Object.assign(this.config, this.settings.autoTaggerConfig??{});
         
@@ -455,10 +455,10 @@ class OneTagger {
         if (!this.settings.tagEditorCustom) this.settings.tagEditorCustom = [];
     }
 
-    //Wrapper to prevent multiple waveforms
+    // Wrapper to prevent multiple waveforms
     async generateWaveform(path) {
         this._waveformPath = path;
-        //Aquire lock
+        // Aquire lock
         this._waveformLock.push(true);
         while (this._waveformLock.length > 1) {
             await new Promise((res) => setTimeout(() => res(), 50));
@@ -470,14 +470,14 @@ class OneTagger {
         await this._generateWaveform(path);
     }
 
-    //Generate waveform
+    // Generate waveform
     async _generateWaveform(path) {
         this.generateDefaultWaveform();
         let waveformIndex = 0;
-        //Separate socket = separate thread
+        // Separate socket = separate thread
         let ws = new WebSocket(`ws://${window.location.hostname}:36912`);
         ws.onmessage = (event) => {
-            //Lock
+            // Lock
             if (this._waveformLock.length > 1) {
                 ws.close();
                 this._waveformLock.pop();
@@ -485,17 +485,17 @@ class OneTagger {
             }
 
             let json = JSON.parse(event.data);
-            //New wave
+            // New wave
             if (json.action == 'waveformWave') {
                 Vue.set(this.player.waveform, waveformIndex, json.wave);
                 waveformIndex++;
             }
-            //Finish
+            // Finish
             if (json.action == 'waveformDone' || json.action == 'error') {
                 ws.close();
                 this._waveformLock.pop();
 
-                //Autoplay, delay just in case for windows
+                // Autoplay, delay just in case for windows
                 setTimeout(() => {
                     if (this.settings.continuePlayback && this.player.wasPlaying) {
                         this.play();
@@ -503,7 +503,7 @@ class OneTagger {
                     }
                 }, 100);
             }
-            //Will be ignored, just for updating
+            // Will be ignored, just for updating
             ws.send(JSON.stringify({action: '_waveformRead'}));
         };
         ws.onopen = () => {
@@ -514,20 +514,20 @@ class OneTagger {
         };
     }
 
-    //Default waveform
+    // Default waveform
     generateDefaultWaveform() {
         for (let i=0; i<this.WAVES; i++) {
             this.player.waveform[i] = 0;
         }
     }
 
-    //Load quicktag track
+    // Load quicktag track
     loadQTTrack(track, force = false) {
-        //Check for unsaved changes
+        // Check for unsaved changes
         if (!this.quickTag.track || force || !this.quickTag.track.isChanged()) {
             if (!track)
                 track = this._nextQTTrack;
-            //For autoplay
+            // For autoplay
             if (this.player.playing)
                 this.player.wasPlaying = true;
             this.quickTag.track = new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.quickTag);
@@ -535,11 +535,11 @@ class OneTagger {
             this._nextQTTrack = null;
             return;
         }
-        //Prompt for unsaved changes
+        // Prompt for unsaved changes
         this._nextQTTrack = track;
         this.onQTUnsavedChanges();
     }
-    //Save quickTagTrack
+    // Save quickTagTrack
     async saveQTTrack() {
         if (this.quickTag.track) {
             let changes = this.quickTag.track.getOutput();
@@ -548,7 +548,7 @@ class OneTagger {
         }
     }
 
-    //Player controls
+    // Player controls
     loadTrack(path) {
         this.send("playerLoad", {path});
         this.generateWaveform(path);
@@ -573,7 +573,7 @@ class OneTagger {
         this.send("playerVolume", {volume});
     }
 
-    //Quicktag
+    // Quicktag
     loadQuickTag(playlist = null) {
         if (playlist) {
             this.send('quickTagLoad', {playlist});
@@ -587,13 +587,13 @@ class OneTagger {
             });
     }
 
-    //Handle keydown event for keyboard bindings
+    // Handle keydown event for keyboard bindings
     handleKeyDown(event) {
-        //QT Keybinds
+        // QT Keybinds
         if (this.quickTag.track) {
-            //Arrow keys
+            // Arrow keys
             if (event.key.startsWith('Arrow')) {
-                //Seek audio
+                // Seek audio
                 if (event.key == 'ArrowLeft') {
                     let pos = this.player.position - 10000;
                     if (pos < 0)
@@ -601,7 +601,7 @@ class OneTagger {
                     else
                         this.seek(pos)
                 }
-                //Seek forward
+                // Seek forward
                 if (event.key == 'ArrowRight') {
                     let pos = this.player.position + 30000;
                     if (pos > this.player.duration)
@@ -609,9 +609,9 @@ class OneTagger {
                     else
                         this.seek(pos);
                 }
-                //Get track index
+                // Get track index
                 let i = this.quickTag.tracks.findIndex((t) => t.path == this.quickTag.track.path);
-                //Skip tracks using arrow keys
+                // Skip tracks using arrow keys
                 if (event.key == 'ArrowUp' && i > 0) {
                     this.loadQTTrack(this.quickTag.tracks[i-1]);
                 }
@@ -620,7 +620,7 @@ class OneTagger {
                 }
                 return true;
             }
-            //Play pause
+            // Play pause
             if (event.code == "Space") {
                 if (this.player.playing)
                     this.pause();
@@ -629,7 +629,7 @@ class OneTagger {
                 return true;
             }
 
-            //Save
+            // Save
             if (event.code == "KeyS" && event.ctrlKey) {
                 this.saveQTTrack().then(() => {
                     Notify.create({
@@ -640,25 +640,25 @@ class OneTagger {
                 return true;
             }
 
-            //Note tag
+            // Note tag
             if (this.checkKeybind(event, this.settings.quickTag.noteTag.keybind)) {
                 this.onQTNoteTag();
             }
 
-            //Moods
+            // Moods
             this.settings.quickTag.moods.forEach((mood) => {
                 if (this.checkKeybind(event, mood.keybind)) {
                     this.quickTag.track.mood = mood.mood;
                 }
             });
-            //Genres
+            // Genres
             this.settings.quickTag.genres.forEach((genre) => {
                 if (this.checkKeybind(event, genre.keybind)) {
                     this.quickTag.track.setGenre(genre.genre);
                 }
             });
 
-            //Energy
+            // Energy
             for (let i=0; i<5; i++) {
                 if (this.checkKeybind(event, this.settings.quickTag.energyKeys[i])) {
                     this.quickTag.track.energy = i+1;
@@ -666,7 +666,7 @@ class OneTagger {
                 }
             }
 
-            //Custom values
+            // Custom values
             this.settings.quickTag.custom.forEach((tag) => {
                 for (let i=0; i<tag.values.length; i++) {
                     if (this.checkKeybind(event, tag.values[i].keybind)) {
@@ -679,7 +679,7 @@ class OneTagger {
         }
         return false;
     }
-    //Check if keybind matches event
+    // Check if keybind matches event
     checkKeybind(e, keybind) {
         if (!keybind) return;
         if (e.code.match(/F\d{1,2}/) || e.code.startsWith('Key') || e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {

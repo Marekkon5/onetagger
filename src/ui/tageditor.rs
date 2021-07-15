@@ -15,7 +15,7 @@ pub struct TagEditor {}
 
 impl TagEditor {
     pub fn list_dir(path: &str) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
-        //Load playlist tracks
+        // Load playlist tracks
         if !Path::new(path).is_dir() {
             let files = get_files_from_playlist_file(path)?;
             return Ok(files.iter().filter_map(|e| 
@@ -23,7 +23,7 @@ impl TagEditor {
             ).collect());
         }
         
-        //Load files from directory
+        // Load files from directory
         let mut out = vec![];
         for e in read_dir(path)? {
             if let Ok(e) = e {
@@ -35,9 +35,9 @@ impl TagEditor {
         Ok(out)
     }
 
-    //Get only supported files from all subdirectories
+    // Get only supported files from all subdirectories
     pub fn list_dir_recursive(path: &str) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
-        //Check if playlist
+        // Check if playlist
         if !Path::new(path).is_dir() {
             return TagEditor::list_dir(path);
         }
@@ -55,18 +55,18 @@ impl TagEditor {
         Ok(out)
     }
 
-    //Check if path is supported
+    // Check if path is supported
     fn validate_path(path: PathBuf) -> Option<FolderEntry> {
         let dir = path.is_dir();
         let mut playlist = false;
         let filename = path.file_name()?.to_str()?.to_owned();
-        //Filter extensions
+        // Filter extensions
         if !dir {
-            //Playlist
+            // Playlist
             if PLAYLIST_EXTENSIONS.iter().any(|e| filename.to_lowercase().ends_with(e)) {
                 playlist = true;
             } else {
-                //Music files
+                // Music files
                 if path.extension().is_none() {
                     return None;
                 }
@@ -88,18 +88,18 @@ impl TagEditor {
         })
     }
 
-    //Load tags from file
+    // Load tags from file
     pub fn load_file(path: &str) -> Result<TagEditorFile, Box<dyn Error>> {
         let filename = Path::new(path).file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename!")?;
         let tag_wrap = Tag::load_file(path, true)?;
         let id3_binary = ID3Binary::from_tag(&tag_wrap);
-        //Load tags
+        // Load tags
         let tag = tag_wrap.tag().ok_or("No tag")?;
         let tags = tag.all_tags().iter().map(|(k, v)| {
             (k.to_owned(), v.join(",").replace('\0', ""))
         }).collect();
 
-        //Load images
+        // Load images
         let mut images = vec![];
         for picture in tag.get_art() {
             if let Ok(art) = TagEditor::load_art(picture) {
@@ -117,7 +117,7 @@ impl TagEditor {
         })
     }
 
-    //Load art and encode
+    // Load art and encode
     fn load_art(picture: Picture) -> Result<TagEditorImage, Box<dyn Error>> {
         let img = ImageReader::new(Cursor::new(&picture.data)).with_guessed_format()?.decode()?;
         Ok(TagEditorImage {
@@ -159,7 +159,7 @@ pub struct TagEditorImage {
     pub height: u32
 }
 
-//Binary ID3 tags
+// Binary ID3 tags
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ID3Binary {
     pub comments: Vec<ID3Comment>,

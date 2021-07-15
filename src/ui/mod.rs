@@ -16,12 +16,12 @@ pub mod quicktag;
 pub mod audiofeatures;
 pub mod tageditor;
 
-//UI
+// UI
 static INDEX_HTML: &'static str = include_str!("../../client/dist/dist.html");
 static BG_PNG: &'static [u8] = include_bytes!("../../client/dist/bg.png");
 static FAVICON_PNG: &'static [u8] = include_bytes!("../../client/dist/favicon.png");
 
-//Onetagger settings
+// Onetagger settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     ui: Value,
@@ -29,7 +29,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    //Create settings from UI json
+    // Create settings from UI json
     pub fn from_ui(ui: &Value) -> Settings {
         Settings {
             ui: ui.to_owned(),
@@ -37,12 +37,12 @@ impl Settings {
         }
     }
 
-    //Load settings from file
+    // Load settings from file
     pub fn load() -> Result<Settings, Box<dyn Error>> {
         let path = Settings::get_path()?;
         let settings: Settings = serde_json::from_reader(File::open(&path)?)?;
 
-        //v1.0 are not compatible with 1.1, create backup
+        // v1.0 are not compatible with 1.1, create backup
         if settings.version.unwrap_or(1) == 1 {
             let new_path = format!("{}-1.0.bak", &path);
             fs::copy(&path, &new_path)?;
@@ -54,7 +54,7 @@ impl Settings {
         Ok(settings)
     }
     
-    //Save settings to file
+    // Save settings to file
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         let path = Settings::get_path()?;
         let mut file = File::create(path)?;
@@ -62,7 +62,7 @@ impl Settings {
         Ok(())
     }
 
-    //Get app data folder
+    // Get app data folder
     pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
         let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
         if !root.preference_dir().exists() {
@@ -71,14 +71,14 @@ impl Settings {
         Ok(root.preference_dir().to_owned())
     }
 
-    //Get settings path
+    // Get settings path
     fn get_path() -> Result<String, Box<dyn Error>> {
         let path = Settings::get_folder()?.join("settings.json");
         Ok(path.to_str().ok_or("Error converting path to string!")?.to_string())
     }
 }
 
-//Should have data from arguments and other flags (eg. port / host in future)
+// Should have data from arguments and other flags (eg. port / host in future)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartContext {
@@ -87,10 +87,10 @@ pub struct StartContext {
     pub expose: bool
 }
 
-//Start webview window
+// Start webview window
 #[cfg(not(target_os = "windows"))]
 pub fn start_webview() {
-    //Normal webview
+    // Normal webview
     let webview = web_view::builder()
         .invoke_handler(|_, __| Ok(()))
         .content(web_view::Content::Url("http://127.0.0.1:36913"))
@@ -105,14 +105,14 @@ pub fn start_webview() {
     webview.run().unwrap();
 }
 
-//Start WebSocket server
+// Start WebSocket server
 pub fn start_socket_thread(context: StartContext) {
     thread::spawn(move || {
         socket::start_socket_server(context);
     });
 }
 
-//Start webserver for hosting static index.html
+// Start webserver for hosting static index.html
 pub fn start_webserver_thread(context: &StartContext) {
     let host = match context.expose {
         true => "0.0.0.0:36913",
@@ -131,7 +131,7 @@ pub fn start_webserver_thread(context: &StartContext) {
                 (GET) ["/favicon.png"] => {
                     Response::from_data("image/png", FAVICON_PNG)
                 },
-                //Get thumbnail of image from tag by path
+                // Get thumbnail of image from tag by path
                 (GET) ["/thumb"] => {
                     match request.get_param("path") {
                         Some(path) => {
@@ -152,7 +152,7 @@ pub fn start_webserver_thread(context: &StartContext) {
     });
 }
 
-//Start everything
+// Start everything
 pub fn start_all(context: StartContext) {
     match context.expose {
         true => {
@@ -162,7 +162,7 @@ pub fn start_all(context: StartContext) {
         false => info!("Starting server on http://127.0.0.1:36913 ws://127.0.0.1:36912")
     }
 
-    //Server mode
+    // Server mode
     if context.server_mode {
         start_webserver_thread(&context);
         socket::start_socket_server(context);
@@ -175,7 +175,7 @@ pub fn start_all(context: StartContext) {
 }
 
 
-//Windows webview
+// Windows webview
 #[cfg(target_os = "windows")]
 pub fn start_webview() {
     use std::mem;
@@ -193,10 +193,10 @@ pub fn start_webview() {
     use serde_json::json;
     use urlencoding::decode;
 
-    //Install webview2 runtime
+    // Install webview2 runtime
     bootstrap_webview2_wrap();
     
-    //winit
+    // winit
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("One Tagger")
@@ -206,14 +206,14 @@ pub fn start_webview() {
         .build(&event_loop)
         .unwrap();
     
-    //webview2
+    // webview2
     let controller = Rc::new(OnceCell::new());
     {
         let controller_clone = controller.clone();
         let hwnd = window.hwnd() as HWND;
         let data_dir = Settings::get_folder().unwrap().join("webview2");
 
-        //Build webview2
+        // Build webview2
         Environment::builder()
             .with_user_data_folder(data_dir.as_path())    
             .build(move |env| {
@@ -233,17 +233,17 @@ pub fn start_webview() {
                         controller.put_bounds(rect)?;
                     }
 
-                    //Start webview
+                    // Start webview
                     w.navigate("http://127.0.0.1:36913")?;
                     w.add_new_window_requested(|w, a| {
                         let uri = a.get_uri().unwrap();
                         if uri.starts_with("file://") {
-                            //Windowsify
+                            // Windowsify
                             let uri = uri.replace("file:///", "");
                             let decoded = decode(&uri).unwrap().replace("/", "\\");
                             let path = Path::new(&decoded);
                             if path.exists() && path.is_dir() {
-                                //Send to UI
+                                // Send to UI
                                 w.post_web_message_as_string(&json!({
                                     "action": "browse",
                                     "path": decoded
@@ -251,12 +251,12 @@ pub fn start_webview() {
                             }
                         }
 
-                        //Drag and drop don't create new window
+                        // Drag and drop don't create new window
                         a.put_new_window(w)
                     })?;
                     w.add_navigation_starting(|_w, n| {
                         let uri = n.get_uri()?;
-                        //Cancel redirect on dropping a file
+                        // Cancel redirect on dropping a file
                         if uri.starts_with("file://") {
                             n.put_cancel(true)?;
                         }
@@ -270,7 +270,7 @@ pub fn start_webview() {
         })
     }.unwrap();
 
-    //winit EventLoop
+    // winit EventLoop
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
@@ -301,7 +301,7 @@ pub fn start_webview() {
                 _ => {}
             }
             Event::MainEventsCleared => {
-                //Updates here
+                // Updates here
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {}
@@ -310,7 +310,7 @@ pub fn start_webview() {
     });
 }
 
-//Wrapper for exitting and logging
+// Wrapper for exitting and logging
 #[cfg(target_os = "windows")]
 pub fn bootstrap_webview2_wrap() {
     use std::process::exit;
@@ -329,18 +329,18 @@ pub fn bootstrap_webview2_wrap() {
     }
 }
 
-//Install evergreen webview2 for Windows
+// Install evergreen webview2 for Windows
 #[cfg(target_os = "windows")]
 fn bootstrap_webview2() -> Result<bool, Box<dyn Error>> {
     use tempfile::tempdir;
     use std::process::Command;
-    //Already installed
+    // Already installed
     if webview2::get_available_browser_version_string(None).is_ok() {
         return Ok(true);
     }
 
     info!("Bootstrapping webview2...");
-    //Download
+    // Download
     let dir = tempdir()?;
     let path = dir.path().join("evergreen.exe");
     {
@@ -349,16 +349,16 @@ fn bootstrap_webview2() -> Result<bool, Box<dyn Error>> {
         std::io::copy(&mut res, &mut file)?;
     }
 
-    //Run
+    // Run
     Command::new(path.to_str().ok_or("Invalid path")?)
         .status()?;
     dir.close().ok();
 
-    //Verify
+    // Verify
     Ok(webview2::get_available_browser_version_string(None).is_ok())
 }
 
-//OneTagger Error, meant for UI
+// OneTagger Error, meant for UI
 #[derive(Debug, Clone)]
 pub struct OTError {
     message: String

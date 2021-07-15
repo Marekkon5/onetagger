@@ -14,15 +14,15 @@ pub struct QuickTag {}
 
 impl QuickTag {
 
-    //Load all files from folder
+    // Load all files from folder
     pub fn load_files_path(path: &str, recursive: bool) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
-        //Check if path to playlist
+        // Check if path to playlist
         if !Path::new(path).is_dir() {
             return QuickTag::load_files(get_files_from_playlist_file(path)?);
         }
         
         let mut files = vec![];
-        //Load recursivly
+        // Load recursivly
         if recursive {
             for e in WalkDir::new(path) {
                 if let Ok(e) = e {
@@ -32,14 +32,14 @@ impl QuickTag {
                 }
             }
         } else {
-            // Load just dir
+            //  Load just dir
             for entry in read_dir(path)? {
-                //Check if valid
+                // Check if valid
                 if entry.is_err() {
                     continue;
                 }
                 let entry = entry.unwrap();
-                //Skip dirs
+                // Skip dirs
                 if entry.path().is_dir() {
                     continue;
                 }
@@ -52,12 +52,12 @@ impl QuickTag {
         QuickTag::load_files(files)
     }
 
-    //Load all files from playlist
+    // Load all files from playlist
     pub fn load_files_playlist(playlist: &UIPlaylist) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
         QuickTag::load_files(playlist.get_files()?)
     }
 
-    //Check extension and load file
+    // Check extension and load file
     pub fn load_files(files: Vec<String>) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
         let mut out = vec![];
         for path in files {
@@ -87,7 +87,7 @@ pub struct QuickTagFile {
 }
 
 impl QuickTagFile {
-    //Load tags from path
+    // Load tags from path
     pub fn from_path(path: &str) -> Result<QuickTagFile, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(path, false)?;
         Ok(QuickTagFile::from_tag(path, &tag_wrap).ok_or("Unable to load tags!")?)
@@ -96,7 +96,7 @@ impl QuickTagFile {
     pub fn from_tag(path: &str, tag_wrap: &Tag) -> Option<QuickTagFile> {
         let tag = tag_wrap.tag()?;
         let mut all_tags = tag.all_tags();
-        //Insert overriden tags
+        // Insert overriden tags
         if let Some(v) = tag.get_raw("COMM") {
             all_tags.insert("COMM".to_string(), v);
         }
@@ -119,15 +119,15 @@ impl QuickTagFile {
         })
     }
 
-    //Load album art from tag and downscale
+    // Load album art from tag and downscale
     pub fn get_art(path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-        //Load
+        // Load
         let tag_wrap = Tag::load_file(path, false)?;
         let tag = tag_wrap.tag().ok_or("Missing tag!")?;
         let pictures = tag.get_art();
         let picture = pictures.first().ok_or("Missing album art!")?;
         let img = ImageReader::new(Cursor::new(&picture.data)).with_guessed_format()?.decode()?;
-        //Downscale and save
+        // Downscale and save
         let scaled = img.thumbnail_exact(50, 50);
         let mut out = vec![];
         scaled.write_to(&mut out, ImageOutputFormat::Jpeg(95))?;

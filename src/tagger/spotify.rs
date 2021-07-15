@@ -30,7 +30,7 @@ pub struct Spotify {
 }
 
 impl Spotify {
-    //Create OAuth with parameters
+    // Create OAuth with parameters
     fn create_oauth(client_id: &str, client_secret: &str) -> SpotifyOAuth {
         SpotifyOAuth::default()
             .cache_path(Settings::get_folder().unwrap().join("spotify_token_cache.json"))
@@ -41,22 +41,26 @@ impl Spotify {
             .build()
     }
 
-    //Generate authorization URL
+    // Generate authorization URL
     pub fn generate_auth_url(client_id: &str, client_secret: &str) -> (String, SpotifyOAuth) {
         let oauth = Spotify::create_oauth(client_id, client_secret);
         (oauth.get_authorize_url(None, None), oauth)
     }
 
-    //Authentication server for callback from spotify
-    pub fn auth_server(oauth: &mut SpotifyOAuth) -> Result<Spotify, Box<dyn Error>> {
-        //Prepare server
+    // Authentication server for callback from spotify
+    pub fn auth_server(oauth: &mut SpotifyOAuth, expose: bool) -> Result<Spotify, Box<dyn Error>> {
+        // Prepare server
         let token: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let token_clone = token.clone();
 
-        let server = Server::new(&format!("127.0.0.1:{}", CALLBACK_PORT), move |request| {
+        let host = match expose {
+            true => "0.0.0.0",
+            false => "127.0.0.1"
+        };
+        let server = Server::new(&format!("{}:{}", host, CALLBACK_PORT), move |request| {
             router!(request, 
                 (GET) (/spotify) => {
-                    //Get token
+                    // Get token
                     if let Some(code) = request.get_param("code") {
                         let mut t = token_clone.lock().unwrap();
                         *t = Some(code);
@@ -64,10 +68,10 @@ impl Spotify {
                 },
                 _ => {}
             );
-            //Navigate back
+            // Navigate back
             rouille::Response::html(CALLBACK_HTML)
         }).unwrap();
-        //Run server
+        // Run server
         loop {
             if token.lock().unwrap().is_some() {
                 break;
@@ -76,7 +80,7 @@ impl Spotify {
         }
         let token_lock = token.lock().unwrap();
         let token = token_lock.as_ref().unwrap();
-        //Create client
+        // Create client
         let token_info = get_token_by_code(oauth, token).ok_or("Invalid token")?;
         let credentials = SpotifyClientCredentials::default()
             .token_info(token_info)
@@ -90,7 +94,7 @@ impl Spotify {
         })
     }
 
-    //Try to authorize Spotify from cached token
+    // Try to authorize Spotify from cached token
     pub fn try_cached_token(client_id: &str, client_secret: &str) -> Option<Spotify> {
         let mut oauth = Spotify::create_oauth(client_id, client_secret);
         let token = oauth.get_cached_token()?;
@@ -103,21 +107,21 @@ impl Spotify {
         Some(Spotify { spotify })
     }
 
-    //Handle error and sleep if rate limit
+    // Handle error and sleep if rate limit
     fn handle_rspotify_error(&self, error: failure::Error) -> Result<(), Box<dyn Error>> {
         let err: Result<ApiError, failure::Error> = error.downcast();
 
-        //For some reason the fucking downcasting always fails no matter what I try, even as_fail and the other methods fail, so idk what next, very dirty
+        // For some reason the fucking downcasting always fails no matter what I try, even as_fail and the other methods fail, so idk what next, very dirty
         let err_string = format!("{:?}", err);
         if err_string.starts_with("Err(RateLimited(") {
-            //Extract delay
+            // Extract delay
             let val = &err_string[16..err_string.find(")").ok_or("Invalid error message")?];
             let mut delay = 1;
             if val.starts_with("Some(") {
                 delay = val[5..].parse().unwrap_or(1);
             }
             warn!("Spotify rate limit, waiting {}s", delay);
-            //Add 100ms for safety
+            // Add 100ms for safety
             sleep(Duration::from_millis(delay*1000 + 100));
             return Ok(());
         }
@@ -125,9 +129,9 @@ impl Spotify {
         Err(err.unwrap_err().into())
     }
 
-    //Search tracks by query
+    // Search tracks by query
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
-        //rspotify doesn't url encode for some reason
+        // rspotify doesn't url encode for some reason
         let q = urlencoding::encode(query);
         match self.spotify.search(&q, SearchType::Track, limit, 0, None, None) {
             Ok(results) => {
@@ -138,7 +142,7 @@ impl Spotify {
                 Ok(tracks)
             },
             Err(e) => {
-                //Handle error and retry on rate limit
+                // Handle error and retry on rate limit
                 self.handle_rspotify_error(e)?;
                 self.search_tracks(query, limit)
             }
@@ -149,7 +153,7 @@ impl Spotify {
         match self.spotify.audio_features(id) {
             Ok(f) => Ok(f),
             Err(e) => {
-                //Handle error and retry on rate limit
+                // Handle error and retry on rate limit
                 self.handle_rspotify_error(e)?;
                 self.audio_features(id)
             }

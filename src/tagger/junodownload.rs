@@ -14,7 +14,7 @@ pub struct JunoDownload {
 }
 
 impl JunoDownload {
-    //New instance
+    // New instance
     pub fn new() -> JunoDownload {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
@@ -26,20 +26,20 @@ impl JunoDownload {
         }
     }
 
-    //Search releases, generate tracks
+    // Search releases, generate tracks
     pub fn search(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
         let response = self.client
             .get("https://www.junodownload.com/search/")
             .query(&[("q[all][]", query), ("solrorder", "relevancy"), ("items_per_page", "50")])
             .send()?;
-        //Rate limitting
+        // Rate limitting
         if response.status() == StatusCode::TOO_MANY_REQUESTS {
             warn!("JunoDownload rate limit! Sleeping for 2s!");
             sleep(Duration::from_secs(2));
             return self.search(query);
         }
 
-        //Minify and parse
+        // Minify and parse
         let mut data = response.text()?;
         minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false})
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e)))?;
@@ -48,11 +48,11 @@ impl JunoDownload {
         let mut out = vec![];
         let release_selector = Selector::parse("div.jd-listing-item").unwrap();
         for (index, release_element) in document.select(&release_selector).enumerate() {
-            //Release
+            // Release
             if let Some(tracks) = self.parse_release(&release_element) {
                 out.extend(tracks);
             } else {
-                //Garbage elements at end of page
+                // Garbage elements at end of page
                 if index < 50 {
                     warn!("Error parsing JunoDownload release! Index: {}, Query: {}", index, query);
                 }
@@ -62,14 +62,14 @@ impl JunoDownload {
         Ok(out)
     }
 
-    //Parse data from release element
+    // Parse data from release element
     fn parse_release(&self, elem: &ElementRef) -> Option<Vec<Track>> {
         let mut out = vec![];
-        //Artists
+        // Artists
         let mut selector = Selector::parse("div.juno-artist").unwrap();
         let artist_element = elem.select(&selector).next()?;
         let artists = artist_element.text().filter(|a| a != &"/").collect::<Vec<_>>();
-        //Release title
+        // Release title
         selector = Selector::parse("a.juno-title").unwrap();
         let title_elem = elem.select(&selector).next()?;
         let title = title_elem.text().collect::<Vec<_>>().join(" ");
@@ -77,13 +77,13 @@ impl JunoDownload {
         let mut release_id = url.split("/").collect::<Vec<&str>>();
         release_id.pop();
         let release_id = release_id.last().unwrap().to_string();
-        //Label
+        // Label
         selector = Selector::parse("a.juno-label").unwrap();
         let label = elem.select(&selector).next()?.text().collect::<Vec<_>>().join(" ");
-        //Info text
+        // Info text
         selector = Selector::parse("div.col.text-right div.text-sm").unwrap();
         let mut info_text = elem.select(&selector).next()?.text().collect::<Vec<_>>();
-        //Date, genres, catalog number
+        // Date, genres, catalog number
         let mut catalog_number = None;
         if info_text.len() == 3 {
             catalog_number = Some(info_text[0].to_string());
@@ -91,54 +91,54 @@ impl JunoDownload {
         }
         let release_date = NaiveDate::parse_from_str(info_text[0], "%d %b %y").ok()?;
         let genres: Vec<String> = info_text[1].split("/").map(|g| g.to_string()).collect();
-        //Album art
+        // Album art
         selector = Selector::parse("div.col img").unwrap();
         let image_elem = elem.select(&selector).next()?;
         let mut album_art_small = image_elem.value().attr("src")?;
-        //Placeholder image
+        // Placeholder image
         if album_art_small.starts_with("data:image/") {
             album_art_small = image_elem.value().attr("data-src")?;
         }
-        //Full resolution img
+        // Full resolution img
         let album_art = format!("https://imagescdn.junodownload.com/full/{}-BIG.jpg", 
             album_art_small.split("/").last().unwrap().replace(".jpg", ""));
 
-        //Tracks
+        // Tracks
         let track_selector = Selector::parse("div.jd-listing-tracklist div.col").unwrap();
         for track_elem in elem.select(&track_selector) {
             let text = track_elem.text().collect::<Vec<_>>();
             let full = text[0].replace("\u{a0}", " ");
-            //Duration
+            // Duration
             let re = Regex::new(r" - \((\d+:\d\d)\) ?$").unwrap();
             let duration = if let Some(captures) = re.captures(&full) {
                 if let Some(m) = captures.get(1) {
                     parse_duration(m.as_str()).unwrap_or(Duration::ZERO)
                 } else { Duration::ZERO }
             } else { Duration::ZERO };
-            // Remove duration
+            //  Remove duration
             let no_duration = re.replace(&full, "");
-            //Check if title or artist - title
+            // Check if title or artist - title
             let split: Vec<&str> = no_duration.split(" - \"").collect();
             let mut track_artists = vec![];
-            //Only title
+            // Only title
             let track_title = if split.len() == 1 {
                 split[0].to_string()
             } else {
-                //Artists - "Title"
+                // Artists - "Title"
                 track_artists = split[0].split(" & ").collect();
                 split[1].replace("\"", "")
             };
-            //BPM
+            // BPM
             let bpm: Option<i64> = if text.len() >= 2 && text[1].contains("BPM") {
                 Some(text[1].replace("\u{a0}BPM", "").parse::<i64>().ok()?)
             } else {
                 None
             };
-            //Get artists for track
+            // Get artists for track
             if track_artists.len() == 0 {
                 track_artists = artists.clone();
             }
-            //Generate track
+            // Generate track
             out.push(Track {
                 platform: MusicPlatform::JunoDownload,
                 title: track_title,
@@ -158,7 +158,7 @@ impl JunoDownload {
                 url: format!("https://www.junodownload.com{}", url),
                 catalog_number: catalog_number.clone(),
                 other: vec![],
-                //Only release id
+                // Only release id
                 track_id: None,
                 release_id: release_id.clone(),
                 duration
@@ -171,10 +171,10 @@ impl JunoDownload {
 
 impl TrackMatcher for JunoDownload {
     fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
-        //Search
+        // Search
         let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
         let tracks = self.search(&query)?;
-        //Match
+        // Match
         if let Some((acc, track)) = MatchingUtils::match_track(&info, &tracks, &config) {
             return Ok(Some((acc, track)));
         }

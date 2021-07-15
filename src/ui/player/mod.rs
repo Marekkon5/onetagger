@@ -17,20 +17,20 @@ pub struct AudioPlayer {
 }
 
 impl AudioPlayer {
-    //New instance
+    // New instance
     pub fn new() -> AudioPlayer {
-        //Create thread, becuase for some reason it stops working after closure ends
+        // Create thread, becuase for some reason it stops working after closure ends
         let (tx_main, rx) = channel();
         let (tx, rx_main) = channel();
         thread::spawn(move || {
             let mut volume = 0.5;
             let mut source = None;
-            //Create sink
+            // Create sink
             let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
             let mut sink = Sink::try_new(&stream_handle).unwrap();
             sink.set_volume(volume);
             sink.pause();
-            //Wait for messages
+            // Wait for messages
             for action in rx {
                 match action {
                     PlayerAction::Volume(v) => {
@@ -39,24 +39,24 @@ impl AudioPlayer {
                     },
                     PlayerAction::Play => sink.play(),
                     PlayerAction::Pause => sink.pause(),
-                    //Play new source
+                    // Play new source
                     PlayerAction::Load(audio_source) => {
-                        //Create new sink
+                        // Create new sink
                         sink.stop();
                         sink = Sink::try_new(&stream_handle).unwrap();
                         sink.set_volume(volume);
                         sink.pause();
-                        //Append source
+                        // Append source
                         if let Ok(s) = audio_source.get_source() {
                             sink.append(s);
                         }
-                        //Save source
+                        // Save source
                         source = Some(audio_source);
                     },
-                    //Seek by re-creating new source
+                    // Seek by re-creating new source
                     PlayerAction::Seek(pos) => {
                         if source.is_some() {
-                            //Create new sink
+                            // Create new sink
                             let paused = sink.is_paused();
                             sink.stop();
                             sink = Sink::try_new(&stream_handle).unwrap();
@@ -64,10 +64,10 @@ impl AudioPlayer {
                             if paused {
                                 sink.pause();
                             }
-                            //Add source again
+                            // Add source again
                             let s = source.as_ref().unwrap();
                             if let Ok(mut s) = s.get_source() {
-                                //Skip manually because some sources are kinda bugged
+                                // Skip manually because some sources are kinda bugged
                                 let n_skip = s.sample_rate() as f32 * s.channels() as f32 * pos as f32 / 1000.0;
                                 for _ in 0..n_skip as u64 {
                                     if s.next().is_none() {
@@ -76,7 +76,7 @@ impl AudioPlayer {
                                 }
                                 sink.append(s);
                             }
-                            //Sync
+                            // Sync
                             tx.send(!sink.is_paused()).ok();
                         }
                     }
@@ -90,7 +90,7 @@ impl AudioPlayer {
         }
     }
 
-    //Load file
+    // Load file
     pub fn load_file(&self, source: Box<dyn AudioSource + Send + 'static>) {
         self.tx.send(PlayerAction::Load(source)).ok();
     }
@@ -105,7 +105,7 @@ impl AudioPlayer {
 
     pub fn seek(&self, pos: u64) -> bool {
         self.tx.send(PlayerAction::Seek(pos)).ok();
-        //Wait for ready
+        // Wait for ready
         self.rx.recv().unwrap()
     }
 
@@ -118,30 +118,30 @@ enum PlayerAction {
     Play,
     Pause,
     Load(Box<dyn AudioSource + Send + 'static>),
-    //ms
+    // ms
     Seek(u64),
-    //0 - 1
+    // 0 - 1
     Volume(f32)
 }
 
-//Wrapper for getting audio sources
+// Wrapper for getting audio sources
 pub struct AudioSources {}
 impl AudioSources {
     pub fn from_path(path: &str) -> Result<Box<dyn AudioSource + Send + 'static>, Box<dyn Error>> {
         let p = path.to_lowercase();
-        //MP3
+        // MP3
         if p.ends_with(".mp3") {
             return Ok(Box::new(mp3::MP3Source::new(path)?));
         }
-        //FLAC
+        // FLAC
         if p.ends_with(".flac") {
             return Ok(Box::new(flac::FLACSource::new(path)?));
         }
-        //AIFF
+        // AIFF
         if p.ends_with(".aiff") || p.ends_with(".aif") {
             return Ok(Box::new(aiff::AIFFSource::new(path)?));
         }
-        //MP4
+        // MP4
         if p.ends_with(".m4a") {
             return Ok(Box::new(mp4::MP4Source::new(path)?));
         }
@@ -151,35 +151,35 @@ impl AudioSources {
 }
 
 pub trait AudioSource {
-    //Duration in ms
+    // Duration in ms
     fn duration(&self) -> u128;
-    //Rodio Source
+    // Rodio Source
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>>;
 
-    //Stream generate 2D waveform, in thread, stream
+    // Stream generate 2D waveform, in thread, stream
     fn generate_waveform(&self, bars: i16) -> Result<(Receiver<f32>, Sender<bool>), Box<dyn Error>> {
         let source = self.get_source()?;
-        //Calculate n samples per bar
+        // Calculate n samples per bar
         let sample_rate = source.sample_rate() as f32;
         let channels = source.channels() as f32;
         let duration = self.duration() as f32 / 1000.0;
         let n_samples = (sample_rate * channels * (duration / bars as f32)).round() as usize;
 
-        //Create thread
+        // Create thread
         let (tx, rx) = channel();
         let (tx1, rx1) = channel();
         thread::spawn(move || {
-            //Get samples
+            // Get samples
             let mut samples: Vec<i16> = vec![];
             for sample in source {
-                //Cancel
+                // Cancel
                 if rx1.try_recv().is_ok() {
                     break;
                 }
 
                 samples.push(sample);
 
-                //Buffer full
+                // Buffer full
                 if samples.len() >= n_samples {
                     let sum: i64 = samples.iter().fold(0, |s, v| s + *v as i64);
                     let wave: f64 = sum as f64 / samples.len() as f64;
@@ -189,7 +189,7 @@ pub trait AudioSource {
             }
         });
 
-        //tx1 = for canceling
+        // tx1 = for canceling
         Ok((rx, tx1))
     }
 }

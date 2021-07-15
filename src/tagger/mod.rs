@@ -31,18 +31,18 @@ pub enum MusicPlatform {
     Discogs,
     JunoDownload,
 
-    //Currently only used in Audio Features
+    // Currently only used in Audio Features
     Spotify
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
-    //Global
+    // Global
     pub platforms: Vec<MusicPlatform>,
     pub path: Option<String>,
 
-    //Tags
+    // Tags
     pub title: bool,
     pub artist: bool,
     pub album: bool,
@@ -61,12 +61,12 @@ pub struct TaggerConfig {
     pub release_id: bool,
     pub version: bool,
 
-    //Advanced
+    // Advanced
     pub separators: TagSeparators,
     pub id3v24: bool,
     pub overwrite: bool,
     pub threads: i16,
-    //From 0 to 1
+    // From 0 to 1
     pub strictness: f64,
     pub merge_genres: bool,
     pub album_art_file: bool,
@@ -75,15 +75,15 @@ pub struct TaggerConfig {
     pub filename_template: Option<String>,
     pub short_title: bool,
     pub match_duration: bool,
-    //In seconds
+    // In seconds
     pub max_duration_difference: u64,
 
-    //Platform specific
+    // Platform specific
     pub beatport: BeatportConfig,
     pub discogs: DiscogsConfig
 }
 
-//Beatport specific settings
+// Beatport specific settings
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct BeatportConfig {
@@ -91,14 +91,14 @@ pub struct BeatportConfig {
     pub max_pages: i64
 }
 
-//Discogs specific settings
+// Discogs specific settings
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
     pub styles: DiscogsStyles,
-    //Option to prevent update errors
+    // Option to prevent update errors
     pub styles_custom_tag: Option<UITag>
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -123,7 +123,7 @@ impl Default for DiscogsStyles {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Track {
     pub platform: MusicPlatform,
-    //Short title
+    // Short title
     pub title: String,
     pub version: Option<String>,
     pub artists: Vec<String>,
@@ -136,13 +136,13 @@ pub struct Track {
     pub url: String,
     pub label: Option<String>,
     pub catalog_number: Option<String>,
-    // Tag name, Value
+    //  Tag name, Value
     pub other: Vec<(String, String)>,
     pub track_id: Option<String>,
     pub release_id: String,
     pub duration: Duration,
     
-    //Only year OR date should be available
+    // Only year OR date should be available
     pub release_year: Option<i64>,
     pub release_date: Option<NaiveDate>,
     pub publish_year: Option<i64>,
@@ -188,33 +188,33 @@ const CAMELOT_NOTES: [(&str, &str); 35] = [
 ];
 
 impl Track {
-    //Write tags to file
+    // Write tags to file
     pub fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
-        //Get tag
+        // Get tag
         let mut tag_wrap = Tag::load_file(&info.path, true)?;
         tag_wrap.set_separators(&config.separators);
         let format = tag_wrap.format.to_owned();
-        //Configure format specific
+        // Configure format specific
         if let Some(t) = tag_wrap.id3.as_mut() {
             t.set_id3v24(config.id3v24);
         }
-        //MP4 Album art override
+        // MP4 Album art override
         if let Some(mp4) = tag_wrap.mp4.as_mut() {
-            //Has art
+            // Has art
             if (config.overwrite || mp4.get_art().is_empty()) && self.art.is_some() && config.album_art {
                 mp4.remove_all_artworks();
             }
         }
 
         let tag = tag_wrap.tag_mut().unwrap();
-        //Set tags
+        // Set tags
         if config.title {
             match config.short_title {
                 true => tag.set_field(Field::Title, vec![self.title.to_string()], config.overwrite),
                 false => tag.set_field(Field::Title, vec![self.full_title()], config.overwrite)
             }
         }
-        //Version
+        // Version
         if config.version && self.version.is_some() {
             tag.set_field(Field::Version, vec![self.version.as_ref().unwrap().to_string()], config.overwrite);
         }
@@ -226,7 +226,7 @@ impl Track {
         }
         if config.key && self.key.is_some() {
             let mut value = self.key.as_ref().unwrap().to_string();
-            //Convert to camelot
+            // Convert to camelot
             if config.camelot {
                 if let Some((_, c)) = CAMELOT_NOTES.iter().find(|(o, _)| o == &value) {
                     value = c.to_string();
@@ -242,7 +242,7 @@ impl Track {
         }
         if config.genre && !self.genres.is_empty() {
             if config.merge_genres {
-                //Merge with existing ones
+                // Merge with existing ones
                 let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).iter().map(|g| g.to_lowercase()).collect();
                 let mut genres = self.genres.clone().into_iter().filter(|g| !current.iter().any(|i| i == &g.to_lowercase())).collect();
                 current.append(&mut genres);
@@ -253,23 +253,23 @@ impl Track {
         }
         if config.style && !self.styles.is_empty() {
             if config.discogs.styles == DiscogsStyles::CustomTag && config.discogs.styles_custom_tag.is_some() {
-                //Custom style tag
+                // Custom style tag
                 let ui_tag = config.discogs.styles_custom_tag.as_ref().unwrap();
                 tag.set_raw(&ui_tag.by_format(&format), self.styles.clone(), config.overwrite);
 
             } else if config.merge_genres {
-                //Merge with existing ones
+                // Merge with existing ones
                 let mut current: Vec<String> = tag.get_field(Field::Style).unwrap_or(vec![]).iter().map(|s| s.to_lowercase()).collect();
                 let mut styles = self.styles.clone().into_iter().filter(|s| !current.iter().any(|i| i == &s.to_lowercase())).collect();
                 current.append(&mut styles);
                 tag.set_field(Field::Style, current, config.overwrite); 
 
             } else {
-                //Default write to style
+                // Default write to style
                 tag.set_field(Field::Style, self.styles.clone(), config.overwrite);
             }
         }
-        //Release dates
+        // Release dates
         if config.release_date {
             if let Some(date) = self.release_date {
                 tag.set_date(&TagDate {
@@ -285,7 +285,7 @@ impl Track {
                 }, config.overwrite);
             }
         }
-        //Publish date
+        // Publish date
         if config.publish_date {
             if let Some(date) = self.publish_date {
                 tag.set_publish_date(&TagDate {
@@ -301,17 +301,17 @@ impl Track {
                 }, config.overwrite);
             }
         }
-        //URL
+        // URL
         if config.url {
             tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite);
         }
-        //Other tags
+        // Other tags
         if config.other_tags {
             for (t, value) in &self.other {
                 tag.set_raw(t.as_str(), vec![value.to_string()], config.overwrite);
             }
         }
-        //IDs
+        // IDs
         if config.track_id && self.track_id.is_some() {
             let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite);
@@ -320,18 +320,18 @@ impl Track {
             let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.release_id.to_string()], config.overwrite);
         }
-        //Catalog number
+        // Catalog number
         if config.catalog_number && self.catalog_number.is_some() {
             tag.set_field(Field::CatalogNumber, vec![self.catalog_number.as_ref().unwrap().to_string()], config.overwrite);
         }
-        //Album art
+        // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
             match self.download_art(self.art.as_ref().unwrap()) {
                 Ok(data) => {
                     match data {
                         Some(data) => {
                             tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
-                            //Save to file
+                            // Save to file
                             if config.album_art_file {
                                 let path = Path::new(&info.path).parent().unwrap().join("cover.jpg");
                                 if !path.exists() {
@@ -348,24 +348,24 @@ impl Track {
             }
         }
 
-        //Save
+        // Save
         tag.save_file(&info.path)?;
         Ok(())
     }
 
-    //Download album art, None if invalid album art
+    // Download album art, None if invalid album art
     fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
         let response = reqwest::blocking::get(url)?;
         if response.status() != StatusCode::OK {
             return Ok(None);
         }
-        //Too small, most likely a text response
+        // Too small, most likely a text response
         if let Some(cl) = response.content_length() {
             if cl < 2048 {
                 return Ok(None);
             }
         }
-        //Content-type needs image
+        // Content-type needs image
         let headers = response.headers();
         if let Some(ct) = headers.get("content-type") {
             if !ct.to_str()?.contains("image") {
@@ -376,7 +376,7 @@ impl Track {
         Ok(Some(response.bytes()?.to_vec()))
     }
 
-    //Get title with version
+    // Get title with version
     pub fn full_title(&self) -> String {
         if let Some(v) = self.version.as_ref() {
             if v.trim().is_empty() {
@@ -401,28 +401,28 @@ pub struct AudioFileInfo {
 }
 
 impl AudioFileInfo {
-    //Load audio file info from path
+    // Load audio file info from path
     pub fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag().unwrap();
-        //Get title artist from tag
+        // Get title artist from tag
         let mut title = tag.get_field(Field::Title).map(|t| t.first().map(|t| t.to_owned())).flatten();
         let mut artists = tag.get_field(Field::Artist)
             .map(|a| AudioFileInfo::parse_artist_tag(a.iter().map(|a| a.as_str()).collect()));
 
-        //Parse filename
+        // Parse filename
         if (title.is_none() || artists.is_none()) && filename_template.is_some() {
             let p = Path::new(path);
             let filename = p.file_name().ok_or("Missing filename!")?.to_str().ok_or("Missing filename")?;
 
             if let Some(captures) = filename_template.unwrap().captures(filename) {
-                //Title
+                // Title
                 if title.is_none() {
                     if let Some(m) = captures.name("title") {
                         title = Some(m.as_str().trim().to_string());
                     }
                 }
-                //Artists
+                // Artists
                 if artists.is_none() {
                     if let Some(m) = captures.name("artists") {
                         artists = Some(AudioFileInfo::parse_artist_tag(vec![m.as_str().trim()]));
@@ -441,9 +441,9 @@ impl AudioFileInfo {
         })
     }
 
-    //Load duration from file
+    // Load duration from file
     pub fn load_duration(&mut self) {
-        //Mark as loaded
+        // Mark as loaded
         self.duration = Some(Duration::ZERO);
         if let Ok(source) = AudioSources::from_path(&self.path) {
             self.duration = Some(Duration::from_millis(source.duration() as u64))
@@ -452,30 +452,30 @@ impl AudioFileInfo {
         }
     }
 
-    //Convert template into a regex
+    // Convert template into a regex
     pub fn parse_template(template: &str) -> Option<Regex> {
-        //Regex reserved
+        // Regex reserved
         let reserved = ".?+*$^()[]/|";
         let mut template = template.to_string();
         for c in reserved.chars() {
             template = template.replace(c, &format!("\\{}", c));
         };
-        //Replace variables
+        // Replace variables
         template = template
             .replace("%title%", "(?P<title>.+)")
             .replace("%artists%", "(?P<artists>.+)");
-        //Remove all remaining variables
+        // Remove all remaining variables
         let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
         template = re.replace(&template, "(.+)").to_string();
-        //Extension
+        // Extension
         template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template);
-        //Final regex
+        // Final regex
         Regex::new(&template).ok()
     }
 
-    //Try to split artist string with common separators
+    // Try to split artist string with common separators
     fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
-        //Already an array
+        // Already an array
         if input.len() > 1 {
             return input.into_iter().map(|v| v.to_owned()).collect();
         }
@@ -494,7 +494,7 @@ impl AudioFileInfo {
     }
 }
 
-//Parse duration from String
+// Parse duration from String
 pub fn parse_duration(input: &str) -> Result<Duration, Box<dyn Error>> {
     let clean = input.replace("(", "").replace(")", "");
     let mut parts = clean.trim().split(":").collect::<Vec<&str>>();
@@ -509,46 +509,46 @@ pub fn parse_duration(input: &str) -> Result<Duration, Box<dyn Error>> {
     Ok(Duration::from_secs(seconds))
 }
 
-//For all the platforms
+// For all the platforms
 pub trait TrackMatcher {
-    //Returns (accuracy, track)
+    // Returns (accuracy, track)
     fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
 }
 
-//Single threaded, mutable
+// Single threaded, mutable
 pub trait TrackMatcherST {
-    //Returns (accuracy, track)
+    // Returns (accuracy, track)
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
 }
 
 pub struct MatchingUtils {}
 impl MatchingUtils {
-    //Clean title for searching
+    // Clean title for searching
     pub fn clean_title(input: &str) -> String {
         let step1 = input.to_lowercase()
-            //Remove - because search engines
+            // Remove - because search engines
             .replace("-", " ")
             .replace("  ", " ");
         let step2 = step1.trim();
-        //Remove original mix
+        // Remove original mix
         let mut re = Regex::new(r"((\(|\[)*)original( (mix|version|edit))*((\)|\])*)$").unwrap();
         let step3 = re.replace(&step2, "");
-        //Remove initial a/an/the
+        // Remove initial a/an/the
         re = Regex::new(r"^((a|an|the) )").unwrap();
         let step4 = re.replace(&step3, "");
-        //Remove attributes
+        // Remove attributes
         let step5 = step4
             .replace("(intro)", "")
             .replace("(clean)", "");
-        //Remove - and trim
+        // Remove - and trim
         let step6 = step5.replace("-", "").replace("  ", " ");
-        //Remove feat.
+        // Remove feat.
         re = Regex::new(r"(\(|\[)?(feat|ft)\.?.+?(\)|\]|\(|$)").unwrap();
         let out = re.replace(&step6, "");
         out.trim().to_string()
     }
 
-    //Remove spacial characters
+    // Remove spacial characters
     pub fn remove_special(input: &str) -> String {
         let special = ".,()[]&_\"'-/\\^";
         let mut out = input.to_string();
@@ -559,7 +559,7 @@ impl MatchingUtils {
         out.trim().to_string()
     }
 
-    //Clean list of artists
+    // Clean list of artists
     pub fn clean_artists(input: &Vec<String>) -> Vec<String> {
         let mut clean: Vec<String> = input.into_iter().map(
             |a| MatchingUtils::remove_special(&a.to_lowercase()).trim().to_string()
@@ -568,18 +568,18 @@ impl MatchingUtils {
         clean
     }
 
-    //Clean title for matching, removes special characters etc
+    // Clean title for matching, removes special characters etc
     pub fn clean_title_matching(input: &str) -> String {
         let title = MatchingUtils::clean_title(input);
-        //Remove edit, specials
+        // Remove edit, specials
         let step1 = title.replace("edit", "");
         let step2 = MatchingUtils::remove_special(&step1);
         step2.to_string()
     }
 
-    //Match atleast 1 artist
+    // Match atleast 1 artist
     pub fn match_artist(a: &Vec<String>, b: &Vec<String>, strictness: f64) -> bool {
-        //Exact match atleast 1 artist
+        // Exact match atleast 1 artist
         let clean_a = MatchingUtils::clean_artists(a);
         let clean_b = MatchingUtils::clean_artists(b);
         for artist in &clean_a {
@@ -588,7 +588,7 @@ impl MatchingUtils {
             }
         }
 
-        //String exact match (for separator problems)
+        // String exact match (for separator problems)
         let clean_a_joined = clean_a.join(" ");
         for artist in &clean_b {
             if clean_a_joined.contains(artist) {
@@ -602,7 +602,7 @@ impl MatchingUtils {
             }
         }
 
-        //Fuzzy
+        // Fuzzy
         let acc = normalized_levenshtein(&clean_a.join(" "), &clean_b.join(", "));
         if acc >= strictness {
             return true;
@@ -611,10 +611,10 @@ impl MatchingUtils {
         false
     }
 
-    //Default track matching
+    // Default track matching
     pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig) -> Option<(f64, Track)> {
         let clean_title = MatchingUtils::clean_title_matching(&info.title);
-        //Exact match
+        // Exact match
         for track in tracks {
             if !MatchingUtils::match_duration(info, track, config) {
                 continue;
@@ -625,33 +625,33 @@ impl MatchingUtils {
                 }
             }
         }
-        //Fuzzy match - value, track
+        // Fuzzy match - value, track
         let mut fuzz: Vec<(f64, &Track)> = vec![];
         for track in tracks {
-            //Artist
+            // Artist
             if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
                 continue;
             }
-            //Match title
+            // Match title
             let clean = MatchingUtils::clean_title_matching(&track.full_title());
             let l = normalized_levenshtein(&clean, &clean_title);
             if l >= config.strictness {
                 fuzz.push((l, track));
             }
         }
-        //Empty array
+        // Empty array
         if fuzz.is_empty() {
             return None;
         }
-        //Sort
+        // Sort
         fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
         Some((fuzz[0].0, fuzz[0].1.to_owned()))
     }
 
-    //Match track, but ignore artist
+    // Match track, but ignore artist
     pub fn match_track_no_artist(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig) -> Option<(f64, Track)> {
         let clean_title = MatchingUtils::clean_title_matching(&info.title);
-        //Exact match
+        // Exact match
         for track in tracks {
             if !MatchingUtils::match_duration(info, track, config) {
                 continue;
@@ -661,33 +661,33 @@ impl MatchingUtils {
                 return Some((1.0, track.clone()));
             }
         }
-        //Fuzzy match - value, track
+        // Fuzzy match - value, track
         let mut fuzz: Vec<(f64, &Track)> = vec![];
         for track in tracks {
-            //Match title
+            // Match title
             let clean = MatchingUtils::clean_title_matching(&track.full_title());
             let l = normalized_levenshtein(&clean, &clean_title);
             if l >= config.strictness {
                 fuzz.push((l, track));
             }
         }
-        //Empty array
+        // Empty array
         if fuzz.is_empty() {
             return None;
         }
-        //Sort
+        // Sort
         fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
         Some((fuzz[0].0, fuzz[0].1.to_owned()))
     }
 
-    //Match duration
+    // Match duration
     pub fn match_duration(info: &AudioFileInfo, track: &Track, config: &TaggerConfig) -> bool {
-        //Disabled
+        // Disabled
         if !config.match_duration || info.duration.is_none() {
             return true;
         }
         let duration = *info.duration.as_ref().unwrap();
-        // No duration available
+        //  No duration available
         if duration == Duration::ZERO || track.duration == Duration::ZERO {
             return true;
         }
@@ -711,7 +711,7 @@ pub struct TaggingStatus {
     pub accuracy: Option<f64>,
 }
 
-//Wrap for sending into UI
+// Wrap for sending into UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggingStatusWrap {
@@ -720,7 +720,7 @@ pub struct TaggingStatusWrap {
     pub progress: f64,
 }
 impl TaggingStatusWrap {
-    //pi = platform index, pl = platforms length, p = processed, total = total tracks in this platform
+    // pi = platform index, pl = platforms length, p = processed, total = total tracks in this platform
     pub fn wrap(platform: MusicPlatform, status: &TaggingStatus, pi: usize, pl: usize, p: i64, total: usize) -> TaggingStatusWrap {
         TaggingStatusWrap {
             platform,
@@ -733,29 +733,29 @@ impl TaggingStatusWrap {
 pub struct Tagger {}
 impl Tagger {
 
-    //Returtns progress receiver, and file count
+    // Returtns progress receiver, and file count
     pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>) -> Receiver<TaggingStatusWrap> {
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
-        //Create thread
+        // Create thread
         let (tx, rx) = channel();
         let config = cfg.clone();
         thread::spawn(move || {
-            //Tag
+            // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
-                //For progress
+                // For progress
                 let mut processed = 0;
                 let total = files.len();
-                //No more files
+                // No more files
                 if files.is_empty() {
                     info!("All tagged succesfully!");
                     break;
                 }
                 match platform {
-                    //Discogs
+                    // Discogs
                     MusicPlatform::Discogs => {
-                        //Auth discogs
+                        // Auth discogs
                         let mut discogs = discogs::Discogs::new();
                         if config.discogs.token.as_ref().is_none() {
                             error!("Missing Discogs token! Skipping Discogs...");
@@ -766,24 +766,24 @@ impl Tagger {
                             error!("Invalid Discogs token! Skipping Discogs...");
                             continue;
                         }
-                        //Tag
+                        // Tag
                         let rx = Tagger::tag_dir_single_thread(&files, discogs, &config);
                         info!("Starting Discogs");
                         for status in rx {
                             info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::Discogs, status.status, status.accuracy, status.path);
                             processed += 1;
-                            //Send to UI
+                            // Send to UI
                             tx.send(TaggingStatusWrap::wrap(MusicPlatform::Discogs, &status, 
                                 platform_index, config.platforms.len(), processed, total
                             )).ok();
-                            //Fallback
+                            // Fallback
                             if status.status == TaggingState::Ok {
                                 files.remove(files.iter().position(|f| f == &status.path).unwrap());
                             }
                         }
                     },
                     platform => {
-                        //No config platforms
+                        // No config platforms
                         let tagger: Box<dyn TrackMatcher + Send + Sync + 'static> = match platform {
                             MusicPlatform::Beatport => Box::new(beatport::Beatport::new()),
                             MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
@@ -793,7 +793,7 @@ impl Tagger {
                         info!("Starting {:?}", platform);
                         
                         let rx = if platform == &MusicPlatform::JunoDownload {
-                            //JunoDownload cap max threads due to rate limiting
+                            // JunoDownload cap max threads due to rate limiting
                             let mut config = config.clone();
                             if config.threads > 4 {
                                 config.threads = 4;
@@ -803,15 +803,15 @@ impl Tagger {
                             Tagger::tag_dir_multi_thread(&files, tagger, &config)
                         };
                          
-                        //Get statuses
+                        // Get statuses
                         for status in rx {
                             info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", platform, status.status, status.accuracy, status.path);
                             processed += 1;
-                            //Send to UI
+                            // Send to UI
                             tx.send(TaggingStatusWrap::wrap(platform.to_owned(), &status, 
                                 platform_index, (&config.platforms).len(), processed, total
                             )).ok();
-                            //Fallback
+                            // Fallback
                             if status.status == TaggingState::Ok {
                                 files.remove(files.iter().position(|f| f == &status.path).unwrap());
                             }
@@ -825,9 +825,9 @@ impl Tagger {
         rx
     }
 
-    //Tag single track
+    // Tag single track
     pub fn tag_track(path: &str, tagger_mt: Option<&dyn TrackMatcher>, tagger_st: Option<&mut dyn TrackMatcherST>, config: &TaggerConfig) -> TaggingStatus {
-        //Output
+        // Output
         let mut out = TaggingStatus {
             status: TaggingState::Error,
             path: path.to_owned(),
@@ -835,7 +835,7 @@ impl Tagger {
             message: None
         };
 
-        //Filename template
+        // Filename template
         let mut template = None;
         if config.parse_filename {
             if let Some(t) = &config.filename_template {
@@ -845,11 +845,11 @@ impl Tagger {
 
         match AudioFileInfo::load_file(path, template) {
             Ok(mut info) => {
-                // Load duration for matching
+                //  Load duration for matching
                 if config.match_duration {
                     info.load_duration();
                 }
-                //Match track
+                // Match track
                 let result = if let Some(tagger) = tagger_mt {
                     tagger.match_track(&info, &config)
                 } else if let Some(tagger) = tagger_st {
@@ -862,7 +862,7 @@ impl Tagger {
                     Ok(o) => {
                         match o {
                             Some((acc, track)) => {
-                                //Save to file
+                                // Save to file
                                 match track.write_to_file(&info, &config) {
                                     Ok(_) => {
                                         out.accuracy = Some(acc);
@@ -874,11 +874,11 @@ impl Tagger {
                             None => out.message = Some("No match!".to_owned())
                         }
                     },
-                    //Failed matching track
+                    // Failed matching track
                     Err(e) => out.message = Some(format!("Error marching track: {}", e))
                 }
             },
-            //Failed loading file
+            // Failed loading file
             Err(e) => {
                 out.status = TaggingState::Skipped;
                 warn!("Error loading file: {}", e);
@@ -888,7 +888,7 @@ impl Tagger {
         out
     }
 
-    //Get list of all files in with supported extensions
+    // Get list of all files in with supported extensions
     pub fn get_file_list(path: &str) -> Vec<String> {
         if path.is_empty() {
             return vec![];
@@ -900,10 +900,10 @@ impl Tagger {
         files
     }
 
-    //Tag all files with threads specified in config
+    // Tag all files with threads specified in config
     pub fn tag_dir_multi_thread(files: &Vec<String>, tagger: Box<(dyn TrackMatcher + Send + Sync + 'static)>, config: &TaggerConfig) -> Receiver<TaggingStatus> {
         info!("Starting tagging: {} files, {} threads!", files.len(), config.threads);
-        //Create threadpool
+        // Create threadpool
         let pool = ThreadPool::new(config.threads as usize);
         let (tx, rx) = channel();
         let tagger_arc = Arc::new(tagger);
@@ -920,10 +920,10 @@ impl Tagger {
         rx
     }
 
-    //Tag all files with single thread
+    // Tag all files with single thread
     pub fn tag_dir_single_thread(files: &Vec<String>, mut tagger: (impl TrackMatcherST + Send + 'static), config: &TaggerConfig) -> Receiver<TaggingStatus> {
         info!("Starting single threaded tagging of {} files!", files.len());
-        //Spawn thread
+        // Spawn thread
         let (tx, rx) = channel();
         let c = config.clone();
         let f = files.clone();

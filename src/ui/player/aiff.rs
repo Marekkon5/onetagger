@@ -15,7 +15,7 @@ pub struct AIFFSource {
 }
 
 impl AIFFSource {
-    //Load from path
+    // Load from path
     pub fn new(path: &str) -> Result<AIFFSource, Box<dyn Error>> { 
         let mut snd = sndfile::OpenOptions::ReadOnly(ReadOptions::Auto).from_path(path)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{:?}", e)))?;
@@ -36,12 +36,12 @@ impl AIFFSource {
 }
 
 impl AudioSource for AIFFSource {
-    //Get duration
+    // Get duration
     fn duration(&self) -> u128 {
         (self.len as u128 / self.snd.get_samplerate() as u128) * 1000
     }
 
-    //Get rodio source
+    // Get rodio source
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
         Ok(Box::new(AIFFSource::new(&self.path)?))
     }
@@ -69,9 +69,9 @@ impl Iterator for AIFFSource {
     type Item = i16;
 
     fn next(&mut self) -> Option<Self::Item> {
-        //Load more data
+        // Load more data
         if self.position >= self.buffer.len() {
-            //Read to ndarray, because reading to slice produced bad data
+            // Read to ndarray, because reading to slice produced bad data
             let mut buffer = vec![0; 2048];
             let nd_buffer = ArrayViewMut2::<i16>::from_shape((1024, 2), &mut buffer).ok()?;
             let read = self.snd.read_to_ndarray(nd_buffer).ok()?;
@@ -83,7 +83,7 @@ impl Iterator for AIFFSource {
             self.position = 0;
         }
 
-        //Get sample
+        // Get sample
         let s = self.buffer[self.position];
         self.position += 1;
         Some(s)

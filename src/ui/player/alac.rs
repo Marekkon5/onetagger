@@ -11,7 +11,7 @@ pub struct ALACSource {
 }
 
 impl ALACSource {
-    //Read alac from file
+    // Read alac from file
     pub fn new(path: &str) -> Result<ALACSource, Box<dyn Error>> {
         let file = File::open(path)?;
         let r = BufReader::new(file);
@@ -46,7 +46,7 @@ impl Iterator for ALACSource {
     type Item = i16;
 
     fn next(&mut self) -> Option<Self::Item> {
-        //Wrapper against samples
+        // Wrapper against samples
         if let Some(r) = self.samples.next() {
             if let Ok(s) = r {
                 return Some(s);

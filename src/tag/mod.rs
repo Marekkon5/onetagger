@@ -6,7 +6,7 @@ pub mod id3;
 pub mod flac;
 pub mod mp4;
 
-//Supported extensions
+// Supported extensions
 pub static EXTENSIONS : [&'static str; 5] = [".mp3", ".flac", ".aif", ".aiff", ".m4a"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,7 +36,7 @@ pub struct Tag {
 
 impl Tag {
     pub fn load_file(path: &str, allow_new: bool) -> Result<Tag, Box<dyn Error>> {
-        //FLAC
+        // FLAC
         if path.to_lowercase().ends_with(".flac") {
             return Ok(Tag {
                 flac: Some(flac::FLACTag::load_file(path)?),
@@ -45,7 +45,7 @@ impl Tag {
                 format: AudioFileFormat::FLAC
             });
         }
-        //MP4
+        // MP4
         if path.to_lowercase().ends_with(".m4a") {
             return Ok(Tag {
                 flac: None,
@@ -55,7 +55,7 @@ impl Tag {
             });
         }
 
-        //ID3
+        // ID3
         let tag = if allow_new {
             id3::ID3Tag::load_or_new(path)
         } else {
@@ -73,7 +73,7 @@ impl Tag {
         });
     }
 
-    //Set proper separators for every format
+    // Set proper separators for every format
     pub fn set_separators(&mut self, separators: &TagSeparators) {
         if let Some(flac) = &mut self.flac {
             flac.set_separator(separators.vorbis.as_ref().unwrap_or(&String::new()));
@@ -86,7 +86,7 @@ impl Tag {
         }
     }
 
-    //Get generic
+    // Get generic
     pub fn tag(&self) -> Option<Box<&dyn TagImpl>> {
         if let Some(flac) = &self.flac {
             return Some(Box::new(flac));
@@ -116,32 +116,32 @@ impl Tag {
 pub trait TagImpl {
     fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>>;
 
-    //Since all formats right now support separators
+    // Since all formats right now support separators
     fn set_separator(&mut self, separator: &str);
 
-    //Get all string tags
+    // Get all string tags
     fn all_tags(&self) -> HashMap<String, Vec<String>>;
 
-    //Set/Get dates
+    // Set/Get dates
     fn set_date(&mut self, date: &TagDate, overwrite: bool);
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool);
 
-    //Get/Set rating as 1 - 5 stars value
+    // Get/Set rating as 1 - 5 stars value
     fn get_rating(&self) -> Option<u8>;
     fn set_rating(&mut self, rating: u8, overwrite: bool);
 
-    //Set/Get album art
+    // Set/Get album art
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>);
-    //To not load all album arts
+    // To not load all album arts
     fn has_art(&self) -> bool;
     fn get_art(&self) -> Vec<Picture>;
     fn remove_art(&mut self, kind: CoverType);
 
-    //Set/Get named field
+    // Set/Get named field
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool);
     fn get_field(&self, field: Field) -> Option<Vec<String>>;
 
-    //Set/Get by tag field name
+    // Set/Get by tag field name
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool);
     fn get_raw(&self, tag: &str) -> Option<Vec<String>>;
     fn remove_raw(&mut self, tag: &str);
@@ -153,7 +153,7 @@ pub enum AudioFileFormat {
     FLAC, AIFF, MP3, MP4
 }
 
-//Tag fields from UI
+// Tag fields from UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 
@@ -164,7 +164,7 @@ pub struct UITag {
 }
 
 impl UITag {
-    //Get raw value by format
+    // Get raw value by format
     pub fn by_format(&self, format: &AudioFileFormat) -> String {
         match format.to_owned() {
             AudioFileFormat::AIFF => self.id3.to_string(),
@@ -210,7 +210,7 @@ pub enum CoverType {
 }
 
 impl CoverType {
-    //Get all the types
+    // Get all the types
     pub fn types() -> [CoverType; 22] {
         [CoverType::CoverFront, CoverType::CoverBack, CoverType::Other, CoverType::Artist,
         CoverType::Icon, CoverType::OtherIcon, CoverType::Leaflet, CoverType::Media, CoverType::LeadArtist,
@@ -229,7 +229,7 @@ pub struct TagDate {
 }
 
 impl TagDate {
-    //If has day and month
+    // If has day and month
     pub fn has_md(&self) -> bool {
         return self.month.is_some() && self.day.is_some();
     }
@@ -258,7 +258,7 @@ pub enum TagChange {
     Genre { value: Vec<String> },
     Remove { tag: String },
     RemovePicture { kind: CoverType },
-    //For adding from UI
+    // For adding from UI
     AddPictureBase64 { kind: CoverType, description: String, data: String, mime: String },
 
     #[serde(rename = "id3Comments")]
@@ -277,11 +277,11 @@ pub struct TagChanges {
 }
 
 impl TagChanges {
-    //Save all changes to file
+    // Save all changes to file
     pub fn commit(&self) -> Result<Tag, Box<dyn Error>> {
         let mut tag_wrap = Tag::load_file(&self.path, false)?;
 
-        //Format specific changes
+        // Format specific changes
         if let Some(id3) = tag_wrap.id3.as_mut() {
             for change in self.changes.clone() {
                 match change {
@@ -293,15 +293,15 @@ impl TagChanges {
             }
         }
 
-        //MP4 doesn't have any way to distinguish between artwork types so abstraction to do that
-        //Not very efficient, but rarely used and should work
+        // MP4 doesn't have any way to distinguish between artwork types so abstraction to do that
+        // Not very efficient, but rarely used and should work
         if let Some(mp4) = tag_wrap.mp4.as_mut() {
-            //Get album art indexes
+            // Get album art indexes
             let mut indicies: Vec<usize> = self.changes.iter().filter_map(|c| match c {
                 TagChange::RemovePicture {kind} => CoverType::types().iter().position(|k| k == kind),
                 _ => None
             }).collect();
-            //Last to first
+            // Last to first
             indicies.sort();
             indicies.reverse();
             let types = CoverType::types();
@@ -312,7 +312,7 @@ impl TagChanges {
 
         let format = tag_wrap.format.clone();
         let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
-        //Match changes
+        // Match changes
         for change in self.changes.clone() {
             match change {
                 TagChange::Raw {tag: t, value} => tag.set_raw(&t, value, true),
@@ -324,7 +324,7 @@ impl TagChanges {
                 _ => {}
             }
         }
-        //Save
+        // Save
         tag.save_file(&self.path)?;
 
         Ok(tag_wrap)

@@ -9,7 +9,7 @@ pub struct MP3Source {
 }
 impl MP3Source {
     pub fn new(path: &str) -> Result<MP3Source, Box<dyn Error>> {
-        //Get duration
+        // Get duration
         let duration = mp3_duration::from_path(path)?.as_millis();
 
         Ok(MP3Source {
@@ -20,12 +20,12 @@ impl MP3Source {
 }
 
 impl AudioSource for MP3Source {
-    //Get duration
+    // Get duration
     fn duration(&self) -> u128 {
         self.duration
     }
 
-    //Get rodio decoder
+    // Get rodio decoder
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
         Ok(Box::new(Decoder::new_mp3(File::open(&self.path)?)?))
     }

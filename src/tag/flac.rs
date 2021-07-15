@@ -7,7 +7,7 @@ use metaflac::Tag;
 use metaflac::block::PictureType;
 use crate::tag::{Field, TagDate, CoverType, TagImpl};
 
-//Cannot be a HashMap, because doens't implement Hash
+// Cannot be a HashMap, because doens't implement Hash
 const COVER_TYPES: [(PictureType, CoverType); 21] = [
     (PictureType::Other, CoverType::Other),
     (PictureType::Icon, CoverType::Icon),
@@ -38,17 +38,17 @@ pub struct FLACTag {
 }
 
 impl FLACTag {
-    //Load from file
+    // Load from file
     pub fn load_file(path: &str) -> Result<FLACTag, Box<dyn Error>> {
-        //Load header
+        // Load header
         let mut file = File::open(path)?;
         let mut header: [u8; 4] = [0; 4];
         file.read_exact(&mut header)?;
-        //Check if not ID3
+        // Check if not ID3
         if &header[0..3] == b"ID3" {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "FLAC ID3 not supported!").into());
         }
-        //Check if FLAC
+        // Check if FLAC
         if &header != b"fLaC" {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Not a valid FLAC!").into());
         }
@@ -60,7 +60,7 @@ impl FLACTag {
         }.into())
     }
 
-    //Set date in vorbis to tag
+    // Set date in vorbis to tag
     fn set_date_inner(&mut self, tag: &str, date: &TagDate, overwrite: bool) {
         if overwrite || self.tag.get_vorbis(tag).is_none() {
             let v = match date.has_md() {
@@ -71,7 +71,7 @@ impl FLACTag {
         }
     }
 
-    //Convert between different cover/picture types
+    // Convert between different cover/picture types
     fn picture_type(&self, cover_type: &CoverType) -> PictureType {
         COVER_TYPES.iter().find(|(_, c)| c == cover_type).unwrap().0
     }
@@ -79,7 +79,7 @@ impl FLACTag {
         COVER_TYPES.iter().find(|(p, _)| p == picture_type).unwrap().1.clone()
     }
 
-    //Get field tag name
+    // Get field tag name
     fn field(&self, field: Field) -> String {
         match field {
             Field::Title => "TITLE".to_string(),
@@ -98,13 +98,13 @@ impl FLACTag {
 }
 
 impl TagImpl for FLACTag {
-    //Save to path
+    // Save to path
     fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>> {
         self.tag.write_to_path(path)?;
         Ok(())
     }
 
-    //If separator is set, all values are written to single tag, separated by commas for compatibility reasons
+    // If separator is set, all values are written to single tag, separated by commas for compatibility reasons
     fn set_separator(&mut self, separator: &str) {
         if separator.is_empty() {
             self.separator = None;
@@ -113,7 +113,7 @@ impl TagImpl for FLACTag {
         }
     }
 
-    //Get all tags
+    // Get all tags
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
         if let Some(vorbis) = self.tag.vorbis_comments() {
             return vorbis.comments.clone();
@@ -121,7 +121,7 @@ impl TagImpl for FLACTag {
         HashMap::new()
     }
 
-    //Set date in tag
+    // Set date in tag
     fn set_date(&mut self, date: &TagDate, overwrite: bool) {
         self.set_date_inner("DATE", date, overwrite);
     }
@@ -129,7 +129,7 @@ impl TagImpl for FLACTag {
         self.set_date_inner("ORIGINALDATE", date, overwrite);
     }
 
-    //Rating, in vorbis saved as 20,40,60,80,100
+    // Rating, in vorbis saved as 20,40,60,80,100
     fn get_rating(&self) -> Option<u8> {
         let rating = self.get_raw("RATING")?.first()?.parse::<i32>().ok()? / 20;
         if rating <= 5 {
@@ -145,7 +145,7 @@ impl TagImpl for FLACTag {
         self.set_raw("RATING", vec![value], overwrite);
     }
 
-    //Set/Get album art
+    // Set/Get album art
     fn set_art(&mut self, kind: CoverType, mime: &str, _description: Option<&str>, data: Vec<u8>) {
         self.tag.remove_picture_type(self.picture_type(&kind));
         self.tag.add_picture(mime, self.picture_type(&kind), data);
@@ -160,7 +160,7 @@ impl TagImpl for FLACTag {
             }
         ).collect()
     }
-    //Check if has album art
+    // Check if has album art
     fn has_art(&self) -> bool {
         self.tag.pictures().next().is_some()
     }
@@ -169,7 +169,7 @@ impl TagImpl for FLACTag {
         self.tag.remove_picture_type(self.picture_type(&kind));
     }
     
-    //Set/Get named field
+    // Set/Get named field
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool) {
         self.set_raw(&self.field(field), value, overwrite);
     }
@@ -177,10 +177,10 @@ impl TagImpl for FLACTag {
         self.get_raw(&self.field(field))
     }
 
-    //Set raw tag
+    // Set raw tag
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool) {
         if overwrite || self.tag.get_vorbis(&tag).is_none() || self.tag.get_vorbis(&tag).unwrap().next().is_none() {
-            //Separator override
+            // Separator override
             if let Some(separator) = &self.separator {
                 self.tag.set_vorbis(tag, vec![value.join(separator)]);
                 return;
@@ -189,7 +189,7 @@ impl TagImpl for FLACTag {
             self.tag.set_vorbis(tag, value);
         }
     }
-    //Get raw tag, None even if empty array
+    // Get raw tag, None even if empty array
     fn get_raw(&self, tag: &str) -> Option<Vec<String>> {
         if let Some(values) = self.tag.get_vorbis(tag) {
             let mut v: Vec<&str> = values.collect();
@@ -197,7 +197,7 @@ impl TagImpl for FLACTag {
                 return None;
             }
 
-            //Separator override
+            // Separator override
             if v.len() == 1 && self.separator.is_some() {
                 v = v[0].split(self.separator.as_ref().unwrap()).collect();
             }

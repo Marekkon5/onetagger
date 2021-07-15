@@ -43,9 +43,9 @@ pub struct ID3Tag {
 }
 
 impl ID3Tag {
-    //Read from file
+    // Read from file
     pub fn load_file(path: &str) -> Result<ID3Tag, Box<dyn Error>> {        
-        //MP3
+        // MP3
         if path.to_lowercase().ends_with(".mp3") {
             let tag = Tag::read_from_path(path)?;
             let version = tag.version();
@@ -59,7 +59,7 @@ impl ID3Tag {
                 }
             }.into());
         }
-        //AIFF
+        // AIFF
         if path.to_lowercase().ends_with(".aif") || path.to_lowercase().ends_with(".aiff") {
             let tag = Tag::read_from_aiff(path)?;
             let version = tag.version();
@@ -74,11 +74,11 @@ impl ID3Tag {
             }.into());
         }
 
-        //Unsupported
+        // Unsupported
         Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unsupported format!").into())
     }
 
-    //Load tag from file or create new
+    // Load tag from file or create new
     pub fn load_or_new(path: &str) -> ID3Tag {
         let format = if path.to_lowercase().ends_with(".mp3") {
             ID3AudioFormat::MP3
@@ -97,12 +97,12 @@ impl ID3Tag {
         }
     }
 
-    //ID3 Settings
+    // ID3 Settings
     pub fn set_id3v24(&mut self, id3v24: bool) {
         self.id3v24 = id3v24;
     }
 
-    //Read and write all comments
+    // Read and write all comments
     pub fn get_comments(&self) -> Vec<ID3Comment> {
         self.tag.comments().map(|c| c.clone().into()).collect()
     }
@@ -114,7 +114,7 @@ impl ID3Tag {
         }
     }
 
-    //Read write all unsynchronized lyrics
+    // Read write all unsynchronized lyrics
     pub fn get_unsync_lyrics(&self) -> Vec<ID3Comment> {
         self.tag.lyrics().map(|l| l.clone().into()).collect()
     }
@@ -126,7 +126,7 @@ impl ID3Tag {
         }
     }
 
-    //POPM
+    // POPM
     pub fn get_popularimeter(&self) -> Option<ID3Popularimeter> {
         let tag = self.tag.get("POPM")?;
         let data = tag.content().unknown()?;
@@ -139,7 +139,7 @@ impl ID3Tag {
         self.tag.add_frame(popm.to_frame());
     }
 
-    //Convert between different cover/picture types
+    // Convert between different cover/picture types
     fn picture_type(&self, cover_type: &CoverType) -> PictureType {
         COVER_TYPES.iter().find(|(_, c)| c == cover_type).unwrap().0
     }
@@ -149,7 +149,7 @@ impl ID3Tag {
         ).1.clone()
     }
 
-    //Convert Field to tag name
+    // Convert Field to tag name
     fn field(&self, field: Field) -> String {
         match field {
             Field::Title => "TIT2".to_string(),
@@ -168,17 +168,17 @@ impl ID3Tag {
 }
 
 impl TagImpl for ID3Tag {
-    //Write tag to file
+    // Write tag to file
     fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>> {
         let version = match self.id3v24 {
             true => Version::Id3v24,
             false => Version::Id3v23
         };
-        //MP3
+        // MP3
         if self.format == ID3AudioFormat::MP3 {
             self.tag.write_to_path(path, version)?;
         }
-        //AIFF
+        // AIFF
         if self.format == ID3AudioFormat::AIFF {
             self.tag.write_to_aiff(path, version)?;
         }
@@ -189,7 +189,7 @@ impl TagImpl for ID3Tag {
         self.id3_separator = separator.replace("\\0", "\0");
     }
 
-    //Get all tags
+    // Get all tags
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
         let mut tags = HashMap::new();
         for frame in self.tag.frames() {
@@ -197,31 +197,31 @@ impl TagImpl for ID3Tag {
                 tags.insert(frame.id().to_owned(), v.split(&self.id3_separator).map(String::from).collect());
             }
         }
-        //Add TXXX
+        // Add TXXX
         for extended in self.tag.extended_texts() {
             tags.insert(extended.description.to_string(), extended.value.split(&self.id3_separator).map(String::from).collect());
         }
         tags
     }
 
-    //Set date to tag
+    // Set date to tag
     fn set_date(&mut self, date: &TagDate, overwrite: bool) {
-        //ID3 v2.3
+        // ID3 v2.3
         if !self.id3v24 {
-            //Year
+            // Year
             if overwrite || self.tag.get("TYER").is_none() {
-                //Remove v2.4
+                // Remove v2.4
                 self.tag.remove_date_recorded();
                 self.tag.set_text("TYER", date.year.to_string());
             }
-            //Date
+            // Date
             if date.has_md() && (overwrite || self.tag.get("TDAT").is_none()) {
                 self.tag.remove_date_recorded();
                 self.tag.set_text("TDAT", &format!("{:02}{:02}", date.day.unwrap(), date.month.unwrap()));
             }
             return;
         }
-        //ID3 v2.4
+        // ID3 v2.4
         if overwrite || self.tag.date_recorded().is_none() {
             let ts = Timestamp {
                 year: date.year,
@@ -235,7 +235,7 @@ impl TagImpl for ID3Tag {
         }
     }
 
-    //Set publish date
+    // Set publish date
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool) {
         if overwrite || self.tag.date_released().is_none() {
             let ts = Timestamp {
@@ -250,12 +250,12 @@ impl TagImpl for ID3Tag {
         }
     }
 
-    //Rating
+    // Rating
     fn get_rating(&self) -> Option<u8> {
         let tag = self.tag.get("POPM")?;
         let value = tag.content().unknown()?;
         let popm = ID3Popularimeter::from_bytes(value)?;
-        //Byte to 1 - 5
+        // Byte to 1 - 5
         let rating = (popm.rating as f32 / 51.0).ceil() as u8;
         if rating == 0 {
             return Some(1)
@@ -270,7 +270,7 @@ impl TagImpl for ID3Tag {
         }
     }
 
-    //Set album art
+    // Set album art
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
         let picture_type = self.picture_type(&kind);
         self.tag.remove_picture_by_type(picture_type);
@@ -281,7 +281,7 @@ impl TagImpl for ID3Tag {
             data
         });
     }
-    //Get album art by type
+    // Get album art by type
     fn get_art(&self) -> Vec<crate::tag::Picture> {
         self.tag.pictures().map(
             |p| crate::tag::Picture {
@@ -292,7 +292,7 @@ impl TagImpl for ID3Tag {
             }
         ).collect()
     }
-    //Check if has album art
+    // Check if has album art
     fn has_art(&self) -> bool {
         self.tag.pictures().next().is_some()
     }
@@ -300,7 +300,7 @@ impl TagImpl for ID3Tag {
         self.tag.remove_picture_by_type(self.picture_type(&kind));
     }
 
-    //Set/Get named field
+    // Set/Get named field
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool) {
         self.set_raw(&self.field(field), value, overwrite);
     }
@@ -308,12 +308,12 @@ impl TagImpl for ID3Tag {
         self.get_raw(&self.field(field))
     }
 
-    //Set/Get by tag
+    // Set/Get by tag
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool) {
-        //TXXX
+        // TXXX
         if tag.len() != 4 {
             if overwrite || self.get_raw(tag).is_none() {
-                //Remove if empty
+                // Remove if empty
                 if value.is_empty() {
                     self.tag.remove_extended_text(Some(tag), None);
                     return;
@@ -323,7 +323,7 @@ impl TagImpl for ID3Tag {
             return;
         }
 
-        //COMM tag override for compatibility with DJ apps
+        // COMM tag override for compatibility with DJ apps
         if tag.to_uppercase() == "COMM" {
             if overwrite || self.tag.comments().next().is_none() {
                 let mut comment = match self.tag.comments().cloned().next() {
@@ -334,7 +334,7 @@ impl TagImpl for ID3Tag {
                         text: String::new()
                     }
                 };
-                //Add value
+                // Add value
                 self.tag.remove("COMM");
                 if !value.is_empty() {
                     comment.text = value.join(&self.id3_separator);
@@ -344,7 +344,7 @@ impl TagImpl for ID3Tag {
             return;
         }
 
-        //USLT override so can be used as normal tag
+        // USLT override so can be used as normal tag
         if tag.to_uppercase() == "USLT" {
             if overwrite || self.tag.lyrics().next().is_none() {
                 self.tag.remove_all_lyrics();
@@ -358,9 +358,9 @@ impl TagImpl for ID3Tag {
         }
 
         
-        //Normal
+        // Normal
         if overwrite || self.tag.get(tag).is_none() {
-            //Remove if empty
+            // Remove if empty
             if value.is_empty() {
                 self.tag.remove(tag);
                 return;
@@ -368,9 +368,9 @@ impl TagImpl for ID3Tag {
             self.tag.set_text(tag, value.join(&self.id3_separator));
         }
     }
-    //Get raw TEXT field
+    // Get raw TEXT field
     fn get_raw(&self, tag: &str) -> Option<Vec<String>> {
-        //Custom tag (TXXX)
+        // Custom tag (TXXX)
         if tag.len() != 4 {
             if let Some(t) = self.tag.extended_texts().find(|t| t.description == tag) {
                 return Some(vec![t.value.to_string()]);
@@ -378,7 +378,7 @@ impl TagImpl for ID3Tag {
             return None;
         }
 
-        //COMM tag override for compatibility with DJ apps
+        // COMM tag override for compatibility with DJ apps
         if tag.to_uppercase() == "COMM" {
             return match self.tag.comments().next() {
                 Some(comment) => Some(comment.text.split(&self.id3_separator).map(String::from).collect()),
@@ -386,7 +386,7 @@ impl TagImpl for ID3Tag {
             };
         }
 
-        //USLT override
+        // USLT override
         if tag.to_uppercase() == "USLT" {
             return match self.tag.lyrics().next() {
                 Some(lyrics) => Some(lyrics.text.split(&self.id3_separator).map(String::from).collect()),
@@ -394,7 +394,7 @@ impl TagImpl for ID3Tag {
             };
         }
 
-        //Get tag
+        // Get tag
         if let Some(t) = self.tag.get(tag) {
             if let Some(content) = t.content().text() {
                 Some(vec![content.to_owned()])
@@ -407,7 +407,7 @@ impl TagImpl for ID3Tag {
     }
 
     fn remove_raw(&mut self, tag: &str) {
-        //TXXX
+        // TXXX
         if tag.len() != 4 {
             self.tag.remove_extended_text(Some(tag), None);
             return;
@@ -432,7 +432,7 @@ impl ID3Popularimeter {
         }
     }
 
-    // EMAIL \0 RATING (u8) COUNTER (u32)
+    //  EMAIL \0 RATING (u8) COUNTER (u32)
     pub fn from_bytes(data: &[u8]) -> Option<ID3Popularimeter> {
         let pos = data.iter().position(|b| b == &0u8)?;
         if pos + 6 > data.len() {
@@ -461,7 +461,7 @@ impl ID3Popularimeter {
     }
 }
 
-//Reimplementations of rust-id3 for serialization
+// Reimplementations of rust-id3 for serialization
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ID3Comment {
     pub lang: String,
@@ -489,7 +489,7 @@ impl From<ID3Comment> for Comment {
     }
 }
 
-//Unsynchronized lyrics have exactly same schema as comment
+// Unsynchronized lyrics have exactly same schema as comment
 impl From<Lyrics> for ID3Comment {
     fn from(l: Lyrics) -> Self {
         Self {

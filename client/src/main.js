@@ -1,4 +1,4 @@
-//MacOS Polyfill
+// MacOS Polyfill
 require('intersection-observer');
 
 import Vue from 'vue';
@@ -11,13 +11,13 @@ import './styles/app.scss';
 
 Vue.config.productionTip = false;
 
-//Global instance
+// Global instance
 Vue.prototype.$1t = new OneTagger();
 
 new Vue({
 	router,
 	mounted() {
-		//Backend error dialog
+		// Backend error dialog
 		this.$1t.onError = (msg) => {
 			console.log(msg);
 			this.$q.dialog({
@@ -29,7 +29,7 @@ new Vue({
 			});
 		}
 
-		//Windows webview
+		// Windows webview
 		if (window.chrome && window.chrome.webview)
 			window.chrome.webview.addEventListener('message', e => {
 				this.$1t.onOSMessage(JSON.parse(e.data), this);

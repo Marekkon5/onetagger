@@ -19,15 +19,15 @@ pub fn benchmark_track_matching() {
     let info = AudioFileInfo {
         title: "Some Random Title".to_string(),
         artists: vec!["Artist".to_string(), "Lyricist".to_string()],
-        //Sample deafults
+        // Sample deafults
         format: AudioFileFormat::MP3, isrc: None, path: String::new(), duration: None
     };
     let tracks = vec![
         Track {
-            //Missspelled for fuzzy
+            // Missspelled for fuzzy
             title: "Some randm title".to_string(),
             artists: vec!["lyrici".to_owned(), "artist".to_owned()],
-            //Sample values
+            // Sample values
             version: None, album: None,  key: None, bpm: None, genres: vec![], styles: vec![], 
             art: None, url: String::new(), label: None, release_year: None, release_date: None, 
             publish_year: None, publish_date: None, platform: MusicPlatform::Beatport, track_id: None,
@@ -36,7 +36,7 @@ pub fn benchmark_track_matching() {
     ];
     let mut config = TaggerConfig::default();
     config.strictness = 0.5;
-    //Start benchmark
+    // Start benchmark
     let start = timestamp!();
     for _ in 0..10_000 {
         MatchingUtils::match_track(&info, &tracks, &config).unwrap();
@@ -44,13 +44,13 @@ pub fn benchmark_track_matching() {
     info!("Matched 10000 tracks, took: {}ms", timestamp!() - start);
 }
 
-//Beatport's servers are very inconsistent, so test for it here
+// Beatport's servers are very inconsistent, so test for it here
 pub fn benchmark_beatport(threads: usize) {
     info!("Starting Beatport benchmark with {} threads for 50 iterations...", threads);
 
     let pool = ThreadPool::new(threads);
     let (tx, rx) = channel();
-    //Run threadpool
+    // Run threadpool
     for _ in 0..50 {
         let tx = tx.clone();
         pool.execute(move || {
@@ -58,7 +58,7 @@ pub fn benchmark_beatport(threads: usize) {
             tx.send(()).ok();
         })
     }
-    //Bench
+    // Bench
     let start = timestamp!();
     let _ = rx.iter().take(50).collect::<Vec<()>>();
     info!("Beatport benchmark with {} threads and 50 iterations finished in {}ms", threads, timestamp!() - start);

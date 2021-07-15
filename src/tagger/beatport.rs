@@ -14,7 +14,7 @@ pub struct Beatport {
 }
 
 impl Beatport {
-    //Create instance
+    // Create instance
     pub fn new() -> Beatport {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
@@ -25,7 +25,7 @@ impl Beatport {
         }
     }
 
-    //Search for tracks on beatport
+    // Search for tracks on beatport
     pub fn search(&self, query: &str, page: i64, results_per_page: usize) -> Result<BeatportSearchResults, Box<dyn Error>> {
         let response = self.client.get("https://www.beatport.com/search/tracks")
             .query(&[
@@ -36,13 +36,13 @@ impl Beatport {
             .send()?
             .text()?;
         
-        //Parse JSON
+        // Parse JSON
         let json = self.get_playables(&response)?;
         let results: BeatportSearchResults = serde_json::from_str(&json)?;
         Ok(results)
     }
 
-    //Get JSON data from website
+    // Get JSON data from website
     fn get_playables(&self, response: &str) -> Result<String, Box<dyn Error>> {
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script#data-objects").unwrap();
@@ -50,19 +50,19 @@ impl Beatport {
         let start = script.find("window.Playables =").ok_or("No data found")? + 18;
         let end = script.find("window.Sliders =").unwrap_or_else(|| script.len());
         let mut data = script[start..end].trim().to_owned();
-        //Remove trailing characters
+        // Remove trailing characters
         while !data.ends_with('}') {
             data.pop();
         }
         Ok(data)
     }
 
-    //Get release info
+    // Get release info
     pub fn fetch_release(&self, slug: &str, id: i64) -> Result<BeatportRelease, Box<dyn Error>> {
         let response = self.client.get(format!("https://www.beatport.com/release/{}/{}", slug, id))
             .send()?
             .text()?;
-        //Parse
+        // Parse
         let json = self.get_playables(&response)?;
         let results: BeatportSearchResults = serde_json::from_str(&json)?;
         Ok(results.releases.first().ok_or("Missing release!")?.to_owned())
@@ -109,17 +109,17 @@ impl BeatportTrack {
             styles: vec![],
             label: self.label.as_ref().map(|l| l.name.to_string()),
             url: format!("https://beatport.com/track/{}/{}", &self.slug, &self.id),
-            //Parse year only if 4 digits
+            // Parse year only if 4 digits
             release_year: if let Some(date) = &self.date.released {
                 if date.len() == 4 { date.parse().ok() } else { None }
             } else { None },
             publish_year: if let Some(date) = &self.date.published {
                 if date.len() == 4 { date.parse().ok() } else { None }
             } else { None },
-            //Dates
+            // Dates
             release_date: self.date.released.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
             publish_date: self.date.published.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-            //Key
+            // Key
             key: self.key.as_ref().map(|k| k
                 .replace("♭", "b")
                 .replace("♯", "#")
@@ -139,13 +139,13 @@ impl BeatportTrack {
         }
     }
 
-    //Get dynamic or first image
+    // Get dynamic or first image
     fn get_image(&self) -> Option<BeatportImage> {
         Some(self.images.get("dynamic").unwrap_or(self.images.values().next()?).clone())
     }
 }
 
-//Generic container 
+// Generic container 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportSmall {
     pub id: i64,
@@ -165,7 +165,7 @@ pub struct BeatportImage {
     pub url: String
 }
 
-//Currently only used for catalog number
+// Currently only used for catalog number
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BeatportRelease {
@@ -200,7 +200,7 @@ impl BeatportImage {
 
         let r = resolution.to_string();
         let dynamic = &self.url;
-        //Normal dynamic
+        // Normal dynamic
         if dynamic.contains("{w}") || dynamic.contains("{x}") {
             return Some(dynamic
                 .replace("{w}", &r)
@@ -209,7 +209,7 @@ impl BeatportImage {
                 .replace("{y}", &r)
                 .to_owned());
         }
-        //Undocumented dynamic
+        // Undocumented dynamic
         if dynamic.contains("/image_size/") {
             let re = Regex::new(r"/image_size/\d+x\d+/").unwrap();
             return Some(re.replace(&dynamic, |_: &Captures| format!("/image_size/{}x{}/", r, r)).to_string());
@@ -218,19 +218,19 @@ impl BeatportImage {
     }
 }
 
-//Match track
+// Match track
 impl TrackMatcher for Beatport {
     fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
-        //Search
+        // Search
         let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
         for page in 1..config.beatport.max_pages+1 {
             match self.search(&query, page, 150) {
                 Ok(res) => {
-                    //Convert tracks
+                    // Convert tracks
                     let tracks = res.tracks.iter().map(|t| t.to_track(config.beatport.art_resolution)).collect();
-                    //Match
+                    // Match
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
-                        //Get catalog number
+                        // Get catalog number
                         if config.catalog_number {
                             let i = tracks.iter().position(|t| t == &track).unwrap();
                             match self.fetch_release(&res.tracks[i].release.slug, res.tracks[i].release.id) {
