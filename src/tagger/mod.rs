@@ -890,6 +890,9 @@ impl Tagger {
 
     //Get list of all files in with supported extensions
     pub fn get_file_list(path: &str) -> Vec<String> {
+        if path.is_empty() {
+            return vec![];
+        }
         let files: Vec<String> = WalkDir::new(path).into_iter().filter(
             |e| e.is_ok() && 
             EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))

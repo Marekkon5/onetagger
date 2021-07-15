@@ -71,6 +71,7 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let mut server_mode = false;
     let mut start_path = None;
+    let mut expose = false;
     for arg in args {
         match arg.as_str() {
             "--server" => server_mode = true,
@@ -88,6 +89,7 @@ fn main() {
                 msgbox::create("One Tagger", "Benchmarking finished! Results are in logs.", msgbox::IconType::Info).unwrap();
                 return;
             },
+            "--expose" => expose = true,
             //Webview2 bootstrap
             #[cfg(target_os = "windows")]
             "--bootstrap-webview2" => {
@@ -106,7 +108,7 @@ fn main() {
     }
     //Start
     let context = ui::StartContext {
-        start_path, server_mode
+        start_path, server_mode, expose
     };
     ui::start_all(context);
 }

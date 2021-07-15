@@ -30,9 +30,10 @@ new Vue({
 		}
 
 		//Windows webview
-		window.chrome.webview.addEventListener('message', e => {
-			this.$1t.onOSMessage(JSON.parse(e.data), this);
-		});
+		if (window.chrome && window.chrome.webview)
+			window.chrome.webview.addEventListener('message', e => {
+				this.$1t.onOSMessage(JSON.parse(e.data), this);
+			});
 	},
 	render: h => h(App)
 }).$mount('#app');

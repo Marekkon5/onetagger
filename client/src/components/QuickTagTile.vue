@@ -83,7 +83,7 @@ export default {
             return this.$1t.quickTag.track && this.track.path == this.$1t.quickTag.track.path;
         },
         art() {
-            return `http://localhost:36913/thumb?path=${encodeURIComponent(this.track.path)}`;
+            return `http://${window.location.hostname}:36913/thumb?path=${encodeURIComponent(this.track.path)}`;
         }
     }
 }

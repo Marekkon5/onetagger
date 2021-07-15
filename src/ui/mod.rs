@@ -83,7 +83,8 @@ impl Settings {
 #[serde(rename_all = "camelCase")]
 pub struct StartContext {
     pub server_mode: bool,
-    pub start_path: Option<String>
+    pub start_path: Option<String>,
+    pub expose: bool
 }
 
 //Start webview window
@@ -112,9 +113,14 @@ pub fn start_socket_thread(context: StartContext) {
 }
 
 //Start webserver for hosting static index.html
-pub fn start_webserver_thread() {
-    thread::spawn(|| {
-        rouille::start_server("127.0.0.1:36913", move |request| {
+pub fn start_webserver_thread(context: &StartContext) {
+    let host = match context.expose {
+        true => "0.0.0.0:36913",
+        false => "127.0.0.1:36913"
+    };
+
+    thread::spawn(move || {
+        rouille::start_server(host, move |request| {
             router!(request, 
                 (GET) ["/"] => {
                     Response::html(INDEX_HTML)
@@ -148,16 +154,23 @@ pub fn start_webserver_thread() {
 
 //Start everything
 pub fn start_all(context: StartContext) {
+    match context.expose {
+        true => {
+            info!("Starting server on http://0.0.0.0:36913 ws://0.0.0.0:36912");
+            warn!("Server is exposed to public!");
+        },
+        false => info!("Starting server on http://127.0.0.1:36913 ws://127.0.0.1:36912")
+    }
+
     //Server mode
     if context.server_mode {
-        info!("Starting server mode! http://localhost:36913 ws://localhost:36912");
-        start_webserver_thread();
+        start_webserver_thread(&context);
         socket::start_socket_server(context);
         return;
     }
 
+    start_webserver_thread(&context);
     start_socket_thread(context);
-    start_webserver_thread();
     start_webview();
 }
 

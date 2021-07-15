@@ -6,7 +6,7 @@
         <div class='text-h5 q-mt-md text-grey-4'>Setup</div>
         <div class='text-subtitle1 text-grey-6 q-mt-md'>
             <span class='text-grey-4'>1.</span> Open <span class='dotted-underline clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app<br>
-            <span class='text-grey-4'>2.</span> In settings set the Callback URL to: <span class='selectable text-grey-4'>http://localhost:36914/spotify</span> <br>
+            <span class='text-grey-4'>2.</span> In settings set the Callback URL to: <span class='selectable text-grey-4'>{{redirectUrl}}</span> <br>
             <span class='text-grey-4'>3.</span> Enter your Client ID and Client Secret below and press login <br>
         </div>
         <!-- Client ID and secret field -->
@@ -207,6 +207,11 @@ export default {
                     this.spotifyAuthorized = json.value;
                     break;
             }
+        }
+    },
+    computed: {
+        redirectUrl() {
+            return `http://${window.location.hostname}:36914/spotify`
         }
     }
 }

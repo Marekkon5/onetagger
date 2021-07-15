@@ -6,7 +6,7 @@ class OneTagger {
 
     constructor() {
         this.WAVES = 180;
-        this.ws = new WebSocket('ws://localhost:36912');
+        this.ws = new WebSocket(`ws://${window.location.hostname}:36912`);
 
         //WS error
         this.ws.onerror = (_, e) => {
@@ -83,13 +83,12 @@ class OneTagger {
                 //Status
                 case 'taggingProgress':
                     this.taggerStatus.progress = json.status.progress;
+                    //De duplicate failed
+                    this.taggerStatus.statuses = this.taggerStatus.statuses.filter((s) => {
+                        return s.status.path != json.status.status.path;
+                    });
                     this.taggerStatus.statuses.push(json.status);
-                    //OK - remove from failed
-                    if (json.status.status.status == 'ok') {
-                        this.taggerStatus.statuses = this.taggerStatus.statuses.filter((s) => {
-                            return s.status.status == 'ok' || s.status.path != json.status.status.path;
-                        });
-                    }
+                    
                     break;
                 //Tagging done
                 case 'taggingDone':
@@ -108,16 +107,16 @@ class OneTagger {
                     this.player.playing = json.playing;
                     break;
                 //Quicktag
-                case 'quicktagLoad':
+                case 'quickTagLoad':
                     this.quickTag.tracks = json.data.map(t => new QTTrack(t, this.settings.quickTag));
                     break;
                 /*eslint-disable no-case-declarations*/
-                case 'quicktagSaved':
+                case 'quickTagSaved':
                     let i = this.quickTag.tracks.findIndex((t) => t.path == json.path);
                     if (i != -1) {
                         Vue.set(this.quickTag.tracks, i, new QTTrack(json.file, this.settings.quickTag));
                     } else {
-                        this.onError('quicktagSaved: Invalid track');
+                        this.onError('quickTagSaved: Invalid track');
                     }
                     break;
                 //Audio features Spotify
@@ -476,7 +475,7 @@ class OneTagger {
         this.generateDefaultWaveform();
         let waveformIndex = 0;
         //Separate socket = separate thread
-        let ws = new WebSocket('ws://localhost:36912');
+        let ws = new WebSocket(`ws://${window.location.hostname}:36912`);
         ws.onmessage = (event) => {
             //Lock
             if (this._waveformLock.length > 1) {
@@ -544,7 +543,7 @@ class OneTagger {
     async saveQTTrack() {
         if (this.quickTag.track) {
             let changes = this.quickTag.track.getOutput();
-            this.send('quicktagSave', {changes});
+            this.send('quickTagSave', {changes});
             this.quickTag.track.clearChanges();
         }
     }
@@ -577,12 +576,12 @@ class OneTagger {
     //Quicktag
     loadQuickTag(playlist = null) {
         if (playlist) {
-            this.send('quicktagLoad', {playlist});
+            this.send('quickTagLoad', {playlist});
             return;
         }
            
         if (this.settings.path)
-            this.send('quicktagLoad', {
+            this.send('quickTagLoad', {
                 path: this.settings.path,
                 recursive: this.settings.quickTag.recursive
             });

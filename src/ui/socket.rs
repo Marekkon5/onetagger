@@ -12,27 +12,45 @@ use serde::{Serialize, Deserialize};
 use crate::tag::TagChanges;
 use crate::tagger::{TaggerConfig, Tagger};
 use crate::tagger::spotify::Spotify;
-use crate::ui::{OTError, Settings, StartContext};
+use crate::ui::{Settings, StartContext};
 use crate::ui::player::{AudioSources, AudioPlayer};
 use crate::ui::quicktag::{QuickTag, QuickTagFile};
 use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use crate::ui::tageditor::TagEditor;
 use crate::playlist::UIPlaylist;
 
-//Wrap of tagger config, so playlists can be passed too
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct TaggerConfigWrap {
-    config: TaggerConfigs,
-    playlist: Option<UIPlaylist>
+#[serde(tag = "action", rename_all = "camelCase")]
+enum Action {
+    Init,
+    SaveSettings { settings: Value },
+    LoadSettings,
+    Browse { path: Option<String>, context: Option<String> },
+    Browser { url: String },
+    OpenSettingsFolder,
+
+    StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
+    
+    Waveform { path: String },
+    PlayerLoad { path: String },
+    PlayerPlay, 
+    PlayerPause,
+    PlayerSeek { pos: u64 },
+    PlayerVolume { volume: f32 },
+
+    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool> },
+    QuickTagSave { changes: TagChanges },
+
+    #[serde(rename_all = "camelCase")]
+    SpotifyAuthorize { client_id: String, client_secret: String },
+    SpotifyAuthorized,
+
+    TagEditorFolder { path: Option<String>, subdir: Option<String>, recursive: Option<bool>  },
+    TagEditorLoad { path: String },
+    TagEditorSave { changes: TagChanges }
 }
 
-//loadQuickTag message
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct QuickTagLoad {
-    path: Option<String>,
-    playlist: Option<UIPlaylist>,
-    recursive: Option<bool>
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
@@ -74,9 +92,14 @@ impl SocketContext {
     }
 }
 
+
 //Start WebSocket UI server
 pub fn start_socket_server(context: StartContext) {
-    let server = TcpListener::bind("127.0.0.1:36912").unwrap();
+    let host = match context.expose {
+        true => "0.0.0.0:36912",
+        false => "127.0.0.1:36912"
+    };
+    let server = TcpListener::bind(host).unwrap();
     for stream in server.incoming() {
         let context = context.clone();
         thread::spawn(move || {
@@ -120,84 +143,73 @@ pub fn start_socket_server(context: StartContext) {
 
 fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Box<dyn Error>> {
     //Parse JSON
-    let json: Value = serde_json::from_str(text)?;
-    match json["action"].as_str().ok_or("Missing action!")? {
-        //Get initialization info
-        "init" => {
+    let action: Action = serde_json::from_str(text)?;
+    match action {
+        //Get initial info
+        Action::Init => {
             websocket.write_message(Message::from(json!({
                 "action": "init",
                 "version": crate::VERSION,
                 "startContext": context.start_context
             }).to_string())).ok();
         },
-        //Save, load settings from UI
-        "saveSettings" => {
-            let settings = Settings::from_ui(&json["settings"]);
-            settings.save()?;
-        },
-        "loadSettings" => {
-            //Ignore settings load error, might be first try
-            match Settings::load() {
-                Ok(settings) => {
-                    websocket.write_message(Message::from(json!({
-                        "action": "loadSettings",
-                        "settings": settings.ui
-                    }).to_string())).ok();
-                },
-                Err(e) => {
-                    error!("Failed loading settings, using defaults. {}", e);
-                }
+        Action::SaveSettings { settings } => Settings::from_ui(&settings).save()?,
+        Action::LoadSettings => match Settings::load() {
+            Ok(settings) => {
+                websocket.write_message(Message::from(json!({
+                    "action": "loadSettings",
+                    "settings": settings.ui
+                }).to_string())).ok();
             }
+            //Ignore settings if they don't exist (might be initial load)
+            Err(e) => error!("Failed loading settings, using defaults. {}", e)
         },
-        //Browse folder
-        "browse" => {
-            let mut initial = json["path"].as_str().unwrap_or(".");
-            if initial.is_empty() || !Path::new(initial).exists() {
-                initial = ".";
+        //Browse for folder
+        Action::Browse { path, context } => {
+            let mut initial = path.unwrap_or(".".to_string());
+            if initial.is_empty() || !Path::new(&initial).exists() {
+                initial = ".".to_string()
             }
-            if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", initial) {
+            if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", &initial) {
                 websocket.write_message(Message::from(json!({
                     "action": "browse",
                     "path": path,
-                    "context": json["context"]
+                    "context": context
                 }).to_string())).ok();
             }
         },
         //Open URL in external browser
-        "browser" => {
-            if let Some(url) = json["url"].as_str() {
-                webbrowser::open(url)?;
-            }
-        },
-        //Open folder with settings and log
-        "openSettingsFolder" => {
-            opener::open(Settings::get_folder()?.to_str().unwrap())?;
-        },
-        //Start tagger
-        "startTagging" => {
-            //Exctract hidden properties manually
-            let tagger_type = json["config"]["type"].clone();
-            let path = json["config"]["path"].as_str().unwrap_or("").to_string();
-            let wrap: TaggerConfigWrap = serde_json::from_value(json)?;
-            wrap.config.debug_print();
-            //Get files
-            let files = if let Some(playlist) = wrap.playlist {
-                playlist.get_files()?
-            } else {
-                if path.is_empty() {
-                    return Err(OTError::new("Invalid path!").into());
-                }
-                Tagger::get_file_list(&path)
-            };
-            let file_count = files.len();
+        Action::Browser { url } => { webbrowser::open(&url)?; },
+        Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
+        Action::StartTagging { config, playlist } => {
+            config.debug_print();
 
-            //Get tagger
-            let rx = match wrap.config {
-                TaggerConfigs::AutoTagger(config) => Tagger::tag_files(&config, files),
-                TaggerConfigs::AudioFeatures(config) => {
+            //Load playlist
+            let mut files = if let Some(playlist) = playlist {
+                playlist.get_files()?
+            } else { vec![] };
+            let mut file_count = files.len();
+            //Load taggers
+            let (tagger_type, rx) = match config {
+                TaggerConfigs::AutoTagger(c) => {
+                    //Load file list
+                    if files.is_empty() {
+                        files = Tagger::get_file_list(&c.path.as_ref().unwrap_or(&String::new()));
+                        file_count = files.len();
+                    }
+                    let rx = Tagger::tag_files(&c, files);
+                    ("autoTagger", rx)
+                },
+                TaggerConfigs::AudioFeatures(c) => {
+                    if files.is_empty() {
+                        files = Tagger::get_file_list(&c.path.as_ref().unwrap_or(&String::new()));
+                        file_count = files.len();
+                    }
+                    //Authorize spotify
                     let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
-                    AudioFeatures::start_tagging(config.clone(), spotify, files)
-                }
+                    let rx = AudioFeatures::start_tagging(c.clone(), spotify, files);
+                    ("audioFeatures", rx)
+                },
             };
 
             //Start
@@ -206,7 +218,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "files": file_count,
                 "type": tagger_type
             }).to_string())).ok();
-
+            //Tagging
             let start = timestamp!();
             for status in rx {
                 websocket.write_message(Message::from(json!({
@@ -220,10 +232,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "taggingDone"
             }).to_string())).ok();
         },
-        //Generate waveform, should be run from separate connection
-        "waveform" => {
-            let path = json["path"].as_str().unwrap();
-            let source = AudioSources::from_path(path)?;
+        Action::Waveform { path } => {
+            let source = AudioSources::from_path(&path)?;
             let (waveform_rx, cancel_tx) = source.generate_waveform(180)?;
             //Streamed
             for wave in waveform_rx {
@@ -241,12 +251,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             websocket.write_message(Message::from(json!({
                 "action": "waveformDone",
             }).to_string())).ok();
-
         },
         //Load player file
-        "playerLoad" => {
-            let path = json["path"].as_str().ok_or("Missing path!")?;
-            let source = AudioSources::from_path(path)?;
+        Action::PlayerLoad { path } => {
+            let source = AudioSources::from_path(&path)?;
             //Send to UI
             websocket.write_message(Message::from(json!({
                 "action": "playerLoad",
@@ -255,63 +263,48 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             //Load
             context.player.load_file(source);
         },
-        //Player controls
-        "playerPlay" => {
-            context.player.play();
-        },
-        "playerPause" => {
-            context.player.pause();
-        },
-        "playerSeek" => {
-            let playing = context.player.seek(json["pos"].as_i64().ok_or("Missing position!")? as u64);
-            //Sync
+        // Controls
+        Action::PlayerPlay => context.player.play(),
+        Action::PlayerPause => context.player.pause(),
+        Action::PlayerSeek { pos } => {
             websocket.write_message(Message::from(json!({
                 "action": "playerSync",
-                "playing": playing
+                "playing": context.player.seek(pos)
             }).to_string())).ok();
         },
-        "playerVolume" => {
-            let volume = json["volume"].as_f64().ok_or("Missing volume!")? as f32;
-            context.player.volume(volume);
-        }
-        //Quicktag
-        "quicktagLoad" => {
-            let msg: QuickTagLoad = serde_json::from_value(json)?;
+        Action::PlayerVolume { volume } => context.player.volume(volume),
+        //Load quicktag files or playlist
+        Action::QuickTagLoad { path, playlist, recursive } => {
             let mut files = vec![];
             //Playlist
-            if let Some(playlist) = msg.playlist {
+            if let Some(playlist) = playlist {
                 files = QuickTag::load_files_playlist(&playlist)?;
             }
             //Path
-            if let Some(path) = msg.path {
-                files = QuickTag::load_files_path(&path, msg.recursive.unwrap_or(false))?;
+            if let Some(path) = path {
+                files = QuickTag::load_files_path(&path, recursive.unwrap_or(false))?;
             }
             websocket.write_message(Message::from(json!({
-                "action": "quicktagLoad",
+                "action": "quickTagLoad",
                 "data": files
             }).to_string())).ok();
         },
-        //Save quicktag
-        "quicktagSave" => {
-            let changes: TagChanges = serde_json::from_value(json["changes"].clone())?;
+        //Save quicktag changes
+        Action::QuickTagSave { changes } => {
             let tag = changes.commit()?;
             websocket.write_message(Message::from(json!({
-                "action": "quicktagSaved",
+                "action": "quickTagSaved",
                 "path": &changes.path,
                 "file": QuickTagFile::from_tag(&changes.path, &tag).ok_or("Failed loading tags")?
             }).to_string())).ok();
         },
-        //Authorize spotify
-        "spotifyAuthorize" => {
-            //Get vars
-            let client_id = json["clientId"].as_str().ok_or("Missing clientId")?;
-            let client_secret = json["clientSecret"].as_str().ok_or("Missing clientSecret")?;
+        Action::SpotifyAuthorize { client_id, client_secret } => {
             //Authorize cached
-            if let Some(spotify) = Spotify::try_cached_token(client_id, client_secret) {
+            if let Some(spotify) = Spotify::try_cached_token(&client_id, &client_secret) {
                 context.spotify = Some(spotify);
             //Authorize new
             } else {
-                let (auth_url, mut oauth) = Spotify::generate_auth_url(client_id, client_secret);
+                let (auth_url, mut oauth) = Spotify::generate_auth_url(&client_id, &client_secret);
                 webbrowser::open(&auth_url)?;
                 let spotify = Spotify::auth_server(&mut oauth)?;
                 context.spotify = Some(spotify);
@@ -322,22 +315,18 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }).to_string())).ok();
         },
         //Check if authorized
-        "spotifyAuthorized" => {
+        Action::SpotifyAuthorized => {
             websocket.write_message(Message::from(json!({
                 "action": "spotifyAuthorized",
                 "value": context.spotify.is_some()
             }).to_string())).ok();
         },
-        //Tag editor
-        "tagEditorFolder" => {
-            let recursive = json["recursive"].as_bool().unwrap_or(false);
+        Action::TagEditorFolder { path, subdir, recursive } => {
             let user_dirs = UserDirs::new().ok_or("Invalid home dir!")?;
-            let path_raw = json["path"].as_str().unwrap_or(
-                user_dirs.audio_dir().ok_or("Missing path!")?.to_str().ok_or("Invalid path!")?
-            );
+            let path_raw = path.unwrap_or(user_dirs.audio_dir().ok_or("Missing path!")?.to_str().ok_or("Invalid path!")?.to_string());
             //Get parent
-            let subdir = json["subdir"].as_str().unwrap_or("");
-            let path = Path::new(path_raw);
+            let path = Path::new(&path_raw);
+            let subdir = subdir.unwrap_or(String::new());
             //Override for playlists
             let path = if !path.is_dir() {
                 if subdir == ".." {
@@ -346,11 +335,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     path.to_owned()
                 }
             } else {
-                canonicalize(Path::new(path_raw).join(subdir))?
+                canonicalize(Path::new(&path_raw).join(subdir))?
             };
             //Load
             let path = path.to_str().unwrap();
-            let files = match recursive {
+            let files = match recursive.unwrap_or(false) {
                 true => TagEditor::list_dir_recursive(path)?,
                 false => TagEditor::list_dir(path)?
             };
@@ -362,47 +351,22 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "recursive": recursive
             }).to_string())).ok();
         },
-        //Load playlist from data
-        "tagEditorPlaylist" => {
-            let playlist: UIPlaylist = serde_json::from_value(json)?;
-            let files = playlist.get_files()?;
-            //Keep only existing files, and clean path
-            let files: Vec<String> = files.iter().filter_map(|f| {
-                let path = Path::new(f);
-                match path.exists() {
-                    true => match canonicalize(path) {
-                        Ok(p) => Some(p.to_str().unwrap().to_string()),
-                        Err(_) => None
-                    }
-                    false => None
-                }
-            }).collect();
-
-            websocket.write_message(Message::from(json!({
-                "action": "tagEditorFolder",
-                "files": files,
-                "path": "",
-                //To add to custom list
-                "recursive": true
-            }).to_string())).ok();
-
-        },
-        "tagEditorLoad" => {
-            let path = Path::new(json["path"].as_str().ok_or("Missing path!")?);
-            let data = TagEditor::load_file(path.to_str().unwrap())?;
+        //Load tags of file
+        Action::TagEditorLoad { path } => {
+            let data = TagEditor::load_file(&path)?;
             websocket.write_message(Message::from(json!({
                 "action": "tagEditorLoad",
                 "data": data
             }).to_string())).ok();
         },
-        "tagEditorSave" => {
-            let changes: TagChanges = serde_json::from_value(json["changes"].clone())?;
+        //Save changes
+        Action::TagEditorSave { changes } => {
             let _tag = changes.commit()?;
             websocket.write_message(Message::from(json!({
                 "action": "tagEditorSave"
             }).to_string())).ok();
-        }
-        _ => {}
-    };
+        },
+    }
+   
     Ok(())
 }
