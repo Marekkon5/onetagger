@@ -180,12 +180,12 @@ impl AudioFeatures {
         }
         // Fallback
         if track_id.is_none() {
-            let q = format!("{} {}", track.artists[0].to_lowercase(), MatchingUtils::clean_title(&track.title));
+            let q = format!("{} {}", track.artists[0].to_lowercase(), MatchingUtils::clean_title(track.title()?));
             let results = spotify.search_tracks(&q, 20)?;
             // Match
             for t in results {
                 let title_1 = MatchingUtils::clean_title_matching(&t.name);
-                let title_2 = MatchingUtils::clean_title_matching(&track.title);
+                let title_2 = MatchingUtils::clean_title_matching(track.title()?);
                 let artists: Vec<String> = t.artists.iter().map(|a| a.name.to_owned()).collect();
                 if title_1 == title_2 && MatchingUtils::match_artist(&artists, &track.artists, 1.0) {
                     if let Some(id) = t.id {

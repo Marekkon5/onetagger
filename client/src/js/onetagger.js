@@ -202,6 +202,7 @@ class OneTagger {
             "shortTitle": false,
             "matchDuration": false,
             "maxDurationDifference": 30,
+            "matchById": false,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1

@@ -15,6 +15,7 @@ use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
 use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, TagSeparators, EXTENSIONS};
+use crate::ui::OTError;
 use crate::ui::player::AudioSources;
 
 pub mod beatport;
@@ -77,6 +78,7 @@ pub struct TaggerConfig {
     pub match_duration: bool,
     // In seconds
     pub max_duration_difference: u64,
+    pub match_by_id: bool,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -392,12 +394,14 @@ impl Track {
 
 #[derive(Debug, Clone)]
 pub struct AudioFileInfo {
-    pub title: String,
+    pub title: Option<String>,
     pub artists: Vec<String>,
     pub format: AudioFileFormat,
     pub path: String,
     pub isrc: Option<String>,
-    pub duration: Option<Duration>
+    pub duration: Option<Duration>,
+    pub track_number: Option<u16>,
+    pub ids: AudioFileIDs
 }
 
 impl AudioFileInfo {
@@ -431,14 +435,42 @@ impl AudioFileInfo {
             }
         }
 
+        // Platform IDs
+        let ids = AudioFileIDs::load(&tag);
+        if (title.is_none() || artists.is_none()) && ids.is_empty() {
+            return Err(OTError::new("Missing track metadata (title/artist or id)").into());
+        }
+
+        // Track number
+        let track_number = tag.get_field(Field::TrackNumber).unwrap_or(vec![String::new()])[0].parse().ok();
         Ok(AudioFileInfo {
             format: tag_wrap.format.to_owned(),
-            title: title.ok_or("Missing title!")?,
-            artists: artists.ok_or("Missing artists!")?,
+            title,
+            artists: artists.unwrap_or(vec![]),
             path: path.to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
+            track_number,
+            ids
         })
+    }
+
+    // Get title
+    pub fn title(&self) -> Result<&str, Box<dyn Error>> {
+        if self.title.is_none() {
+            error!("Track is missing title tag, skipping. {}", self.path);
+            return Err(OTError::new("Missing title tag!").into());
+        }
+        Ok(self.title.as_ref().unwrap().as_str())
+    }
+
+    // Get first artist
+    pub fn artist(&self) -> Result<&str, Box<dyn Error>> {
+        if self.artists.is_empty() {
+            error!("Track is missing artist tag, skipping. {}", self.path);
+            return Err(OTError::new("Missing artist tag!").into());
+        }
+        Ok(self.artists.first().unwrap().as_str())
     }
 
     // Load duration from file
@@ -491,6 +523,26 @@ impl AudioFileInfo {
             return src.split('/').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
         }
         vec![src.to_owned().to_owned()]
+    }
+}
+
+/// IDs from various platforms
+#[derive(Debug, Clone, Default)]
+pub struct AudioFileIDs {
+    pub discogs_release_id: Option<i64>
+}
+
+impl AudioFileIDs {
+    // Load IDs from file
+    pub fn load(tag: &Box<&dyn TagImpl>) -> AudioFileIDs {
+        AudioFileIDs {
+            discogs_release_id: tag.get_raw("DISCOGS_RELEASE_ID").map(|v| v[0].parse().ok()).flatten(),
+        }
+    }
+
+    // If all values are missing
+    pub fn is_empty(&self) -> bool {
+        self.discogs_release_id.is_none()
     }
 }
 
@@ -613,7 +665,7 @@ impl MatchingUtils {
 
     // Default track matching
     pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig) -> Option<(f64, Track)> {
-        let clean_title = MatchingUtils::clean_title_matching(&info.title);
+        let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
         // Exact match
         for track in tracks {
             if !MatchingUtils::match_duration(info, track, config) {
@@ -650,7 +702,7 @@ impl MatchingUtils {
 
     // Match track, but ignore artist
     pub fn match_track_no_artist(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig) -> Option<(f64, Track)> {
-        let clean_title = MatchingUtils::clean_title_matching(&info.title);
+        let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
         // Exact match
         for track in tracks {
             if !MatchingUtils::match_duration(info, track, config) {

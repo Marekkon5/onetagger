@@ -2,7 +2,7 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 use threadpool::ThreadPool;
 
-use crate::tagger::{AudioFileInfo, MatchingUtils, MusicPlatform, TaggerConfig, Track};
+use crate::tagger::{AudioFileInfo, MatchingUtils, MusicPlatform, TaggerConfig, Track, AudioFileIDs};
 use crate::tagger::beatport::Beatport;
 use crate::tag::AudioFileFormat;
 
@@ -17,10 +17,11 @@ pub fn benchmark_track_matching() {
     info!("Starting track matching benchmark of 10000 tracks...");
 
     let info = AudioFileInfo {
-        title: "Some Random Title".to_string(),
+        title: Some("Some Random Title".to_string()),
         artists: vec!["Artist".to_string(), "Lyricist".to_string()],
         // Sample deafults
-        format: AudioFileFormat::MP3, isrc: None, path: String::new(), duration: None
+        format: AudioFileFormat::MP3, isrc: None, path: String::new(), duration: None, track_number: None,
+        ids: AudioFileIDs::default()
     };
     let tracks = vec![
         Track {

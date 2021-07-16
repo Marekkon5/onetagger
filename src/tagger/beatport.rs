@@ -220,9 +220,9 @@ impl BeatportImage {
 
 // Match track
 impl TrackMatcher for Beatport {
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
         // Search
-        let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
+        let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         for page in 1..config.beatport.max_pages+1 {
             match self.search(&query, page, 150) {
                 Ok(res) => {

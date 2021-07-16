@@ -135,13 +135,28 @@ impl Discogs {
 
 impl TrackMatcherST for Discogs {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+        // Exact ID match
+        if config.match_by_id && info.ids.discogs_release_id.is_some() {
+            let release = self.full_release(ReleaseType::Release, info.ids.discogs_release_id.unwrap())?;
+            // Exact track number match
+            if let Some(track_number) = info.track_number {
+                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.discogs.styles))))
+            }
+            // Match inside release
+            let mut tracks = vec![];
+            for i in 0..release.tracks.len() {
+                tracks.push(release.get_track(i, &config.discogs.styles));
+            }
+            return Ok(MatchingUtils::match_track_no_artist(&info, &tracks, &config));
+        }
+        
         // Search
-        let query = format!("{} {}", MatchingUtils::clean_title(&info.title), info.artists.first().unwrap());
+        let query = format!("{} {}", MatchingUtils::clean_title(info.title()?), info.artist()?);
         let mut results = self.search(Some("release,master"), Some(&query), None, None)?;
         // Fallback
         if results.is_empty() {
             info!("Discogs fallback search!");
-            results = self.search(Some("release,master"), None, Some(&MatchingUtils::clean_title(&info.title)), Some(&info.artists.first().unwrap()))?;
+            results = self.search(Some("release,master"), None, Some(&MatchingUtils::clean_title(info.title()?)), Some(&info.artists.first().unwrap()))?;
         }
         if results.is_empty() {
             return Ok(None);

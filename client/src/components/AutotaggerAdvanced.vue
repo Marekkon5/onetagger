@@ -29,6 +29,12 @@
     <br>
     <q-toggle v-model='$1t.config.camelot' label='Use Camelot key notation'></q-toggle>
     <br>
+    <q-toggle v-model='$1t.config.matchById' label='Use Release ID tag to get exact match'>
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
+            <q-tooltip content-style="font-size: 13px">Currently supported only on Discogs. Valid tags are: DISCOGS_RELEASE_ID</q-tooltip>
+        </q-icon>
+    </q-toggle>
+    <br>
 
     <!-- Parse meta from filename -->
     <q-toggle v-model='$1t.config.parseFilename' label='Parse metadata from filename'></q-toggle>

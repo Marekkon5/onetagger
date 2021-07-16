@@ -172,7 +172,7 @@ impl JunoDownload {
 impl TrackMatcher for JunoDownload {
     fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Search
-        let query = format!("{} {}", info.artists.first().unwrap(), MatchingUtils::clean_title(&info.title));
+        let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search(&query)?;
         // Match
         if let Some((acc, track)) = MatchingUtils::match_track(&info, &tracks, &config) {

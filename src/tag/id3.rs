@@ -162,7 +162,8 @@ impl ID3Tag {
             Field::Style => "STYLE".to_string(),
             Field::ISRC => "TSRC".to_string(),
             Field::CatalogNumber => "CATALOGNUMBER".to_string(),
-            Field::Version => "TIT3".to_string()
+            Field::Version => "TIT3".to_string(),
+            Field::TrackNumber => "TRCK".to_string()
         }
     }
 }
@@ -305,6 +306,12 @@ impl TagImpl for ID3Tag {
         self.set_raw(&self.field(field), value, overwrite);
     }
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
+        // Track number override (tag value: Track number/Total track)
+        if field == Field::TrackNumber {
+            return Some(vec![self.get_raw(&self.field(field))?.first()?
+                .split("/").map(|v| v.to_string()).collect::<Vec<String>>().first()?.to_string()]);
+        }
+
         self.get_raw(&self.field(field))
     }
 
@@ -397,7 +404,7 @@ impl TagImpl for ID3Tag {
         // Get tag
         if let Some(t) = self.tag.get(tag) {
             if let Some(content) = t.content().text() {
-                Some(vec![content.to_owned()])
+                Some(content.split(&self.id3_separator).map(String::from).collect())
             } else {
                 None
             }
