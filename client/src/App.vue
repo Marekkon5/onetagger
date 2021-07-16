@@ -309,12 +309,12 @@
                 }
             },
             //Load quicktag playlist
-            loadQTPlaylist(playlist) {
-                if (!playlist || !playlist.data) {
+            loadQTPlaylist() {
+                if (!this.qtPlaylist || !this.qtPlaylist.data) {
                     this.$1t.loadQuickTag();
                     return;
                 }
-                this.$1t.loadQuickTag(playlist);
+                this.$1t.loadQuickTag(this.qtPlaylist);
             },
             async checkUpdates() {
                 //Fetch latest version info

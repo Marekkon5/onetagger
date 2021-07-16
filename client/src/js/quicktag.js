@@ -19,7 +19,7 @@ class QTTrack {
             return this.note;
         }
         let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
-        let note = this.tags[field];
+        let note = this.tags[field]??[];
         // Remove custom tags from note
         for (let custom of this.settings.custom) {
             if (custom.tag[this.getTagField()] == field) {
@@ -99,10 +99,10 @@ class QTTrack {
     getAllCustom() {
         let out = [];
         for (let custom of this.custom) {
-            out = out.concat(custom.filter(v => !out.includes(v)));
+            out = out.concat(custom.filter(v => !out.includes(v) && v));
         }
         // Add note tag
-        out = out.concat(this.note.split(',').filter(v => !out.includes(v)));
+        out = out.concat(this.note.split(',').filter(v => !out.includes(v) && v));
         return out;
     }
 
