@@ -78,9 +78,9 @@
     color: #fff;
 }
 
-//https://medium.com/cloud-native-the-gathering/how-to-fix-your-angular-material-input-field-from-being-broken-in-safari-1419b12007ee
+// https://medium.com/cloud-native-the-gathering/how-to-fix-your-angular-material-input-field-from-being-broken-in-safari-1419b12007ee
 input {
-    -webkit-user-select: all !important;
+    -webkit-user-select: text !important;
 }
 
 .selectable {

@@ -495,6 +495,7 @@ impl AudioFileInfo {
         // Replace variables
         template = template
             .replace("%title%", "(?P<title>.+)")
+            .replace("%artist%", "(?P<artists>.+)")
             .replace("%artists%", "(?P<artists>.+)");
         // Remove all remaining variables
         let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
