@@ -61,6 +61,7 @@ pub struct TaggerConfig {
     pub track_id: bool,
     pub release_id: bool,
     pub version: bool,
+    pub duration: bool,
 
     // Advanced
     pub separators: TagSeparators,
@@ -325,6 +326,10 @@ impl Track {
         // Catalog number
         if config.catalog_number && self.catalog_number.is_some() {
             tag.set_field(Field::CatalogNumber, vec![self.catalog_number.as_ref().unwrap().to_string()], config.overwrite);
+        }
+        // Duration
+        if config.duration && self.duration.as_secs() > 0 {
+            tag.set_field(Field::Duration, vec![self.duration.as_secs().to_string()], config.overwrite);
         }
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {

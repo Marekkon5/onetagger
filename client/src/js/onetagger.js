@@ -180,6 +180,7 @@ class OneTagger {
             "genre": true,
             "style": true,
             "label": true,
+            "duration": false,
             "releaseDate": true,
             "publishDate": false,
             "albumArt": false,

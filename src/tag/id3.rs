@@ -163,7 +163,8 @@ impl ID3Tag {
             Field::ISRC => "TSRC".to_string(),
             Field::CatalogNumber => "CATALOGNUMBER".to_string(),
             Field::Version => "TIT3".to_string(),
-            Field::TrackNumber => "TRCK".to_string()
+            Field::TrackNumber => "TRCK".to_string(),
+            Field::Duration => "TLEN".to_string()
         }
     }
 }
@@ -302,7 +303,12 @@ impl TagImpl for ID3Tag {
     }
 
     // Set/Get named field
-    fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool) {
+    fn set_field(&mut self, field: Field, mut value: Vec<String>, overwrite: bool) {
+        // Modify duration from seconds to milliseconds
+        if field == Field::Duration {
+            value[0] = format!("{}000", value[0]);
+        }
+
         self.set_raw(&self.field(field), value, overwrite);
     }
     fn get_field(&self, field: Field) -> Option<Vec<String>> {

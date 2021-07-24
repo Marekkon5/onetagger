@@ -248,7 +248,8 @@ pub enum Field {
     ISRC,
     CatalogNumber,
     Version,
-    TrackNumber
+    TrackNumber,
+    Duration
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

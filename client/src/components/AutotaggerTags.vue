@@ -62,6 +62,7 @@
             <q-checkbox class='tag checkbox text-grey-4' label='Release ID' v-model='$1t.config.releaseId'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox :disabled='!beatport && !traxsource' class='tag checkbox text-grey-4' label='Version' v-model='$1t.config.version'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Duration' v-model='$1t.config.duration'></q-checkbox>
         </div>
     </div>
 </div>
