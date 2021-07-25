@@ -375,7 +375,7 @@ impl ReleaseMaster {
             publish_date: None,
             publish_year: None,
             catalog_number,
-            other: vec![],
+            other: vec![("VINYLTRACK".to_string(), self.tracks[track_index].position.to_string())],
             track_id: None,
             release_id: self.id.to_string(),
             duration: parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO)
