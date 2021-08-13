@@ -15,6 +15,10 @@
                 </div>
             </div>
             <div class='q-mt-sm'>
+
+                <!-- Filter -->
+                <q-input dense filled label='Filter' class='q-mb-sm' @input='applyFilter' v-model='filter'></q-input>
+
                 <!-- Parent -->
                 <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
                     <q-icon size='xs' class='q-mb-xs text-grey-4' name='mdi-folder-upload'></q-icon>
@@ -325,7 +329,9 @@ export default {
         return {
             path: this.$1t.settings.path,
             files: [],
+            originalFiles: [],
             file: null,
+            filter: null,
             changes: [],
             newTag: null,
             albumArt: null,
@@ -343,43 +349,55 @@ export default {
             this.$1t.send('browse', {context: 'te', path: this.path});
         },
         loadFile(path) {
+            // Autosave
+            if (this.$1t.settings.tagEditorAutosave) {
+                this.save();
+            }
+
             this.changes = [];
             this.newTag = null;
-            //Will be joined in backend
+            // Will be joined in backend
             this.$1t.send('tagEditorLoad', {path});
         },
-        //If file is currently open
+        // If file is currently open
         isSelected(path) {
             if (!this.file) return false;
             return this.file.path == path;
+        },
+        applyFilter() {
+            if (!this.filter || this.filter.trim().length == 0) {
+                this.files = this.originalFiles;
+                return;
+            }
+            this.files = this.originalFiles.filter(f => f.filename.toLowerCase().includes(this.filter));
         },
 
         /*
             Custom list
         */
 
-        //Vue draggable file drag process
+        // Vue draggable file drag process
         onFileDrag(e) {
             if (e.added) {
                 if (e.added.element.dir || e.added.element.playlist) {
                     this.$1t.send('tagEditorFolder', {path: this.path, subdir: e.added.element.filename, recursive: true});
-                    //Don't copy
+                    // Don't copy
                     this.customList.splice(e.added.newIndex, 1);
                 } else {
-                    //Duplicate
+                    // Duplicate
                     if (!this.customList.find((i) => i == e.added.element.path)) 
                         this.customList.splice(e.added.newIndex, 1, e.added.element.path);
                     else 
                         this.customList.splice(e.added.newIndex, 1);
                 }
             }
-            //Readd again
+            // Read again
             if (e.removed) {
                 this.files.splice(e.removed.oldIndex, 0, e.removed.element);
             }
             this.saveSettings();
         },
-        //Allow only one way drag
+        // Allow only one way drag
         onFileMove(e) {
             if (e.relatedContext.component.$el.id == 'fileList') return false;
         },
@@ -387,7 +405,7 @@ export default {
             this.customList.splice(i, 1);
             this.saveSettings();
         },
-        //Get filename from path
+        // Get filename from path
         filename(path) {
             path = path.toString();
             if (path.trim().startsWith('/')) {
@@ -406,7 +424,7 @@ export default {
             Text Tags
         */
 
-        //Delete tag
+        // Delete tag
         removeTag(tag) {
             Vue.delete(this.file.tags, tag);
             this.changes.push({
@@ -414,7 +432,7 @@ export default {
                 tag: tag
             })
         },
-        //Create new tag
+        // Create new tag
         addNewTag() {
             if (!this.newTag) return;
             if (this.file.tags[this.newTag]) {
@@ -437,13 +455,13 @@ export default {
         },
         onChange(tag) {
             let value = this.file.tags[tag]
-            //Split only for tags, MP3 write to single tag as id3 separator
+            // Split only for tags, MP3 write to single tag as id3 separator
             if (this.file.format != 'mp3') {
                 value = value.split(',');
             } else {
                 value = [value];
             }
-            //Generate change
+            // Generate change
             let index = this.changes.findIndex((c) => c.tag == tag);
             if (index != -1) {
                 this.changes[index].value = value; 
@@ -460,7 +478,7 @@ export default {
             Album Art
         */
 
-        //Add new album art
+        // Add new album art
         addAlbumArt(data) {
             this.changes.push({
                 type: 'addPictureBase64',
@@ -472,7 +490,7 @@ export default {
             data.data = `data:${data.mime};base64,${data.data}`;
             this.file.images.push(data);
         },
-        //Delete album art
+        // Delete album art
         removeArt(i) {
             let kind = this.file.images[i].kind;
             this.file.images.splice(i, 1);
@@ -492,7 +510,7 @@ export default {
             ID3 Comments
         */
 
-        //Generate new change for ID3 comments
+        // Generate new change for ID3 comments
         id3CommentsChange() {
             let i = this.changes.findIndex((c) => c.type == 'id3Comments');
             if (i > -1) {
@@ -544,12 +562,12 @@ export default {
             ID3 Popularimeter
         */
         id3POPMChange() {
-            //Remove existing popm changes
+            // Remove existing popm changes
             let i = this.changes.findIndex((c) => c.type == 'id3Popularimeter');
             if (i > -1) this.changes.splice(i, 1);
             i = this.changes.findIndex((c) => c.type == "remove" && c.tag == "POPM");
             if (i > -1) this.changes.splice(i, 1);
-            //Add new changes
+            // Add new changes
             if (this.file.id3.popularimeter) {
                 this.file.id3.popularimeter.counter = parseInt(this.file.id3.popularimeter.counter.toString());
                 this.changes.push({
@@ -581,7 +599,7 @@ export default {
             Saving and backend
         */
 
-        //Save to file
+        // Save to file
         save() {
             this.$1t.send('tagEditorSave', {changes: {path: this.file.path, changes: this.changes}});
             this.changes = [];
@@ -591,7 +609,7 @@ export default {
             this.$1t.settings.tagEditorCustom = this.customList;
             this.$1t.saveSettings(false);
         },
-        //Websocket callback
+        // Websocket callback
         wsCallback(e) {
             switch (e.action) {
                 case 'browse':
@@ -600,20 +618,21 @@ export default {
                     break;
                 case 'tagEditorFolder':
                     if (e.recursive) {
-                        //Add dir to custom list
+                        // Add dir to custom list
                         let files = this.customList.concat(e.files.sort((a, b) => {
                             return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
                         }).map((f) => f.path));
-                        //Deduplicate
+                        // Deduplicate
                         this.customList = [... new Set(files)];
                     } else {
                         this.path = e.path;
                         //Dirs first and sort
-                        this.files = e.files.sort((a, b) => {
+                        this.originalFiles = e.files.sort((a, b) => {
                             if (a.dir && !b.dir) return -1;
                             if (b.dir && !a.dir) return 1;
                             return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
                         });
+                        this.applyFilter(this.filter);
                     }
                     this.saveSettings();
                     break;
@@ -625,6 +644,10 @@ export default {
                         message: 'Tags written!',
                         timeout: 4000
                     });
+                    break;
+                // Internal callback
+                case '_tagEditorSave':
+                    this.save();
                     break;
                 default: 
                     console.log(e);
@@ -639,7 +662,7 @@ export default {
             if (this.file.format == 'mp4') return 'mp4';
             return 'id3';
         },
-        //Filter used types
+        // Filter used types
         albumArtTypes() {
             let types = ["CoverFront", "CoverBack", "Other", "Artist", "Icon", "OtherIcon", 
                 "Leaflet", "Media", "LeadArtist", "Conductor", "Band", "Composer", "Lyricist", 
@@ -648,7 +671,7 @@ export default {
             if (!this.file) return types;
             return types.filter((t) => this.file.images.find((i) => i.kind == t) ? false : true);
         },
-        //Label for rating slider
+        // Label for rating slider
         POPMLabel() {
             let v = this.file.id3.popularimeter.rating;
             let stars = Math.ceil(v / 51);
@@ -657,10 +680,13 @@ export default {
         }
     },
     mounted() {
-        //Register callback
+        // Register callback
         this.$1t.onTagEditorEvent = this.wsCallback;
         this.loadFiles();
     },
+    deactivated() {
+        this.$1t.onTagEditorEvent = null;
+    }
 }
 </script>
 
@@ -673,8 +699,6 @@ export default {
     white-space: nowrap;
     overflow: hidden;
 }
-
-
 .te-file:hover {
     background-color: #111312;
 }

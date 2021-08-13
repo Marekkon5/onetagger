@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::thread;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::time::Duration;
 use std::default::Default;
@@ -15,7 +15,7 @@ use strsim::normalized_levenshtein;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
 use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, TagSeparators, EXTENSIONS};
-use crate::ui::OTError;
+use crate::ui::{OTError, Settings};
 use crate::ui::player::AudioSources;
 
 pub mod beatport;
@@ -196,20 +196,20 @@ impl Track {
         // Get tag
         let mut tag_wrap = Tag::load_file(&info.path, true)?;
         tag_wrap.set_separators(&config.separators);
-        let format = tag_wrap.format.to_owned();
+        let format = tag_wrap.format();
         // Configure format specific
-        if let Some(t) = tag_wrap.id3.as_mut() {
+        if let Tag::ID3(t) = &mut tag_wrap {
             t.set_id3v24(config.id3v24);
         }
         // MP4 Album art override
-        if let Some(mp4) = tag_wrap.mp4.as_mut() {
+        if let Tag::MP4(mp4) = &mut tag_wrap {
             // Has art
             if (config.overwrite || mp4.get_art().is_empty()) && self.art.is_some() && config.album_art {
                 mp4.remove_all_artworks();
             }
         }
 
-        let tag = tag_wrap.tag_mut().unwrap();
+        let tag = tag_wrap.tag_mut();
         // Set tags
         if config.title {
             match config.short_title {
@@ -413,7 +413,7 @@ impl AudioFileInfo {
     // Load audio file info from path
     pub fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(&path, true)?;
-        let tag = tag_wrap.tag().unwrap();
+        let tag = tag_wrap.tag();
         // Get title artist from tag
         let mut title = tag.get_field(Field::Title).map(|t| t.first().map(|t| t.to_owned())).flatten();
         let mut artists = tag.get_field(Field::Artist)
@@ -449,7 +449,7 @@ impl AudioFileInfo {
         // Track number
         let track_number = tag.get_field(Field::TrackNumber).unwrap_or(vec![String::new()])[0].parse().ok();
         Ok(AudioFileInfo {
-            format: tag_wrap.format.to_owned(),
+            format: tag_wrap.format(),
             title,
             artists: artists.unwrap_or(vec![]),
             path: path.to_owned(),
@@ -792,7 +792,7 @@ pub struct Tagger {}
 impl Tagger {
 
     // Returtns progress receiver, and file count
-    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>) -> Receiver<TaggingStatusWrap> {
+    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>, parent_folder: Option<String>) -> Receiver<TaggingStatusWrap> {
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
@@ -878,6 +878,22 @@ impl Tagger {
                     }
                 }
             }
+
+            // Tagging ended
+            if !files.is_empty() {
+                let write_failed = || -> Result<String, Box<dyn Error>> {
+                    let folder = PathBuf::from(parent_folder.unwrap_or(Settings::get_folder()?.to_str().unwrap().to_string()));
+                    let failed_file = folder.join(format!("failed-{}.m3u", timestamp!()));
+                    let mut file = File::create(&failed_file)?;
+                    file.write_all(files.join("\r\n").as_bytes())?;
+                    Ok(failed_file.to_str().unwrap().to_string())
+                };
+                match write_failed() {
+                    Ok(path) => info!("Wrote failed songs to: {}", path),
+                    Err(e) => warn!("Failed writing failed songs to file! {}", e)
+                };
+            }
+
         });
         
         rx

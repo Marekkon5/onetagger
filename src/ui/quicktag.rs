@@ -94,7 +94,7 @@ impl QuickTagFile {
     }
 
     pub fn from_tag(path: &str, tag_wrap: &Tag) -> Option<QuickTagFile> {
-        let tag = tag_wrap.tag()?;
+        let tag = tag_wrap.tag();
         let mut all_tags = tag.all_tags();
         // Insert overriden tags
         if let Some(v) = tag.get_raw("COMM") {
@@ -106,7 +106,7 @@ impl QuickTagFile {
 
         Some(QuickTagFile {
             path: path.to_string(),
-            format: tag_wrap.format.clone(),
+            format: tag_wrap.format(),
             title: tag.get_field(Field::Title)?.first()?.to_string(),
             artists: tag.get_field(Field::Artist)?,
             genres: tag.get_field(Field::Genre).unwrap_or(vec![]),
@@ -123,7 +123,7 @@ impl QuickTagFile {
     pub fn get_art(path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         // Load
         let tag_wrap = Tag::load_file(path, false)?;
-        let tag = tag_wrap.tag().ok_or("Missing tag!")?;
+        let tag = tag_wrap.tag();
         let pictures = tag.get_art();
         let picture = pictures.first().ok_or("Missing album art!")?;
         let img = ImageReader::new(Cursor::new(&picture.data)).with_guessed_format()?.decode()?;

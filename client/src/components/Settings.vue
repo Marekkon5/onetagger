@@ -247,6 +247,13 @@
                     label='Continue playback when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
+                <div class='text-bold text-grey-6'>Edit Tags</div>
+                <q-checkbox
+                    v-model='$1t.settings.tagEditorAutosave'
+                    label='Autosave changes when switching to a different track'
+                    class='checkbox'
+                ></q-checkbox><br>
+
                 <!-- Open settings folder -->
                 <q-btn
                     color='primary'
@@ -306,11 +313,11 @@ export default {
         }
     },
     methods: {
-        //Primary color change
+        // Primary color change
         colorChange() {
             colors.setBrand('primary', this.$1t.settings.primaryColor);
         },
-        //Adds new quicktag mood
+        // Adds new quicktag mood
         addMood() {
             if (this.newMood.mood) {
                 //Exists
@@ -319,25 +326,25 @@ export default {
                 this.newMood.mood = null;
             }
         },
-        //Add new genre
+        // Add new genre
         addGenre() {
             if (!this.newGenre || this.newGenre.trim() == "") return;
             if (this.$1t.settings.quickTag.genres.find((g) => g.genre.toLowerCase() == this.newGenre.toLowerCase())) return;
             this.$1t.settings.quickTag.genres.push({genre: this.newGenre, keybind: null});
             this.newGenre = null;
         },
-        //Mood keybind
+        // Mood keybind
         setMoodKeybind(i, key) {
             this.$1t.settings.quickTag.moods[i].keybind = key;
         },
-        //Energy
+        // Energy
         setEnergyKeybind(i, key) {
             this.$1t.settings.quickTag.energyKeys[i] = key;
         },
         browseQuickTag() {
             this.$1t.send('browse', {context: 'qt', path: this.$1t.settings.path});
         },
-        //Add new custom quicktag
+        // Add new custom quicktag
         addCustomQT() {
             this.$1t.settings.quickTag.custom.push({
                 name: this.newCustomQT,
@@ -350,7 +357,7 @@ export default {
             });
             this.newCustomQT = null;
         },
-        //Delete and edit cusotm qt tag
+        // Delete and edit cusotm qt tag
         deleteCustomQT(i) {
             this.$1t.settings.quickTag.custom.splice(i, 1);
         },
@@ -358,7 +365,7 @@ export default {
             Vue.set(this.customQTEdit, i, !this.customQTEdit[i]);
         },
 
-        //Load quicktag playlist
+        // Load quicktag playlist
         loadQTPlaylist(playlist) {
             if (!playlist || !playlist.data) {
                 this.$1t.loadQuickTag();
@@ -367,14 +374,14 @@ export default {
             this.$1t.loadQuickTag(playlist)
         },
 
-        //Save on close
+        // Save on close
         close() {
             this.$1t.saveSettings();
             this.$emit("close");
         }
     },
     watch: {
-        //Sync prop value
+        // Sync prop value
         'value'() {
             this.open = this.value;
         }

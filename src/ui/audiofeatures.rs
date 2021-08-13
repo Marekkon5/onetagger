@@ -208,8 +208,8 @@ impl AudioFeatures {
         let mut tag_wrap = Tag::load_file(path, false)?;
         tag_wrap.set_separators(&config.separators);
 
-        let format = tag_wrap.format.clone();
-        let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
+        let format = tag_wrap.format();
+        let tag = tag_wrap.tag_mut();
 
         // Get properties
         let mut main_tag = vec![];

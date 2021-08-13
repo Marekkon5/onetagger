@@ -26,33 +26,21 @@ impl Default for TagSeparators {
     }
 }
 
-
-pub struct Tag {
-    pub flac: Option<flac::FLACTag>,
-    pub id3: Option<id3::ID3Tag>,
-    pub mp4: Option<mp4::MP4Tag>,
-    pub format: AudioFileFormat
+pub enum Tag {
+    FLAC(flac::FLACTag),
+    ID3(id3::ID3Tag),
+    MP4(mp4::MP4Tag)
 }
 
 impl Tag {
     pub fn load_file(path: &str, allow_new: bool) -> Result<Tag, Box<dyn Error>> {
         // FLAC
         if path.to_lowercase().ends_with(".flac") {
-            return Ok(Tag {
-                flac: Some(flac::FLACTag::load_file(path)?),
-                id3: None,
-                mp4: None,
-                format: AudioFileFormat::FLAC
-            });
+            return Ok(Tag::FLAC(flac::FLACTag::load_file(path)?));
         }
         // MP4
         if path.to_lowercase().ends_with(".m4a") {
-            return Ok(Tag {
-                flac: None,
-                id3: None,
-                mp4: Some(mp4::MP4Tag::load_file(path)?),
-                format: AudioFileFormat::MP4
-            });
+            return Ok(Tag::MP4(mp4::MP4Tag::load_file(path)?));
         }
 
         // ID3
@@ -61,55 +49,44 @@ impl Tag {
         } else {
             id3::ID3Tag::load_file(path)?
         };
-        let format = match tag.format {
-            id3::ID3AudioFormat::MP3 => AudioFileFormat::MP3,
-            id3::ID3AudioFormat::AIFF => AudioFileFormat::AIFF
-        };
-        return Ok(Tag {
-            id3: Some(tag),
-            flac: None,
-            mp4: None,
-            format: format
-        });
+        Ok(Tag::ID3(tag))
     }
 
     // Set proper separators for every format
     pub fn set_separators(&mut self, separators: &TagSeparators) {
-        if let Some(flac) = &mut self.flac {
-            flac.set_separator(separators.vorbis.as_ref().unwrap_or(&String::new()));
-        }
-        if let Some(id3) = &mut self.id3 {
-            id3.set_separator(&separators.id3);
-        }
-        if let Some(mp4) = &mut self.mp4 {
-            mp4.set_separator(&separators.mp4);
+        match self {
+            Tag::FLAC(tag) => tag.set_separator(separators.vorbis.as_ref().unwrap_or(&String::new())),
+            Tag::ID3(tag) => tag.set_separator(&separators.id3),
+            Tag::MP4(tag) => tag.set_separator(&separators.mp4),
         }
     }
 
     // Get generic
-    pub fn tag(&self) -> Option<Box<&dyn TagImpl>> {
-        if let Some(flac) = &self.flac {
-            return Some(Box::new(flac));
+    pub fn tag(&self) -> Box<&dyn TagImpl> {
+        match self {
+            Tag::FLAC(tag) => Box::new(tag),
+            Tag::ID3(tag) => Box::new(tag),
+            Tag::MP4(tag) => Box::new(tag),
         }
-        if let Some(id3) = &self.id3 {
-            return Some(Box::new(id3));
-        }
-        if let Some(mp4) = &self.mp4 {
-            return Some(Box::new(mp4))
-        }
-        None
     }
-    pub fn tag_mut(&mut self) -> Option<Box<&mut dyn TagImpl>> {
-        if let Some(flac) = &mut self.flac {
-            return Some(Box::new(flac));
+    pub fn tag_mut(&mut self) -> Box<&mut dyn TagImpl> {
+        match self {
+            Tag::FLAC(tag) => Box::new(tag),
+            Tag::ID3(tag) => Box::new(tag),
+            Tag::MP4(tag) => Box::new(tag),
         }
-        if let Some(id3) = &mut self.id3 {
-            return Some(Box::new(id3));
+    }
+
+    // Get format
+    pub fn format(&self) -> AudioFileFormat {
+        match self {
+            Tag::FLAC(_) => AudioFileFormat::FLAC,
+            Tag::MP4(_) => AudioFileFormat::MP4,
+            Tag::ID3(id3) => match id3.format {
+                id3::ID3AudioFormat::MP3 => AudioFileFormat::MP3,
+                id3::ID3AudioFormat::AIFF => AudioFileFormat::AIFF,
+            },
         }
-        if let Some(mp4) = &mut self.mp4 {
-            return Some(Box::new(mp4))
-        }
-        None 
     }
 }
 
@@ -284,7 +261,7 @@ impl TagChanges {
         let mut tag_wrap = Tag::load_file(&self.path, false)?;
 
         // Format specific changes
-        if let Some(id3) = tag_wrap.id3.as_mut() {
+        if let Tag::ID3(id3) = &mut tag_wrap {
             for change in self.changes.clone() {
                 match change {
                     TagChange::ID3Comments {comments} => id3.set_comments(&comments),
@@ -297,7 +274,7 @@ impl TagChanges {
 
         // MP4 doesn't have any way to distinguish between artwork types so abstraction to do that
         // Not very efficient, but rarely used and should work
-        if let Some(mp4) = tag_wrap.mp4.as_mut() {
+        if let Tag::MP4(mp4) = &mut tag_wrap {
             // Get album art indexes
             let mut indicies: Vec<usize> = self.changes.iter().filter_map(|c| match c {
                 TagChange::RemovePicture {kind} => CoverType::types().iter().position(|k| k == kind),
@@ -312,8 +289,8 @@ impl TagChanges {
             };
         }
 
-        let format = tag_wrap.format.clone();
-        let tag = tag_wrap.tag_mut().ok_or("No tag!")?;
+        let format = tag_wrap.format();
+        let tag = tag_wrap.tag_mut();
         // Match changes
         for change in self.changes.clone() {
             match change {

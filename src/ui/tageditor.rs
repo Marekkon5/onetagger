@@ -94,7 +94,7 @@ impl TagEditor {
         let tag_wrap = Tag::load_file(path, true)?;
         let id3_binary = ID3Binary::from_tag(&tag_wrap);
         // Load tags
-        let tag = tag_wrap.tag().ok_or("No tag")?;
+        let tag = tag_wrap.tag();
         let tags = tag.all_tags().iter().map(|(k, v)| {
             (k.to_owned(), v.join(",").replace('\0', ""))
         }).collect();
@@ -110,7 +110,7 @@ impl TagEditor {
         Ok(TagEditorFile {
             tags,
             filename: filename.to_owned(),
-            format: tag_wrap.format,
+            format: tag_wrap.format(),
             path: path.to_owned(),
             images,
             id3: id3_binary
@@ -169,15 +169,13 @@ pub struct ID3Binary {
 
 impl ID3Binary {
     pub fn from_tag(tag: &Tag) -> Option<ID3Binary> {
-        match tag.id3.as_ref() {
-            Some(t) => {
-                Some(ID3Binary {
-                    comments: t.get_comments(),
-                    unsync_lyrics: t.get_unsync_lyrics(),
-                    popularimeter: t.get_popularimeter()
-                })
-            },
-            None => None
+        match tag {
+            Tag::ID3(t) => Some(ID3Binary {
+                comments: t.get_comments(),
+                unsync_lyrics: t.get_unsync_lyrics(),
+                popularimeter: t.get_popularimeter()
+            }),
+            _ => None
         }
     }
 }

@@ -189,15 +189,18 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 playlist.get_files()?
             } else { vec![] };
             let mut file_count = files.len();
+            let mut parent_folder = None;
             // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
                     // Load file list
                     if files.is_empty() {
-                        files = Tagger::get_file_list(&c.path.as_ref().unwrap_or(&String::new()));
+                        let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or(String::new());
+                        files = Tagger::get_file_list(&path);
                         file_count = files.len();
+                        parent_folder = Some(path);
                     }
-                    let rx = Tagger::tag_files(&c, files);
+                    let rx = Tagger::tag_files(&c, files, parent_folder);
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {

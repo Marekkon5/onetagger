@@ -377,7 +377,8 @@ class OneTagger {
                 config: null
             },
             tagEditorDouble: false,
-            tagEditorCustom: []
+            tagEditorCustom: [],
+            tagEditorAutosave: false
         });
 
         // If unsaved changes to track
@@ -678,6 +679,13 @@ class OneTagger {
 
             return true;
         }
+
+        // Tag editor save
+        if (event.code == "KeyS" && event.ctrlKey && this.onTagEditorEvent) {
+            this.onTagEditorEvent({action: '_tagEditorSave'});
+            return true;
+        }
+
         return false;
     }
     // Check if keybind matches event
