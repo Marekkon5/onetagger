@@ -155,7 +155,10 @@ export default {
                     speechiness: {enabled: true, range: {min: 0, max: 70}, 
                         tag: {id3: '1T_SPEECHINESS', vorbis: '1T_SPEECHINESS', mp4: '1T_SPEECHINESS'}},
                     valence: {enabled: true, range: {min: 15, max: 85}, 
-                        tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE', mp4: '1T_VALENCE'}}
+                        tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE', mp4: '1T_VALENCE'}},
+                    popularity: {enabled: false, range: {min: 0, max: 80}, 
+                        tag: {id3: '1T_POPULARITY', vorbis: '1T_POPULARITY', mp4: '1T_POPULARITY'}}
+                    
                 }
             }
         }
@@ -195,7 +198,9 @@ export default {
     mounted() {
         //Load config from settings
         if (this.$1t.settings.audioFeatures.config) {
+            let properties = Object.assign({}, this.config.properties, this.$1t.settings.audioFeatures.config.properties);
             this.config = Object.assign({}, this.config, this.$1t.settings.audioFeatures.config);
+            this.config.properties = properties;
         }
         //Register events
         this.$1t.onAudioFeaturesEvent = (json) => {

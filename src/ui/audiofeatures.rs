@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::thread;
 use std::sync::mpsc::{channel, Receiver};
+use rspotify::model::track::FullTrack;
 use serde::{Serialize, Deserialize};
 use serde;
 
@@ -31,12 +32,13 @@ pub struct AFProperties {
     pub instrumentalness: AFProperty,
     pub liveness: AFProperty,
     pub speechiness: AFProperty,
-    pub valence: AFProperty
+    pub valence: AFProperty,
+    pub popularity: AFProperty
 }
 
 impl AFProperties {
     // Merge properties into list with actual values
-    pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
+    pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, track: &FullTrack, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
         vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
                 .add_main_value("#dynamics-high", "#dynamics-med", "#dynamics-low"),
@@ -51,7 +53,9 @@ impl AFProperties {
             AFPropertyMerged::new(features.speechiness, &self.speechiness, &format)
                 .add_main_value("#music", "", "#speech"),
             AFPropertyMerged::new(features.valence, &self.valence, &format)
-                .add_main_value("#negative", "#neutral", "#positive")
+                .add_main_value("#negative", "#neutral", "#positive"),
+            AFPropertyMerged::new(track.popularity as f32 / 100.0, &self.popularity, &format)
+                .add_main_value("", "", "#popular")
         ]
     }
 }
@@ -134,9 +138,9 @@ impl AudioFeatures {
                 if let Ok(info) = AudioFileInfo::load_file(&file, None) {
                     // Match and get features
                     match AudioFeatures::find_features(&spotify, &info) {
-                        Ok(features) => {
+                        Ok((features, full_track)) => {
                             // Write to file
-                            match AudioFeatures::write_to_path(&file, &features, &config) {
+                            match AudioFeatures::write_to_path(&file, &features, &full_track, &config) {
                                 Ok(_) => {
                                     status.status = TaggingState::Ok;
                                 },
@@ -168,13 +172,14 @@ impl AudioFeatures {
     }
 
     // Get features from track
-    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<rspotify::model::audio::AudioFeatures, Box<dyn Error>> {
-        let mut track_id: Option<String> = None;
+    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<(rspotify::model::audio::AudioFeatures, FullTrack), Box<dyn Error>> {
+        let (mut track_id, mut full_track): (Option<String>, Option<FullTrack>) = (None, None);
         // Get by ISRC
         if let Some(isrc) = track.isrc.as_ref() {
             let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
-            if let Some(track) = results.first() {
-                track_id = Some(track.id.as_ref().ok_or("Missing track ID")?.to_owned());
+            if let Some(t) = results.first() {
+                track_id = Some(t.id.as_ref().ok_or("Missing track ID")?.to_owned());
+                full_track = Some(t.clone());
                 info!("[AF] Found track by ISRC. {:?}", track_id);
             }
         }
@@ -188,9 +193,10 @@ impl AudioFeatures {
                 let title_2 = MatchingUtils::clean_title_matching(track.title()?);
                 let artists: Vec<String> = t.artists.iter().map(|a| a.name.to_owned()).collect();
                 if title_1 == title_2 && MatchingUtils::match_artist(&artists, &track.artists, 1.0) {
-                    if let Some(id) = t.id {
+                    if let Some(id) = &t.id {
                         info!("[AF] Matched by exact title. {}", id);
-                        track_id = Some(id);
+                        track_id = Some(id.to_string());
+                        full_track = Some(t.clone());
                         break;
                     }
                 }
@@ -199,11 +205,11 @@ impl AudioFeatures {
 
         // Get features
         let features = spotify.audio_features(&track_id.ok_or("Invalid track / no match")?)?;
-        Ok(features)
+        Ok((features, full_track.unwrap()))
     }
 
     // Write to path
-    fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
+    fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
         // Load tag
         let mut tag_wrap = Tag::load_file(path, false)?;
         tag_wrap.set_separators(&config.separators);
@@ -213,7 +219,7 @@ impl AudioFeatures {
 
         // Get properties
         let mut main_tag = vec![];
-        for property in config.properties.merge_with_values(features, format.clone()) {
+        for property in config.properties.merge_with_values(features, full_track, format.clone()) {
             if !property.tag.is_empty() {
                 tag.set_raw(&property.tag, vec![property.value.to_string()], true);
             }
