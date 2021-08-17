@@ -10,11 +10,11 @@
             <span class='text-grey-4'>3.</span> Enter your Client ID and Client Secret below and press login <br>
         </div>
         <!-- Client ID and secret field -->
-        <div class='row q-mt-xl auth-container justify-evenly'>
+        <form class='row q-mt-xl auth-container justify-evenly'>
             <q-input v-model='clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
-            <q-input v-model='clientSecret' type='password' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
+            <q-input v-model='clientSecret' :type='$1t.info.os == "macos" ? "text" : "password"' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
             <q-btn push color='primary' class='text-black' @click='authorize'>Login</q-btn>
-        </div>
+        </form>
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6'>
             Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match<br>

@@ -22,13 +22,13 @@ impl Traxsource {
 
     pub fn search_tracks(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
         // Fetch
-        let mut data = self.client.get("https://www.traxsource.com/search/tracks")
+        let data = self.client.get("https://www.traxsource.com/search/tracks")
             .query(&[("term", query)])
             .send()?
             .text()?;
 
         // Minify and parse
-        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
+        let data = String::from_utf8(minify_html::minify(&data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
         let document = Html::parse_document(&data);
 
         // Track list
@@ -122,12 +122,12 @@ impl Traxsource {
     // Tracks in search don't have album name and art
     pub fn extend_track(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
         // Fetch
-        let mut data = self.client.get(&track.url)
+        let data = self.client.get(&track.url)
             .send()?
             .text()?;
         
         // Minify and parse
-        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
+        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
         let document = Html::parse_document(&data);
 
         // Select album element
@@ -151,11 +151,11 @@ impl Traxsource {
         if !album_meta { 
             return Ok(());
         }
-        let mut data = self.client.get(format!("https://www.traxsource.com{}", album_url))
+        let data = self.client.get(format!("https://www.traxsource.com{}", album_url))
             .send()?
             .text()?;
         // Minify and parse
-        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false}).unwrap();
+        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
         let document = Html::parse_document(&data);
 
         // Select catalog number
@@ -179,7 +179,7 @@ impl TrackMatcher for Traxsource {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search_tracks(&query)?;
         // Match
-        if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
+        if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
             if config.album_art || config.album || config.catalog_number || config.release_id {
                 match self.extend_track(&mut track, config.catalog_number) {

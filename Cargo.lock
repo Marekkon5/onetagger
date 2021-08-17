@@ -31,9 +31,9 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "aho-corasick"
-version = "0.7.15"
+version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7404febffaa47dac81aa44dba71523c9d069b1bdc50a77db41195149e17f68e5"
+checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
 dependencies = [
  "memchr",
 ]
@@ -1168,6 +1168,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "execute"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7099ac27f7ca234fa6daac042ffc9ede4e3527fd43cfdcdb2abc3befb6192a8a"
+dependencies = [
+ "execute-command-macro",
+ "execute-command-tokens",
+ "generic-array",
+]
+
+[[package]]
+name = "execute-command-macro"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5371880151fac48751fccc4c785ab8d0ad4f589c55f76b7b0377f1c64fcf69aa"
+dependencies = [
+ "execute-command-macro-impl",
+]
+
+[[package]]
+name = "execute-command-macro-impl"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc8bee3904e0525eff0d4b168208c92ddc14a24e9eb619745b69fdac87ea4142"
+dependencies = [
+ "execute-command-tokens",
+ "quote 1.0.9",
+ "syn 1.0.63",
+]
+
+[[package]]
+name = "execute-command-tokens"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e31582eb1260be08aa265f004aca0a74e1b69ce432d8e53ebd85c5c145617ece"
+
+[[package]]
 name = "failure"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2247,9 +2284,9 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "memchr"
-version = "2.3.4"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
+checksum = "b16bd47d9e329435e309c58469fe0791c2d0d1ba96ec0954152a5ae2b04387dc"
 
 [[package]]
 name = "memmap2"
@@ -2319,9 +2356,9 @@ dependencies = [
 
 [[package]]
 name = "minify-html"
-version = "0.4.3"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36da88423dea166b1506fb795e61294f47bbb09ceaa619a536a8d237bb2c296d"
+checksum = "af97b0ff1a328e6877ad03266f51d0ee9d8b8b31aa05da6566dc1ca4ed921f0f"
 dependencies = [
  "aho-corasick",
  "lazy_static",
@@ -2447,6 +2484,20 @@ name = "mp4"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "369762a9ab26451c57e0860102029db0f5c6b142baf6f373e759f311a828b50e"
+dependencies = [
+ "byteorder",
+ "bytes 0.5.6",
+ "num-rational",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "mp4"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85660d4d88b9318d95396943adc4a254b3ed8bf1de917e6f093abda1ccf0bec0"
 dependencies = [
  "byteorder",
  "bytes 0.5.6",
@@ -2690,9 +2741,9 @@ dependencies = [
 
 [[package]]
 name = "nom"
-version = "6.2.1"
+version = "6.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c5c51b9083a3c620fa67a2a635d1ce7d95b897e957d6b28ff9a5da960a103a6"
+checksum = "e7413f999671bd4745a7b624bd370a569fb6bc574b23c83a3c5ed2e453f3d5e2"
 dependencies = [
  "memchr",
  "version_check 0.9.2",
@@ -2899,13 +2950,14 @@ dependencies = [
  "chrono",
  "directories",
  "dunce",
+ "execute",
  "failure",
  "id3",
  "image",
  "metaflac",
  "minify-html",
  "mp3-duration",
- "mp4",
+ "mp4 0.9.0",
  "mp4ameta",
  "msgbox",
  "ndarray",
@@ -3619,7 +3671,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8154ec4542b88359064c3d695c4db2df2dc150e56bbe8082bd781f504b4059a"
 dependencies = [
  "fdk-aac",
- "mp4",
+ "mp4 0.8.2",
  "rodio",
 ]
 
@@ -3661,9 +3713,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.4.4"
+version = "1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54fd1046a3107eb58f42de31d656fee6853e5d276c455fd943742dce89fc3dd3"
+checksum = "d07a8629359eb56f1e2fb1652bb04212c072a87ba68546a04065d525673ac461"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -3678,9 +3730,9 @@ checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.23"
+version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24d5f089152e60f62d28b835fbff2cd2e8dc0baf1ac13343bef92ab7eed84548"
+checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
 name = "remove_dir_all"
@@ -4817,9 +4869,9 @@ checksum = "3e5d7cd7ab3e47dda6e56542f4bbf3824c15234958c6e1bd6aaa347e93499fdc"
 
 [[package]]
 name = "tungstenite"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0b2d8558abd2e276b0a8df5c05a2ec762609344191e5fd23e292c910e9165b5"
+checksum = "983d40747bce878d2fb67d910dcb8bd3eca2b2358540c3cc1b98c027407a3ae3"
 dependencies = [
  "base64 0.13.0",
  "byteorder",
@@ -5445,7 +5497,7 @@ version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a9a231574ae78801646617cefd13bfe94be907c0e4fa979cfd8b770aa3c5d08"
 dependencies = [
- "nom 6.2.1",
+ "nom 6.1.2",
 ]
 
 [[package]]

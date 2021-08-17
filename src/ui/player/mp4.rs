@@ -19,7 +19,7 @@ impl MP4Source {
         let file = File::open(path)?;
         let metadata = file.metadata()?;
         let mp4 = Mp4Reader::read_header(BufReader::new(file), metadata.len())?;
-        let track = mp4.tracks().first().ok_or("No tracks!")?;
+        let track = mp4.tracks().values().next().ok_or("No tracks!")?;
         // ALAC will fail on this function so i guess dirty but works
         let alac = track.audio_profile().is_err();
 

@@ -40,9 +40,8 @@ impl JunoDownload {
         }
 
         // Minify and parse
-        let mut data = response.text()?;
-        minify_html::in_place_str(&mut data, &minify_html::Cfg {minify_js: false, minify_css: false})
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e)))?;
+        let data = response.text()?;
+        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
         let document = Html::parse_document(&data);
 
         let mut out = vec![];
@@ -175,7 +174,7 @@ impl TrackMatcher for JunoDownload {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search(&query)?;
         // Match
-        if let Some((acc, track)) = MatchingUtils::match_track(&info, &tracks, &config) {
+        if let Some((acc, track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             return Ok(Some((acc, track)));
         }
         Ok(None)

@@ -1,9 +1,9 @@
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
+use std::env;
 use std::thread;
 use std::path::Path;
-use tungstenite::server::accept;
-use tungstenite::{Message, WebSocket};
+use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
 use directories::UserDirs;
 use dunce::canonicalize;
@@ -150,6 +150,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             websocket.write_message(Message::from(json!({
                 "action": "init",
                 "version": crate::VERSION,
+                "os": env::consts::OS,
                 "startContext": context.start_context
             }).to_string())).ok();
         },
@@ -189,7 +190,6 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 playlist.get_files()?
             } else { vec![] };
             let mut file_count = files.len();
-            let mut parent_folder = None;
             // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
@@ -198,9 +198,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                         let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or(String::new());
                         files = Tagger::get_file_list(&path);
                         file_count = files.len();
-                        parent_folder = Some(path);
                     }
-                    let rx = Tagger::tag_files(&c, files, parent_folder);
+                    let rx = Tagger::tag_files(&c, files);
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {

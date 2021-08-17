@@ -229,7 +229,7 @@ impl TrackMatcher for Beatport {
                     // Convert tracks
                     let tracks = res.tracks.iter().map(|t| t.to_track(config.beatport.art_resolution)).collect();
                     // Match
-                    if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config) {
+                    if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
                         // Get catalog number
                         if config.catalog_number {
                             let i = tracks.iter().position(|t| t == &track).unwrap();

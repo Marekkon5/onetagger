@@ -147,7 +147,7 @@ impl TrackMatcherST for Discogs {
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &config.discogs.styles));
             }
-            return Ok(MatchingUtils::match_track_no_artist(&info, &tracks, &config));
+            return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
         }
         
         // Search
@@ -180,7 +180,7 @@ impl TrackMatcherST for Discogs {
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &config.discogs.styles));
             }
-            if let Some((acc, mut track)) = MatchingUtils::match_track_no_artist(&info, &tracks, &config) {
+            if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
                 if config.catalog_number && track.catalog_number.is_none() && (release.labels.is_none() && release.main_release.is_some()) {
                     info!("Discogs fetching release for catalog number...");

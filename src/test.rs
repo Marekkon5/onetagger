@@ -40,7 +40,7 @@ pub fn benchmark_track_matching() {
     // Start benchmark
     let start = timestamp!();
     for _ in 0..10_000 {
-        MatchingUtils::match_track(&info, &tracks, &config).unwrap();
+        MatchingUtils::match_track(&info, &tracks, &config, true).unwrap();
     }
     info!("Matched 10000 tracks, took: {}ms", timestamp!() - start);
 }

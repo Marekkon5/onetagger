@@ -1,10 +1,7 @@
 #![windows_subsystem = "windows"]
 
-#[macro_use]
-extern crate slog;
-#[macro_use]
-extern crate slog_scope;
-extern crate slog_term;
+#[macro_use] extern crate slog;
+#[macro_use] extern crate slog_scope;
 
 use std::env;
 use std::panic;
@@ -12,7 +9,8 @@ use std::path::Path;
 use std::fs::OpenOptions;
 use std::sync::Mutex;
 use backtrace::Backtrace;
-use slog::{Drain, Duplicate};
+use slog::FnValue;
+use slog::{Drain, Duplicate, Logger};
 
 // Get timestamp macro
 macro_rules! timestamp {
@@ -33,7 +31,7 @@ mod test;
 
 fn main() {
     // Logging setup
-    let drain1 = slog_term::FullFormat::new(slog_term::TermDecorator::new().build()).build();
+    let drain1 = slog_term::term_full();
     let log = match OpenOptions::new()
         .append(true)
         .create(true)
@@ -42,11 +40,13 @@ fn main() {
             Ok(file) => {
                 let drain2 = slog_term::FullFormat::new(slog_term::PlainDecorator::new(file)).build().fuse();
                 let both = Mutex::new(Duplicate::new(drain1, drain2)).fuse();
-                slog::Logger::root(both, o!())
+                Logger::root(both, o!("module" => FnValue(move |info| {
+                    format!("{}", info.module())
+                })))
             },
             // Only terminal
             Err(_) => {
-                slog::Logger::root(Mutex::new(drain1).fuse(), o!())
+                Logger::root(Mutex::new(drain1).fuse(), o!())
             }
         };
     let _guard = slog_scope::set_global_logger(log);
@@ -63,7 +63,7 @@ fn main() {
         }
     }));
 
-    info!("\n\nStarting OneTagger v{} Commit: {} OS: {}\n", VERSION, env!("COMMIT"), env::consts::OS);
+    info!("\n\nStarting OneTagger v{} Commit: {} OS: {}\n\n", VERSION, env!("COMMIT"), env::consts::OS);
 
     // Parse arguments
     let args: Vec<String> = env::args().skip(1).collect();

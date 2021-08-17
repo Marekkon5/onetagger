@@ -24,7 +24,7 @@ class OneTagger {
             }, 100);
         }
 
-        this.info = Vue.observable({version: '0.0.0'});
+        this.info = Vue.observable({version: '0.0.0', os: null});
 
         // WS Message handler
         this.ws.onmessage = (event) => {
@@ -36,6 +36,7 @@ class OneTagger {
                 // Initial info
                 case 'init':
                     this.info.version = json.version;
+                    this.info.os = json.os;
                     //Path from args
                     if (json.startContext.startPath) {
                         this.settings.path = json.startContext.startPath;
@@ -204,6 +205,8 @@ class OneTagger {
             "matchDuration": false,
             "maxDurationDifference": 30,
             "matchById": false,
+            "multipleMatches": "Default",
+            "postCommand": null,
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1

@@ -1,5 +1,7 @@
+use std::cmp::Ordering;
 use std::error::Error;
 use std::thread;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::time::Duration;
@@ -7,6 +9,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver};
+use execute::Execute;
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -80,6 +83,8 @@ pub struct TaggerConfig {
     // In seconds
     pub max_duration_difference: u64,
     pub match_by_id: bool,
+    pub multiple_matches: MultipleMatchesSort,
+    pub post_command: Option<String>,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -118,6 +123,19 @@ pub enum DiscogsStyles {
 }
 
 impl Default for DiscogsStyles {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum MultipleMatchesSort {
+    Default,
+    Oldest,
+    Newest
+}
+
+impl Default for MultipleMatchesSort {
     fn default() -> Self {
         Self::Default
     }
@@ -670,25 +688,39 @@ impl MatchingUtils {
     }
 
     // Default track matching
-    pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig) -> Option<(f64, Track)> {
+    pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
         let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
         // Exact match
+        let mut exact_matches = vec![];
         for track in tracks {
             if !MatchingUtils::match_duration(info, track, config) {
                 continue;
             }
             if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
-                if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-                    return Some((1.0, track.clone()));
+                if match_artist {
+                    if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
+                        exact_matches.push((1.0, track));
+                    }
+                } else {
+                    exact_matches.push((1.0, track));
                 }
             }
         }
+
+        // Use exact match
+        if !exact_matches.is_empty() {
+            MatchingUtils::sort_tracks(&mut exact_matches, &config);
+            return Some((1.0, exact_matches[0].1.to_owned()));
+        }
+
         // Fuzzy match - value, track
         let mut fuzz: Vec<(f64, &Track)> = vec![];
         for track in tracks {
             // Artist
-            if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-                continue;
+            if match_artist {
+                if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
+                    continue;
+                }
             }
             // Match title
             let clean = MatchingUtils::clean_title_matching(&track.full_title());
@@ -703,39 +735,31 @@ impl MatchingUtils {
         }
         // Sort
         fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+        let best_acc = fuzz[0].0;
+        let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
+        MatchingUtils::sort_tracks(&mut fuzz, &config);
         Some((fuzz[0].0, fuzz[0].1.to_owned()))
     }
 
-    // Match track, but ignore artist
-    pub fn match_track_no_artist(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig) -> Option<(f64, Track)> {
-        let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
-        // Exact match
-        for track in tracks {
-            if !MatchingUtils::match_duration(info, track, config) {
-                continue;
-            }
-
-            if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
-                return Some((1.0, track.clone()));
-            }
+    /// Sort matched tracks by release dates
+    fn sort_tracks(tracks: &mut Vec<(f64, &Track)>, config: &TaggerConfig) {
+        match config.multiple_matches {
+            MultipleMatchesSort::Default => {},
+            MultipleMatchesSort::Oldest => tracks.sort_by(|a, b| {
+                if a.1.release_date.is_none() || b.1.release_date.is_none() {
+                    Ordering::Equal
+                } else {
+                    a.1.release_date.as_ref().unwrap().cmp(b.1.release_date.as_ref().unwrap())
+                }
+            }),
+            MultipleMatchesSort::Newest => tracks.sort_by(|a, b| {
+                if a.1.release_date.is_none() || b.1.release_date.is_none() {
+                    Ordering::Equal
+                } else {
+                    b.1.release_date.as_ref().unwrap().cmp(a.1.release_date.as_ref().unwrap())
+                }
+            }),
         }
-        // Fuzzy match - value, track
-        let mut fuzz: Vec<(f64, &Track)> = vec![];
-        for track in tracks {
-            // Match title
-            let clean = MatchingUtils::clean_title_matching(&track.full_title());
-            let l = normalized_levenshtein(&clean, &clean_title);
-            if l >= config.strictness {
-                fuzz.push((l, track));
-            }
-        }
-        // Empty array
-        if fuzz.is_empty() {
-            return None;
-        }
-        // Sort
-        fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-        Some((fuzz[0].0, fuzz[0].1.to_owned()))
     }
 
     // Match duration
@@ -792,7 +816,8 @@ pub struct Tagger {}
 impl Tagger {
 
     // Returtns progress receiver, and file count
-    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>, parent_folder: Option<String>) -> Receiver<TaggingStatusWrap> {
+    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>) -> Receiver<TaggingStatusWrap> {
+        let original_files = files.clone();
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
@@ -879,20 +904,48 @@ impl Tagger {
                 }
             }
 
-            // Tagging ended
-            if !files.is_empty() {
-                let write_failed = || -> Result<String, Box<dyn Error>> {
-                    let folder = PathBuf::from(parent_folder.unwrap_or(Settings::get_folder()?.to_str().unwrap().to_string()));
-                    let failed_file = folder.join(format!("failed-{}.m3u", timestamp!()));
+            // Tagging ended, save lists of files
+            let write_result = || -> Result<(String, String), Box<dyn Error>> {
+                let time = timestamp!();
+                let folder = PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
+                if !folder.exists() {
+                    fs::create_dir_all(&folder)?;
+                }
+                let failed_file = folder.join(format!("failed-{}.m3u", time));
+                let success_file = folder.join(format!("success-{}.m3u", time));
+                {
                     let mut file = File::create(&failed_file)?;
                     file.write_all(files.join("\r\n").as_bytes())?;
-                    Ok(failed_file.to_str().unwrap().to_string())
-                };
-                match write_failed() {
-                    Ok(path) => info!("Wrote failed songs to: {}", path),
-                    Err(e) => warn!("Failed writing failed songs to file! {}", e)
-                };
-            }
+                }
+                {
+                    let mut file = File::create(&success_file)?;
+                    let files: Vec<String> = original_files.into_iter().filter(|i| !files.contains(i)).collect();
+                    file.write_all(files.join("\r\n").as_bytes())?;
+                }
+                
+                // Run command
+                let (failed_file, success_file) = (failed_file.to_str().unwrap().to_string(), success_file.to_str().unwrap().to_string());
+                if let Some(command) = &config.post_command {
+                    if !command.trim().is_empty() {
+                        let command = command
+                            .replace("$failed", &failed_file)
+                            .replace("$success", &success_file);
+                        thread::spawn(|| {
+                            info!("Executing command: {}", command);
+                            let mut command = execute::shell(command);
+                            let result = command.execute().ok().flatten();
+                            info!("Command finished with: {:?}", result);
+                        });
+                    }
+                }
+
+                Ok((failed_file, success_file))
+            };
+            match write_result() {
+                Ok((failed, success)) => info!("Written failed songs to: {}, successful to: {}", failed, success),
+                Err(e) => warn!("Failed writing failed songs to file! {}", e)
+            };
+            
 
         });
         

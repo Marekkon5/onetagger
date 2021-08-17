@@ -35,7 +35,6 @@
         </q-icon>
     </q-toggle>
     <br>
-
     <!-- Parse meta from filename -->
     <q-toggle v-model='$1t.config.parseFilename' label='Parse metadata from filename'></q-toggle>
     <div v-if='$1t.config.parseFilename'>
@@ -46,6 +45,17 @@
             class='input'
         ></q-input>
     </div>
+    <br>
+
+    <!-- Multiple matches ordering -->
+    <q-select 
+        dense 
+        filled 
+        class='input q-my-sm' 
+        v-model='$1t.config.multipleMatches' 
+        :options='multipleMatches'
+        label='Multiple matches ordering'
+    ></q-select>    
 
     <br>
     <!-- Strictness -->
@@ -112,13 +122,17 @@
     <br>
 
     <!-- Separators -->
-    <div class='q-mt-md text-body1 text-grey-4'>Separators</div>
+    <div class='text-body1 text-grey-4'>Separators</div>
     <div class='row q-py-md justify-center' style='max-width: 50vw; margin: auto;'>
         <Separators
             :initial='$1t.config.separators'
             @input='$1t.config.separators = $event'
         ></Separators>
     </div>
+
+    <!-- Command -->
+    <div class='text-body1 text-grey-4 q-mt-md'>Execute command on finished tagging</div>
+    <q-input label='$success, $failed will be substituted' filled class='input q-mt-sm' v-model='$1t.config.postCommand'></q-input>
 </div>
 </template>
 
@@ -128,6 +142,11 @@ import Separators from './Separators';
 export default {
     name: 'AutotaggerAdvanced',
     components: {Separators},
+    data() {
+        return {
+            multipleMatches: ['Default', 'Oldest', 'Newest']
+        }
+    }
 }
 </script>
 
