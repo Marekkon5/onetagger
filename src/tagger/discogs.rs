@@ -51,17 +51,22 @@ impl Discogs {
 
     // Check if token is valid
     pub fn validate_token(&mut self) -> bool {
-        if let Ok(res) = self.get("https://api.discogs.com/database/search", vec![("q", "test")]) {
-            if res.status() == StatusCode::OK {
-                return true;
+        match self.get("https://api.discogs.com/database/search", vec![("q", "test")]) {
+            Ok(res) => if res.status() == StatusCode::OK { true } else { 
+                error!("Failed validating Discogs token: {}", res.status());
+                debug!("{:?}", res.text());
+                false 
+            },
+            Err(e) => {
+                error!("Failed validating Discogs token: {}", e);
+                false
             }
-            return false;
         }
-        false
     }
 
     // Get request wrapper with rate limit
     fn get(&mut self, url: &str, query: Vec<(&str, &str)>) -> Result<Response, Box<dyn Error>> {
+        debug!("Discogs GET {}", url);
         // Rate limit
         if self.last_request > 0 && self.rate_limit != -1 {
             let diff = timestamp!() - self.last_request;

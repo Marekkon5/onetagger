@@ -350,7 +350,7 @@ export default {
         },
         loadFile(path) {
             // Autosave
-            if (this.$1t.settings.tagEditorAutosave) {
+            if (this.file && this.$1t.settings.tagEditorAutosave) {
                 this.save();
             }
 
