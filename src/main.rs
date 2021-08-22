@@ -9,7 +9,7 @@ use std::path::Path;
 use std::fs::OpenOptions;
 use std::sync::Mutex;
 use backtrace::Backtrace;
-use slog::{Drain, Duplicate, Logger,FnValue};
+use slog::{Drain, Duplicate, Logger, FnValue};
 
 // Get timestamp macro
 macro_rules! timestamp {
