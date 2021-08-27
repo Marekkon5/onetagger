@@ -9,6 +9,8 @@ use serde::{Serialize, Deserialize};
 
 use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, parse_duration};
 
+const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
+
 pub struct Beatport {
     client: Client
 }
@@ -140,8 +142,16 @@ impl BeatportTrack {
     }
 
     // Get dynamic or first image
-    fn get_image(&self) -> Option<BeatportImage> {
-        Some(self.images.get("dynamic").unwrap_or(self.images.values().next()?).clone())
+    fn get_image(&self) -> Option<&BeatportImage> {
+        // Prioritize dynamic image
+        if let Some(image) = self.images.get("dynamic") {
+            if !image.url.contains(INVALID_ART) {
+                return Some(image);
+            }
+        }
+        self.images.iter().filter(|(k, v)| {
+            *k != "dynamic" && !v.url.contains(INVALID_ART)
+        }).map(|(_k, v)| v).next()
     }
 }
 

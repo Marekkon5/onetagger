@@ -351,6 +351,7 @@ impl Track {
         }
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
+            info!("Downloading art: {:?}", self.art);
             match self.download_art(self.art.as_ref().unwrap()) {
                 Ok(data) => {
                     match data {
@@ -848,6 +849,13 @@ impl Tagger {
                         if !discogs.validate_token() {
                             error!("Invalid Discogs token! Skipping Discogs...");
                             continue;
+                        }
+                        // Remove rate limit for small batches
+                        if files.len() <= 35 {
+                            discogs.set_rate_limit(150);
+                        }
+                        if files.len() <= 20 {
+                            discogs.set_rate_limit(1000);
                         }
                         // Tag
                         let rx = Tagger::tag_dir_single_thread(&files, discogs, &config);

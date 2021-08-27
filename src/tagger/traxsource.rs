@@ -22,6 +22,7 @@ impl Traxsource {
 
     pub fn search_tracks(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
         // Fetch
+        debug!("Q: {}", query);
         let data = self.client.get("https://www.traxsource.com/search/tracks")
             .query(&[("term", query)])
             .send()?

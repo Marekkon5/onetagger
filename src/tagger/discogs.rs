@@ -37,8 +37,7 @@ impl Discogs {
         }
     }
 
-    // Set new rate limit (requests per minute), -1 to disable
-    #[allow(dead_code)]
+    /// Set rate limit, -1 for no rate limit
     pub fn set_rate_limit(&mut self, rate_limit: i16) {
         self.rate_limit = rate_limit;
     }
@@ -83,6 +82,16 @@ impl Discogs {
             request = request.header("Authorization", format!("Discogs token={}", self.token.as_ref().unwrap()));
         }
         let response = request.send()?;
+        
+        // Rate limit
+        let rate_limit_remaining = response.headers().get("X-Discogs-Ratelimit-Remaining")
+            .map(|v| v.to_str().unwrap().parse::<i32>().ok()).flatten().unwrap_or(100);
+        debug!("Discogs rate limit remaining: {}", rate_limit_remaining);
+        if rate_limit_remaining < 1 {
+            warn!("Discogs rate limit hit! Waiting 10s...");
+            sleep(Duration::from_secs(10));
+            return self.get(url, query);
+        }
 
         // Save last reqeust time for rate limitting
         self.last_request = timestamp!();
