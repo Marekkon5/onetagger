@@ -196,13 +196,16 @@ impl TrackMatcherST for Discogs {
             }
             if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
-                if config.catalog_number && track.catalog_number.is_none() && (release.labels.is_none() && release.main_release.is_some()) {
-                    info!("Discogs fetching release for catalog number...");
+                if ((config.catalog_number && track.catalog_number.is_none()) || (config.label && track.label.is_none())) && (release.labels.is_none() && release.main_release.is_some()) {
+                    info!("Discogs fetching release for catalog number/label...");
                     match self.full_release(ReleaseType::Release, release.main_release.unwrap()) {
-                        // Get CN from release
+                        // Get CN, label from release
                         Ok(r) => {
                             if let Some(labels) = r.labels {
                                 if let Some(label) = labels.first() {
+                                    if track.label.is_none() {
+                                        track.label = Some(label.name.to_string());
+                                    }
                                     if let Some(cn) = label.catno.as_ref() {
                                         if cn != "none" {
                                             track.catalog_number = Some(cn.to_owned());
