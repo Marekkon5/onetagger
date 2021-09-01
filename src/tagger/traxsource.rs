@@ -100,6 +100,7 @@ impl Traxsource {
             tracks.push(Track {
                 platform: MusicPlatform::Traxsource,
                 version, artists, bpm, key, title, url,
+                album_artists: vec![],
                 label: Some(label.to_string()),
                 release_date: NaiveDate::parse_from_str(&release_date, "%Y-%m-%d").ok(),
                 genres: vec![genre.to_owned()],
@@ -170,6 +171,12 @@ impl Traxsource {
         }
         track.catalog_number = catalog_number;
 
+        // Album artists
+        selector = Selector::parse("h1.artists").unwrap();
+        let album_artists_element = document.select(&selector).next().unwrap();
+        let album_artists_text = album_artists_element.text().collect::<Vec<_>>().join(" ");
+        let album_artists: Vec<String> = album_artists_text.split(",").map(String::from).collect();
+        track.album_artists = album_artists;
         Ok(())
     }
 }
@@ -182,7 +189,7 @@ impl TrackMatcher for Traxsource {
         // Match
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
-            if config.album_art || config.album || config.catalog_number || config.release_id {
+            if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist {
                 match self.extend_track(&mut track, config.catalog_number) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)

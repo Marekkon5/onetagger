@@ -105,6 +105,7 @@ impl BeatportTrack {
             title: self.name.to_string(),
             version: self.mix.as_ref().map(String::from),
             artists: self.artists.iter().map(|a| a.name.to_string()).collect(),
+            album_artists: vec![],
             album: Some(self.release.name.to_string()),
             bpm: self.bpm.clone(),
             genres: self.genres.iter().map(|g| g.name.to_string()).collect(),

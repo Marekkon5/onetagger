@@ -84,6 +84,7 @@ impl FLACTag {
         match field {
             Field::Title => "TITLE".to_string(),
             Field::Artist => "ARTIST".to_string(),
+            Field::AlbumArtist => "ALBUMARTIST".to_string(),
             Field::Album => "ALBUM".to_string(),
             Field::Key => "INITIALKEY".to_string(),
             Field::BPM => "BPM".to_string(),

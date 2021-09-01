@@ -65,6 +65,7 @@ pub struct TaggerConfig {
     pub release_id: bool,
     pub version: bool,
     pub duration: bool,
+    pub album_artist: bool,
 
     // Advanced
     pub separators: TagSeparators,
@@ -148,6 +149,7 @@ pub struct Track {
     pub title: String,
     pub version: Option<String>,
     pub artists: Vec<String>,
+    pub album_artists: Vec<String>,
     pub album: Option<String>,
     pub key: Option<String>,
     pub bpm: Option<i64>,
@@ -241,6 +243,9 @@ impl Track {
         }
         if config.artist {
             tag.set_field(Field::Artist, self.artists.clone(), config.overwrite);
+        }
+        if config.album_artist && !self.album_artists.is_empty() {
+            tag.set_field(Field::AlbumArtist, self.album_artists.clone(), config.overwrite);
         }
         if self.album.is_some() && config.album  {
             tag.set_field(Field::Album, vec![self.album.as_ref().unwrap().to_string()], config.overwrite);

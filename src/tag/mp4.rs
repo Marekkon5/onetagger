@@ -64,6 +64,7 @@ impl MP4Tag {
         match field {
             Field::Title => DataIdent::fourcc(*b"\xa9nam"),
             Field::Artist => DataIdent::fourcc(*b"\xa9ART"),
+            Field::AlbumArtist => DataIdent::fourcc(*b"aART"),
             Field::Album => DataIdent::fourcc(*b"\xa9alb"),
             Field::BPM => DataIdent::fourcc(*b"tmpo"),
             Field::Genre => DataIdent::fourcc(*b"\xa9gen"),

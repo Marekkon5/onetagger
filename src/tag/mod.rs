@@ -217,6 +217,7 @@ pub enum Field {
     Title,
     Artist,
     Album,
+    AlbumArtist,
     Key,
     BPM,
     Genre,

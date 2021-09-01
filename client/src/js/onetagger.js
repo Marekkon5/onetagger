@@ -175,6 +175,7 @@ class OneTagger {
             "path": null,
             "title": false,
             "artist": false,
+            "albumArtist": false,
             "album": false,
             "key": false,
             "bpm": true,

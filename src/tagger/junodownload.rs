@@ -143,6 +143,7 @@ impl JunoDownload {
                 title: track_title,
                 version: None,
                 artists: track_artists.into_iter().map(|a| a.to_string()).collect(),
+                album_artists: artists.clone().into_iter().map(String::from).collect(),
                 album: Some(title.to_owned()),
                 bpm,
                 genres: genres.to_owned(),

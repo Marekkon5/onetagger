@@ -154,6 +154,7 @@ impl ID3Tag {
         match field {
             Field::Title => "TIT2".to_string(),
             Field::Artist => "TPE1".to_string(),
+            Field::AlbumArtist => "TPE2".to_string(),
             Field::Album => "TALB".to_string(),
             Field::Key => "TKEY".to_string(),
             Field::BPM => "TBPM".to_string(),

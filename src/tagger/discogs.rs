@@ -370,6 +370,7 @@ impl ReleaseMaster {
                 Some(artists) => artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
                 None => self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect()
             },
+            album_artists: self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
             album: Some(self.title.to_string()),
             key: None,
             bpm: None,
