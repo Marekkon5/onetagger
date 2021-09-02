@@ -25,7 +25,10 @@ pub mod beatport;
 pub mod traxsource;
 pub mod discogs;
 pub mod junodownload;
+//pub mod tidal;
 pub mod spotify;
+//pub mod applemusic;
+pub mod itunes;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -34,9 +37,10 @@ pub enum MusicPlatform {
     Traxsource,
     Discogs,
     JunoDownload,
-
-    // Currently only used in Audio Features
-    Spotify
+    // Tidal,
+    Spotify, // Currently only used in Audio Features
+    // AppleMusic,
+    AppleiTunes,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -884,6 +888,10 @@ impl Tagger {
                             MusicPlatform::Beatport => Box::new(beatport::Beatport::new()),
                             MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
                             MusicPlatform::JunoDownload => Box::new(junodownload::JunoDownload::new()),
+                            // MusicPlatform::Tidal => Box::new(tidal::Tidal::new()),
+                            MusicPlatform::Spotify => Box::new(spotify::Spotify::new()),
+                            // MusicPlatform::AppleMusic => Box::new(applemusic::AppleMusic::new()),
+                            MusicPlatform::AppleiTunes => Box::new(itunes::AppleiTunes::new()),
                             _ => unreachable!()
                         };
                         info!("Starting {:?}", platform);

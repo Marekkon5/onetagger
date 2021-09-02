@@ -12,7 +12,7 @@
                 <div class='col-3 text-primary text-bold'>AUTO TAG</div>
                 <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm'>
                     Auto Tag lets you automatically tag from Beatport,
-                    Discogs, Junodownload & Traxsource, to your local
+                    Discogs, Junodownload, Traxsource<!--, Tidal-->, Spotify<!--, Apple Music--> & iTunes, to your local
                     audio files, based on Artist & Title tag, filename or playlist.<br>
                     
                     <q-btn dense push color='primary' class='rounded-borders q-mt-sm text-black text-weight-medium text-caption' @click='help("autotagger")'>More info</q-btn>

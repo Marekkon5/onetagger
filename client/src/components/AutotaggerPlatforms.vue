@@ -62,6 +62,38 @@ export default {
                     description: 'Most variety in genres / styles<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~25 tracks / min) & requires a free account</b>',
                     image: require('../assets/discogs.png')
                 },
+                /*
+                {
+                    name: 'Tidal',
+                    value: 'tidal',
+                    enabled: false,
+                    description: 'No words needed. / styles<br><b class="text-subtitle3 text-grey-4">May requires a premium account</b>',
+                    image: require('../assets/discogs.png')
+                },
+                */
+                {
+                    name: 'Spotify',
+                    value: 'spotify',
+                    enabled: false,
+                    description: 'No words needed. / styles<br><b class="text-subtitle3 text-grey-4">Requires a premium account</b>',
+                    image: require('../assets/discogs.png')
+                },
+                /*
+                {
+                    name: 'Apple Music',
+                    value: 'apple',
+                    enabled: false,
+                    description: 'No words needed. / styles<br><b class="text-subtitle3 text-grey-4">Requires an Apple Developer account</b>',
+                    image: require('../assets/discogs.png')
+                },
+                */
+                {
+                    name: 'iTunes Store',
+                    value: 'itunes',
+                    enabled: false,
+                    description: 'Public Apple search API. / styles<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~20 tracks / min)</b>',
+                    image: require('../assets/discogs.png')
+                }
             ]
         }
     },
