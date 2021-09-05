@@ -40,7 +40,7 @@ pub enum MusicPlatform {
     // Tidal,
     Spotify, // Currently only used in Audio Features
     // AppleMusic,
-    AppleiTunes,
+    ITunes,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -93,7 +93,8 @@ pub struct TaggerConfig {
 
     // Platform specific
     pub beatport: BeatportConfig,
-    pub discogs: DiscogsConfig
+    pub discogs: DiscogsConfig,
+    pub itunes: ITunesConfig,
 }
 
 // Beatport specific settings
@@ -132,6 +133,36 @@ impl Default for DiscogsStyles {
         Self::Default
     }
 }
+
+// iTunes specific settings
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ITunesConfig {
+    pub token: Option<String>,
+    pub max_results: i16,
+    pub styles: ITunesStyles,
+    // Option to prevent update errors
+    pub styles_custom_tag: Option<UITag>
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ITunesStyles {
+    Default,
+    OnlyGenres,
+    OnlyStyles,
+    MergeToGenres,
+    MergeToStyles,
+    StylesToGenre,
+    GenresToStyle,
+    CustomTag
+}
+
+impl Default for ITunesStyles {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MultipleMatchesSort {
@@ -882,6 +913,43 @@ impl Tagger {
                             }
                         }
                     },
+                    MusicPlatform::ITunes => {
+                        // Auth iTunes
+                        let mut itunes = itunes::ITunes::new();
+                        /*
+                        if config.itunes.token.as_ref().is_none() {
+                            error!("Missing iTunes token! Skipping Discogs...");
+                            continue;
+                        }
+                        itunes.set_auth_token(config.itunes.token.as_ref().unwrap());
+                        if !itunes.validate_token() {
+                            error!("Invalid iTunes token! Skipping Discogs...");
+                            continue;
+                        }
+                        */
+                        // Remove rate limit for small batches
+                        if files.len() <= 35 {
+                            itunes.set_rate_limit(150);
+                        }
+                        if files.len() <= 20 {
+                            itunes.set_rate_limit(1000);
+                        }
+                        // Tag
+                        let rx = Tagger::tag_dir_single_thread(&files, itunes, &config);
+                        info!("Starting iTunes");
+                        for status in rx {
+                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::ITunes, status.status, status.accuracy, status.path);
+                            processed += 1;
+                            // Send to UI
+                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::ITunes, &status, 
+                                platform_index, config.platforms.len(), processed, total
+                            )).ok();
+                            // Fallback
+                            if status.status == TaggingState::Ok {
+                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                            }
+                        }
+                    },
                     platform => {
                         // No config platforms
                         let tagger: Box<dyn TrackMatcher + Send + Sync + 'static> = match platform {
@@ -889,14 +957,14 @@ impl Tagger {
                             MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
                             MusicPlatform::JunoDownload => Box::new(junodownload::JunoDownload::new()),
                             // MusicPlatform::Tidal => Box::new(tidal::Tidal::new()),
-                            MusicPlatform::Spotify => Box::new(spotify::Spotify::new()),
+                            // MusicPlatform::Spotify => Box::new(spotify::Spotify::new()),
                             // MusicPlatform::AppleMusic => Box::new(applemusic::AppleMusic::new()),
-                            MusicPlatform::AppleiTunes => Box::new(itunes::AppleiTunes::new()),
+                            //MusicPlatform::ITunes => Box::new(itunes::ITunes::new()),
                             _ => unreachable!()
                         };
                         info!("Starting {:?}", platform);
                         
-                        let rx = if platform == &MusicPlatform::JunoDownload {
+                        let rx = if platform == &MusicPlatform::JunoDownload || platform == &MusicPlatform::ITunes {
                             // JunoDownload cap max threads due to rate limiting
                             let mut config = config.clone();
                             if config.threads > 4 {

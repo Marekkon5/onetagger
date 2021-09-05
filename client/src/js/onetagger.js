@@ -217,6 +217,12 @@ class OneTagger {
                 "maxResults": 4,
                 "styles": "default",
                 "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'}
+            },
+            "itunes": {
+                "token": null,
+                "maxResults": 4,
+                "styles": "default",
+                "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'}
             }
         });
         // Statuses
@@ -454,6 +460,7 @@ class OneTagger {
 
         // AT config (nested)
         Object.assign(this.config.discogs, this.settings.autoTaggerConfig??{}.discogs??{});
+        Object.assign(this.config.itunes, this.settings.autoTaggerConfig??{}.itunes??{});
         Object.assign(this.config, this.settings.autoTaggerConfig??{});
         
         this.player.volume = this.settings.volume??0.5;

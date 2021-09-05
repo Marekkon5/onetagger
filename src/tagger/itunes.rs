@@ -9,9 +9,9 @@ use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use serde;
-use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, AppleiTunesStyles, parse_duration};
+use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, ITunesStyles, parse_duration};
 
-pub struct AppleiTunes {
+pub struct ITunes {
     client: Client,
     token: Option<String>,
     // Requests per minute
@@ -21,14 +21,14 @@ pub struct AppleiTunes {
     release_cache: HashMap<i64, ReleaseMaster>
 }
 
-impl AppleiTunes {
+impl ITunes {
     // Create new instance
-    pub fn new() -> AppleiTunes {
+    pub fn new() -> ITunes {
         let client = Client::builder()
             .user_agent("OneTagger/1.0")
             .build()
             .unwrap();
-        AppleiTunes {
+        ITunes {
             client,
             token: None, //Info about Enterprise for unblock the 20 x minute limit: https://affiliate.itunes.apple.com/resources/documentation/itunes-enterprise-partner-feed/ 
             rate_limit: 15, //In the public API documentation says 20 x minute aproximately, but let's play safe. (https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/Searching.html#//apple_ref/doc/uid/TP40017632-CH5-SW1)
@@ -98,23 +98,32 @@ impl AppleiTunes {
         Ok(response)
     }
 
-    pub fn search(&mut self, result_type: Option<&str>, query: Option<&str>, title: Option<&str>, artist: Option<&str>) -> Result<Vec<ReleaseMasterSearchResult>, Box<dyn Error>> {
+    // Search for tracks on iTunes
+    pub fn search(&mut self, result_type: Option<&str>, query: Option<&str>, country: Option<&str>, language: Option<&str>) -> Result<Vec<ReleaseMasterSearchResult>, Box<dyn Error>> {
+
         // Generate parameters
         let mut qp = vec![];
+        qp.push(("limit", "200")); //&TaggerConfig.itunes.max_results.to_string()));
+        qp.push(("media", "music"));
         if let Some(t) = result_type {
-            qp.push(("type", t));
+            qp.push(("entity", t)); //song
         }
         if let Some(q) = query {
-            qp.push(("q", q));
+            qp.push(("term", q));
         }
-        if let Some(t) = title {
-            qp.push(("title", t));
+        /*
+        if let Some(p) = limit {
+            qp.push(("limit", p.to_string()));
         }
-        if let Some(a) = artist {
-            qp.push(("artist", a));
+        */
+        if let Some(c) = country {
+            qp.push(("country", c));
+        }
+        if let Some(l) = language {
+            qp.push(("language", l));
         }
         // Get
-        let response: Value = self.get("https://itunes.apple.com/search", qp)?.json()?;
+        let response: Value = self.get("https://itunes.apple.com/search?", qp)?.json()?;
         let empty: Vec<Value> = vec![];
         let results: Vec<ReleaseMasterSearchResult> = response["results"].as_array().unwrap_or(&empty).into_iter().filter_map(|r| {
             // Filter only releases and masters
@@ -147,30 +156,30 @@ impl AppleiTunes {
     }
 }
 
-impl TrackMatcherST for AppleiTunes {
+impl TrackMatcherST for ITunes {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Exact ID match
         if config.match_by_id && info.ids.discogs_release_id.is_some() {
             let release = self.full_release(ReleaseType::Release, info.ids.discogs_release_id.unwrap())?;
             // Exact track number match
             if let Some(track_number) = info.track_number {
-                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.discogs.styles))))
+                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.itunes.styles))))
             }
             // Match inside release
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.discogs.styles));
+                tracks.push(release.get_track(i, &config.itunes.styles));
             }
             return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
         }
         
         // Search
         let query = format!("{} {}", MatchingUtils::clean_title(info.title()?), info.artist()?);
-        let mut results = self.search(Some("release,master"), Some(&query), None, None)?;
+        let mut results = self.search(Some("song"), Some(&query), None, None)?;
         // Fallback
         if results.is_empty() {
             info!("iTunes fallback search!");
-            results = self.search(Some("release,master"), None, Some(&MatchingUtils::clean_title(info.title()?)), Some(&info.artists.first().unwrap()))?;
+            //results = self.search(Some("song"), None, Some(&MatchingUtils::clean_title(info.title()?)), Some(&info.artists.first().unwrap()))?;
         }
         if results.is_empty() {
             return Ok(None);
@@ -192,7 +201,7 @@ impl TrackMatcherST for AppleiTunes {
             // Match track
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.discogs.styles));
+                tracks.push(release.get_track(i, &config.itunes.styles));
             }
             if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
@@ -264,7 +273,7 @@ pub struct ExtraArtist {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AppleiTunesTrack {
+pub struct ITunesTrack {
     pub position: String,
     pub title: String,
     pub artists: Option<Vec<ExtraArtist>>,
@@ -304,7 +313,7 @@ pub struct ReleaseMaster {
     pub title: String,
     pub images: Option<Vec<Image>>,
     #[serde(rename = "tracklist")]
-    pub tracks: Vec<AppleiTunesTrack>,
+    pub tracks: Vec<ITunesTrack>,
     pub released: Option<String>,
     pub main_release: Option<i64>
 }
@@ -316,7 +325,7 @@ impl ReleaseMaster {
         re.replace(input, "").to_string()
     }
 
-    pub fn get_track(&self, track_index: usize, styles_option: &AppleiTunesStyles) -> Track {
+    pub fn get_track(&self, track_index: usize, styles_option: &ITunesStyles) -> Track {
         // Parse release date
         let release_date = match &self.released {
             Some(r) => NaiveDate::parse_from_str(&r, "%Y-%m-%d").ok(),
@@ -329,18 +338,20 @@ impl ReleaseMaster {
         let styles_o = self.styles.clone().unwrap_or(vec![]);
         let genres_o = self.genres.clone();
         match styles_option {
-            AppleiTunesStyles::OnlyGenres => genres = genres_o,
-            AppleiTunesStyles::OnlyStyles => styles = styles_o,
-            AppleiTunesStyles::MergeToGenres => {
+            /*
+            ITunesStyles::OnlyGenres => genres = genres_o,
+            ITunesStyles::OnlyStyles => styles = styles_o,
+            ITunesStyles::MergeToGenres => {
                 genres = genres_o;
                 genres.extend(styles_o);
             },
-            AppleiTunesStyles::MergeToStyles => {
+            ITunesStyles::MergeToStyles => {
                 styles = styles_o;
                 styles.extend(genres_o);
             },
-            AppleiTunesStyles::GenresToStyle => styles = genres_o,
-            AppleiTunesStyles::StylesToGenre => genres = styles_o,
+            ITunesStyles::GenresToStyle => styles = genres_o,
+            ITunesStyles::StylesToGenre => genres = styles_o,
+            */
             // Default and custom
             _ => {
                 genres = genres_o;
@@ -362,7 +373,7 @@ impl ReleaseMaster {
 
         // Generate track
         Track {
-            platform: MusicPlatform::AppleiTunes,
+            platform: MusicPlatform::ITunes,
             title: self.tracks[track_index].title.to_string(),
             version: None,
             artists: match self.tracks[track_index].artists.as_ref() {
@@ -370,6 +381,7 @@ impl ReleaseMaster {
                 Some(artists) => artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
                 None => self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect()
             },
+            album_artists: self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
             album: Some(self.title.to_string()),
             key: None,
             bpm: None,

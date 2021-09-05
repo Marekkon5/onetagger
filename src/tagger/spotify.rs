@@ -30,6 +30,20 @@ pub struct Spotify {
 }
 
 impl Spotify {
+    // New instance
+    /*
+    pub fn new() -> Spotify {
+        let client = Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
+            .build()
+            .unwrap();
+
+        Spotify {
+            client
+        }
+    }
+    */
+    
     // Create OAuth with parameters
     fn create_oauth(client_id: &str, client_secret: &str) -> SpotifyOAuth {
         SpotifyOAuth::default()

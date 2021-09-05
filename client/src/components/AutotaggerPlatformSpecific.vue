@@ -2,7 +2,7 @@
 <div class='text-center'>
 
     <!-- No settings available -->
-    <div v-if='!beatport && !discogs'>
+    <div v-if='!beatport && !discogs && !itunes'>
         <div class='text-h5 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
             No platform specific settings available for the selected platform(s)
         </div>
@@ -79,6 +79,51 @@
         </div>
     </div>  
 
+    <!-- iTunes -->
+    <div v-if='itunes' class='q-mb-xl'>
+        <div class='text-h5 q-mt-md text-grey-4'>iTunes</div>
+        <!-- Token -->
+        <q-input
+            dark
+            standout='text-grey-4 bg-dark'
+            v-model='$1t.config.itunes.token'
+            class='input'
+            label='Token'
+        >
+            <template v-slot:append>
+                <q-icon name='mdi-help-circle-outline text-grey-6' size='xs'>
+                    <q-tooltip content-style='font-size: 13px'>
+                        To obtain token, create a free account on itunes.com<br> More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
+                    </q-tooltip>
+                </q-icon>
+            </template>
+        </q-input>
+        <!-- Styles -->
+        <q-select
+            dark
+            standout='text-grey-4 bg-dark'
+            v-model='itunesStyle'
+            :options='itunesStyles'
+            class='select'
+            label='Genres/Styles tag'
+            @input='updateiTunesStyle'
+        ></q-select>
+        <!-- Styles custom tag -->
+        <div v-if='$1t.config.itunes.styles == "customTag"' class='q-my-sm q-mx-md'>
+            <TagFields v-model='$1t.config.itunes.stylesCustomTag' class='input'></TagFields>
+        </div>
+        <!-- Max results -->
+        <div class='q-my-sm'>
+            <q-chip text-color='black' color='primary'>Max albums to check: {{$1t.config.itunes.maxResults}}
+                <q-tooltip content-style="font-size: 13px">
+                    How many albums (search results) to check<br>Due to rate limiting this increases tagging time by a lot
+                </q-tooltip>
+            </q-chip>
+            <div class='row justify-center'>
+                <q-slider label-text-color='black' v-model='$1t.config.itunes.maxResults' :min='1' :max='16' label class='slider'></q-slider>
+            </div>
+        </div>
+    </div>  
 </div>
 </template>
 
@@ -103,6 +148,10 @@ export default {
         //Update discogs style value
         updateDiscogsStyle() {
             this.$1t.config.discogs.styles = this.values[this.discogsStyles.indexOf(this.discogsStyle)];
+        },
+        //Update iTunes style value
+        updateiTunesStyle() {
+            this.$1t.config.itunes.styles = this.values[this.itunesStyles.indexOf(this.discogsStyle)];
         },
     },
     mounted() {

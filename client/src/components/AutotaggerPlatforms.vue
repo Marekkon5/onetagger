@@ -76,7 +76,7 @@ export default {
                     value: 'spotify',
                     enabled: false,
                     description: 'No words needed. / styles<br><b class="text-subtitle3 text-grey-4">Requires a premium account</b>',
-                    image: require('../assets/discogs.png')
+                    image: require('../assets/spotify.png')
                 },
                 /*
                 {
@@ -92,7 +92,7 @@ export default {
                     value: 'itunes',
                     enabled: false,
                     description: 'Public Apple search API. / styles<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~20 tracks / min)</b>',
-                    image: require('../assets/discogs.png')
+                    image: require('../assets/itunes.png')
                 }
             ]
         }
