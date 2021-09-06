@@ -26,6 +26,7 @@ pub mod traxsource;
 pub mod discogs;
 pub mod junodownload;
 pub mod spotify;
+pub mod itunes;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -34,9 +35,18 @@ pub enum MusicPlatform {
     Traxsource,
     Discogs,
     JunoDownload,
+    ITunes,
 
     // Currently only used in Audio Features
-    Spotify
+    Spotify,
+    // For default
+    None
+}
+
+impl Default for MusicPlatform {
+    fn default() -> Self {
+        MusicPlatform::None
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -142,7 +152,7 @@ impl Default for MultipleMatchesSort {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Track {
     pub platform: MusicPlatform,
     // Short title
@@ -878,6 +888,24 @@ impl Tagger {
                             }
                         }
                     },
+                    // iTunes
+                    MusicPlatform::ITunes => {
+                        let itunes = itunes::ITunes::new();
+                        let rx = Tagger::tag_dir_single_thread(&files, itunes, &config);
+                        info!("Starting iTunes");
+                        for status in rx {
+                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::ITunes, status.status, status.accuracy, status.path);
+                            processed += 1;
+                            // Send to UI
+                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::ITunes, &status, 
+                                platform_index, config.platforms.len(), processed, total
+                            )).ok();
+                            // Fallback
+                            if status.status == TaggingState::Ok {
+                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                            }
+                        }
+                    },
                     platform => {
                         // No config platforms
                         let tagger: Box<dyn TrackMatcher + Send + Sync + 'static> = match platform {
@@ -1015,7 +1043,10 @@ impl Tagger {
                         }
                     },
                     // Failed matching track
-                    Err(e) => out.message = Some(format!("Error marching track: {}", e))
+                    Err(e) => {
+                        error!("Matching error: {} ({})", e, path);
+                        out.message = Some(format!("Error marching track: {}", e));
+                    }
                 }
             },
             // Failed loading file

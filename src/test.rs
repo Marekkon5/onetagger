@@ -1,8 +1,7 @@
 use std::sync::mpsc::channel;
-use std::time::Duration;
 use threadpool::ThreadPool;
 
-use crate::tagger::{AudioFileInfo, MatchingUtils, MusicPlatform, TaggerConfig, Track, AudioFileIDs};
+use crate::tagger::{AudioFileInfo, MatchingUtils, TaggerConfig, Track, AudioFileIDs};
 use crate::tagger::beatport::Beatport;
 use crate::tag::AudioFileFormat;
 
@@ -29,11 +28,7 @@ pub fn benchmark_track_matching() {
             title: "Some randm title".to_string(),
             artists: vec!["lyrici".to_owned(), "artist".to_owned()],
             // Sample values
-            version: None, album: None,  key: None, bpm: None, genres: vec![], styles: vec![], 
-            art: None, url: String::new(), label: None, release_year: None, release_date: None, 
-            publish_year: None, publish_date: None, platform: MusicPlatform::Beatport, track_id: None,
-            catalog_number: None, release_id: String::new(), other: vec![], duration: Duration::ZERO,
-            album_artists: vec![]
+            ..Default::default()
         }
     ];
     let mut config = TaggerConfig::default();

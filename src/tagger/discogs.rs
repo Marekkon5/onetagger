@@ -8,7 +8,6 @@ use reqwest::StatusCode;
 use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
-use serde;
 use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, DiscogsStyles, parse_duration};
 
 pub struct Discogs {
@@ -185,11 +184,7 @@ impl TrackMatcherST for Discogs {
                 continue;
             }
             let release = r.unwrap();
-            // Match artist
-            // if !MatchingUtils::match_artist(&info.artists, &release.artists.iter().map(|a| a.name.clone()).collect(), config.strictness) {
-            //     continue;
-            // }
-            // Match track
+            
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &config.discogs.styles));
