@@ -27,6 +27,7 @@ pub mod discogs;
 pub mod junodownload;
 pub mod spotify;
 pub mod itunes;
+pub mod musicbrainz;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -36,6 +37,7 @@ pub enum MusicPlatform {
     Discogs,
     JunoDownload,
     ITunes,
+    MusicBrainz,
 
     // Currently only used in Audio Features
     Spotify,
@@ -912,6 +914,7 @@ impl Tagger {
                             MusicPlatform::Beatport => Box::new(beatport::Beatport::new()),
                             MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
                             MusicPlatform::JunoDownload => Box::new(junodownload::JunoDownload::new()),
+                            MusicPlatform::MusicBrainz => Box::new(musicbrainz::MusicBrainz::new()),
                             _ => unreachable!()
                         };
                         info!("Starting {:?}", platform);
