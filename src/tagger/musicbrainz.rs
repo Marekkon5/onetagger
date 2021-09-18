@@ -57,6 +57,33 @@ impl MusicBrainz {
         ])?;
         Ok(results)
     }
+
+    /// Add info from release to track
+    pub fn extend_track(track: &mut Track, releases: BrowseReleases) {
+        if let Some(release) = releases.releases.first() {
+            // Add cover
+            if release.cover_art_archive.back || release.cover_art_archive.front {
+                track.art = Some(format!("https://coverartarchive.org/release/{}/{}", release.id, match release.cover_art_archive.front {
+                    true => "front",
+                    false => "back"
+                }));
+            }
+            track.album = Some(release.title.to_string());
+            track.release_id = release.id.to_string();
+            // Label
+            if let Some(label_info) = match &release.label_info {
+                LabelInfoResult::Array(labels) => labels.first(),
+                LabelInfoResult::Single(label) => Some(label),
+            } {
+                if let Some(label) = &label_info.label {
+                    track.label = Some(label.name.to_string());
+                }
+                track.catalog_number = label_info.catalog_number.clone();
+            }
+            // Gerres
+            track.genres = release.genres.iter().map(|g| g.name.to_string()).collect();
+        }
+    }
 }
 
 impl TrackMatcher for MusicBrainz {
@@ -65,11 +92,13 @@ impl TrackMatcher for MusicBrainz {
         match self.search(&query) {
             Ok(results) => {
                 let tracks: Vec<Track> = results.recordings.into_iter().map(|r| r.into()).collect();
-                if let Some((accuracy, track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
-                    //TODO: EXTEND WITH LABEL, CATALOG NUMBER, GENRES
-
-
-
+                if let Some((accuracy, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
+                    match self.full_release(track.track_id.as_ref().unwrap()) {
+                        Ok(releases) => MusicBrainz::extend_track(&mut track, releases),
+                        Err(e) => {
+                            warn!("Failed extending MusicBrainz track! {}", e);
+                        }
+                    }
                     return Ok(Some((accuracy, track)));
                 }
             }
@@ -143,7 +172,17 @@ pub struct Release {
     pub barcode: Option<String>,
     pub genres: Vec<Genre>,
     pub label_info: LabelInfoResult,
-    pub media: Vec<ReleaseMedia>
+    pub media: Vec<ReleaseMedia>,
+    pub cover_art_archive: CoverArtArchive
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CoverArtArchive {
+    pub back: bool,
+    pub front: bool,
+    pub artwork: bool,
+    pub count: usize
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
