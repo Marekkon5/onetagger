@@ -73,8 +73,8 @@ export default {
                     name: 'MusicBrainz',
                     value: 'musicbrainz',
                     enabled: false,
-                    description: '//TODO: write description',
-                    image: null //TODO: image
+                    description: 'Published or unpublished, western or non-western.',
+                    image: require('../assets/musicbrainz.png')
                 }
             ]
         }

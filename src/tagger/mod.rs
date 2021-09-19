@@ -919,8 +919,8 @@ impl Tagger {
                         };
                         info!("Starting {:?}", platform);
                         
-                        let rx = if platform == &MusicPlatform::JunoDownload {
-                            // JunoDownload cap max threads due to rate limiting
+                        let rx = if platform == &MusicPlatform::JunoDownload || platform == &MusicPlatform::MusicBrainz {
+                            // Cap max threads due to rate limiting
                             let mut config = config.clone();
                             if config.threads > 4 {
                                 config.threads = 4;
