@@ -529,7 +529,7 @@ export default {
     },
     computed: {
         route() {
-            //Global override for homescreen
+            // Global override for homescreen
             if (this.$1t.helpDialog.route) return this.$1t.helpDialog.route;
             return this.$route.path.substring(1).split("/")[0];
         },
@@ -537,7 +537,7 @@ export default {
             if (this.route == 'tageditor') return 1;
             return 2;
         },
-        //Show/Hide button
+        // Show/Hide button
         showButton() {
             if (this.$1t.helpDialog.open || !this.route || 
                 this.$route.path.includes('/status') || !this.$1t.settings.helpButton) return false;

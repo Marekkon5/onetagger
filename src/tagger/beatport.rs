@@ -7,7 +7,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 
-use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, parse_duration};
+use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, StylesOptions, parse_duration};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -16,7 +16,7 @@ pub struct Beatport {
 }
 
 impl Beatport {
-    // Create instance
+    /// Create new instance
     pub fn new() -> Beatport {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
@@ -27,7 +27,7 @@ impl Beatport {
         }
     }
 
-    // Search for tracks on beatport
+    /// Search for tracks on beatport
     pub fn search(&self, query: &str, page: i64, results_per_page: usize) -> Result<BeatportSearchResults, Box<dyn Error>> {
         let response = self.client.get("https://www.beatport.com/search/tracks")
             .query(&[
@@ -44,7 +44,7 @@ impl Beatport {
         Ok(results)
     }
 
-    // Get JSON data from website
+    /// Get JSON data from website
     fn get_playables(&self, response: &str) -> Result<String, Box<dyn Error>> {
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script#data-objects").unwrap();
@@ -59,7 +59,7 @@ impl Beatport {
         Ok(data)
     }
 
-    // Get release info
+    /// Get full release info
     pub fn fetch_release(&self, slug: &str, id: i64) -> Result<BeatportRelease, Box<dyn Error>> {
         let response = self.client.get(format!("https://www.beatport.com/release/{}/{}", slug, id))
             .send()?
@@ -70,17 +70,24 @@ impl Beatport {
         Ok(results.releases.first().ok_or("Missing release!")?.to_owned())
     }
 
+    /// Get full track details
+    pub fn fetch_track(&self, slug: &str, id: i64) -> Result<BeatportTrack, Box<dyn Error>> {
+        let response = self.client.get(format!("https://www.beatport.com/track/{}/{}", slug, id))
+            .send()?.text()?;
+        let json = self.get_playables(&response)?;
+        let results: BeatportSearchResults = serde_json::from_str(&json)?;
+        Ok(results.tracks.first().ok_or("Missing track data!")?.to_owned())
+    }
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct BeatportSearchResults {
     pub tracks: Vec<BeatportTrack>,
     pub releases: Vec<BeatportRelease>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct BeatportTrack {
     pub artists: Vec<BeatportSmall>,
     pub bpm: Option<i64>,
@@ -95,7 +102,8 @@ pub struct BeatportTrack {
     pub release: BeatportSmall,
     pub slug: String,
     pub title: Option<String>,
-    pub duration: BeatportDuration
+    pub duration: BeatportDuration,
+    pub sub_genres: Option<Vec<BeatportSmall>>
 }
 
 impl BeatportTrack {
@@ -109,7 +117,7 @@ impl BeatportTrack {
             album: Some(self.release.name.to_string()),
             bpm: self.bpm.clone(),
             genres: self.genres.iter().map(|g| g.name.to_string()).collect(),
-            styles: vec![],
+            styles: self.sub_genres.as_ref().unwrap_or(&Vec::new()).iter().map(|g| g.name.to_string()).collect(),
             label: self.label.as_ref().map(|l| l.name.to_string()),
             url: format!("https://beatport.com/track/{}/{}", &self.slug, &self.id),
             // Parse year only if 4 digits
@@ -241,13 +249,50 @@ impl TrackMatcher for Beatport {
                     let tracks = res.tracks.iter().map(|t| t.to_track(config.beatport.art_resolution)).collect();
                     // Match
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
+                        let i = tracks.iter().position(|t| t == &track).unwrap();
                         // Get catalog number
                         if config.catalog_number {
-                            let i = tracks.iter().position(|t| t == &track).unwrap();
+                            info!("Fetching full release for catalog number!");
                             match self.fetch_release(&res.tracks[i].release.slug, res.tracks[i].release.id) {
                                 Ok(r) => track.catalog_number = r.catalog,
                                 Err(e) => warn!("Beatport failed fetching release for catalog number! {}", e)
                             }
+                        }
+                        // Get style info
+                        if config.style && track.styles.is_empty() {
+                            info!("Fetching full track for subgenres!");
+                            match self.fetch_track(&res.tracks[i].slug, res.tracks[i].id) {
+                                Ok(t) => {
+                                    debug!("New subgenres: {:?}", t.sub_genres);
+                                    track.styles = t.sub_genres.unwrap_or(Vec::new()).into_iter().map(|g| g.name).collect();
+                                },
+                                Err(e) => warn!("Beatport failed fetching full track data for subgenres! {}", e)
+                            }
+                        }
+
+                        // Apply style config similar way to Discogs
+                        let genres = track.genres.clone();
+                        let styles = track.styles.clone();
+                        match config.styles_options {
+                            StylesOptions::OnlyGenres => track.styles = vec![],
+                            StylesOptions::OnlyStyles => track.genres = vec![],
+                            StylesOptions::MergeToGenres => {
+                                track.genres.extend(styles);
+                                track.styles = vec![];
+                            },
+                            StylesOptions::MergeToStyles => {
+                                track.styles.extend(genres);
+                                track.genres = vec![];
+                            },
+                            StylesOptions::StylesToGenre => {
+                                track.genres = styles;
+                                track.styles = vec![];
+                            },
+                            StylesOptions::GenresToStyle => {
+                                track.styles = genres;
+                                track.genres = vec![];
+                            },
+                            _ => {}
                         }
                         
                         return Ok(Some((f, track)));

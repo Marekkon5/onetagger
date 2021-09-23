@@ -208,6 +208,8 @@ class OneTagger {
             "matchById": false,
             "multipleMatches": "Default",
             "postCommand": null,
+            "stylesOptions": "default",
+            "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
             "beatport": {
                 "artResolution": 500,
                 "maxPages": 1
@@ -215,8 +217,6 @@ class OneTagger {
             "discogs": {
                 "token": null,
                 "maxResults": 4,
-                "styles": "default",
-                "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'}
             }
         });
         // Statuses

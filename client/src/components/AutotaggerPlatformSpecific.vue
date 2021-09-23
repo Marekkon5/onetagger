@@ -52,20 +52,6 @@
                 </q-icon>
             </template>
         </q-input>
-        <!-- Styles -->
-        <q-select
-            dark
-            standout='text-grey-4 bg-dark'
-            v-model='discogsStyle'
-            :options='discogsStyles'
-            class='select'
-            label='Genres/Styles tag'
-            @input='updateDiscogsStyle'
-        ></q-select>
-        <!-- Styles custom tag -->
-        <div v-if='$1t.config.discogs.styles == "customTag"' class='q-my-sm q-mx-md'>
-            <TagFields v-model='$1t.config.discogs.stylesCustomTag' class='input'></TagFields>
-        </div>
         <!-- Max results -->
         <div class='q-my-sm'>
             <q-chip text-color='black' color='primary'>Max albums to check: {{$1t.config.discogs.maxResults}}
@@ -77,7 +63,26 @@
                 <q-slider label-text-color='black' v-model='$1t.config.discogs.maxResults' :min='1' :max='16' label class='slider'></q-slider>
             </div>
         </div>
-    </div>  
+    </div>
+
+    <!-- Shared -->
+    <div v-if='discogs || beatport' class='q-mb-xl'>
+        <div class='text-h5 q-mt-md text-grey-4'>Discogs & Beatport</div>
+        <!-- Styles -->
+        <q-select
+            dark
+            standout='text-grey-4 bg-dark'
+            v-model='stylesOption'
+            :options='stylesOptions'
+            class='select'
+            label='Genres/Styles tag'
+            @input='updateStyleOption'
+        ></q-select>
+        <!-- Styles custom tag -->
+        <div v-if='$1t.config.stylesOptions == "customTag"' class='q-my-sm q-mx-md'>
+            <TagFields v-model='$1t.config.stylesCustomTag' class='input'></TagFields>
+        </div>
+    </div>
 
 </div>
 </template>
@@ -91,26 +96,26 @@ export default {
     data() {
         return {
             resolutions: [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600],
-            discogsStyles: ["Default", "Only genres", "Only styles", "Merge to genres tag", 
+            stylesOptions: ["Default", "Only genres", "Only styles", "Merge to genres tag", 
                 "Merge to styles tag", "Write styles to genre tag", "Write genres to style tag",
                 "Write styles to custom tag"],
             values: ["default", "onlyGenres", "onlyStyles", "mergeToGenres", "mergeToStyles",
                 "stylesToGenre", "genresToStyle", "customTag"],
-            discogsStyle: "Default"
+            stylesOption: "Default"
         }
     },
     methods: {
-        //Update discogs style value
-        updateDiscogsStyle() {
-            this.$1t.config.discogs.styles = this.values[this.discogsStyles.indexOf(this.discogsStyle)];
+        // Update styles options value
+        updateStyleOption() {
+            this.$1t.config.stylesOptions = this.values[this.stylesOptions.indexOf(this.stylesOption)];
         },
     },
     mounted() {
-        this.discogsStyle = this.discogsStyles[this.values.indexOf(this.$1t.config.discogs.styles)];
+        this.stylesOption = this.stylesOptions[this.values.indexOf(this.$1t.config.stylesOptions)];
 
-        //In case of null because of update
-        if (!this.$1t.config.discogs.stylesCustomTag)
-            this.$1t.config.discogs.stylesCustomTag = {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'};
+        // In case of null because of update
+        if (!this.$1t.config.stylesCustomTag)
+            this.$1t.config.stylesCustomTag = {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'};
 
     },
     computed: {

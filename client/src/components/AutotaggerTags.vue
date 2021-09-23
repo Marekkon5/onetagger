@@ -47,7 +47,7 @@
             <q-checkbox :disabled='!traxsource && !beatport' class='tag checkbox text-grey-4' label='Initial Key' v-model='$1t.config.key'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Genre' v-model='$1t.config.genre'></q-checkbox>
-            <q-checkbox :disabled='!discogs' class='tag checkbox text-grey-4' label='Style' v-model='$1t.config.style'></q-checkbox>
+            <q-checkbox :disabled='!discogs && !beatport' class='tag checkbox text-grey-4' label='Style / Subgenre' v-model='$1t.config.style'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Release Date' v-model='$1t.config.releaseDate'></q-checkbox>
             <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Publish Date' v-model='$1t.config.publishDate'></q-checkbox>
@@ -109,7 +109,7 @@ export default {
     flex-basis: 100% !important;
 }
 .tag {
-    width: 130px;
+    width: 150px;
 }
 .tags {
     max-width: 40vw !important;

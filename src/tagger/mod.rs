@@ -98,6 +98,9 @@ pub struct TaggerConfig {
     pub match_by_id: bool,
     pub multiple_matches: MultipleMatchesSort,
     pub post_command: Option<String>,
+    pub styles_options: StylesOptions,
+    // Option to prevent update errors
+    pub styles_custom_tag: Option<UITag>,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -118,13 +121,11 @@ pub struct BeatportConfig {
 pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
-    pub styles: DiscogsStyles,
-    // Option to prevent update errors
-    pub styles_custom_tag: Option<UITag>
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub enum DiscogsStyles {
+pub enum StylesOptions {
     Default,
     OnlyGenres,
     OnlyStyles,
@@ -135,7 +136,7 @@ pub enum DiscogsStyles {
     CustomTag
 }
 
-impl Default for DiscogsStyles {
+impl Default for StylesOptions {
     fn default() -> Self {
         Self::Default
     }
@@ -290,9 +291,9 @@ impl Track {
             }
         }
         if config.style && !self.styles.is_empty() {
-            if config.discogs.styles == DiscogsStyles::CustomTag && config.discogs.styles_custom_tag.is_some() {
+            if config.styles_options == StylesOptions::CustomTag && config.styles_custom_tag.is_some() {
                 // Custom style tag
-                let ui_tag = config.discogs.styles_custom_tag.as_ref().unwrap();
+                let ui_tag = config.styles_custom_tag.as_ref().unwrap();
                 tag.set_raw(&ui_tag.by_format(&format), self.styles.clone(), config.overwrite);
 
             } else if config.merge_genres {
