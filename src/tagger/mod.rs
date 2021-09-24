@@ -572,7 +572,8 @@ impl AudioFileInfo {
 /// IDs from various platforms
 #[derive(Debug, Clone, Default)]
 pub struct AudioFileIDs {
-    pub discogs_release_id: Option<i64>
+    pub discogs_release_id: Option<i64>,
+    pub beatport_track_id: Option<i64>,
 }
 
 impl AudioFileIDs {
@@ -580,12 +581,13 @@ impl AudioFileIDs {
     pub fn load(tag: &Box<&dyn TagImpl>) -> AudioFileIDs {
         AudioFileIDs {
             discogs_release_id: tag.get_raw("DISCOGS_RELEASE_ID").map(|v| v[0].parse().ok()).flatten(),
+            beatport_track_id: tag.get_raw("BEATPORT_TRACK_ID").map(|v| v[0].parse().ok()).flatten()
         }
     }
 
     // If all values are missing
     pub fn is_empty(&self) -> bool {
-        self.discogs_release_id.is_none()
+        self.discogs_release_id.is_none() && self.beatport_track_id.is_none()
     }
 }
 

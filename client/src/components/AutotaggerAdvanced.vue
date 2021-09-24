@@ -29,9 +29,9 @@
     <br>
     <q-toggle v-model='$1t.config.camelot' label='Use Camelot key notation'></q-toggle>
     <br>
-    <q-toggle v-model='$1t.config.matchById' label='Use Release ID tag to get exact match'>
+    <q-toggle v-model='$1t.config.matchById' label='Use Track or Release ID tag to get exact match'>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Currently supported only on Discogs. Valid tags are: DISCOGS_RELEASE_ID</q-tooltip>
+            <q-tooltip content-style="font-size: 13px">Valid tags are: DISCOGS_RELEASE_ID, BEATPORT_TRACK_ID</q-tooltip>
         </q-icon>
     </q-toggle>
     <br>

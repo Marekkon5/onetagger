@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use std::error::Error;
 use std::time::Duration;
 use std::collections::HashMap;
@@ -12,7 +13,9 @@ use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileI
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
 pub struct Beatport {
-    client: Client
+    client: Client,
+    // TODO: Share token if used properly in future
+    access_token: Arc<Mutex<Option<BeatportOAuth>>>,
 }
 
 impl Beatport {
@@ -23,7 +26,8 @@ impl Beatport {
             .build()
             .unwrap();
         Beatport {
-            client
+            client,
+            access_token: Arc::new(Mutex::new(None))
         }
     }
 
@@ -79,6 +83,40 @@ impl Beatport {
         Ok(results.tracks.first().ok_or("Missing track data!")?.to_owned())
     }
 
+    /// Update embed auth token
+    pub fn update_token(&self) -> Result<String, Box<dyn Error>> {
+        let mut token = self.access_token.lock().unwrap();
+        // Fetch new if doesn't exist
+        if (*token).is_none() {
+            let mut response: BeatportOAuth = self.client.get("https://embed.beatport.com/token")
+                .send()?.json()?;
+            response.expires_in = response.expires_in * 1000 + timestamp!() - 60000;
+            *token = Some(response);
+        }
+        // Expired
+        let t = token.clone().unwrap();
+        if t.expires_in <= timestamp!() {
+            *token = None;
+            return self.update_token();
+        }
+        debug!("OAuth: {:?}", t);
+        Ok(t.access_token)
+    }
+
+    /// Fetch track using private embed API
+    pub fn fetch_track_embed(&self, id: i64) -> Result<BeatportAPITrack, Box<dyn Error>> {
+        let token = self.update_token()?;
+        let response: BeatportAPITrack = self.client.get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
+            .bearer_auth(token)
+            .send()?.json()?;
+        Ok(response)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportOAuth {
+    pub access_token: String,
+    pub expires_in: u128
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,6 +142,13 @@ pub struct BeatportTrack {
     pub title: Option<String>,
     pub duration: BeatportDuration,
     pub sub_genres: Option<Vec<BeatportSmall>>
+}
+
+// TODO: Track from private API has different data!
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportAPITrack {
+    pub slug: String,
+    pub id: i64
 }
 
 impl BeatportTrack {
@@ -240,6 +285,15 @@ impl BeatportImage {
 // Match track
 impl TrackMatcher for Beatport {
     fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
+        // Fetch by ID
+        if let Some(id) = info.ids.beatport_track_id {
+            info!("Fetching by ID: {}", id);
+            // TODO: Serialize properly the private API response, rather than double request
+            let track = self.fetch_track_embed(id)?;
+            let track = self.fetch_track(&track.slug, track.id)?;
+            return Ok(Some((1.0, track.to_track(config.beatport.art_resolution))));
+        }
+
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         for page in 1..config.beatport.max_pages+1 {

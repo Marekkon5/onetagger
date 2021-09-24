@@ -7,7 +7,7 @@ pub mod flac;
 pub mod mp4;
 
 // Supported extensions
-pub static EXTENSIONS : [&'static str; 5] = [".mp3", ".flac", ".aif", ".aiff", ".m4a"];
+pub static EXTENSIONS : [&'static str; 6] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", ".mp4"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagSeparators {
@@ -39,7 +39,7 @@ impl Tag {
             return Ok(Tag::FLAC(flac::FLACTag::load_file(path)?));
         }
         // MP4
-        if path.to_lowercase().ends_with(".m4a") {
+        if path.to_lowercase().ends_with(".m4a") || path.to_lowercase().ends_with(".mp4") {
             return Ok(Tag::MP4(mp4::MP4Tag::load_file(path)?));
         }
 
