@@ -9,6 +9,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver};
+use chrono::Local;
 use execute::Execute;
 use regex::Regex;
 use reqwest::StatusCode;
@@ -78,6 +79,8 @@ pub struct TaggerConfig {
     pub version: bool,
     pub duration: bool,
     pub album_artist: bool,
+    // 1T meta tags
+    pub meta_tags: bool,
 
     // Advanced
     pub separators: TagSeparators,
@@ -390,6 +393,12 @@ impl Track {
                 },
                 Err(e) => warn!("Error downloading album art! {}", e)
             }
+        }
+
+        // Meta tags (date / success)
+        if config.meta_tags {
+            let time = Local::now();
+            tag.set_raw("1T_TAGGEDDATE", vec![time.format("%Y-%m-%d %H:%M:%S").to_string()], true);
         }
 
         // Save

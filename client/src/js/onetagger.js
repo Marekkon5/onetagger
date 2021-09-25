@@ -191,6 +191,7 @@ class OneTagger {
             "trackId": false,
             "releaseId": false,
             "version": false,
+            "metaTags": false,
             "separators": {id3: ', ', vorbis: null, mp4: ', '},
             "id3v24": true,
             "overwrite": true,
