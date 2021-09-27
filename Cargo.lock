@@ -1435,6 +1435,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fuzzywuzzy"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c075dcf102b63d18ebeb6ee0e8680ca8ab06da01e73e45ff187f15ef18d50350"
+
+[[package]]
 name = "fxhash"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2021,6 +2027,26 @@ name = "ipnet"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47be2f14c678be2fdcab04ab1171db51b2762ce6f0a8ee87c8dd4a04ed216135"
+
+[[package]]
+name = "isocountry"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ea1dc4bf0fb4904ba83ffdb98af3d9c325274e92e6e295e4151e86c96363e04"
+dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "isolang"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "265ef164908329e47e753c769b14cbb27434abf0c41984dca201484022f09ce5"
+dependencies = [
+ "phf 0.7.24",
+ "phf_codegen 0.7.24",
+]
 
 [[package]]
 name = "itertools"
@@ -2952,8 +2978,11 @@ dependencies = [
  "dunce",
  "execute",
  "failure",
+ "fuzzywuzzy",
  "id3",
  "image",
+ "isocountry",
+ "isolang",
  "metaflac",
  "minify-html",
  "mp3-duration",

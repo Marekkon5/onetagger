@@ -1,19 +1,19 @@
+use directories::ProjectDirs;
+use rouille::{router, Response};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::error::Error;
 use std::fmt;
-use std::thread;
 use std::fs;
-use std::io::prelude::*;
 use std::fs::File;
+use std::io::prelude::*;
 use std::path::PathBuf;
-use rouille::{router, Response};
-use serde_json::Value;
-use serde::{Serialize, Deserialize};
-use directories::ProjectDirs;
+use std::thread;
 
-pub mod socket;
+pub mod audiofeatures;
 pub mod player;
 pub mod quicktag;
-pub mod audiofeatures;
+pub mod socket;
 pub mod tageditor;
 
 // UI
@@ -25,7 +25,7 @@ static FAVICON_PNG: &'static [u8] = include_bytes!("../../client/dist/favicon.pn
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     ui: Value,
-    version: Option<i32>
+    version: Option<i32>,
 }
 
 impl Settings {
@@ -33,7 +33,7 @@ impl Settings {
     pub fn from_ui(ui: &Value) -> Settings {
         Settings {
             ui: ui.to_owned(),
-            version: Some(2)
+            version: Some(2),
         }
     }
 
@@ -53,7 +53,6 @@ impl Settings {
 
         Ok(settings)
     }
-    
     // Save settings to file
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         let path = Settings::get_path()?;
@@ -64,7 +63,8 @@ impl Settings {
 
     // Get app data folder
     pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
-        let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
+        let root =
+            ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
         if !root.preference_dir().exists() {
             fs::create_dir_all(root.preference_dir())?;
         }
@@ -74,7 +74,10 @@ impl Settings {
     // Get settings path
     fn get_path() -> Result<String, Box<dyn Error>> {
         let path = Settings::get_folder()?.join("settings.json");
-        Ok(path.to_str().ok_or("Error converting path to string!")?.to_string())
+        Ok(path
+            .to_str()
+            .ok_or("Error converting path to string!")?
+            .to_string())
     }
 }
 
@@ -84,7 +87,7 @@ impl Settings {
 pub struct StartContext {
     pub server_mode: bool,
     pub start_path: Option<String>,
-    pub expose: bool
+    pub expose: bool,
 }
 
 // Start webview window
@@ -116,12 +119,12 @@ pub fn start_socket_thread(context: StartContext) {
 pub fn start_webserver_thread(context: &StartContext) {
     let host = match context.expose {
         true => "0.0.0.0:36913",
-        false => "127.0.0.1:36913"
+        false => "127.0.0.1:36913",
     };
 
     thread::spawn(move || {
         rouille::start_server(host, move |request| {
-            router!(request, 
+            router!(request,
                 (GET) ["/"] => {
                     Response::html(INDEX_HTML)
                 },
@@ -158,8 +161,8 @@ pub fn start_all(context: StartContext) {
         true => {
             info!("Starting server on http://0.0.0.0:36913 ws://0.0.0.0:36912");
             warn!("Server is exposed to public!");
-        },
-        false => info!("Starting server on http://127.0.0.1:36913 ws://127.0.0.1:36912")
+        }
+        false => info!("Starting server on http://127.0.0.1:36913 ws://127.0.0.1:36912"),
     }
 
     // Server mode
@@ -174,38 +177,37 @@ pub fn start_all(context: StartContext) {
     start_webview();
 }
 
-
 // Windows webview
 #[cfg(target_os = "windows")]
 pub fn start_webview() {
-    use std::mem;
-    use std::rc::Rc;
-    use std::path::Path;
     use once_cell::sync::OnceCell;
-    use winit::event_loop::{ControlFlow, EventLoop};
-    use winit::event::{Event, WindowEvent};
-    use winit::dpi::Size;
-    use winit::window::{WindowBuilder, Icon};
-    use winit::platform::windows::WindowExtWindows;
+    use serde_json::json;
+    use std::mem;
+    use std::path::Path;
+    use std::rc::Rc;
+    use urlencoding::decode;
+    use webview2::Environment;
     use winapi::shared::windef::{HWND, RECT};
     use winapi::um::winuser::GetClientRect;
-    use webview2::Environment;
-    use serde_json::json;
-    use urlencoding::decode;
+    use winit::dpi::Size;
+    use winit::event::{Event, WindowEvent};
+    use winit::event_loop::{ControlFlow, EventLoop};
+    use winit::platform::windows::WindowExtWindows;
+    use winit::window::{Icon, WindowBuilder};
 
     // Install webview2 runtime
     bootstrap_webview2_wrap();
-    
     // winit
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("One Tagger")
         .with_inner_size(Size::Logical((1280, 750).into()))
         .with_min_inner_size(Size::Logical((1150, 550).into()))
-        .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
+        .with_window_icon(Some(
+            Icon::from_rgba(include_bytes!("../../assets/64x64.bin").to_vec(), 64, 64).unwrap(),
+        ))
         .build(&event_loop)
         .unwrap();
-    
     // webview2
     let controller = Rc::new(OnceCell::new());
     {
@@ -215,7 +217,7 @@ pub fn start_webview() {
 
         // Build webview2
         Environment::builder()
-            .with_user_data_folder(data_dir.as_path())    
+            .with_user_data_folder(data_dir.as_path())
             .build(move |env| {
                 env.unwrap().create_controller(hwnd, move |controller| {
                     let controller = controller?;
@@ -244,10 +246,13 @@ pub fn start_webview() {
                             let path = Path::new(&decoded);
                             if path.exists() && path.is_dir() {
                                 // Send to UI
-                                w.post_web_message_as_string(&json!({
-                                    "action": "browse",
-                                    "path": decoded
-                                }).to_string())?;
+                                w.post_web_message_as_string(
+                                    &json!({
+                                        "action": "browse",
+                                        "path": decoded
+                                    })
+                                    .to_string(),
+                                )?;
                             }
                         }
 
@@ -265,10 +270,10 @@ pub fn start_webview() {
 
                     controller_clone.set(controller).unwrap();
                     Ok(())
-                }
-            )
-        })
-    }.unwrap();
+                })
+            })
+    }
+    .unwrap();
 
     // winit EventLoop
     event_loop.run(move |event, _, control_flow| {
@@ -289,17 +294,17 @@ pub fn start_webview() {
                 }
                 WindowEvent::Resized(new_size) => {
                     if let Some(webview) = controller.get() {
-                        let r = RECT { 
+                        let r = RECT {
                             left: 0,
                             top: 0,
                             right: new_size.width as i32,
-                            bottom: new_size.height as i32
+                            bottom: new_size.height as i32,
                         };
                         webview.put_bounds(r).ok();
                     }
                 }
                 _ => {}
-            }
+            },
             Event::MainEventsCleared => {
                 // Updates here
                 window.request_redraw();
@@ -332,8 +337,8 @@ pub fn bootstrap_webview2_wrap() {
 // Install evergreen webview2 for Windows
 #[cfg(target_os = "windows")]
 fn bootstrap_webview2() -> Result<bool, Box<dyn Error>> {
-    use tempfile::tempdir;
     use std::process::Command;
+    use tempfile::tempdir;
     // Already installed
     if webview2::get_available_browser_version_string(None).is_ok() {
         return Ok(true);
@@ -350,8 +355,7 @@ fn bootstrap_webview2() -> Result<bool, Box<dyn Error>> {
     }
 
     // Run
-    Command::new(path.to_str().ok_or("Invalid path")?)
-        .status()?;
+    Command::new(path.to_str().ok_or("Invalid path")?).status()?;
     dir.close().ok();
 
     // Verify
@@ -361,12 +365,12 @@ fn bootstrap_webview2() -> Result<bool, Box<dyn Error>> {
 // OneTagger Error, meant for UI
 #[derive(Debug, Clone)]
 pub struct OTError {
-    message: String
+    message: String,
 }
 impl OTError {
     pub fn new(msg: &str) -> OTError {
         OTError {
-            message: msg.to_owned()
+            message: msg.to_owned(),
         }
     }
 }

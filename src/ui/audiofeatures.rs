@@ -1,14 +1,14 @@
-use std::error::Error;
-use std::thread;
-use std::sync::mpsc::{channel, Receiver};
 use rspotify::model::track::FullTrack;
-use serde::{Serialize, Deserialize};
 use serde;
+use serde::{Deserialize, Serialize};
+use std::error::Error;
+use std::sync::mpsc::{channel, Receiver};
+use std::thread;
 
-use crate::tagger::MatchingUtils;
+use crate::tag::{AudioFileFormat, Tag, TagSeparators, UITag};
+use crate::tagger::matcher::Matcher;
 use crate::tagger::spotify::Spotify;
-use crate::tagger::{AudioFileInfo, TaggingState, TaggingStatus, TaggingStatusWrap, MusicPlatform};
-use crate::tag::{Tag, AudioFileFormat, UITag, TagSeparators};
+use crate::tagger::{MusicPlatform, TaggingState, TaggingStatus, TaggingStatusWrap, Track};
 
 //  CONFIG SERIALIZATION
 
@@ -19,7 +19,7 @@ pub struct AudioFeaturesConfig {
     pub path: Option<String>,
     pub main_tag: UITag,
     pub separators: TagSeparators,
-    pub properties: AFProperties
+    pub properties: AFProperties,
 }
 
 // Audio features
@@ -33,29 +33,43 @@ pub struct AFProperties {
     pub liveness: AFProperty,
     pub speechiness: AFProperty,
     pub valence: AFProperty,
-    pub popularity: AFProperty
+    pub popularity: AFProperty,
 }
 
 impl AFProperties {
     // Merge properties into list with actual values
-    pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, track: &FullTrack, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
+    pub fn merge_with_values(
+        &self,
+        features: &rspotify::model::audio::AudioFeatures,
+        track: &FullTrack,
+        format: AudioFileFormat,
+    ) -> Vec<AFPropertyMerged> {
         vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
                 .add_main_value("#dynamics-high", "#dynamics-med", "#dynamics-low"),
             AFPropertyMerged::new(features.acousticness, &self.acousticness, &format)
                 .add_main_value("#electronic", "", "#acoustic"),
-            AFPropertyMerged::new(features.energy, &self.energy, &format)
-                .add_main_value("#energy-low", "#energy-med", "#energy-high"), 
+            AFPropertyMerged::new(features.energy, &self.energy, &format).add_main_value(
+                "#energy-low",
+                "#energy-med",
+                "#energy-high",
+            ),
             AFPropertyMerged::new(features.instrumentalness, &self.instrumentalness, &format)
                 .add_main_value("#vocal-high", "#vocal-med", "#vocal-low"),
-            AFPropertyMerged::new(features.liveness, &self.liveness, &format)
-                .add_main_value("#recording", "", "#live"),
+            AFPropertyMerged::new(features.liveness, &self.liveness, &format).add_main_value(
+                "#recording",
+                "",
+                "#live",
+            ),
             AFPropertyMerged::new(features.speechiness, &self.speechiness, &format)
                 .add_main_value("#music", "", "#speech"),
-            AFPropertyMerged::new(features.valence, &self.valence, &format)
-                .add_main_value("#negative", "#neutral", "#positive"),
+            AFPropertyMerged::new(features.valence, &self.valence, &format).add_main_value(
+                "#negative",
+                "#neutral",
+                "#positive",
+            ),
             AFPropertyMerged::new(track.popularity as f32 / 100.0, &self.popularity, &format)
-                .add_main_value("", "", "#popular")
+                .add_main_value("", "", "#popular"),
         ]
     }
 }
@@ -66,7 +80,7 @@ pub struct AFPropertyMerged {
     pub value: i8,
     range: AFRange,
     enabled: bool,
-    pub main_value: String
+    pub main_value: String,
 }
 
 impl AFPropertyMerged {
@@ -77,7 +91,7 @@ impl AFPropertyMerged {
             tag: property.tag.by_format(format),
             enabled: property.enabled,
             range: property.range.to_owned(),
-            main_value: String::new()
+            main_value: String::new(),
         }
     }
 
@@ -96,7 +110,7 @@ impl AFPropertyMerged {
 pub struct AFProperty {
     pub tag: UITag,
     pub range: AFRange,
-    pub enabled: bool
+    pub enabled: bool,
 }
 
 // Threshold range in config
@@ -104,7 +118,7 @@ pub struct AFProperty {
 #[serde(rename_all = "camelCase")]
 pub struct AFRange {
     pub min: i8,
-    pub max: i8
+    pub max: i8,
 }
 impl AFRange {
     // Select value under or over range
@@ -122,7 +136,11 @@ impl AFRange {
 pub struct AudioFeatures {}
 impl AudioFeatures {
     // Returtns progress receiver, and file count
-    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> Receiver<TaggingStatusWrap> {
+    pub fn start_tagging(
+        config: AudioFeaturesConfig,
+        spotify: Spotify,
+        files: Vec<String>,
+    ) -> Receiver<TaggingStatusWrap> {
         let file_count = files.len();
         // Start
         let (tx, rx) = channel();
@@ -132,24 +150,30 @@ impl AudioFeatures {
                 let mut status = TaggingStatus {
                     status: TaggingState::Error,
                     path: file.to_owned(),
-                    message: None, accuracy: None
+                    message: None,
+                    accuracy: None,
                 };
                 // Load file
-                if let Ok(info) = AudioFileInfo::load_file(&file, None) {
+                if let Ok(local) = Track::read_tags(&file, None) {
                     // Match and get features
-                    match AudioFeatures::find_features(&spotify, &info) {
+                    match AudioFeatures::find_features(&spotify, &local) {
                         Ok((features, full_track)) => {
                             // Write to file
-                            match AudioFeatures::write_to_path(&file, &features, &full_track, &config) {
+                            match AudioFeatures::write_to_path(
+                                &file,
+                                &features,
+                                &full_track,
+                                &config,
+                            ) {
                                 Ok(_) => {
                                     status.status = TaggingState::Ok;
-                                },
+                                }
                                 Err(e) => {
                                     error!("Audio features failed writing to tag: {}", e);
                                     status.status = TaggingState::Error;
                                 }
                             };
-                        },
+                        }
                         // Failed searching track
                         Err(e) => {
                             error!("Audio features search track by ISRC error: {}", e);
@@ -159,23 +183,27 @@ impl AudioFeatures {
                 }
                 // Send status
                 tx.send(TaggingStatusWrap::wrap(
-                    MusicPlatform::Spotify, 
-                    &status, 
+                    MusicPlatform::Spotify,
+                    &status,
                     0,
                     1,
-                    i as i64, 
-                    file_count
-                )).ok();
+                    i as i64,
+                    file_count,
+                ))
+                .ok();
             }
         });
         rx
     }
 
     // Get features from track
-    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<(rspotify::model::audio::AudioFeatures, FullTrack), Box<dyn Error>> {
+    fn find_features(
+        spotify: &Spotify,
+        local: &Track,
+    ) -> Result<(rspotify::model::audio::AudioFeatures, FullTrack), Box<dyn Error>> {
         let (mut track_id, mut full_track): (Option<String>, Option<FullTrack>) = (None, None);
         // Get by ISRC
-        if let Some(isrc) = track.isrc.as_ref() {
+        if let Some(isrc) = local.isrc.as_ref() {
             let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
             if let Some(t) = results.first() {
                 track_id = Some(t.id.as_ref().ok_or("Missing track ID")?.to_owned());
@@ -185,14 +213,19 @@ impl AudioFeatures {
         }
         // Fallback
         if track_id.is_none() {
-            let q = format!("{} {}", track.artists[0].to_lowercase(), MatchingUtils::clean_title(track.title()?));
+            let q = format!(
+                "{} {}",
+                local.artist.unwrap_or_default(),
+                local.title.unwrap_or_default()
+            );
             let results = spotify.search_tracks(&q, 20)?;
             // Match
             for t in results {
-                let title_1 = MatchingUtils::clean_title_matching(&t.name);
-                let title_2 = MatchingUtils::clean_title_matching(track.title()?);
+                let title_1 = &t.name;
+                /*
+                let title_2 = local.title;
                 let artists: Vec<String> = t.artists.iter().map(|a| a.name.to_owned()).collect();
-                if title_1 == title_2 && MatchingUtils::match_artist(&artists, &track.artists, 1.0) {
+                if title_1 == title_2 && Matcher::match_artists(&t, &local, 1.0) {
                     if let Some(id) = &t.id {
                         info!("[AF] Matched by exact title. {}", id);
                         track_id = Some(id.to_string());
@@ -200,6 +233,7 @@ impl AudioFeatures {
                         break;
                     }
                 }
+                */
             }
         }
 
@@ -209,7 +243,12 @@ impl AudioFeatures {
     }
 
     // Write to path
-    fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
+    fn write_to_path(
+        path: &str,
+        features: &rspotify::model::audio::AudioFeatures,
+        full_track: &FullTrack,
+        config: &AudioFeaturesConfig,
+    ) -> Result<(), Box<dyn Error>> {
         // Load tag
         let mut tag_wrap = Tag::load_file(path, false)?;
         tag_wrap.set_separators(&config.separators);
@@ -219,7 +258,10 @@ impl AudioFeatures {
 
         // Get properties
         let mut main_tag = vec![];
-        for property in config.properties.merge_with_values(features, full_track, format.clone()) {
+        for property in config
+            .properties
+            .merge_with_values(features, full_track, format.clone())
+        {
             if !property.tag.is_empty() {
                 tag.set_raw(&property.tag, vec![property.value.to_string()], true);
             }

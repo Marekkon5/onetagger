@@ -1,14 +1,18 @@
-use std::error::Error;
+use chrono::NaiveDate;
+use regex::Regex;
+use reqwest::blocking::{Client, Response};
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
+use std::error::Error;
 use std::thread::sleep;
 use std::time::Duration;
-use regex::Regex;
-use chrono::NaiveDate;
-use reqwest::StatusCode;
-use reqwest::blocking::{Client, Response};
-use serde_json::Value;
-use serde::{Serialize, Deserialize};
-use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, StylesOptions, parse_duration};
+
+use crate::tagger::matcher::Matcher;
+use crate::tagger::{
+    parse_duration, MusicPlatform, StylesOptions, TaggerConfig, Track, TrackMatcherST,
+};
 
 pub struct Discogs {
     client: Client,
@@ -17,7 +21,7 @@ pub struct Discogs {
     pub rate_limit: i16,
     last_request: u128,
     // Cache of ID:Value
-    release_cache: HashMap<i64, ReleaseMaster>
+    release_cache: HashMap<i64, ReleaseMaster>,
 }
 
 impl Discogs {
@@ -30,9 +34,9 @@ impl Discogs {
         Discogs {
             client,
             token: None,
-            rate_limit: 25, 
+            rate_limit: 25,
             last_request: 0,
-            release_cache: HashMap::new()
+            release_cache: HashMap::new(),
         }
     }
 
@@ -49,12 +53,19 @@ impl Discogs {
 
     // Check if token is valid
     pub fn validate_token(&mut self) -> bool {
-        match self.get("https://api.discogs.com/database/search", vec![("q", "test")]) {
-            Ok(res) => if res.status() == StatusCode::OK { true } else { 
-                error!("Failed validating Discogs token: {}", res.status());
-                debug!("{:?}", res.text());
-                false 
-            },
+        match self.get(
+            "https://api.discogs.com/database/search",
+            vec![("q", "test")],
+        ) {
+            Ok(res) => {
+                if res.status() == StatusCode::OK {
+                    true
+                } else {
+                    error!("Failed validating Discogs token: {}", res.status());
+                    debug!("{:?}", res.text());
+                    false
+                }
+            }
             Err(e) => {
                 error!("Failed validating Discogs token: {}", e);
                 false
@@ -78,13 +89,19 @@ impl Discogs {
         // Create request
         let mut request = self.client.get(url).query(&query);
         if self.token.is_some() {
-            request = request.header("Authorization", format!("Discogs token={}", self.token.as_ref().unwrap()));
+            request = request.header(
+                "Authorization",
+                format!("Discogs token={}", self.token.as_ref().unwrap()),
+            );
         }
         let response = request.send()?;
-        
         // Rate limit
-        let rate_limit_remaining = response.headers().get("X-Discogs-Ratelimit-Remaining")
-            .map(|v| v.to_str().unwrap().parse::<i32>().ok()).flatten().unwrap_or(100);
+        let rate_limit_remaining = response
+            .headers()
+            .get("X-Discogs-Ratelimit-Remaining")
+            .map(|v| v.to_str().unwrap().parse::<i32>().ok())
+            .flatten()
+            .unwrap_or(100);
         debug!("Discogs rate limit remaining: {}", rate_limit_remaining);
         if rate_limit_remaining < 1 {
             warn!("Discogs rate limit hit! Waiting 10s...");
@@ -97,7 +114,13 @@ impl Discogs {
         Ok(response)
     }
 
-    pub fn search(&mut self, result_type: Option<&str>, query: Option<&str>, title: Option<&str>, artist: Option<&str>) -> Result<Vec<ReleaseMasterSearchResult>, Box<dyn Error>> {
+    pub fn search(
+        &mut self,
+        result_type: Option<&str>,
+        query: Option<&str>,
+        title: Option<&str>,
+        artist: Option<&str>,
+    ) -> Result<Vec<ReleaseMasterSearchResult>, Box<dyn Error>> {
         // Generate parameters
         let mut qp = vec![];
         if let Some(t) = result_type {
@@ -113,32 +136,45 @@ impl Discogs {
             qp.push(("artist", a));
         }
         // Get
-        let response: Value = self.get("https://api.discogs.com/database/search", qp)?.json()?;
+        let response: Value = self
+            .get("https://api.discogs.com/database/search", qp)?
+            .json()?;
         let empty: Vec<Value> = vec![];
-        let results: Vec<ReleaseMasterSearchResult> = response["results"].as_array().unwrap_or(&empty).into_iter().filter_map(|r| {
-            // Filter only releases and masters
-            let t = r["type"].as_str().unwrap_or("");
-            if t == "release" || t == "master" {
-                serde_json::from_value(r.to_owned()).ok()
-            } else {
-                None
-            }
-        }).collect();
+        let results: Vec<ReleaseMasterSearchResult> = response["results"]
+            .as_array()
+            .unwrap_or(&empty)
+            .into_iter()
+            .filter_map(|r| {
+                // Filter only releases and masters
+                let t = r["type"].as_str().unwrap_or("");
+                if t == "release" || t == "master" {
+                    serde_json::from_value(r.to_owned()).ok()
+                } else {
+                    None
+                }
+            })
+            .collect();
         Ok(results)
     }
 
     // Get full release info
-    pub fn full_release(&mut self, release_type: ReleaseType, id: i64) -> Result<ReleaseMaster, Box<dyn Error>> {
+    pub fn full_release(
+        &mut self,
+        release_type: ReleaseType,
+        id: i64,
+    ) -> Result<ReleaseMaster, Box<dyn Error>> {
         // Check if cached
         if self.release_cache.contains_key(&id) {
             return Ok(self.release_cache.get(&id).unwrap().to_owned());
         }
-        // Get 
+        // Get
         let rtype = match release_type {
             ReleaseType::Master => "masters",
-            ReleaseType::Release => "releases"
+            ReleaseType::Release => "releases",
         };
-        let response = self.get(&format!("https://api.discogs.com/{}/{}", rtype, id), vec![])?.json()?;
+        let response = self
+            .get(&format!("https://api.discogs.com/{}/{}", rtype, id), vec![])?
+            .json()?;
         let release: ReleaseMaster = serde_json::from_value(response)?;
         // Cache
         self.release_cache.insert(id, release.clone());
@@ -147,29 +183,45 @@ impl Discogs {
 }
 
 impl TrackMatcherST for Discogs {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(
+        &mut self,
+        local: &Track,
+        config: &TaggerConfig,
+    ) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Exact ID match
-        if config.match_by_id && info.ids.discogs_release_id.is_some() {
-            let release = self.full_release(ReleaseType::Release, info.ids.discogs_release_id.unwrap())?;
+        if config.match_by_id && local.discogs.is_some() {
+            let release =
+                self.full_release(ReleaseType::Release, local.discogs.unwrap().release_id)?;
             // Exact track number match
-            if let Some(track_number) = info.track_number {
-                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options))))
+            if let Some(track_number) = local.track_number {
+                return Ok(Some((
+                    1.0,
+                    release.get_track(track_number as usize - 1, &config.styles_options),
+                )));
             }
             // Match inside release
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &config.styles_options));
             }
-            return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
+            return Ok(Matcher::match_track(&local, &tracks, &config));
         }
-        
         // Search
-        let query = format!("{} {}", MatchingUtils::clean_title(info.title()?), info.artist()?);
+        let query = format!(
+            "{} {}",
+            local.artist.unwrap_or_default(),
+            local.title.unwrap_or_default()
+        );
         let mut results = self.search(Some("release,master"), Some(&query), None, None)?;
         // Fallback
         if results.is_empty() {
             info!("Discogs fallback search!");
-            results = self.search(Some("release,master"), None, Some(&MatchingUtils::clean_title(info.title()?)), Some(&info.artists.first().unwrap()))?;
+            results = self.search(
+                Some("release,master"),
+                None,
+                Some(&local.title.unwrap_or_default()),
+                Some(&local.artists.unwrap().first().unwrap()),
+            )?;
         }
         if results.is_empty() {
             return Ok(None);
@@ -184,14 +236,16 @@ impl TrackMatcherST for Discogs {
                 continue;
             }
             let release = r.unwrap();
-            
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &config.styles_options));
             }
-            if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
+            if let Some((acc, mut track)) = Matcher::match_track(&local, &tracks, &config) {
                 // Get catalog number if enabled from release rather than master
-                if ((config.catalog_number && track.catalog_number.is_none()) || (config.label && track.label.is_none())) && (release.labels.is_none() && release.main_release.is_some()) {
+                if ((config.catalog_number && track.catalog_number.is_none())
+                    || (config.label && track.label.is_none()))
+                    && (release.labels.is_none() && release.main_release.is_some())
+                {
                     info!("Discogs fetching release for catalog number/label...");
                     match self.full_release(ReleaseType::Release, release.main_release.unwrap()) {
                         // Get CN, label from release
@@ -208,11 +262,10 @@ impl TrackMatcherST for Discogs {
                                     }
                                 }
                             }
-                        },
-                        Err(e) => warn!("Failed fetching release info for catalog number! {}", e)
+                        }
+                        Err(e) => warn!("Failed fetching release info for catalog number! {}", e),
                     }
                 }
-                
                 return Ok(Some((acc, track)));
             }
         }
@@ -220,12 +273,11 @@ impl TrackMatcherST for Discogs {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ReleaseType {
     Release,
-    Master
+    Master,
 }
 
 // Used in search results
@@ -248,14 +300,14 @@ pub struct ReleaseMasterSearchResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Artist {
     pub name: String,
-    pub id: i64
+    pub id: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraArtist {
     pub name: String,
     pub id: i64,
-    pub role: String
+    pub role: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -263,14 +315,14 @@ pub struct DiscogsTrack {
     pub position: String,
     pub title: String,
     pub artists: Option<Vec<ExtraArtist>>,
-    pub duration: String
+    pub duration: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Label {
     pub id: i64,
     pub name: String,
-    pub catno: Option<String>
+    pub catno: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -280,7 +332,7 @@ pub struct Image {
     #[serde(rename = "uri")]
     pub url: String,
     #[serde(rename = "type")]
-    pub image_type: String
+    pub image_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -301,7 +353,7 @@ pub struct ReleaseMaster {
     #[serde(rename = "tracklist")]
     pub tracks: Vec<DiscogsTrack>,
     pub released: Option<String>,
-    pub main_release: Option<i64>
+    pub main_release: Option<i64>,
 }
 
 impl ReleaseMaster {
@@ -315,31 +367,31 @@ impl ReleaseMaster {
         // Parse release date
         let release_date = match &self.released {
             Some(r) => NaiveDate::parse_from_str(&r, "%Y-%m-%d").ok(),
-            None => None
+            None => None,
         };
 
         // Generate styles and genres
-        let mut styles = vec![];
-        let mut genres = vec![];
+        let mut styles: Option<Vec<String>>;
+        let mut genres: Option<Vec<String>>;
         let styles_o = self.styles.clone().unwrap_or(vec![]);
         let genres_o = self.genres.clone();
         match styles_option {
-            StylesOptions::OnlyGenres => genres = genres_o,
-            StylesOptions::OnlyStyles => styles = styles_o,
+            StylesOptions::OnlyGenres => genres = Some(genres_o),
+            StylesOptions::OnlyStyles => styles = Some(styles_o),
+            /*
             StylesOptions::MergeToGenres => {
-                genres = genres_o;
-                genres.extend(styles_o);
-            },
+                genres = Some(genres_o.extend(styles_o));
+            }
             StylesOptions::MergeToStyles => {
-                styles = styles_o;
-                styles.extend(genres_o);
-            },
-            StylesOptions::GenresToStyle => styles = genres_o,
-            StylesOptions::StylesToGenre => genres = styles_o,
+                styles = Some(styles_o.extend(genres_o));
+            }
+            */
+            StylesOptions::GenresToStyle => styles = Some(genres_o),
+            StylesOptions::StylesToGenre => genres = Some(styles_o),
             // Default and custom
             _ => {
-                genres = genres_o;
-                styles = styles_o;
+                genres = Some(genres_o);
+                styles = Some(styles_o);
             }
         }
 
@@ -357,41 +409,54 @@ impl ReleaseMaster {
 
         // Generate track
         Track {
-            platform: MusicPlatform::Discogs,
-            title: self.tracks[track_index].title.to_string(),
-            version: None,
+            platform: Some(MusicPlatform::Discogs),
+            title: Some(self.tracks[track_index].title.to_string()),
             artists: match self.tracks[track_index].artists.as_ref() {
                 // Use track artists if available
-                Some(artists) => artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
-                None => self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect()
+                Some(artists) => Some(
+                    artists
+                        .iter()
+                        .map(|a| ReleaseMaster::clean_artist(&a.name).to_string())
+                        .collect(),
+                ),
+                None => Some(
+                    self.artists
+                        .iter()
+                        .map(|a| ReleaseMaster::clean_artist(&a.name).to_string())
+                        .collect(),
+                ),
             },
-            album_artists: self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
             album: Some(self.title.to_string()),
-            key: None,
-            bpm: None,
             genres,
             styles,
-            art: match self.images.as_ref().unwrap_or(&Vec::new()).first() {
+            artwork_url: match self.images.as_ref().unwrap_or(&Vec::new()).first() {
                 Some(image) => Some(image.url.to_string()),
-                None => None
+                None => None,
             },
-            url: self.url.to_string(),
+            //url: self.url.to_string(),
             label: if let Some(labels) = &self.labels {
                 if labels.is_empty() {
                     None
                 } else {
                     Some(ReleaseMaster::clean_artist(&labels[0].name).to_string())
                 }
-            } else {None},
+            } else {
+                None
+            },
             release_year: self.year,
             release_date,
-            publish_date: None,
-            publish_year: None,
             catalog_number,
-            other: vec![("VINYLTRACK".to_string(), self.tracks[track_index].position.to_string())],
-            track_id: None,
-            release_id: self.id.to_string(),
-            duration: parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO)
+            /*
+            other: vec![(
+                "VINYLTRACK".to_string(),
+                self.tracks[track_index].position.to_string(),
+            )],
+            */
+            //release_id: self.id.to_string(),
+            duration: Some(
+                parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
+            ),
+            ..Default::default()
         }
     }
 }

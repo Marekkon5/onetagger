@@ -1,17 +1,19 @@
-use std::error::Error;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use std::thread::sleep;
+use rouille::{router, Server};
+use rspotify::blocking::client;
 use rspotify::blocking::oauth2::{SpotifyClientCredentials, SpotifyOAuth};
 use rspotify::blocking::util::get_token_by_code;
-use rspotify::blocking::client;
-use rspotify::senum::SearchType;
+use rspotify::client::ApiError;
+use rspotify::model::audio::AudioFeatures;
 use rspotify::model::search::SearchResult;
 use rspotify::model::track::FullTrack;
-use rspotify::model::audio::AudioFeatures;
-use rspotify::client::ApiError;
-use rouille::{Server, router};
+use rspotify::senum::SearchType;
+use std::error::Error;
+use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::Duration;
 
+use crate::tagger::helpers::Helpers;
+use crate::tagger::matcher::Matcher;
 use crate::ui::Settings;
 
 static CALLBACK_PORT: u16 = 36914;
@@ -26,14 +28,18 @@ static CALLBACK_HTML: &'static str = "
 
 #[derive(Clone)]
 pub struct Spotify {
-    pub spotify: client::Spotify
+    pub spotify: client::Spotify,
 }
 
 impl Spotify {
     // Create OAuth with parameters
     fn create_oauth(client_id: &str, client_secret: &str) -> SpotifyOAuth {
         SpotifyOAuth::default()
-            .cache_path(Settings::get_folder().unwrap().join("spotify_token_cache.json"))
+            .cache_path(
+                Settings::get_folder()
+                    .unwrap()
+                    .join("spotify_token_cache.json"),
+            )
             .client_id(client_id)
             .client_secret(client_secret)
             .scope("user-read-private")
@@ -55,10 +61,10 @@ impl Spotify {
 
         let host = match expose {
             true => "0.0.0.0",
-            false => "127.0.0.1"
+            false => "127.0.0.1",
         };
         let server = Server::new(&format!("{}:{}", host, CALLBACK_PORT), move |request| {
-            router!(request, 
+            router!(request,
                 (GET) (/spotify) => {
                     // Get token
                     if let Some(code) = request.get_param("code") {
@@ -70,7 +76,8 @@ impl Spotify {
             );
             // Navigate back
             rouille::Response::html(CALLBACK_HTML)
-        }).unwrap();
+        })
+        .unwrap();
         // Run server
         loop {
             if token.lock().unwrap().is_some() {
@@ -89,9 +96,7 @@ impl Spotify {
             .client_credentials_manager(credentials)
             .build();
 
-        Ok(Spotify {
-            spotify
-        })
+        Ok(Spotify { spotify })
     }
 
     // Try to authorize Spotify from cached token
@@ -122,7 +127,7 @@ impl Spotify {
             }
             warn!("Spotify rate limit, waiting {}s", delay);
             // Add 100ms for safety
-            sleep(Duration::from_millis(delay*1000 + 100));
+            sleep(Duration::from_millis(delay * 1000 + 100));
             return Ok(());
         }
 
@@ -133,14 +138,17 @@ impl Spotify {
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
         // rspotify doesn't url encode for some reason
         let q = urlencoding::encode(query);
-        match self.spotify.search(&q, SearchType::Track, limit, 0, None, None) {
+        match self
+            .spotify
+            .search(&q, SearchType::Track, limit, 0, None, None)
+        {
             Ok(results) => {
                 let mut tracks = vec![];
                 if let SearchResult::Tracks(tracks_page) = results {
                     tracks = tracks_page.items;
                 }
                 Ok(tracks)
-            },
+            }
             Err(e) => {
                 // Handle error and retry on rate limit
                 self.handle_rspotify_error(e)?;
@@ -159,5 +167,4 @@ impl Spotify {
             }
         }
     }
-
 }

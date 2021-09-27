@@ -52,14 +52,13 @@
             <q-checkbox class='tag checkbox text-grey-4' label='Release Date' v-model='$1t.config.releaseDate'></q-checkbox>
             <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Publish Date' v-model='$1t.config.publishDate'></q-checkbox>
             <div class='flex-break'></div>
-            <q-checkbox class='tag checkbox text-grey-4' label='URLs' v-model='$1t.config.url'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='URLs' v-model='$1t.config.urls'></q-checkbox>
             <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.albumArt'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.catalogNumber'></q-checkbox>
             <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Other' v-model='$1t.config.otherTags'></q-checkbox>
             <div class='flex-break'></div>
-            <q-checkbox :disabled='!beatport && !traxsource' class='tag checkbox text-grey-4' label='Track ID' v-model='$1t.config.trackId'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Release ID' v-model='$1t.config.releaseId'></q-checkbox>
+            <q-checkbox :disabled='!beatport && !traxsource' class='tag checkbox text-grey-4' label='Platform IDs' v-model='$1t.config.ids'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox :disabled='!beatport && !traxsource' class='tag checkbox text-grey-4' label='Version' v-model='$1t.config.version'></q-checkbox>
             <q-checkbox class='tag checkbox text-grey-4' label='Duration' v-model='$1t.config.duration'></q-checkbox>

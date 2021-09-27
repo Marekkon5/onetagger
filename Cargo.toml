@@ -45,6 +45,9 @@ urlencoding = "2.1"
 directories = "4.0"
 mp3-duration = "0.1"
 tinyfiledialogs = "3.3"
+isolang = "1.0"
+isocountry = "0.3.2"
+fuzzywuzzy = "*"
 
 # Use outdated version for compatibility with sndfile
 ndarray = "0.13"

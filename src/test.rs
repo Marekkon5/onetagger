@@ -1,9 +1,9 @@
 use std::sync::mpsc::channel;
 use threadpool::ThreadPool;
 
-use crate::tagger::{AudioFileInfo, MatchingUtils, TaggerConfig, Track, AudioFileIDs};
 use crate::tagger::beatport::Beatport;
-use crate::tag::AudioFileFormat;
+use crate::tagger::matcher::Matcher;
+use crate::tagger::{TaggerConfig, Track};
 
 pub fn run_benchmark() {
     benchmark_track_matching();
@@ -15,35 +15,34 @@ pub fn run_benchmark() {
 pub fn benchmark_track_matching() {
     info!("Starting track matching benchmark of 10000 tracks...");
 
-    let info = AudioFileInfo {
+    let info = Track {
         title: Some("Some Random Title".to_string()),
-        artists: vec!["Artist".to_string(), "Lyricist".to_string()],
-        // Sample deafults
-        format: AudioFileFormat::MP3, isrc: None, path: String::new(), duration: None, track_number: None,
-        ids: AudioFileIDs::default()
+        artists: Some(vec!["Artist".to_string(), "Lyricist".to_string()]),
+        ..Default::default()
     };
-    let tracks = vec![
-        Track {
-            // Missspelled for fuzzy
-            title: "Some randm title".to_string(),
-            artists: vec!["lyrici".to_owned(), "artist".to_owned()],
-            // Sample values
-            ..Default::default()
-        }
-    ];
+    let tracks = vec![Track {
+        // Missspelled for fuzzy
+        title: Some("Some randm title".to_string()),
+        artists: Some(vec!["lyrici".to_owned(), "artist".to_owned()]),
+        // Sample values
+        ..Default::default()
+    }];
     let mut config = TaggerConfig::default();
     config.strictness = 0.5;
     // Start benchmark
     let start = timestamp!();
     for _ in 0..10_000 {
-        MatchingUtils::match_track(&info, &tracks, &config, true).unwrap();
+        Matcher::match_track(&info, &tracks, &config).unwrap();
     }
     info!("Matched 10000 tracks, took: {}ms", timestamp!() - start);
 }
 
 // Beatport's servers are very inconsistent, so test for it here
 pub fn benchmark_beatport(threads: usize) {
-    info!("Starting Beatport benchmark with {} threads for 50 iterations...", threads);
+    info!(
+        "Starting Beatport benchmark with {} threads for 50 iterations...",
+        threads
+    );
 
     let pool = ThreadPool::new(threads);
     let (tx, rx) = channel();
@@ -58,5 +57,9 @@ pub fn benchmark_beatport(threads: usize) {
     // Bench
     let start = timestamp!();
     let _ = rx.iter().take(50).collect::<Vec<()>>();
-    info!("Beatport benchmark with {} threads and 50 iterations finished in {}ms", threads, timestamp!() - start);
+    info!(
+        "Beatport benchmark with {} threads and 50 iterations finished in {}ms",
+        threads,
+        timestamp!() - start
+    );
 }
