@@ -6,8 +6,8 @@ use std::time::Duration;
 use crate::tagger::helpers::Helpers;
 use crate::tagger::{MultipleMatchesSort, TaggerConfig, Track};
 
-const confidence_level: f64 = 95.0;
-const match_artists: bool = true;
+const CONFIDENCE_LEVEL: f64 = 95.0;
+const MATCH_ARTISTS: bool = true;
 
 pub struct Matcher {}
 impl Matcher {
@@ -28,38 +28,42 @@ impl Matcher {
 
     fn match_artists(local: &Track, api: &Track, strictness: f64) -> bool {
         //Artist fields
-        let artist_coinc: f64 = fuzz::ratio(&local.artist.unwrap(), &api.artist.unwrap()).into();
+        let artist_coinc: f64 = fuzz::ratio(
+            &local.artist.as_ref().unwrap(),
+            &api.artist.as_ref().unwrap(),
+        )
+        .into();
         let remixer_coinc: f64 = fuzz::ratio(
-            &local.remixer.unwrap_or("".to_string()),
-            &api.remixer.unwrap_or("".to_string()),
+            &local.remixer.as_ref().unwrap_or(&"".to_string()),
+            &api.remixer.as_ref().unwrap_or(&"".to_string()),
         )
         .into();
 
         //Artists in vectors
         let artists_coinc: f64 = fuzz::token_sort_ratio(
-            &Helpers::join_artists(&local.artists.unwrap_or(vec!["".to_string()])),
-            &Helpers::join_artists(&api.artists.unwrap_or(vec!["".to_string()])),
+            &Helpers::join_artists(&local.artists.as_ref().unwrap_or(&vec!["".to_string()])),
+            &Helpers::join_artists(&api.artists.as_ref().unwrap_or(&vec!["".to_string()])),
             true,
             true,
         )
         .into();
         let main_artists_coinc: f64 = fuzz::token_sort_ratio(
-            &Helpers::join_artists(&local.main_artists.unwrap_or(vec!["".to_string()])),
-            &Helpers::join_artists(&api.main_artists.unwrap_or(vec!["".to_string()])),
+            &Helpers::join_artists(&local.main_artists.as_ref().unwrap_or(&vec!["".to_string()])),
+            &Helpers::join_artists(&api.main_artists.as_ref().unwrap_or(&vec!["".to_string()])),
             true,
             true,
         )
         .into();
         let feat_artists_coinc: f64 = fuzz::token_sort_ratio(
-            &Helpers::join_artists(&local.feat_artists.unwrap_or(vec!["".to_string()])),
-            &Helpers::join_artists(&api.feat_artists.unwrap_or(vec!["".to_string()])),
+            &Helpers::join_artists(&local.feat_artists.as_ref().unwrap_or(&vec!["".to_string()])),
+            &Helpers::join_artists(&api.feat_artists.as_ref().unwrap_or(&vec!["".to_string()])),
             true,
             true,
         )
         .into();
         let remixers_coinc: f64 = fuzz::token_sort_ratio(
-            &Helpers::join_artists(&local.remixers.unwrap_or(vec!["".to_string()])),
-            &Helpers::join_artists(&api.remixers.unwrap_or(vec!["".to_string()])),
+            &Helpers::join_artists(&local.remixers.as_ref().unwrap_or(&vec!["".to_string()])),
+            &Helpers::join_artists(&api.remixers.as_ref().unwrap_or(&vec!["".to_string()])),
             true,
             true,
         )
@@ -78,10 +82,11 @@ impl Matcher {
     }
 
     fn one_artist(local: &Track, api: &Track, strictness: f64) -> bool {
-        for artist in local.artists.unwrap_or(vec!["".to_string()]) {
+        for artist in local.artists.as_ref().unwrap_or(&vec!["".to_string()]) {
             if api
                 .artists
-                .unwrap_or(vec!["".to_string()])
+                .as_ref()
+                .unwrap_or(&vec!["".to_string()])
                 .contains(&artist)
             {
                 return true;
@@ -97,14 +102,14 @@ impl Matcher {
         }
 
         // Helpers
-        let title_coinc: f64 = fuzz::ratio(&local.title?, &api.title?).into();
-        let name_coinc: f64 = fuzz::ratio(&local.name?, &api.name?).into();
-        let mix_coinc: f64 = fuzz::ratio(&local.mix?, &api.mix?).into();
+        let title_coinc: f64 = fuzz::ratio(&local.title.as_ref()?, &api.title.as_ref()?).into();
+        let name_coinc: f64 = fuzz::ratio(&local.name.as_ref()?, &api.name.as_ref()?).into();
+        let mix_coinc: f64 = fuzz::ratio(&local.mix.as_ref()?, &api.mix.as_ref()?).into();
         // Exact match
-        if title_coinc >= confidence_level
-            || (name_coinc >= confidence_level && mix_coinc >= confidence_level)
+        if title_coinc >= CONFIDENCE_LEVEL
+            || (name_coinc >= CONFIDENCE_LEVEL && mix_coinc >= CONFIDENCE_LEVEL)
         {
-            if match_artists && Matcher::match_artists(local, api, config.strictness) {
+            if MATCH_ARTISTS && Matcher::match_artists(local, api, config.strictness) {
                 return Some((1.0, api.to_owned()));
             } else {
                 return Some((1.0, api.to_owned()));
@@ -112,7 +117,7 @@ impl Matcher {
         }
         // Fuzzy match
         else if title_coinc >= config.strictness {
-            if match_artists && Matcher::match_artists(local, api, config.strictness) {
+            if MATCH_ARTISTS && Matcher::match_artists(local, api, config.strictness) {
                 return Some((title_coinc, api.to_owned()));
             } else {
                 return Some((title_coinc, api.to_owned()));
@@ -137,9 +142,9 @@ impl Matcher {
         for track in tracks {
             // Try to match with local track
             let result: Option<(f64, Track)> = Matcher::compare_tracks(local, track, &config);
-            if result.unwrap().0 == 1.00 {
+            if result.as_ref().unwrap().0 == 1.00 {
                 exact_matches.push(result.unwrap())
-            } else if result.unwrap().0 > config.strictness {
+            } else if result.as_ref().unwrap().0 > config.strictness {
                 fuzzy_matches.push(result.unwrap())
             }
         }
@@ -147,7 +152,7 @@ impl Matcher {
         // Use exact matches
         if !exact_matches.is_empty() {
             Matcher::sort_tracks(&mut exact_matches, &config);
-            return Some(exact_matches[0]);
+            return Some(exact_matches[0].to_owned());
         }
         // Use fuzzy matches
         else if !fuzzy_matches.is_empty() {
@@ -158,7 +163,7 @@ impl Matcher {
                 .filter(|(acc, _)| *acc >= best_acc)
                 .collect();
             Matcher::sort_tracks(&mut fuzz, &config);
-            Some(fuzz[0])
+            Some(fuzz[0].to_owned())
         }
         // No match
         else {

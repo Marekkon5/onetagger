@@ -215,8 +215,8 @@ impl AudioFeatures {
         if track_id.is_none() {
             let q = format!(
                 "{} {}",
-                local.artist.unwrap_or_default(),
-                local.title.unwrap_or_default()
+                local.artist.as_ref().unwrap(),
+                local.title.as_ref().unwrap()
             );
             let results = spotify.search_tracks(&q, 20)?;
             // Match

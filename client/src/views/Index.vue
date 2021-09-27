@@ -62,7 +62,7 @@
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.version}}</div>
         <span class='dotted-underline q-pt-md text-subtitle1 text-primary clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
         <div class='q-pt-lg text-subtitle1 text-grey-4'>
-            Developed by Marekkon5<br>
+            Developed by Marekkon5 in collaboration with <a href="https://www.linkedin.com/in/aleixjimenez/">Aleix Jiménez</a><br>
             UI & logo design by Bas Curtiz
         </div>
         

@@ -190,27 +190,29 @@ impl TrackMatcherST for Discogs {
     ) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Exact ID match
         if config.match_by_id && local.discogs.is_some() {
-            let release =
-                self.full_release(ReleaseType::Release, local.discogs.unwrap().release_id)?;
+            let release = self.full_release(
+                ReleaseType::Release,
+                local.discogs.as_ref().unwrap().release_id,
+            )?;
             // Exact track number match
             if let Some(track_number) = local.track_number {
                 return Ok(Some((
                     1.0,
-                    release.get_track(track_number as usize - 1, &config.styles_options),
+                    release.get_metadata(track_number as usize - 1, &config.styles_options),
                 )));
             }
             // Match inside release
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options));
+                tracks.push(release.get_metadata(i, &config.styles_options));
             }
             return Ok(Matcher::match_track(&local, &tracks, &config));
         }
         // Search
         let query = format!(
             "{} {}",
-            local.artist.unwrap_or_default(),
-            local.title.unwrap_or_default()
+            local.artist.as_ref().unwrap(),
+            local.title.as_ref().unwrap()
         );
         let mut results = self.search(Some("release,master"), Some(&query), None, None)?;
         // Fallback
@@ -219,8 +221,8 @@ impl TrackMatcherST for Discogs {
             results = self.search(
                 Some("release,master"),
                 None,
-                Some(&local.title.unwrap_or_default()),
-                Some(&local.artists.unwrap().first().unwrap()),
+                Some(&local.title.as_ref().unwrap()),
+                Some(&local.artists.as_ref().unwrap().first().unwrap()),
             )?;
         }
         if results.is_empty() {
@@ -238,7 +240,7 @@ impl TrackMatcherST for Discogs {
             let release = r.unwrap();
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options));
+                tracks.push(release.get_metadata(i, &config.styles_options));
             }
             if let Some((acc, mut track)) = Matcher::match_track(&local, &tracks, &config) {
                 // Get catalog number if enabled from release rather than master
@@ -363,7 +365,7 @@ impl ReleaseMaster {
         re.replace(input, "").to_string()
     }
 
-    pub fn get_track(&self, track_index: usize, styles_option: &StylesOptions) -> Track {
+    pub fn get_metadata(&self, track_index: usize, styles_option: &StylesOptions) -> Track {
         // Parse release date
         let release_date = match &self.released {
             Some(r) => NaiveDate::parse_from_str(&r, "%Y-%m-%d").ok(),
@@ -371,8 +373,8 @@ impl ReleaseMaster {
         };
 
         // Generate styles and genres
-        let mut styles: Option<Vec<String>>;
-        let mut genres: Option<Vec<String>>;
+        let mut styles: Option<Vec<String>> = None;
+        let mut genres: Option<Vec<String>> = None;
         let styles_o = self.styles.clone().unwrap_or(vec![]);
         let genres_o = self.genres.clone();
         match styles_option {
@@ -408,7 +410,7 @@ impl ReleaseMaster {
         }
 
         // Generate track
-        Track {
+        let mut api: Track = Track {
             platform: Some(MusicPlatform::Discogs),
             title: Some(self.tracks[track_index].title.to_string()),
             artists: match self.tracks[track_index].artists.as_ref() {
@@ -457,6 +459,8 @@ impl ReleaseMaster {
                 parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
             ),
             ..Default::default()
-        }
+        };
+        api.fill_tags();
+        return api;
     }
 }

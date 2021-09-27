@@ -405,7 +405,7 @@ impl Track {
             .unwrap_or(vec![String::new()])[0]
             .parse()
             .ok();
-        Ok(Track {
+        let mut local: Track = Track {
             format: Some(tag_wrap.format()),
             title,
             artist: Some(artist.flatten().unwrap()),
@@ -418,53 +418,73 @@ impl Track {
             duration: None,
             track_number,
             ..Default::default()
-        })
+        };
+        local.fill_tags();
+        Ok(local)
     }
 
     fn fill_tags(&mut self) {
         //Title
         if self.title.is_none() && self.name.is_some() {
-            self.title = Some(helpers::Helpers::title(self.name.unwrap(), self.mix, None))
+            self.title = Some(helpers::Helpers::title(
+                self.name.as_ref().unwrap().to_owned(),
+                self.mix.clone(),
+                None,
+            ))
         }
         // Name
         if self.name.is_none() {
-            self.name = Some(helpers::Helpers::name(&self.title.unwrap()))
+            self.name = Some(helpers::Helpers::name(&self.title.as_ref().unwrap()))
         }
         //Mix
         if self.mix.is_none() {
-            self.mix = Some(helpers::Helpers::mix(&self.title.unwrap()))
+            self.mix = Some(helpers::Helpers::mix(&self.title.as_ref().unwrap()))
         }
         //Remixer
         if self.remixer.is_none() {
             if self.remixers.is_some() {
-                self.remixer = Some(helpers::Helpers::join_artists(&self.remixers.unwrap()))
+                self.remixer = Some(helpers::Helpers::join_artists(
+                    &self.remixers.as_ref().unwrap(),
+                ))
             } else {
-                self.remixer = Some(helpers::Helpers::remixer(&self.title.unwrap()))
+                self.remixer = Some(helpers::Helpers::remixer(&self.title.as_ref().unwrap()))
             }
         }
         if self.remixers.is_none() && self.remixer.is_some() {
-            self.remixers = Some(helpers::Helpers::parse_artist(&self.remixer.unwrap()))
+            self.remixers = Some(helpers::Helpers::parse_artist(
+                &self.remixer.as_ref().unwrap(),
+            ))
         }
         //Artists
         if self.artist.is_none() && self.artists.is_some() {
-            self.artist = Some(helpers::Helpers::join_artists(&self.artists.unwrap()))
+            self.artist = Some(helpers::Helpers::join_artists(
+                &self.artists.as_ref().unwrap(),
+            ))
         }
         if self.artists.is_none() && self.artist.is_some() {
-            self.artists = Some(helpers::Helpers::parse_artist(&self.artist.unwrap()))
+            self.artists = Some(helpers::Helpers::parse_artist(
+                &self.artist.as_ref().unwrap(),
+            ))
         }
         //Album artists
         if self.album_artist.is_none() && self.album_artists.is_some() {
-            self.album_artist = Some(helpers::Helpers::join_artists(&self.album_artists.unwrap()))
+            self.album_artist = Some(helpers::Helpers::join_artists(
+                &self.album_artists.as_ref().unwrap(),
+            ))
         }
         if self.album_artists.is_none() && self.album_artist.is_some() {
-            self.album_artists = Some(helpers::Helpers::parse_artist(&self.album_artist.unwrap()))
+            self.album_artists = Some(helpers::Helpers::parse_artist(
+                &self.album_artist.as_ref().unwrap(),
+            ))
         }
         //Genre
         if self.genre.is_none() && self.genres.is_some() {
-            self.genre = Some(helpers::Helpers::join_genres(&self.genres.unwrap()))
+            self.genre = Some(helpers::Helpers::join_genres(
+                &self.genres.as_ref().unwrap(),
+            ))
         }
         if self.genres.is_none() && self.genre.is_some() {
-            self.genres = Some(helpers::Helpers::parse_genre(&self.genre.unwrap()))
+            self.genres = Some(helpers::Helpers::parse_genre(&self.genre.as_ref().unwrap()))
         }
         //Dates
         /*
@@ -476,7 +496,7 @@ impl Track {
     }
 
     pub fn write_tags(&self, api: &Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
-        let mut tag_wrap = Tag::load_file(&self.path.unwrap(), true)?;
+        let mut tag_wrap = Tag::load_file(&self.path.as_ref().unwrap(), true)?;
         let format = tag_wrap.format();
         //Settings
         tag_wrap.set_separators(&config.separators);
@@ -496,8 +516,16 @@ impl Track {
         let tags = tag_wrap.tag_mut();
         if config.title {
             match config.short_title {
-                true => tags.set_field(Field::Title, vec![api.name.unwrap()], config.overwrite),
-                false => tags.set_field(Field::Title, vec![api.title.unwrap()], config.overwrite),
+                true => tags.set_field(
+                    Field::Title,
+                    vec![api.name.as_ref().unwrap().to_owned()],
+                    config.overwrite,
+                ),
+                false => tags.set_field(
+                    Field::Title,
+                    vec![api.title.as_ref().unwrap().to_owned()],
+                    config.overwrite,
+                ),
             }
         }
 
@@ -519,17 +547,21 @@ impl Track {
         */
 
         if config.artist {
-            tags.set_field(Field::Artist, api.artists.unwrap(), config.overwrite);
+            tags.set_field(
+                Field::Artist,
+                api.artists.as_ref().unwrap().to_owned(),
+                config.overwrite,
+            );
         }
         /*
         if config.remixer {
             tags.set_field(Field::Remixer, api.remixers.unwrap(), config.overwrite);
         }
         */
-        if config.album_artist && !api.album_artists.unwrap().is_empty() {
+        if config.album_artist && !api.album_artists.as_ref().unwrap().is_empty() {
             tags.set_field(
                 Field::AlbumArtist,
-                api.album_artists.unwrap(),
+                api.album_artists.as_ref().unwrap().to_owned(),
                 config.overwrite,
             );
         }
@@ -557,7 +589,7 @@ impl Track {
                             );
                             // Save to file
                             if config.album_art_file {
-                                let path = Path::new(&self.path.unwrap())
+                                let path = Path::new(&self.path.as_ref().unwrap().to_owned())
                                     .parent()
                                     .unwrap()
                                     .join("cover.jpg");
@@ -598,7 +630,7 @@ impl Track {
                 config.overwrite,
             );
         }
-        if config.genre && !api.genres.unwrap().is_empty() {
+        if config.genre && !api.genres.as_ref().unwrap().is_empty() {
             if config.merge_genres {
                 // Merge with existing ones
                 let mut current: Vec<String> = tags
@@ -609,7 +641,8 @@ impl Track {
                     .collect();
                 let mut genres = api
                     .genres
-                    .unwrap_or(vec![])
+                    .as_ref()
+                    .unwrap_or(&vec![])
                     .iter()
                     .filter(|g| !current.iter().any(|i| i == &g.to_lowercase().to_owned()))
                     .map(|g| g.to_owned())
@@ -617,7 +650,11 @@ impl Track {
                 current.append(&mut genres);
                 tags.set_field(Field::Genre, current, config.overwrite);
             } else {
-                tags.set_field(Field::Genre, self.genres.unwrap().clone(), config.overwrite);
+                tags.set_field(
+                    Field::Genre,
+                    self.genres.as_ref().unwrap().clone(),
+                    config.overwrite,
+                );
             }
         }
         /*
@@ -714,67 +751,67 @@ impl Track {
             if api.beatport.is_some() {
                 tags.set_raw(
                     "WBEATPORT_TRACK",
-                    vec![api.beatport.unwrap().track_url],
+                    vec![api.beatport.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "WBEATPORT_RELEASE",
-                    vec![api.beatport.unwrap().track_url],
+                    vec![api.beatport.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
             }
             if api.discogs.is_some() {
                 tags.set_raw(
                     "WDISCOGS_TRACK",
-                    vec![api.discogs.unwrap().track_url],
+                    vec![api.discogs.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "WDISCOGS_RELEASE",
-                    vec![api.discogs.unwrap().track_url],
+                    vec![api.discogs.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
             }
             if api.itunes.is_some() {
                 tags.set_raw(
                     "WITUNES_TRACK_PREVIEW",
-                    vec![api.itunes.unwrap().preview_url],
+                    vec![api.itunes.as_ref().unwrap().preview_url.to_owned()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "WITUNES_TRACK",
-                    vec![api.itunes.unwrap().track_url],
+                    vec![api.itunes.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "WITUNES_ARTIST",
-                    vec![api.itunes.unwrap().artist_url],
+                    vec![api.itunes.as_ref().unwrap().artist_url.to_owned()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "WITUNES_RELEASE",
-                    vec![api.itunes.unwrap().release_url],
+                    vec![api.itunes.as_ref().unwrap().release_url.to_owned()],
                     config.overwrite,
                 );
             }
             if api.junodownload.is_some() {
                 tags.set_raw(
                     "WJUNO_TRACK",
-                    vec![api.junodownload.unwrap().track_url],
+                    vec![api.junodownload.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
             }
             if api.spotify.is_some() {
                 tags.set_raw(
                     "WSPOTIFY_TRACK",
-                    vec![api.spotify.unwrap().track_url],
+                    vec![api.spotify.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
             }
             if api.traxsource.is_some() {
                 tags.set_raw(
                     "WTRAX_TRACK",
-                    vec![api.traxsource.unwrap().track_url],
+                    vec![api.traxsource.as_ref().unwrap().track_url.to_owned()],
                     config.overwrite,
                 );
             }
@@ -784,53 +821,53 @@ impl Track {
             if api.beatport.is_some() {
                 tags.set_raw(
                     "TBEATPORT_TRACK_ID",
-                    vec![api.beatport.unwrap().track_id.to_string()],
+                    vec![api.beatport.as_ref().unwrap().track_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TBEATPORT_RELEASE_ID",
-                    vec![api.beatport.unwrap().release_id.to_string()],
+                    vec![api.beatport.as_ref().unwrap().release_id.to_string()],
                     config.overwrite,
                 );
             }
             if api.discogs.is_some() {
                 tags.set_raw(
                     "TDISCOGS_TRACK_ID",
-                    vec![api.discogs.unwrap().track_id.to_string()],
+                    vec![api.discogs.as_ref().unwrap().track_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TDISCOGS_RELEASE_ID",
-                    vec![api.discogs.unwrap().release_id.to_string()],
+                    vec![api.discogs.as_ref().unwrap().release_id.to_string()],
                     config.overwrite,
                 );
             }
             if api.itunes.is_some() {
                 tags.set_raw(
                     "TITUNES_TRACK_ID",
-                    vec![api.traxsource.unwrap().track_id.to_string()],
+                    vec![api.traxsource.as_ref().unwrap().track_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TITUNES_ARTIST_ID",
-                    vec![api.itunes.unwrap().artist_id.to_string()],
+                    vec![api.itunes.as_ref().unwrap().artist_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TITUNES_RELEASE_ID",
-                    vec![api.itunes.unwrap().release_id.to_string()],
+                    vec![api.itunes.as_ref().unwrap().release_id.to_string()],
                     config.overwrite,
                 );
             }
             if api.junodownload.is_some() {
                 tags.set_raw(
                     "TJUNO_TRACK_ID",
-                    vec![api.junodownload.unwrap().track_id.to_string()],
+                    vec![api.junodownload.as_ref().unwrap().track_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TJUNO_RELEASE_ID",
-                    vec![api.junodownload.unwrap().release_id.to_string()],
+                    vec![api.junodownload.as_ref().unwrap().release_id.to_string()],
                     config.overwrite,
                 );
             }
@@ -838,24 +875,24 @@ impl Track {
             if api.spotify.is_some() {
                 tags.set_raw(
                     "TSPOTIFY_TRACK_ID",
-                    vec![api.spotify.unwrap().track_id.to_string()],
+                    vec![api.spotify.as_ref().unwrap().track_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TSPOTIFY_RELEASE_ID",
-                    vec![api.spotify.unwrap().release_id.to_string()],
+                    vec![api.spotify.as_ref().unwrap().release_id.to_string()],
                     config.overwrite,
                 );
             }
             if api.traxsource.is_some() {
                 tags.set_raw(
                     "TTRAX_TRACK_ID",
-                    vec![api.traxsource.unwrap().track_id.to_string()],
+                    vec![api.traxsource.as_ref().unwrap().track_id.to_string()],
                     config.overwrite,
                 );
                 tags.set_raw(
                     "TTRAX_RELEASE_ID",
-                    vec![api.traxsource.unwrap().release_id.to_string()],
+                    vec![api.traxsource.as_ref().unwrap().release_id.to_string()],
                     config.overwrite,
                 );
             }
@@ -871,7 +908,7 @@ impl Track {
         */
 
         // Save
-        tags.save_file(&self.path.unwrap())?;
+        tags.save_file(&self.path.as_ref().unwrap().to_owned())?;
         Ok(())
     }
 
@@ -924,27 +961,6 @@ impl Track {
 pub struct AudioFileIDs {
     pub discogs_release_id: Option<i64>,
     pub beatport_track_id: Option<i64>,
-}
-
-impl AudioFileIDs {
-    // Load IDs from file
-    pub fn load(tag: &Box<&dyn TagImpl>) -> AudioFileIDs {
-        AudioFileIDs {
-            discogs_release_id: tag
-                .get_raw("DISCOGS_RELEASE_ID")
-                .map(|v| v[0].parse().ok())
-                .flatten(),
-            beatport_track_id: tag
-                .get_raw("BEATPORT_TRACK_ID")
-                .map(|v| v[0].parse().ok())
-                .flatten(),
-        }
-    }
-
-    // If all values are missing
-    pub fn is_empty(&self) -> bool {
-        self.discogs_release_id.is_none() && self.beatport_track_id.is_none()
-    }
 }
 
 // Parse duration from String

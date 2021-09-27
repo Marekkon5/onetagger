@@ -47,7 +47,7 @@ impl Traxsource {
             .ok_or("No results!")?;
         // Select track
         let track_selector = Selector::parse("div.trk-row").unwrap();
-        let mut tracks = vec![];
+        let mut formatted_tracks = vec![];
         for track_element in track_list.select(&track_selector) {
             // Div selector (mutable to select the different divs in the HTML document)
             let mut selector = Selector::parse("div.title").unwrap();
@@ -146,7 +146,7 @@ impl Traxsource {
             let release_date = release_date_clean.trim().to_owned();
 
             // Create track
-            tracks.push(Track {
+            let mut api: Track = Track {
                 platform: Some(MusicPlatform::Traxsource),
                 name: Some(name),
                 mix: mix,
@@ -160,10 +160,12 @@ impl Traxsource {
                 //track_id: Some(track_id),
                 duration: Some(duration),
                 ..Default::default()
-            })
+            };
+            api.fill_tags();
+            formatted_tracks.push(api);
         }
 
-        Ok(tracks)
+        Ok(formatted_tracks)
     }
 
     // Tracks in search don't have album name and art
@@ -171,7 +173,7 @@ impl Traxsource {
         // Fetch
         let data = self
             .client
-            .get(&track.traxsource.unwrap().track_url)
+            .get(&track.traxsource.as_ref().unwrap().track_url.to_string())
             .send()?
             .text()?;
         // Minify and parse
@@ -244,8 +246,8 @@ impl TrackMatcher for Traxsource {
         // Search
         let query = format!(
             "{} {}",
-            local.artist.unwrap_or_default(),
-            local.title.unwrap_or_default()
+            local.artist.as_ref().unwrap(),
+            local.title.as_ref().unwrap()
         );
         let tracks = self.search_tracks(&query)?;
         // Match

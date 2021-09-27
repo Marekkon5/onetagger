@@ -72,14 +72,14 @@ impl TrackMatcherST for ITunes {
         // Search
         let query = format!(
             "{} {}",
-            local.artist.unwrap_or_default(),
-            local.title.unwrap_or_default()
+            local.artist.as_ref().unwrap(),
+            local.title.as_ref().unwrap()
         );
         let results = self.search(&query)?;
         let tracks: Vec<Track> = results
             .results
             .iter()
-            .filter_map(|r| r.into_track())
+            .filter_map(|r| r.get_metadata())
             .collect();
         if let Some((f, track)) = Matcher::match_track(local, &tracks, config) {
             return Ok(Some((f, track)));
@@ -142,7 +142,7 @@ pub enum SearchResult {
 }
 
 impl SearchResult {
-    pub fn into_track(&self) -> Option<Track> {
+    pub fn get_metadata(&self) -> Option<Track> {
         match self {
             SearchResult::Track {
                 track_name,

@@ -6,12 +6,8 @@ use std::time::Duration;
 pub struct Helpers {}
 impl Helpers {
     pub fn parse_duration(input: &str) -> Result<Duration, Box<dyn Error>> {
-        let mut parts = input
-            .replace("(", "")
-            .replace(")", "")
-            .trim()
-            .split(":")
-            .collect::<Vec<&str>>();
+        let clean = input.replace("(", "").replace(")", "");
+        let mut parts = clean.trim().split(":").collect::<Vec<&str>>();
         parts.reverse();
         let mut seconds: u64 = parts.first().ok_or("Invalid timestamp!")?.parse()?;
         if parts.len() > 1 {

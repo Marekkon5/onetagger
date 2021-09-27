@@ -108,17 +108,23 @@ impl TrackMatcher for MusicBrainz {
     ) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         let query = format!(
             "{} {}~",
-            local.artist.unwrap_or_default(),
-            local.title.unwrap_or_default()
+            local.artist.as_ref().unwrap(),
+            local.title.as_ref().unwrap()
         );
         match self.search(&query) {
             Ok(results) => {
                 let tracks: Vec<Track> = results.recordings.into_iter().map(|r| r.into()).collect();
                 if let Some((accuracy, mut track)) = Matcher::match_track(&local, &tracks, &config)
                 {
-                    match self
-                        .full_release(track.musicbrainz.unwrap().track_id.to_string().as_str())
-                    {
+                    match self.full_release(
+                        track
+                            .musicbrainz
+                            .as_ref()
+                            .unwrap()
+                            .track_id
+                            .to_string()
+                            .as_str(),
+                    ) {
                         Ok(releases) => MusicBrainz::extend_track(&mut track, releases),
                         Err(e) => {
                             warn!("Failed extending MusicBrainz track! {}", e);
@@ -157,7 +163,7 @@ pub struct Recording {
 
 impl Into<Track> for Recording {
     fn into(self) -> Track {
-        Track {
+        let mut api: Track = Track {
             platform: Some(MusicPlatform::MusicBrainz),
             title: Some(self.title),
             artists: Some(
@@ -213,7 +219,9 @@ impl Into<Track> for Recording {
                 .map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok())
                 .flatten(),
             ..Default::default()
-        }
+        };
+        api.fill_tags();
+        return api;
     }
 }
 

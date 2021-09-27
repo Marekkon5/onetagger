@@ -193,12 +193,12 @@ pub struct BeatportAPITrack {
 }
 
 impl BeatportTrack {
-    pub fn to_track(&self, art_resolution: i64) -> Track {
-        Track {
+    pub fn get_metadata(&self, art_resolution: i64) -> Track {
+        let mut api: Track = Track {
             platform: Some(MusicPlatform::Beatport),
-            title: self.title,
-            name: Some(self.name),
-            mix: self.mix,
+            title: self.title.clone(),
+            name: Some(self.name.clone()),
+            mix: self.mix.clone(),
             artists: Some(self.artists.iter().map(|a| a.name.to_string()).collect()),
             album: Some(self.release.name.to_string()),
             bpm: self.bpm.clone(),
@@ -268,7 +268,9 @@ impl BeatportTrack {
                 ..Default::default()
             }),
             ..Default::default()
-        }
+        };
+        api.fill_tags();
+        return api;
     }
 
     // Get dynamic or first image
@@ -379,15 +381,15 @@ impl TrackMatcher for Beatport {
             // TODO: Serialize properly the private API response, rather than double request
             let track = self.fetch_track_embed(id)?;
             let track = self.fetch_track(&track.slug, track.id)?;
-            return Ok(Some((1.0, track.to_track(config.beatport.art_resolution))));
+            return Ok(Some((1.0, track.get_metadata(config.beatport.art_resolution))));
         }
         */
 
         // Search
         let query = format!(
             "{} {}",
-            local.artist.unwrap_or_default(),
-            local.title.unwrap_or_default()
+            local.artist.as_ref().unwrap(),
+            local.title.as_ref().unwrap()
         );
         for page in 1..config.beatport.max_pages + 1 {
             match self.search(&query, page, 150) {
@@ -396,7 +398,7 @@ impl TrackMatcher for Beatport {
                     let tracks = res
                         .tracks
                         .iter()
-                        .map(|t| t.to_track(config.beatport.art_resolution))
+                        .map(|t| t.get_metadata(config.beatport.art_resolution))
                         .collect();
                     // Match
                     if let Some((f, mut track)) = Matcher::match_track(&local, &tracks, &config) {
@@ -416,7 +418,7 @@ impl TrackMatcher for Beatport {
                             }
                         }
                         // Get style info
-                        if config.style && track.styles.unwrap().is_empty() {
+                        if config.style && track.styles.as_ref().unwrap().is_empty() {
                             info!("Fetching full track for subgenres!");
                             match self.fetch_track(&res.tracks[i].slug, res.tracks[i].id) {
                                 Ok(t) => {
@@ -437,8 +439,8 @@ impl TrackMatcher for Beatport {
                         }
 
                         // Apply style config similar way to Discogs
-                        let genres = track.genres.clone();
-                        let styles = track.styles.clone();
+                        //let genres = track.genres.clone();
+                        //le t styles = track.styles.clone();
                         match config.styles_options {
                             StylesOptions::OnlyGenres => track.styles = None,
                             StylesOptions::OnlyStyles => track.genres = None,

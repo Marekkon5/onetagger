@@ -53,12 +53,12 @@ impl JunoDownload {
         ))?;
         let document = Html::parse_document(&data);
 
-        let mut out = vec![];
+        let mut formatted_tracks = vec![];
         let release_selector = Selector::parse("div.jd-listing-item").unwrap();
         for (index, release_element) in document.select(&release_selector).enumerate() {
             // Release
             if let Some(tracks) = self.parse_release(&release_element) {
-                out.extend(tracks);
+                formatted_tracks.extend(tracks);
             } else {
                 // Garbage elements at end of page
                 if index < 50 {
@@ -70,12 +70,12 @@ impl JunoDownload {
             }
         }
 
-        Ok(out)
+        Ok(formatted_tracks)
     }
 
     // Parse data from release element
     fn parse_release(&self, elem: &ElementRef) -> Option<Vec<Track>> {
-        let mut out = vec![];
+        let mut formatted_tracks = vec![];
         // Artists
         let mut selector = Selector::parse("div.juno-artist").unwrap();
         let artist_element = elem.select(&selector).next()?;
@@ -168,7 +168,7 @@ impl JunoDownload {
                 track_artists = artists.clone();
             }
             // Generate track
-            out.push(Track {
+            let mut api: Track = Track {
                 platform: Some(MusicPlatform::JunoDownload),
                 title: Some(track_title),
                 artists: Some(track_artists.into_iter().map(|a| a.to_string()).collect()),
@@ -185,10 +185,12 @@ impl JunoDownload {
                 //release_id: release_id.clone(),
                 duration: Some(duration),
                 ..Default::default()
-            });
+            };
+            api.fill_tags();
+            formatted_tracks.push(api);
         }
 
-        Some(out)
+        Some(formatted_tracks)
     }
 }
 
@@ -201,8 +203,8 @@ impl TrackMatcher for JunoDownload {
         // Search
         let query = format!(
             "{} {}",
-            local.artist.unwrap_or_default(),
-            local.title.unwrap_or_default()
+            local.artist.as_ref().unwrap(),
+            local.title.as_ref().unwrap()
         );
         let tracks = self.search(&query)?;
         // Match
