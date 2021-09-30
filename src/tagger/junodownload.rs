@@ -141,27 +141,21 @@ impl JunoDownload {
             out.push(Track {
                 platform: MusicPlatform::JunoDownload,
                 title: track_title,
-                version: None,
                 artists: track_artists.into_iter().map(|a| a.to_string()).collect(),
                 album_artists: artists.clone().into_iter().map(String::from).collect(),
                 album: Some(title.to_owned()),
                 bpm,
                 genres: genres.to_owned(),
-                key: None,
                 label: Some(label.to_string()),
                 styles: vec![],
-                publish_date: None,
-                publish_year: None,
-                release_year: None,
                 release_date: Some(release_date),
                 art: Some(album_art.to_string()),
                 url: format!("https://www.junodownload.com{}", url),
                 catalog_number: catalog_number.clone(),
                 other: vec![],
-                // Only release id
-                track_id: None,
                 release_id: release_id.clone(),
-                duration
+                duration,
+                ..Default::default()
             });
         }
 

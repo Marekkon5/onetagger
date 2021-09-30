@@ -141,7 +141,8 @@ pub struct BeatportTrack {
     pub slug: String,
     pub title: Option<String>,
     pub duration: BeatportDuration,
-    pub sub_genres: Option<Vec<BeatportSmall>>
+    pub sub_genres: Option<Vec<BeatportSmall>>,
+    pub remixers: Option<Vec<BeatportSmall>>
 }
 
 // TODO: Track from private API has different data!
@@ -191,7 +192,8 @@ impl BeatportTrack {
             ],
             track_id: Some(self.id.to_string()),
             release_id: self.release.id.to_string(),
-            duration: self.duration.to_duration()
+            duration: self.duration.to_duration(),
+            remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect()
         }
     }
 

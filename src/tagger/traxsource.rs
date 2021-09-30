@@ -105,16 +105,11 @@ impl Traxsource {
                 release_date: NaiveDate::parse_from_str(&release_date, "%Y-%m-%d").ok(),
                 genres: vec![genre.to_owned()],
                 styles: vec![],
-                album: None,
-                art: None,
-                release_year: None,
-                publish_date: None,
-                publish_year: None,
-                catalog_number: None,
                 other: vec![],
                 track_id: Some(track_id),
                 release_id: String::new(),
-                duration
+                duration,
+                ..Default::default()
             })
         }
 

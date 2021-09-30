@@ -79,6 +79,7 @@ pub struct TaggerConfig {
     pub version: bool,
     pub duration: bool,
     pub album_artist: bool,
+    pub remixer: bool,
     // 1T meta tags
     pub meta_tags: bool,
 
@@ -180,6 +181,7 @@ pub struct Track {
     pub track_id: Option<String>,
     pub release_id: String,
     pub duration: Duration,
+    pub remixers: Vec<String>,
     
     // Only year OR date should be available
     pub release_year: Option<i64>,
@@ -369,6 +371,10 @@ impl Track {
         // Duration
         if config.duration && self.duration.as_secs() > 0 {
             tag.set_field(Field::Duration, vec![self.duration.as_secs().to_string()], config.overwrite);
+        }
+        // Remixers
+        if config.remixer && !self.remixers.is_empty() {
+            tag.set_field(Field::Remixer, self.remixers.clone(), config.overwrite);
         }
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {

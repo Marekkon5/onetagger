@@ -227,7 +227,8 @@ pub enum Field {
     CatalogNumber,
     Version,
     TrackNumber,
-    Duration
+    Duration,
+    Remixer
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

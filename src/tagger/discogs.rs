@@ -359,7 +359,6 @@ impl ReleaseMaster {
         Track {
             platform: MusicPlatform::Discogs,
             title: self.tracks[track_index].title.to_string(),
-            version: None,
             artists: match self.tracks[track_index].artists.as_ref() {
                 // Use track artists if available
                 Some(artists) => artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
@@ -367,8 +366,6 @@ impl ReleaseMaster {
             },
             album_artists: self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
             album: Some(self.title.to_string()),
-            key: None,
-            bpm: None,
             genres,
             styles,
             art: match self.images.as_ref().unwrap_or(&Vec::new()).first() {
@@ -385,13 +382,12 @@ impl ReleaseMaster {
             } else {None},
             release_year: self.year,
             release_date,
-            publish_date: None,
-            publish_year: None,
             catalog_number,
             other: vec![("VINYLTRACK".to_string(), self.tracks[track_index].position.to_string())],
             track_id: None,
             release_id: self.id.to_string(),
-            duration: parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO)
+            duration: parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
+            ..Default::default()
         }
     }
 }

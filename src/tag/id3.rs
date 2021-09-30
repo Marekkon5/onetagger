@@ -165,7 +165,8 @@ impl ID3Tag {
             Field::CatalogNumber => "CATALOGNUMBER".to_string(),
             Field::Version => "TIT3".to_string(),
             Field::TrackNumber => "TRCK".to_string(),
-            Field::Duration => "TLEN".to_string()
+            Field::Duration => "TLEN".to_string(),
+            Field::Remixer => "TPE4".to_string()
         }
     }
 }
