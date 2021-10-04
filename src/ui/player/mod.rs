@@ -142,7 +142,7 @@ impl AudioSources {
             return Ok(Box::new(aiff::AIFFSource::new(path)?));
         }
         // MP4
-        if p.ends_with(".m4a") {
+        if p.ends_with(".m4a") || p.ends_with(".mp4") {
             return Ok(Box::new(mp4::MP4Source::new(path)?));
         }
 

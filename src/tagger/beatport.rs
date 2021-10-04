@@ -237,7 +237,8 @@ pub struct BeatportImage {
 pub struct BeatportRelease {
     pub id: i64,
     pub slug: String,
-    pub catalog: Option<String>
+    pub catalog: Option<String>,
+    pub artists: Vec<BeatportSmall>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -306,11 +307,14 @@ impl TrackMatcher for Beatport {
                     // Match
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
                         let i = tracks.iter().position(|t| t == &track).unwrap();
-                        // Get catalog number
-                        if config.catalog_number {
-                            info!("Fetching full release for catalog number!");
+                        // Data from release
+                        if config.catalog_number || config.album_artist {
+                            info!("Fetching full release for extra metadata.");
                             match self.fetch_release(&res.tracks[i].release.slug, res.tracks[i].release.id) {
-                                Ok(r) => track.catalog_number = r.catalog,
+                                Ok(r) => {
+                                    track.catalog_number = r.catalog;
+                                    track.album_artists = r.artists.into_iter().map(|a| a.name).collect();
+                                },
                                 Err(e) => warn!("Beatport failed fetching release for catalog number! {}", e)
                             }
                         }
