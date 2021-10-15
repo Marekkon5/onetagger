@@ -68,6 +68,7 @@
             <q-checkbox class='tag checkbox text-grey-4' label='OneTagger Meta Tags' v-model='$1t.config.metaTags'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Remixers' v-model='$1t.config.remixer'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Track Number' v-model='$1t.config.trackNumber'></q-checkbox>
             <!-- TODO: Cleaner way to disable checkboxes if given platform doesn't support the tag -->
         </div>
 

@@ -219,9 +219,16 @@ impl TagImpl for MP4Tag {
     }
 
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool) {
-        let ident = MP4Tag::field_to_ident(field);
+        let ident = MP4Tag::field_to_ident(field.clone());
         if self.tag.data_of(&ident).next().is_none() || overwrite {
             self.tag.remove_data_of(&ident);
+            // Override for track number, because of custom format
+            if field == Field::TrackNumber {
+                if let Some(tn) = value.first().map(|v| v.parse().ok()).flatten() {
+                    self.tag.set_track_number(tn);
+                }
+                return;
+            }
             // Add each data separately
             for v in value {
                 self.tag.add_data(ident.clone(), Data::Utf8(v));
@@ -230,6 +237,10 @@ impl TagImpl for MP4Tag {
     }
 
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
+        // Override for track number because of custom format
+        if field == Field::TrackNumber {
+            return self.tag.track_number().map(|t| vec![t.to_string()]);
+        }
         self.raw_by_ident(&MP4Tag::field_to_ident(field))
     }
 

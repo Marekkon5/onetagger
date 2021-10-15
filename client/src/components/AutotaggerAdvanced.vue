@@ -130,6 +130,16 @@
         ></Separators>
     </div>
 
+    <!-- Track number padding -->
+    <div class='text-body1 text-grey-4'>Tag options</div>
+    <q-input 
+        v-model.number='$1t.config.trackNumberLeadingZeroes' 
+        filled 
+        type='number'
+        label='Track number leading zeroes'
+        class='input'
+    ></q-input>
+
     <!-- Command -->
     <div class='text-body1 text-grey-4 q-mt-md'>Execute command on finished tagging</div>
     <q-input label='$success, $failed will be substituted' filled class='input q-mt-sm' v-model='$1t.config.postCommand'></q-input>

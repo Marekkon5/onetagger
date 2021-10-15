@@ -80,6 +80,7 @@ pub struct TaggerConfig {
     pub duration: bool,
     pub album_artist: bool,
     pub remixer: bool,
+    pub track_number: bool,
     // 1T meta tags
     pub meta_tags: bool,
 
@@ -105,6 +106,7 @@ pub struct TaggerConfig {
     pub styles_options: StylesOptions,
     // Option to prevent update errors
     pub styles_custom_tag: Option<UITag>,
+    pub track_number_leading_zeroes: usize,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -125,6 +127,7 @@ pub struct BeatportConfig {
 pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
+    pub track_number_int: bool
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -182,12 +185,26 @@ pub struct Track {
     pub release_id: String,
     pub duration: Duration,
     pub remixers: Vec<String>,
+    pub track_number: Option<TrackNumber>,
     
     // Only year OR date should be available
     pub release_year: Option<i64>,
     pub release_date: Option<NaiveDate>,
     pub publish_year: Option<i64>,
     pub publish_date: Option<NaiveDate>
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TrackNumber {
+    Number(i32),
+    /// Custom format (Discogs)
+    Custom(String)
+}
+
+impl From<i32> for TrackNumber {
+    fn from(i: i32) -> Self {
+        TrackNumber::Number(i)
+    }
 }
 
 const CAMELOT_NOTES: [(&str, &str); 35] = [
@@ -375,6 +392,13 @@ impl Track {
         // Remixers
         if config.remixer && !self.remixers.is_empty() {
             tag.set_field(Field::Remixer, self.remixers.clone(), config.overwrite);
+        }
+        // Track number
+        if config.track_number && self.track_number.is_some() {
+            match self.track_number.as_ref().unwrap() {
+                TrackNumber::Number(n) => tag.set_field(Field::TrackNumber, vec![format!("{:0width$}", n, width = config.track_number_leading_zeroes)], config.overwrite),
+                TrackNumber::Custom(n) => tag.set_field(Field::TrackNumber, vec![n.to_string()], config.overwrite),
+            }
         }
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {

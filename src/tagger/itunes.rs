@@ -96,7 +96,7 @@ pub enum SearchResult {
         disc_count: i16,
         disc_number: i16,
         track_count: i16,
-        track_number: i16,
+        track_number: i32,
         country: String,
         track_view_url: String,
         track_time_millis: u64,
@@ -108,7 +108,7 @@ pub enum SearchResult {
 impl SearchResult {
     pub fn into_track(&self) -> Option<Track> {
         match self {
-            SearchResult::Track { collection_id, track_id, artist_name, collection_name, track_name, track_view_url, track_time_millis, primary_genre_name, release_date, .. } => {
+            SearchResult::Track { collection_id, track_id, artist_name, collection_name, track_name, track_view_url, track_time_millis, primary_genre_name, release_date, track_number, .. } => {
                 Some(Track {
                     platform: MusicPlatform::ITunes,
                     title: track_name.clone(),
@@ -120,6 +120,7 @@ impl SearchResult {
                     duration: Duration::from_millis(*track_time_millis),
                     genres: vec![primary_genre_name.to_string()],
                     release_date: Some(NaiveDate::parse_from_str(&release_date[0..10], "%Y-%m-%d").ok()).flatten(),
+                    track_number: Some((*track_number).into()),
                     ..Default::default()
                 })
             },

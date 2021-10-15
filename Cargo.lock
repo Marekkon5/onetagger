@@ -2954,6 +2954,7 @@ dependencies = [
  "failure",
  "id3",
  "image",
+ "lazy_static",
  "metaflac",
  "minify-html",
  "mp3-duration",

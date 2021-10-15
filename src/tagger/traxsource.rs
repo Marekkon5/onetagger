@@ -2,7 +2,8 @@ use std::error::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use crate::tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, TrackMatcher, MatchingUtils, parse_duration};
+use crate::tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, TrackMatcher, 
+    MatchingUtils, TrackNumber, parse_duration};
 
 pub struct Traxsource {
     client: Client
@@ -172,6 +173,18 @@ impl Traxsource {
         let album_artists_text = album_artists_element.text().collect::<Vec<_>>().join(" ");
         let album_artists: Vec<String> = album_artists_text.split(",").map(String::from).collect();
         track.album_artists = album_artists;
+
+        // Track number
+        selector = Selector::parse(&format!("div.trk-row.ptk-{}", track.track_id.as_ref().unwrap())).unwrap();
+        let track_element = document.select(&selector).next().unwrap();
+        selector = Selector::parse("div.tnum").unwrap();
+        let track_number_element = track_element.select(&selector).next().unwrap();
+        let track_number_text = track_number_element.text().collect::<Vec<_>>().join("");
+        if let Ok(tn) = track_number_text.trim().parse() {
+            track.track_number = Some(TrackNumber::Number(tn));
+        }
+        
+
         Ok(())
     }
 }
@@ -184,8 +197,8 @@ impl TrackMatcher for Traxsource {
         // Match
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
-            if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist {
-                match self.extend_track(&mut track, config.catalog_number) {
+            if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist || config.track_number {
+                match self.extend_track(&mut track, config.catalog_number || config.track_number) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
                 }

@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use super::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils};
+use super::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber};
 
 pub struct MusicBrainz {
     client: Client
@@ -80,7 +80,14 @@ impl MusicBrainz {
                 }
                 track.catalog_number = label_info.catalog_number.clone();
             }
-            // Gerres
+            // Get track for track number
+            if let Some(mb_track) = release.media.iter().filter_map(
+                |m| m.tracks.iter().find(|t| &t.recording.id == track.track_id.as_ref().unwrap())
+            ).next() {
+                track.track_number = Some(TrackNumber::Number(mb_track.position as i32));
+            }
+
+            // Genres
             track.genres = release.genres.iter().map(|g| g.name.to_string()).collect();
         }
     }

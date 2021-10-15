@@ -11,11 +11,13 @@ use serde::{Serialize, Deserialize};
 use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, StylesOptions, parse_duration};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
+lazy_static::lazy_static! {
+    // Shared global API access token because multiple threads
+    static ref ACCESS_TOKEN: Arc<Mutex<Option<BeatportOAuth>>> = Arc::new(Mutex::new(None));
+}
 
 pub struct Beatport {
     client: Client,
-    // TODO: Share token if used properly in future
-    access_token: Arc<Mutex<Option<BeatportOAuth>>>,
 }
 
 impl Beatport {
@@ -27,7 +29,6 @@ impl Beatport {
             .unwrap();
         Beatport {
             client,
-            access_token: Arc::new(Mutex::new(None))
         }
     }
 
@@ -85,7 +86,7 @@ impl Beatport {
 
     /// Update embed auth token
     pub fn update_token(&self) -> Result<String, Box<dyn Error>> {
-        let mut token = self.access_token.lock().unwrap();
+        let mut token = ACCESS_TOKEN.lock().unwrap();
         // Fetch new if doesn't exist
         if (*token).is_none() {
             let mut response: BeatportOAuth = self.client.get("https://embed.beatport.com/token")
@@ -149,7 +150,8 @@ pub struct BeatportTrack {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportAPITrack {
     pub slug: String,
-    pub id: i64
+    pub id: i64,
+    pub number: i32
 }
 
 impl BeatportTrack {
@@ -193,7 +195,8 @@ impl BeatportTrack {
             track_id: Some(self.id.to_string()),
             release_id: self.release.id.to_string(),
             duration: self.duration.to_duration(),
-            remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect()
+            remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect(),
+            track_number: None
         }
     }
 
@@ -292,9 +295,11 @@ impl TrackMatcher for Beatport {
         if let Some(id) = info.ids.beatport_track_id {
             info!("Fetching by ID: {}", id);
             // TODO: Serialize properly the private API response, rather than double request
-            let track = self.fetch_track_embed(id)?;
-            let track = self.fetch_track(&track.slug, track.id)?;
-            return Ok(Some((1.0, track.to_track(config.beatport.art_resolution))));
+            let api_track = self.fetch_track_embed(id)?;
+            let bp_track = self.fetch_track(&api_track.slug, api_track.id)?;
+            let mut track = bp_track.to_track(config.beatport.art_resolution);
+            track.track_number = Some(api_track.number.into());
+            return Ok(Some((1.0, track)));
         }
 
         // Search
@@ -327,6 +332,16 @@ impl TrackMatcher for Beatport {
                                     track.styles = t.sub_genres.unwrap_or(Vec::new()).into_iter().map(|g| g.name).collect();
                                 },
                                 Err(e) => warn!("Beatport failed fetching full track data for subgenres! {}", e)
+                            }
+                        }
+                        // Data from API for track number
+                        if config.track_number {
+                            info!("Fetching track info from API for track number!");
+                            match self.fetch_track_embed(res.tracks[i].id) {
+                                Ok(t) => {
+                                    track.track_number = Some(t.number.into());
+                                },
+                                Err(e) => warn!("Beatport failed fetching full API track data for track number! {}", e)
                             }
                         }
 

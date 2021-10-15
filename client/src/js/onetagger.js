@@ -192,6 +192,7 @@ class OneTagger {
             "releaseId": false,
             "version": false,
             "remixer": false,
+            "trackNumber": false,
             "metaTags": false,
             "separators": {id3: ', ', vorbis: null, mp4: ', '},
             "id3v24": true,
@@ -211,6 +212,7 @@ class OneTagger {
             "multipleMatches": "Default",
             "postCommand": null,
             "stylesOptions": "default",
+            "trackNumberLeadingZeroes": 0,
             "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
             "beatport": {
                 "artResolution": 500,
@@ -219,6 +221,7 @@ class OneTagger {
             "discogs": {
                 "token": null,
                 "maxResults": 4,
+                "trackNumberInt": false
             }
         });
         // Statuses

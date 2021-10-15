@@ -8,7 +8,8 @@ use reqwest::StatusCode;
 use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
-use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, MatchingUtils, StylesOptions, parse_duration};
+use crate::tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, 
+    MatchingUtils, StylesOptions, DiscogsConfig, TrackNumber, parse_duration};
 
 pub struct Discogs {
     client: Client,
@@ -153,12 +154,12 @@ impl TrackMatcherST for Discogs {
             let release = self.full_release(ReleaseType::Release, info.ids.discogs_release_id.unwrap())?;
             // Exact track number match
             if let Some(track_number) = info.track_number {
-                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options))))
+                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options, &config.discogs))))
             }
             // Match inside release
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options));
+                tracks.push(release.get_track(i, &config.styles_options, &config.discogs));
             }
             return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
         }
@@ -187,7 +188,7 @@ impl TrackMatcherST for Discogs {
             
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options));
+                tracks.push(release.get_track(i, &config.styles_options, &config.discogs));
             }
             if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
@@ -311,7 +312,7 @@ impl ReleaseMaster {
         re.replace(input, "").to_string()
     }
 
-    pub fn get_track(&self, track_index: usize, styles_option: &StylesOptions) -> Track {
+    pub fn get_track(&self, track_index: usize, styles_option: &StylesOptions, discogs_config: &DiscogsConfig) -> Track {
         // Parse release date
         let release_date = match &self.released {
             Some(r) => NaiveDate::parse_from_str(&r, "%Y-%m-%d").ok(),
@@ -387,6 +388,10 @@ impl ReleaseMaster {
             track_id: None,
             release_id: self.id.to_string(),
             duration: parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
+            track_number: Some(match discogs_config.track_number_int {
+                true => TrackNumber::Number((track_index + 1) as i32),
+                false => TrackNumber::Custom(self.tracks[track_index].position.to_string())
+            }),
             ..Default::default()
         }
     }

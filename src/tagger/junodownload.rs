@@ -7,7 +7,8 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
 
-use crate::tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils, parse_duration};
+use crate::tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, 
+    MatchingUtils, TrackNumber, parse_duration};
 
 pub struct JunoDownload {
     client: Client
@@ -104,7 +105,7 @@ impl JunoDownload {
 
         // Tracks
         let track_selector = Selector::parse("div.jd-listing-tracklist div.col").unwrap();
-        for track_elem in elem.select(&track_selector) {
+        for (track_index, track_elem) in elem.select(&track_selector).enumerate() {
             let text = track_elem.text().collect::<Vec<_>>();
             let full = text[0].replace("\u{a0}", " ");
             // Duration
@@ -155,6 +156,7 @@ impl JunoDownload {
                 other: vec![],
                 release_id: release_id.clone(),
                 duration,
+                track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
                 ..Default::default()
             });
         }

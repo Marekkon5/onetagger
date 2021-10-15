@@ -63,6 +63,10 @@
                 <q-slider label-text-color='black' v-model='$1t.config.discogs.maxResults' :min='1' :max='16' label class='slider'></q-slider>
             </div>
         </div>
+        <!-- Track number as int -->
+        <div>
+            <q-toggle v-model='$1t.config.discogs.trackNumberInt' label="Write track number as number, rather than Discogs's format"></q-toggle>
+        </div>
     </div>
 
     <!-- Shared -->
