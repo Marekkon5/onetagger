@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import mergeOptions from 'merge-options';
 import { Notify, colors } from 'quasar';
 import { QTTrack } from './quicktag';
 
@@ -455,12 +456,10 @@ class OneTagger {
         delete data.quickTag;
         Object.assign(this.settings, data);
         
-        // Restore specific
-
         // AT config (nested)
-        Object.assign(this.config.discogs, this.settings.autoTaggerConfig??{}.discogs??{});
-        Object.assign(this.config, this.settings.autoTaggerConfig??{});
-        
+        let config = mergeOptions({}, this.config, this.settings.autoTaggerConfig??{});
+        Object.assign(this.config, config);
+ 
         this.player.volume = this.settings.volume??0.5;
         this.setVolume(this.player.volume);
         colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');
