@@ -99,9 +99,9 @@ pub enum SearchResult {
         track_number: Option<i32>,
         country: String,
         track_view_url: String,
-        track_time_millis: u64,
+        track_time_millis: Option<u64>,
         primary_genre_name: String,
-        release_date: String
+        release_date: Option<String>
     }
 }
 
@@ -117,9 +117,9 @@ impl SearchResult {
                     url: track_view_url.to_string(),
                     track_id: Some(track_id.to_string()),
                     release_id: collection_id.map(|c| c.to_string()).unwrap_or_default(),
-                    duration: Duration::from_millis(*track_time_millis),
+                    duration: track_time_millis.map(|d| Duration::from_millis(d)).unwrap_or(Duration::ZERO),
                     genres: vec![primary_genre_name.to_string()],
-                    release_date: Some(NaiveDate::parse_from_str(&release_date[0..10], "%Y-%m-%d").ok()).flatten(),
+                    release_date: release_date.as_ref().map(|release_date| NaiveDate::parse_from_str(&release_date[0..10], "%Y-%m-%d").ok()).flatten(),
                     track_number: track_number.map(|t| t.into()),
                     ..Default::default()
                 })
