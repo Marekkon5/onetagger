@@ -87,10 +87,10 @@ pub enum SearchResult {
     #[serde(rename_all = "camelCase")]
     Track {
         kind: TrackKind,
-        artist_id: i64,
+        artist_id: Option<i64>,
         collection_id: Option<i64>,
         track_id: i64,
-        artist_name: String,
+        artist_name: Option<String>,
         collection_name: Option<String>,
         track_name: String,
         disc_count: Option<i16>,
@@ -112,7 +112,7 @@ impl SearchResult {
                 Some(Track {
                     platform: MusicPlatform::ITunes,
                     title: track_name.clone(),
-                    artists: vec![artist_name.to_string()],
+                    artists: artist_name.clone().map(|a| vec![a]).unwrap_or(vec![]),
                     album: collection_name.clone(),
                     url: track_view_url.to_string(),
                     track_id: Some(track_id.to_string()),
