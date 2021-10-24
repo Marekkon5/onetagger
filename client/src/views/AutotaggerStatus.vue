@@ -180,14 +180,21 @@ export default {
             this.time = `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;
         }, 400);
         //Done callback
-        this.$1t.onTaggingDone = () => {
+        this.$1t.onTaggingDone = (path) => {
             this.$q.dialog({
                 title: 'Done',
-                message: 'Tagging done!',
+                message: 'Tagging finished! Would you like to open the folder?',
+                html: true,
                 ok: {
                     color: 'primary',
+                },
+                cancel: true
+            })
+            .onOk(() => {
+                if (path) {
+                    this.$1t.send('openFolder', {path});
                 }
-            });
+            })
         }
     },
 }

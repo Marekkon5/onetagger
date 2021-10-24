@@ -29,6 +29,7 @@ enum Action {
     Browse { path: Option<String>, context: Option<String> },
     Browser { url: String },
     OpenSettingsFolder,
+    OpenFolder { path: String },
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     
@@ -182,6 +183,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         // Open URL in external browser
         Action::Browser { url } => { webbrowser::open(&url)?; },
         Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
+        Action::OpenFolder { path } => { opener::open(&path).ok(); },
         Action::StartTagging { config, playlist } => {
             config.debug_print();
 
@@ -190,6 +192,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 playlist.get_files()?
             } else { vec![] };
             let mut file_count = files.len();
+            let mut folder_path = None;
             // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
@@ -198,13 +201,16 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                         let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or(String::new());
                         files = Tagger::get_file_list(&path);
                         file_count = files.len();
+                        folder_path = Some(path);
                     }
                     let rx = Tagger::tag_files(&c, files);
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {
                     if files.is_empty() {
-                        files = Tagger::get_file_list(&c.path.as_ref().unwrap_or(&String::new()));
+                        let path = c.path.as_ref().unwrap_or(&String::new()).to_owned();
+                        files = Tagger::get_file_list(&path);
+                        folder_path = Some(path);
                         file_count = files.len();
                     }
                     // Authorize spotify
@@ -231,7 +237,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             // Done
             websocket.write_message(Message::from(json!({
-                "action": "taggingDone"
+                "action": "taggingDone",
+                "path": folder_path
             }).to_string())).ok();
         },
         Action::Waveform { path } => {

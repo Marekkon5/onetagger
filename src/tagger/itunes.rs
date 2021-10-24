@@ -101,14 +101,15 @@ pub enum SearchResult {
         track_view_url: String,
         track_time_millis: Option<u64>,
         primary_genre_name: String,
-        release_date: Option<String>
+        release_date: Option<String>,
+        artwork_url100: Option<String>
     }
 }
 
 impl SearchResult {
     pub fn into_track(&self) -> Option<Track> {
         match self {
-            SearchResult::Track { collection_id, track_id, artist_name, collection_name, track_name, track_view_url, track_time_millis, primary_genre_name, release_date, track_number, .. } => {
+            SearchResult::Track { collection_id, track_id, artist_name, collection_name, track_name, track_view_url, track_time_millis, primary_genre_name, release_date, track_number, artwork_url100, .. } => {
                 Some(Track {
                     platform: MusicPlatform::ITunes,
                     title: track_name.clone(),
@@ -121,6 +122,7 @@ impl SearchResult {
                     genres: vec![primary_genre_name.to_string()],
                     release_date: release_date.as_ref().map(|release_date| NaiveDate::parse_from_str(&release_date[0..10], "%Y-%m-%d").ok()).flatten(),
                     track_number: track_number.map(|t| t.into()),
+                    art: artwork_url100.clone(),
                     ..Default::default()
                 })
             },

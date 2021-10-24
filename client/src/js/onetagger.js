@@ -97,7 +97,7 @@ class OneTagger {
                     this.lock.locked = false;
                     this.taggerStatus.done = true;
                     this.taggerStatus.progress = 1.0;
-                    this.onTaggingDone();
+                    this.onTaggingDone(json.path);
                     break;
                 // Player load track
                 case 'playerLoad':
@@ -205,7 +205,7 @@ class OneTagger {
             "camelot": false,
             "catalogNumber": false,
             "parseFilename": false,
-            "filenameTemplate": "%trackNumber% - %artists% - %title%",
+            "filenameTemplate": "%artists% - %title%",
             "shortTitle": false,
             "matchDuration": false,
             "maxDurationDifference": 30,

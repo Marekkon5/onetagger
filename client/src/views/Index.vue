@@ -15,7 +15,7 @@
                     Discogs, Junodownload & Traxsource, to your local
                     audio files, based on Artist & Title tag, filename or playlist.<br>
                     
-                    <q-btn dense push color='primary' class='rounded-borders q-mt-sm text-black text-weight-medium text-caption' @click='help("autotagger")'>More info</q-btn>
+                    <q-btn dense push color='primary' class='rounded-borders q-mt-md text-black text-weight-medium text-caption' @click='help("autotagger")'>More info</q-btn>
                     
                 </div>
             </q-card-section>
@@ -29,7 +29,7 @@
                     so called audio features to your local audio files,
                     based on ISRC & exact match.<br>
                     
-                    <q-btn dense push color='primary' class='rounded-borders q-mt-sm text-black text-weight-medium text-caption' @click='help("audiofeatures")'>More info</q-btn>
+                    <q-btn dense push color='primary' class='rounded-borders q-mt-md text-black text-weight-medium text-caption' @click='help("audiofeatures")'>More info</q-btn>
                     
                 </div>
             </q-card-section>
@@ -43,7 +43,7 @@
                     based on energy, mood, genre & other characteristics
                     you defined. Key bind compatible for quick access.<br>
                     
-                    <q-btn dense push color='primary' class='rounded-borders q-mt-sm text-black text-weight-medium text-caption' @click='help("quicktag")'>More info</q-btn>
+                    <q-btn dense push color='primary' class='rounded-borders q-mt-md text-black text-weight-medium text-caption' @click='help("quicktag")'>More info</q-btn>
                     
                 </div>
             </q-card-section>
@@ -54,9 +54,9 @@
     <!-- Welcome -->
     <div class='q-pl-xl q-pt-xl'>
        
-        <img svg-inline src="../assets/logo.svg" height='180' width='280' style='margin-left: -25px; margin-bottom: -30px;'>
+        <img svg-inline src="../assets/logo.svg" width='310px' height='240px' style='margin-left: -20px; margin-bottom: -40px;'>
         
-        <div class='q-pt-md text-h5 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
+        <div class='q-pt-md text-h7 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
         
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.version}}</div>
@@ -68,8 +68,8 @@
         
         <div class='q-pt-lg text-subtitle1 text-grey-4'>
             Need help? Check out our <span class='text-bold'>Getting started</span> sections.<br>
-            Found a bug or have a request? Post it on <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img svg-inline src="../assets/github.svg" width='64px'></span><br>
-            Like the app? Contribute by donating through <span class='tiny-logo text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'><img svg-inline src="../assets/paypal.svg" width='64px'></span> or <span class='tiny-logo text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'><img svg-inline src="../assets/patreon.svg" width='70px'></span>
+            Found a bug or have a request? Post it on <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img svg-inline src="../assets/github.svg" width='64px' style='margin-bottom: -2px;'></span><br>
+            Like the app? Contribute by donating through <span class='tiny-logo text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'><img svg-inline src="../assets/paypal.svg" width='64px' style='margin-bottom: -2px;'></span> or <span class='tiny-logo text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'><img svg-inline src="../assets/patreon.svg" width='70px' style='margin-bottom: -2px;'></span>
         </div>
     </div>
 

@@ -59,21 +59,21 @@ export default {
                     name: 'Discogs',
                     value: 'discogs',
                     enabled: false,
-                    description: 'Most variety in genres / styles<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~25 tracks / min) & requires a free account</b>',
+                    description: '<b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~25 tracks / min) & requires a free account</b>',
                     image: require('../assets/discogs.png')
                 },
                 {
                     name: 'iTunes',
                     value: 'itunes',
                     enabled: false,
-                    description: 'Probably better for mainstream popular music<br><b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~20 tracks / min)</b>',
+                    description: '<b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~20 tracks / min)</b>',
                     image: require('../assets/itunes.png')
                 },
                 {
                     name: 'MusicBrainz',
                     value: 'musicbrainz',
                     enabled: false,
-                    description: 'Published or unpublished, western or non-western.',
+                    description: 'Published & unpublished, western & non-western',
                     image: require('../assets/musicbrainz.png')
                 }
             ]
