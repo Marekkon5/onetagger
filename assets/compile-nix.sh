@@ -30,6 +30,7 @@ export PKG_CONFIG_ALLOW_CROSS=1
 # Install libsndfile
 git clone https://github.com/libsndfile/libsndfile
 cd libsndfile
+git checkout d60deb5d8
 ./autogen.sh
 ./configure --disable-external-libs --enable-werror --host=x86_64-apple-darwin14 --prefix=$(dirname $(pwd))/target/SDK/MacOSX10.10.sdk/usr
 make -j8
