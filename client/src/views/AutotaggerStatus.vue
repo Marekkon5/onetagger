@@ -143,7 +143,7 @@ export default {
         }
     },
     methods: {
-        //Conver platform name
+        // Conver platform name
         platformText(p) {
             if (p == 'junodownload') return 'JUNO DOWNLOAD';
             return p.toUpperCase();
@@ -167,19 +167,19 @@ export default {
         }
     },
     mounted() {
-        //Update timestamp
+        // Update timestamp
         this.timeInterval = setInterval(() => {
-            //Already done
+            // Already done
             if (this.$1t.taggerStatus.done || !this.$1t.lock.locked) {
                 if (this.timeInterval != null)
                     clearInterval(this.timeInterval);
                 return;
             }
-            //Timestamp
+            // Timestamp
             let s = (Date.now() - this.$1t.taggerStatus.started) / 1000;
             this.time = `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;
         }, 400);
-        //Done callback
+        // Done callback
         this.$1t.onTaggingDone = (path) => {
             this.$q.dialog({
                 title: 'Done',
