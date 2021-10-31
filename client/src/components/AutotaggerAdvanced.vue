@@ -1,57 +1,68 @@
 <template>
 <div class='text-center'>
+    <q-list class='list'>
 
-    <q-toggle v-model='$1t.config.overwrite' label='Overwrite tags'>
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Overwrite the existing tags in the song</q-tooltip>
-        </q-icon>
-    </q-toggle>
-    <br>
-    <q-toggle v-model='$1t.config.id3v24' label='ID3v2.4'>
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files</q-tooltip>
-        </q-icon>
-    </q-toggle>
-    <br>
-    <q-toggle v-model='$1t.config.shortTitle' label='Short title'>
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Write title without version, currently supported only for Beatport and Traxsource</q-tooltip>
-        </q-icon>
-    </q-toggle>
-    <br>
-    <q-toggle v-model='$1t.config.albumArtFile' label='Save album art to file'></q-toggle>
-    <br>
-    <q-toggle v-model='$1t.config.mergeGenres' label='Merge/append genres and styles'>
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Merge the new genres and styles with existing ones, rather than replacing</q-tooltip>
-        </q-icon>
-    </q-toggle>
-    <br>
-    <q-toggle v-model='$1t.config.camelot' label='Use Camelot key notation'></q-toggle>
-    <br>
-    <q-toggle v-model='$1t.config.matchById' label='Use Track or Release ID tag to get exact match'>
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm'>
-            <q-tooltip content-style="font-size: 13px">Valid tags are: DISCOGS_RELEASE_ID, BEATPORT_TRACK_ID</q-tooltip>
-        </q-icon>
-    </q-toggle>
-    <br>
-    <!-- Parse meta from filename -->
-    <q-toggle v-model='$1t.config.parseFilename' label='Parse metadata from filename'></q-toggle>
-    <div v-if='$1t.config.parseFilename'>
-        <q-input
-            v-model='$1t.config.filenameTemplate'
-            filled
-            label='Filename template (variables: %title%, %artists%, anything between %% gets treated as dynamic content)'
-            class='input'
-        ></q-input>
-    </div>
-    <br>
+        <!-- Overwrite tags -->
+        <AdvancedSettingsToggle 
+            label='Overwrite tags'
+            tooltip='Overwrite the existing tags in the song'
+            v-model='$1t.config.overwrite'
+        ></AdvancedSettingsToggle>
+
+        <AdvancedSettingsToggle 
+            label='ID3v2.4'
+            tooltip='Use ID3 version 2.4 rather than version 2.3 for MP3/AIFF files'
+            v-model='$1t.config.id3v24'
+        ></AdvancedSettingsToggle>
+
+        <AdvancedSettingsToggle 
+            label='Short title'
+            tooltip='Write title without version, currently supported only for Beatport and Traxsource'
+            v-model='$1t.config.shortTitle'
+        ></AdvancedSettingsToggle>
+
+        <AdvancedSettingsToggle 
+            label='Save album art to file'
+            v-model='$1t.config.albumArtFile'
+        ></AdvancedSettingsToggle>
+
+        <AdvancedSettingsToggle 
+            label='Merge/append genres and styles'
+            tooltip='Merge the new genres and styles with existing ones, rather than replacing'
+            v-model='$1t.config.mergeGenres'
+        ></AdvancedSettingsToggle>
+
+        <AdvancedSettingsToggle 
+            label='Use Camelot key notation'
+            v-model='$1t.config.camelot'
+        ></AdvancedSettingsToggle>
+
+        <AdvancedSettingsToggle 
+            label='Use Track or Release ID tag to get exact match'
+            tooltip='Valid tags are: DISCOGS_RELEASE_ID, BEATPORT_TRACK_ID'
+            v-model='$1t.config.matchById'
+        ></AdvancedSettingsToggle>
+
+        <!-- Parse meta from filename -->
+        <AdvancedSettingsToggle 
+            label='Parse metadata from filename'
+            v-model='$1t.config.parseFilename'
+        ></AdvancedSettingsToggle>
+        <div v-if='$1t.config.parseFilename'>
+            <q-input
+                v-model='$1t.config.filenameTemplate'
+                filled
+                label='Filename template (variables: %title%, %artists%, anything between %% gets treated as dynamic content)'
+                class='input'
+            ></q-input>
+        </div>
+    </q-list>
 
     <!-- Multiple matches ordering -->
     <q-select 
         dense 
         filled 
-        class='input q-my-sm' 
+        class='input q-my-sm q-mt-md' 
         v-model='$1t.config.multipleMatches' 
         :options='multipleMatches'
         label='Multiple matches ordering'
@@ -148,10 +159,11 @@
 
 <script>
 import Separators from './Separators';
+import AdvancedSettingsToggle from './AdvancedSettingsToggle.vue';
 
 export default {
     name: 'AutotaggerAdvanced',
-    components: {Separators},
+    components: {Separators, AdvancedSettingsToggle},
     data() {
         return {
             multipleMatches: ['Default', 'Oldest', 'Newest']
@@ -163,5 +175,13 @@ export default {
 <style>
 .slider-tooltip {
     margin-top: 36px;
+}
+</style>
+
+<style scoped>
+.list {
+    width: 36%; 
+    margin-left: 32%; 
+    text-align: left;
 }
 </style>
