@@ -9,7 +9,7 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-check' round color='green'>
+                            <q-btn icon='mdi-check' round :color='filter == "ok" ? "primary" : "green"' @click='toggleFilter("ok")'>
                                 <q-tooltip content-style="font-size: 13px">
                                     Total amount found
                                 </q-tooltip>
@@ -27,7 +27,7 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-alert-circle' round color='red'>
+                            <q-btn icon='mdi-alert-circle' round :color='filter == "error" ? "primary" : "red"' @click='toggleFilter("error")'>
                                 <q-tooltip content-style="font-size: 13px">
                                     Total amount not found
                                 </q-tooltip>
@@ -45,7 +45,7 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-debug-step-over' round color='yellow' class='text-black'>
+                            <q-btn icon='mdi-debug-step-over' round :color='filter == "skipped" ? "primary" : "yellow"' class='text-black' @click='toggleFilter("skipped")'>
                                 <q-tooltip content-style="font-size: 13px">
                                     Total amount skipped due missing tags or corruption
                                 </q-tooltip>
@@ -81,7 +81,7 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-timelapse' round color='primary' class='text-black'>
+                            <q-btn icon='mdi-timelapse' round color='teal' class='text-black'>
                                 <q-tooltip content-style="font-size: 13px">
                                     Total amount of elapsed time
                                 </q-tooltip>
@@ -98,7 +98,7 @@
     </div>
     <!-- Statuses -->
     <q-list class='list text-left bg-dark q-py-sm'>
-        <q-virtual-scroll :items='$1t.taggerStatus.statuses' class='status-list'>
+        <q-virtual-scroll :items='statuses' class='status-list'>
             <template v-slot="{item, i}">
                 <q-item :key='i'>
                     <q-item-section>
@@ -139,7 +139,8 @@ export default {
     data() {
         return {
             time: '0:00',
-            timeInterval: null
+            timeInterval: null,
+            filter: null
         }
     },
     methods: {
@@ -164,6 +165,21 @@ export default {
         },
         countStatus(status) {
             return this.$1t.taggerStatus.statuses.reduce((a, c) => (c.status.status == status) ? a + 1 : a, 0);
+        },
+        // Toggle status filter
+        toggleFilter(name) {
+            if (this.filter == name) {
+                this.filter = null;
+                return;
+            }
+            this.filter = name;
+        }
+    },
+    computed: {
+        statuses() {
+            if (!this.filter)
+                return this.$1t.taggerStatus.statuses;
+            return this.$1t.taggerStatus.statuses.filter((s) => s.status.status == this.filter);
         }
     },
     mounted() {
