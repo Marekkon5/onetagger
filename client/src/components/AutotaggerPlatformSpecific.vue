@@ -2,7 +2,7 @@
 <div class='text-center'>
 
     <!-- No settings available -->
-    <div v-if='!beatport && !discogs'>
+    <div v-if='!beatport && !discogs && !beatsource'>
         <div class='text-h5 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
             No platform specific settings available for the selected platform(s)
         </div>
@@ -88,6 +88,21 @@
         </div>
     </div>
 
+    <!-- Beatsource settings -->
+    <div v-if='beatsource' class='q-mb-xl'>
+        <div class='text-h5 text-grey-4'>Beatsource</div>
+        <!-- Album art resolution -->
+        <q-select 
+            dark 
+            standout='text-grey-4 bg-dark' 
+            v-model='$1t.config.beatsource.artResolution' 
+            :options='resolutions' 
+            class='select' 
+            label='Album art resolution'
+        ></q-select>
+    </div>
+
+
 </div>
 </template>
 
@@ -129,6 +144,9 @@ export default {
         },
         discogs() {
             return this.$1t.config.platforms.includes('discogs');
+        },
+        beatsource() {
+            return this.$1t.config.platforms.includes('beatsource');
         }
     },
 }

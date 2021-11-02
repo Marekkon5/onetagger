@@ -155,7 +155,7 @@ pub struct BeatportAPITrack {
 }
 
 impl BeatportTrack {
-    pub fn to_track(&self, art_resolution: i64) -> Track {
+    pub fn to_track(&self, art_resolution: u32) -> Track {
         Track {
             platform: MusicPlatform::Beatport,
             title: self.name.to_string(),
@@ -263,7 +263,7 @@ impl BeatportDuration {
 }
 
 impl BeatportImage {
-    pub fn get_url(&self, resolution: i64) -> Option<String> {
+    pub fn get_url(&self, resolution: u32) -> Option<String> {
         if self.url.contains("ab2d1d04-233d-4b08-8234-9782b34dcab8") {
             return None;
         }

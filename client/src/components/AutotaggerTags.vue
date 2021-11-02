@@ -91,7 +91,8 @@ const SUPPORTED_TAGS = {
     beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other'],
     discogs: ['style'],
     traxsource: ['trackId', 'version', 'bpm', 'key'],
-    junodownload: ['bpm']
+    junodownload: ['bpm'],
+    beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version']
 }
 
 export default {
@@ -104,7 +105,7 @@ export default {
         // Check if tag is supported on selected platforms
         isSupported(tag) {
             for (let platform of this.$1t.config.platforms) {
-                if (SUPPORTED_TAGS[platform].includes(tag))
+                if (SUPPORTED_TAGS[platform] && SUPPORTED_TAGS[platform].includes(tag))
                     return true;
             }
             return false;

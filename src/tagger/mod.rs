@@ -29,6 +29,7 @@ pub mod junodownload;
 pub mod spotify;
 pub mod itunes;
 pub mod musicbrainz;
+pub mod beatsource;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -39,6 +40,7 @@ pub enum MusicPlatform {
     JunoDownload,
     ITunes,
     MusicBrainz,
+    Beatsource,
 
     // Currently only used in Audio Features
     Spotify,
@@ -110,14 +112,15 @@ pub struct TaggerConfig {
 
     // Platform specific
     pub beatport: BeatportConfig,
-    pub discogs: DiscogsConfig
+    pub discogs: DiscogsConfig,
+    pub beatsource: BeatsourceConfig
 }
 
 // Beatport specific settings
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct BeatportConfig {
-    pub art_resolution: i64,
+    pub art_resolution: u32,
     pub max_pages: i64
 }
 
@@ -128,6 +131,13 @@ pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
     pub track_number_int: bool
+}
+
+/// Beatsource specific settings
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BeatsourceConfig {
+    pub art_resolution: u32
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -957,6 +967,7 @@ impl Tagger {
                             MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
                             MusicPlatform::JunoDownload => Box::new(junodownload::JunoDownload::new()),
                             MusicPlatform::MusicBrainz => Box::new(musicbrainz::MusicBrainz::new()),
+                            MusicPlatform::Beatsource => Box::new(beatsource::Beatsource::new()),
                             _ => unreachable!()
                         };
                         info!("Starting {:?}", platform);

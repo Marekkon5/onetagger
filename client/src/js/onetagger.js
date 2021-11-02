@@ -223,6 +223,9 @@ class OneTagger {
                 "token": null,
                 "maxResults": 4,
                 "trackNumberInt": false
+            },
+            "beatsource": {
+                "artResolution": 1400
             }
         });
         // Statuses

@@ -75,6 +75,13 @@ export default {
                     enabled: false,
                     description: 'Published & unpublished, western & non-western',
                     image: require('../assets/musicbrainz.png')
+                },
+                {
+                    name: 'Beatsource',
+                    value: 'beatsource',
+                    enabled: false,
+                    description: '//TODO image and description of beatsource',
+                    image: null //TODO image and description of beatsource
                 }
             ]
         }
