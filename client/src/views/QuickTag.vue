@@ -2,11 +2,23 @@
 <div>
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
-        <div v-for='(item, i) in $1t.quickTag.tracks' :key='i'>
-            <q-intersection style='height: 136px;' @click.native='trackClick(i)'>
+        <q-input
+            filled
+            v-model='filter'
+            label='Search'
+            class='q-px-md q-py-md'
+        ></q-input>
+        
+        <div v-for='(item, i) in tracks' :key='i'>
+            <q-intersection style='height: 136px;' @click.native='trackClick(item)'>
                 <QuickTagTile :track='$1t.quickTag.track' v-if='$1t.quickTag.track && item.path == $1t.quickTag.track.path'></QuickTagTile>
                 <QuickTagTile :track='item' v-if='!$1t.quickTag.track || item.path != $1t.quickTag.track.path'></QuickTagTile>
             </q-intersection>
+        </div>
+
+        <!-- No results -->
+        <div v-if='tracks.length == 0'>
+            <div class='text-center text-h4 text-grey-6 q-my-sm'>No results!</div>
         </div>
     </div>
 
@@ -23,7 +35,6 @@
                 Save: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>S</span><br>
                 Confirm save: <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon><br>
             </div>
-
         </div>
     </div>
     
@@ -77,15 +88,16 @@ export default {
         return {
             saveDialog: false,
             noteDialog: false,
-            note: null
+            note: null,
+            filter: null
         }
     },
     methods: {
         //Click on track card
-        trackClick(i) {
+        trackClick(track) {
             //Prevent clicking on same track
-            if (this.$1t.quickTag.track && this.$1t.quickTag.tracks[i].path == this.$1t.quickTag.track.path) return;
-            this.$1t.loadQTTrack(this.$1t.quickTag.tracks[i]);
+            if (this.$1t.quickTag.track && track.path == this.$1t.quickTag.track.path) return;
+            this.$1t.loadQTTrack(track);
         },
         //Save dialog callback
         async saveDialogCallback(save) {
@@ -110,22 +122,52 @@ export default {
             this.$refs.noteDialogInput.focus();
         }
     },
-    mounted() {
-        //Keybind callbacks
-        this.$1t.onQTUnsavedChanges = () => {
-            //Autosave enabled
-            if (this.$1t.settings.quickTag.autosave) {
-                this.saveDialogCallback(true);
-                return;
-            }
-
-            this.saveDialog = true;
-            setTimeout(() => {
-                this.$refs.saveButton.$el.focus();
-            }, 100)
+    computed: {
+        tracks() {
+            if (!this.filter)
+                return this.$1t.quickTag.tracks;
+            // title, path or artist
+            let filter = this.filter.toLowerCase();
+            return this.$1t.quickTag.tracks.filter((t) => 
+                t.title.toLowerCase().includes(filter) || t.path.toLowerCase().includes(filter) ||
+                t.artists.filter((a) => a.toLowerCase().includes(filter)).length > 0
+            );
         }
-        this.$1t.onQTNoteTag = () => {
-            this.noteDialog = true;
+    },
+    mounted() {
+        this.$1t.onQuickTagEvent = (action, data) => {
+            switch (action) {
+                // Save dialog
+                case 'onUnsavedChanges':
+                    //Autosave enabled
+                    if (this.$1t.settings.quickTag.autosave) {
+                        this.saveDialogCallback(true);
+                        return;
+                    }
+
+                    this.saveDialog = true;
+                    setTimeout(() => {
+                        this.$refs.saveButton.$el.focus();
+                    }, 100)
+                    break;
+                // Note tag updated
+                case 'onNoteTag':
+                    this.noteDialog = true;
+                    break;
+                // Change track position relatively
+                case 'changeTrack':
+                    var i = this.tracks.findIndex((t) => t.path == this.$1t.quickTag.track.path);
+                    if (i != -1 && (i + data) != this.tracks.length && (i + data) >= 0) {
+                        this.$1t.loadQTTrack(this.tracks[i + data]);
+                    }
+                    break;
+                case 'focusSearch':
+
+                    break
+                default:
+                    console.log(`Unknown QT Event: ${action} ${data}`);
+                    break;
+            }
         }
 
         //Load tracks if path available
@@ -134,7 +176,7 @@ export default {
     watch: {
         '$1t.quickTag.track'() {
             let index = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
-            this.$refs.tracklist.scrollTop = index * 136 - 200;
+            this.$refs.tracklist.scrollTop = index * 136 - 140;
             // window.scrollTo(0, index * 60);
         }
     }

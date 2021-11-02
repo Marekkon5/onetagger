@@ -194,6 +194,7 @@ class OneTagger {
             "version": false,
             "remixer": false,
             "trackNumber": false,
+            "catalogNumber": false,
             "metaTags": false,
             "separators": {id3: ', ', vorbis: null, mp4: ', '},
             "id3v24": true,
@@ -203,7 +204,6 @@ class OneTagger {
             "mergeGenres": false,
             "albumArtFile": false,
             "camelot": false,
-            "catalogNumber": false,
             "parseFilename": false,
             "filenameTemplate": "%artists% - %title%",
             "shortTitle": false,
@@ -419,8 +419,7 @@ class OneTagger {
     // SHOULD BE OVERWRITTEN
     onError(msg) {console.error(msg);}
     onTaggingDone() {}
-    onQTUnsavedChanges() {}
-    onQTNoteTag() {}
+    onQuickTagEvent() {}
     onTagEditorEvent() {}
     onAudioFeaturesEvent() {}
 
@@ -551,7 +550,7 @@ class OneTagger {
         }
         // Prompt for unsaved changes
         this._nextQTTrack = track;
-        this.onQTUnsavedChanges();
+        this.onQuickTagEvent('onUnsavedChanges');
     }
     // Save quickTagTrack
     async saveQTTrack() {
@@ -626,10 +625,10 @@ class OneTagger {
                 let i = this.quickTag.tracks.findIndex((t) => t.path == this.quickTag.track.path);
                 // Skip tracks using arrow keys
                 if (event.key == 'ArrowUp' && i > 0) {
-                    this.loadQTTrack(this.quickTag.tracks[i-1]);
+                    this.onQuickTagEvent('changeTrack', -1);
                 }
                 if (event.key == 'ArrowDown' && i >= 0 && i < this.quickTag.tracks.length - 1) {
-                    this.loadQTTrack(this.quickTag.tracks[i+1]);
+                    this.onQuickTagEvent('changeTrack', 1);
                 }
                 return true;
             }

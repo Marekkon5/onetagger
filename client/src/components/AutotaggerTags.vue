@@ -35,7 +35,7 @@
 
     <!-- Tags -->
     <div class='text-h5 q-mt-lg text-grey-4'>Select tags</div>
-    <div class='row justify-center' style='width: 100%;'>
+    <div class='row justify-center q-mb-md' style='width: 100%;'>
         <div class='row justify-between q-ml-xl tags wrap'>
             <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.albumArt'></q-checkbox>
             <q-checkbox class='tag checkbox text-grey-4' label='Genre' v-model='$1t.config.genre'></q-checkbox>
@@ -77,10 +77,16 @@
                     <q-tooltip content-style="font-size: 13px">Adds a 1T_TAGGEDDATE tag with timestamp</q-tooltip>
                 </q-icon>
             </q-checkbox>            
-            <!-- TODO: Cleaner way to disable checkboxes if given platform doesn't support the tag -->
         </div>
-
     </div>
+
+    <!-- Convenience toggles -->
+    <div class='row justify-center q-mb-xl'>
+        <q-btn color='primary' class='q-mx-sm' @click='toggleTags("enableAll")'>Enable All</q-btn>
+        <q-btn color='primary' class='q-mx-sm' @click='toggleTags("disableAll")'>Disable All</q-btn>
+        <q-btn color='primary' class='q-mx-sm' @click='toggleTags("toggle")'>Toggle</q-btn>
+    </div>
+
 </div>
 </template>
 
@@ -94,6 +100,9 @@ const SUPPORTED_TAGS = {
     junodownload: ['bpm'],
     beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version']
 }
+const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
+    'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
+    'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber'];
 
 export default {
     name: 'AutotaggerTags',
@@ -109,6 +118,22 @@ export default {
                     return true;
             }
             return false;
+        },
+        // Enable/Disable/Toggle all tags
+        toggleTags(mode) {
+            for (let tag of ALL_TAGS) {
+                switch (mode) {
+                    case 'enableAll':
+                        this.$1t.config[tag] = true;
+                        break;
+                    case 'disableAll':
+                        this.$1t.config[tag] = false;
+                        break;
+                    case 'toggle':
+                        this.$1t.config[tag] = !this.$1t.config[tag];
+                        break;
+                }
+            }
         }
     },
 }
