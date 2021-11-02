@@ -59,14 +59,14 @@ export default {
                     name: 'Discogs',
                     value: 'discogs',
                     enabled: false,
-                    description: '<b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~25 tracks / min) & requires a free account</b>',
+                    description: 'Slow due rate limits (~25 tracks / min) & requires a free account',
                     image: require('../assets/discogs.png')
                 },
                 {
                     name: 'iTunes',
                     value: 'itunes',
                     enabled: false,
-                    description: '<b class="text-subtitle3 text-grey-4">Process is slow due rate limits (~20 tracks / min)</b>',
+                    description: 'Slow due rate limits (~20 tracks / min)',
                     image: require('../assets/itunes.png')
                 },
                 {

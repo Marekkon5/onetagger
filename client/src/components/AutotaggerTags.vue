@@ -37,38 +37,46 @@
     <div class='text-h5 q-mt-lg text-grey-4'>Select tags</div>
     <div class='row justify-center' style='width: 100%;'>
         <div class='row justify-between q-ml-xl tags wrap'>
-            <q-checkbox class='tag checkbox text-grey-4' label='Title' v-model='$1t.config.title'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Artist' v-model='$1t.config.artist'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.albumArt'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Genre' v-model='$1t.config.genre'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Album' v-model='$1t.config.album'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Label' v-model='$1t.config.label'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox :disabled='!traxsource && !beatport && !junodownload' class='tag checkbox text-grey-4' label='BPM' v-model='$1t.config.bpm'></q-checkbox>
-            <q-checkbox :disabled='!traxsource && !beatport' class='tag checkbox text-grey-4' label='Initial Key' v-model='$1t.config.key'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox class='tag checkbox text-grey-4' label='Genre' v-model='$1t.config.genre'></q-checkbox>
-            <q-checkbox :disabled='!discogs && !beatport' class='tag checkbox text-grey-4' label='Style / Subgenre' v-model='$1t.config.style'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox class='tag checkbox text-grey-4' label='Release Date' v-model='$1t.config.releaseDate'></q-checkbox>
-            <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Publish Date' v-model='$1t.config.publishDate'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox class='tag checkbox text-grey-4' label='URLs' v-model='$1t.config.url'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.albumArt'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.catalogNumber'></q-checkbox>
-            <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Other' v-model='$1t.config.otherTags'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox :disabled='!beatport && !traxsource' class='tag checkbox text-grey-4' label='Track ID' v-model='$1t.config.trackId'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Release ID' v-model='$1t.config.releaseId'></q-checkbox>
-            <div class='flex-break'></div>
-            <q-checkbox :disabled='!beatport && !traxsource' class='tag checkbox text-grey-4' label='Version' v-model='$1t.config.version'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Duration' v-model='$1t.config.duration'></q-checkbox>
+            <q-checkbox :disabled='!isSupported("style")' class='tag checkbox text-grey-4' label='Style / Subgenre' v-model='$1t.config.style'></q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Album Artist' v-model='$1t.config.albumArtist'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='OneTagger Meta Tags' v-model='$1t.config.metaTags'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Label' v-model='$1t.config.label'></q-checkbox>
             <div class='flex-break'></div>
-            <q-checkbox :disabled='!beatport' class='tag checkbox text-grey-4' label='Remixers' v-model='$1t.config.remixer'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Artist' v-model='$1t.config.artist'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Release ID' v-model='$1t.config.releaseId'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox :disabled='!isSupported("remixers")' class='tag checkbox text-grey-4' label='Remixers' v-model='$1t.config.remixer'></q-checkbox>
+            <q-checkbox :disabled='!isSupported("trackId")' class='tag checkbox text-grey-4' label='Track ID' v-model='$1t.config.trackId'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox class='tag checkbox text-grey-4' label='Title' v-model='$1t.config.title'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.catalogNumber'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox :disabled='!isSupported("version")' class='tag checkbox text-grey-4' label='Version' v-model='$1t.config.version'></q-checkbox>
             <q-checkbox class='tag checkbox text-grey-4' label='Track Number' v-model='$1t.config.trackNumber'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox :disabled='!isSupported("bpm")' class='tag checkbox text-grey-4' label='BPM' v-model='$1t.config.bpm'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Duration' v-model='$1t.config.duration'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox :disabled='!isSupported("key")' class='tag checkbox text-grey-4' label='Key' v-model='$1t.config.key'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='URLs' v-model='$1t.config.url'></q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox :disabled='!isSupported("publishDate")' class='tag checkbox text-grey-4' label='Publish Date' v-model='$1t.config.publishDate'></q-checkbox>
+            <q-checkbox :disabled='!isSupported("other")' class='tag checkbox text-grey-4' label='Other' v-model='$1t.config.otherTags'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs' style='margin-top: -2px;'>
+                    <q-tooltip content-style="font-size: 13px">Other tags are depending on the selected platforms</q-tooltip>
+                </q-icon>
+            </q-checkbox>
+            <div class='flex-break'></div>
+            <q-checkbox class='tag checkbox text-grey-4' label='Release Date' v-model='$1t.config.releaseDate'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='One Tagger Tag' v-model='$1t.config.metaTags'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                    <q-tooltip content-style="font-size: 13px">Adds a 1T_TAGGEDDATE tag with timestamp</q-tooltip>
+                </q-icon>
+            </q-checkbox>            
             <!-- TODO: Cleaner way to disable checkboxes if given platform doesn't support the tag -->
         </div>
 
@@ -79,29 +87,29 @@
 <script>
 import PlaylistDropZone from './PlaylistDropZone.vue';
 
+const SUPPORTED_TAGS = {
+    beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other'],
+    discogs: ['style'],
+    traxsource: ['trackId', 'version', 'bpm', 'key'],
+    junodownload: ['bpm']
+}
+
 export default {
     name: 'AutotaggerTags',
     components: {PlaylistDropZone},
     methods: {
         browse() {
             this.$1t.send('browse', {context: 'at', path: this.$1t.config.path});
+        },
+        // Check if tag is supported on selected platforms
+        isSupported(tag) {
+            for (let platform of this.$1t.config.platforms) {
+                if (SUPPORTED_TAGS[platform].includes(tag))
+                    return true;
+            }
+            return false;
         }
     },
-    computed: {
-        //Quick check if platforms enabled
-        beatport() {
-            return this.$1t.config.platforms.includes('beatport');
-        },
-        traxsource() {
-            return this.$1t.config.platforms.includes('traxsource');
-        },
-        discogs() {
-            return this.$1t.config.platforms.includes('discogs');
-        },
-        junodownload() {
-            return this.$1t.config.platforms.includes('junodownload');
-        }
-    }
 }
 </script>
 
