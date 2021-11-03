@@ -83,6 +83,7 @@ pub struct TaggerConfig {
     pub album_artist: bool,
     pub remixer: bool,
     pub track_number: bool,
+    pub isrc: bool,
     // 1T meta tags
     pub meta_tags: bool,
 
@@ -196,6 +197,7 @@ pub struct Track {
     pub duration: Duration,
     pub remixers: Vec<String>,
     pub track_number: Option<TrackNumber>,
+    pub isrc: Option<String>,
     
     // Only year OR date should be available
     pub release_year: Option<i64>,
@@ -402,6 +404,10 @@ impl Track {
         // Remixers
         if config.remixer && !self.remixers.is_empty() {
             tag.set_field(Field::Remixer, self.remixers.clone(), config.overwrite);
+        }
+        // ISRC
+        if config.isrc && self.isrc.is_some() {
+            tag.set_field(Field::ISRC, vec![self.isrc.clone().unwrap()], config.overwrite);
         }
         // Track number
         if config.track_number && self.track_number.is_some() {

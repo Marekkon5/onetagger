@@ -154,6 +154,7 @@ impl Into<Track> for Recording {
             duration: self.length.map(|l| Duration::from_millis(l)).unwrap_or(Duration::ZERO),
             release_year: self.first_release_date.clone().map(|d| (d.len() >= 4).then(|| d[0..4].parse().ok()).flatten()).flatten(),
             release_date: self.first_release_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok()).flatten(),
+            isrc: self.isrcs.map(|v| v.first().map(String::from)).flatten(),
             ..Default::default()
         }
     }

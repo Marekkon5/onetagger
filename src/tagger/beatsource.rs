@@ -115,6 +115,7 @@ impl BeatsourceTrack {
             duration: self.length_ms.map(|ms| Duration::from_millis(ms)).unwrap_or(Duration::ZERO),
             remixers: self.remixers.into_iter().map(|r| r.name).collect(),
             release_date: NaiveDate::parse_from_str(&self.publish_date, "%Y-%m-%d").ok(),
+            isrc: self.isrc,
             ..Default::default()
         }
     }

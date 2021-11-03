@@ -151,7 +151,8 @@ pub struct BeatportTrack {
 pub struct BeatportAPITrack {
     pub slug: String,
     pub id: i64,
-    pub number: i32
+    pub number: i32,
+    pub isrc: Option<String>
 }
 
 impl BeatportTrack {
@@ -196,7 +197,8 @@ impl BeatportTrack {
             release_id: self.release.id.to_string(),
             duration: self.duration.to_duration(),
             remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect(),
-            track_number: None
+            track_number: None,
+            isrc: None
         }
     }
 
@@ -335,11 +337,12 @@ impl TrackMatcher for Beatport {
                             }
                         }
                         // Data from API for track number
-                        if config.track_number {
+                        if config.track_number || config.isrc {
                             info!("Fetching track info from API for track number!");
                             match self.fetch_track_embed(res.tracks[i].id) {
                                 Ok(t) => {
                                     track.track_number = Some(t.number.into());
+                                    track.isrc = t.isrc;
                                 },
                                 Err(e) => warn!("Beatport failed fetching full API track data for track number! {}", e)
                             }

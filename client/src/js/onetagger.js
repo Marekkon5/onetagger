@@ -195,6 +195,7 @@ class OneTagger {
             "remixer": false,
             "trackNumber": false,
             "catalogNumber": false,
+            "isrc": false,
             "metaTags": false,
             "separators": {id3: ', ', vorbis: null, mp4: ', '},
             "id3v24": true,

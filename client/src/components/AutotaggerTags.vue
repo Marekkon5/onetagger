@@ -76,7 +76,10 @@
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
                     <q-tooltip content-style="font-size: 13px">Adds a 1T_TAGGEDDATE tag with timestamp</q-tooltip>
                 </q-icon>
-            </q-checkbox>            
+            </q-checkbox>
+            <div class='flex-break'></div>  
+            <q-checkbox class='tag checkbox text-grey-4' label='ISRC' v-model='$1t.config.isrc'></q-checkbox>
+     
         </div>
     </div>
 
@@ -94,11 +97,12 @@
 import PlaylistDropZone from './PlaylistDropZone.vue';
 
 const SUPPORTED_TAGS = {
-    beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other'],
+    beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other', 'isrc'],
     discogs: ['style'],
     traxsource: ['trackId', 'version', 'bpm', 'key'],
     junodownload: ['bpm'],
-    beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version']
+    beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
+    musicbrainz: ['isrc']
 }
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
