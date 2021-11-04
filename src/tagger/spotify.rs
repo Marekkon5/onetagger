@@ -39,7 +39,7 @@ impl Spotify {
             .client_id(client_id)
             .client_secret(client_secret)
             .scope("user-read-private")
-            .redirect_uri(&format!("http://localhost:{}/spotify", CALLBACK_PORT))
+            .redirect_uri(&format!("http://127.0.0.1:{}/spotify", CALLBACK_PORT))
             .build()
     }
 
