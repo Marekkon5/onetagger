@@ -9,7 +9,7 @@
        
         <img svg-inline src="../assets/logo.svg" width='310px' height='100%' style='margin-top: 6%;'>
         
-        <div class='q-pt-lg text-subtitle1 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
+        <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.version}}</div>
         <span class='dotted-underline text-subtitle1 text-primary clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
@@ -50,7 +50,7 @@
                         </q-card-section>
                     </q-card>
                 </div>
-
+                
                 <div class="text-subtitle1" style="overflow: auto;">
                     <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
                         <q-card-section>
@@ -68,7 +68,7 @@
             </div>
 
         </div>
-           
+
         <div class="row bottom-line flex-center" style="width: 100%;">
             <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
                 Need help? Click on <span class='text-bold'>More info</span> buttons
@@ -81,9 +81,8 @@
             </div>
         </div>
     </div>
-            
-</div>
 
+</div>
 </template>
 
 <script>

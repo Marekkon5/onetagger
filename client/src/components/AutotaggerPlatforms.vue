@@ -80,8 +80,15 @@ export default {
                     name: 'Beatsource',
                     value: 'beatsource',
                     enabled: false,
-                    description: '//TODO image and description of beatsource',
-                    image: null //TODO image and description of beatsource
+                    description: 'Overall more specialized in open-format (Hip Hop/Latin/Dancehall)',
+                    image: require('../assets/beatsource.png')
+                },
+                {
+                    name: 'Spotify',
+                    value: 'spotify',
+                    enabled: false,
+                    description: '//TODO: Description and image',
+                    image: null //TODO: Description and image
                 }
             ]
         }

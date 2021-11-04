@@ -102,11 +102,12 @@ const SUPPORTED_TAGS = {
     traxsource: ['trackId', 'version', 'bpm', 'key'],
     junodownload: ['bpm'],
     beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
-    musicbrainz: ['isrc']
+    musicbrainz: ['isrc'],
+    spotify: ['isrc']
 }
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
-    'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber'];
+    'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber', 'isrc'];
 
 export default {
     name: 'AutotaggerTags',

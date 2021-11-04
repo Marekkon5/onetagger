@@ -2,28 +2,13 @@
 <div class='text-center af-wrapper'>
 
     <!-- Login -->
-    <div v-if='!spotifyAuthorized' class='af-content'>
+    <div v-if='!$1t.spotify.authorized' class='af-content'>
         <div class='text-h5 q-mt-md text-grey-4'>Setup</div>
-        <div class='text-subtitle1 text-grey-6 q-mt-md'>
-            <span class='text-grey-4'>1.</span> Open <span class='dotted-underline clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app<br>
-            <span class='text-grey-4'>2.</span> In settings set the Callback URL to: <span class='selectable text-grey-4'>{{redirectUrl}}</span> <br>
-            <span class='text-grey-4'>3.</span> Enter your Client ID and Client Secret below and press login <br>
-        </div>
-        <!-- Client ID and secret field -->
-        <form class='row q-mt-xl auth-container justify-evenly'>
-            <q-input v-model='clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
-            <q-input v-model='clientSecret' :type='$1t.info.os == "macos" ? "text" : "password"' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
-            <q-btn push color='primary' class='text-black' @click='authorize'>Login</q-btn>
-        </form>
-        <!-- Description -->
-        <div class='q-mt-xl text-subtitle2 text-grey-6'>
-            Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match<br>
-            More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
-        </div>
+        <SpotifyLogin></SpotifyLogin>
     </div>
 
     <!-- Logged in -->
-    <div v-if='spotifyAuthorized' class='af-content'>
+    <div v-if='$1t.spotify.authorized' class='af-content'>
         <!-- Path -->
         <div class='text-h5 q-mt-md q-mb-md text-grey-4'>Select folder</div>
         <q-input filled class='path-field inset-shadow-down' label='Path' v-model='config.path'>
@@ -127,15 +112,13 @@
 import TagFields from '../components/TagFields';
 import PlaylistDropZone from '../components/PlaylistDropZone.vue';
 import Separators from '../components/Separators.vue';
+import SpotifyLogin from '../components/SpotifyLogin.vue';
 
 export default {
     name: 'AudioFeatures',
-    components: {TagFields, PlaylistDropZone, Separators},
+    components: {TagFields, PlaylistDropZone, Separators, SpotifyLogin},
     data() {
         return {
-            clientId: this.$1t.settings.audioFeatures.spotifyClientId,
-            clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret,
-            spotifyAuthorized: false,
             playlist: {filename: null, data: null, format: null},
             config: {
                 path: null,
@@ -164,24 +147,13 @@ export default {
         }
     },
     methods: {
-        //Authorize spotify
-        authorize() {
-            this.$1t.send("spotifyAuthorize", {
-                clientId: this.clientId,
-                clientSecret: this.clientSecret
-            });
-            //Save
-            this.$1t.settings.audioFeatures.spotifyClientId = this.clientId;
-            this.$1t.settings.audioFeatures.spotifyClientSecret = this.clientSecret;
-            this.$1t.saveSettings();
-        },
-        //Browse folder
+        // Browse folder
         browse() {
             this.$1t.send('browse', {context: 'af', path: this.config.path});
         },
-        //Start tagging
+        // Start tagging
         start() {
-            //Save config
+            // Save config
             this.$1t.settings.audioFeatures.config = this.config;
             this.$1t.saveSettings();
 
@@ -189,34 +161,26 @@ export default {
             if (this.playlist && this.playlist.data)
                 playlist = this.playlist;
 
-            //Start
+            // Start
             this.config.type = 'audioFeatures';
             this.$1t.send('startTagging', {config: this.config, playlist});
             this.$router.push('/audiofeatures/status');
         }
     },
     mounted() {
-        //Load config from settings
+        // Load config from settings
         if (this.$1t.settings.audioFeatures.config) {
             let properties = Object.assign({}, this.config.properties, this.$1t.settings.audioFeatures.config.properties);
             this.config = Object.assign({}, this.config, this.$1t.settings.audioFeatures.config);
             this.config.properties = properties;
         }
-        //Register events
+        // Register events
         this.$1t.onAudioFeaturesEvent = (json) => {
             switch (json.action) {
                 case 'browse':
                     this.config.path = json.path;
                     break;
-                case 'spotifyAuthorized':
-                    this.spotifyAuthorized = json.value;
-                    break;
             }
-        }
-    },
-    computed: {
-        redirectUrl() {
-            return `http://${window.location.hostname}:36914/spotify`
         }
     }
 }

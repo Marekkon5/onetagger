@@ -121,9 +121,9 @@ class OneTagger {
                         this.onError('quickTagSaved: Invalid track');
                     }
                     break;
-                // Audio features Spotify
+                // Spotify
                 case 'spotifyAuthorized':
-                    this.onAudioFeaturesEvent(json);
+                    this.onSpotifyAuthEvent(json);
                     break;
                 // Debug
                 default:
@@ -227,7 +227,8 @@ class OneTagger {
             },
             "beatsource": {
                 "artResolution": 1400
-            }
+            },
+            "spotify": null
         });
         // Statuses
         this.taggerStatus = Vue.observable({
@@ -395,6 +396,13 @@ class OneTagger {
             tagEditorAutosave: false
         });
 
+        // Managing spotify login
+        this.spotify = Vue.observable({
+            clientId: null,
+            clientSecret: null,
+            authorized: false
+        })
+
         // If unsaved changes to track
         this._nextQTTrack = null;
         // Waveform loading lock
@@ -423,6 +431,7 @@ class OneTagger {
     onQuickTagEvent() {}
     onTagEditorEvent() {}
     onAudioFeaturesEvent() {}
+    onSpotifyAuthEvent() {}
 
     // Send to socket
     send(action, params = {}) {
@@ -463,10 +472,13 @@ class OneTagger {
         let config = mergeOptions({}, this.config, this.settings.autoTaggerConfig??{});
         Object.assign(this.config, config);
  
+        // Restore specific
         this.player.volume = this.settings.volume??0.5;
         this.setVolume(this.player.volume);
         colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');
         if (!this.settings.tagEditorCustom) this.settings.tagEditorCustom = [];
+        this.spotify.clientId = this.settings.audioFeatures.spotifyClientId;
+        this.spotify.clientSecret = this.settings.audioFeatures.spotifyClientSecret;
     }
 
     // Wrapper to prevent multiple waveforms

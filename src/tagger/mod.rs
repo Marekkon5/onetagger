@@ -41,9 +41,8 @@ pub enum MusicPlatform {
     ITunes,
     MusicBrainz,
     Beatsource,
-
-    // Currently only used in Audio Features
     Spotify,
+
     // For default
     None
 }
@@ -114,7 +113,8 @@ pub struct TaggerConfig {
     // Platform specific
     pub beatport: BeatportConfig,
     pub discogs: DiscogsConfig,
-    pub beatsource: BeatsourceConfig
+    pub beatsource: BeatsourceConfig,
+    pub spotify: Option<SpotifyConfig>,
 }
 
 // Beatport specific settings
@@ -132,6 +132,13 @@ pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
     pub track_number_int: bool
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpotifyConfig {
+    pub client_id: String,
+    pub client_secret: String
 }
 
 /// Beatsource specific settings
@@ -958,6 +965,36 @@ impl Tagger {
                             processed += 1;
                             // Send to UI
                             tx.send(TaggingStatusWrap::wrap(MusicPlatform::ITunes, &status, 
+                                platform_index, config.platforms.len(), processed, total
+                            )).ok();
+                            // Fallback
+                            if status.status == TaggingState::Ok {
+                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                            }
+                        }
+                    },
+                    MusicPlatform::Spotify => {
+                        // Login
+                        if config.spotify.is_none() {
+                            error!("Spotify authorization missing, skipping!");
+                            continue;
+                        }
+                        let spotify_config = config.spotify.clone().unwrap();
+                        let spotify = match spotify::Spotify::try_cached_token(&spotify_config.client_id, &spotify_config.client_secret) {
+                            Some(spotify) => spotify,
+                            None => {
+                                error!("Spotify not logged in, skipping!");
+                                continue;
+                            }
+                        };
+                        // Tagger
+                        let rx = Tagger::tag_dir_single_thread(&files, spotify, &config);
+                        info!("Starting Spotify");
+                        for status in rx {
+                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::Spotify, status.status, status.accuracy, status.path);
+                            processed += 1;
+                            // Send to UI
+                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::Spotify, &status, 
                                 platform_index, config.platforms.len(), processed, total
                             )).ok();
                             // Fallback

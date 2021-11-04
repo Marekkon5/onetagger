@@ -126,10 +126,20 @@ export default {
             this.$1t.saveSettings();
             this.$1t.config.type = 'autoTagger';
 
-            //Tag playlist rather than folder
+            // Tag playlist rather than folder
             let playlist = null;
             if (this.$1t.autoTaggerPlaylist && this.$1t.autoTaggerPlaylist.data)
                 playlist = this.$1t.autoTaggerPlaylist;
+
+            // Spotify auth
+            if (this.$1t.settings.audioFeatures.spotifyClientId && this.$1t.settings.audioFeatures.spotifyClientSecret) {
+                this.$1t.config.spotify = {
+                    clientId: this.$1t.settings.audioFeatures.spotifyClientId,
+                    clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret
+                }
+            } else {
+                this.$1t.config.spotify = null;
+            }
 
             this.$1t.send('startTagging', {
                 config: this.$1t.config,
@@ -139,9 +149,9 @@ export default {
         }
     },
     computed: {
-        //If tagging can be started
+        // If tagging can be started
         canStart() {
-            //Path or playlist & atleast 1 platform
+            // Path or playlist & atleast 1 platform
             return (this.$1t.config.path || (this.$1t.autoTaggerPlaylist && this.$1t.autoTaggerPlaylist.data)) && 
                 this.$1t.config.platforms.length > 0;
         }

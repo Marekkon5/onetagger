@@ -14,6 +14,8 @@ use rouille::{Server, router};
 
 use crate::ui::Settings;
 
+use super::{TrackMatcherST, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, TrackNumber};
+
 static CALLBACK_PORT: u16 = 36914;
 static CALLBACK_HTML: &'static str = "
 <html>
@@ -159,5 +161,34 @@ impl Spotify {
             }
         }
     }
+}
 
+impl TrackMatcherST for Spotify {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+        let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
+        let results = self.search_tracks(&query, 20)?;
+        let tracks: Vec<Track> = results.into_iter().map(|t| full_track_to_track(t)).collect();
+        let r = MatchingUtils::match_track(info, &tracks, config, true);
+        Ok(r)
+    }
+}
+
+fn full_track_to_track(track: FullTrack) -> Track {
+    Track {
+        platform: MusicPlatform::Spotify,
+        title: track.name,
+        version: None,
+        artists: track.artists.into_iter().map(|a| a.name).collect(),
+        album_artists: track.album.artists.into_iter().map(|a| a.name).collect(),
+        album: Some(track.album.name),
+        art: track.album.images.first().map(|i| i.url.to_string()),
+        url: format!("https://open.spotify.com/track/{}", track.id.clone().unwrap_or(String::new())),
+        track_id: track.id,
+        release_id: track.album.id.unwrap_or(String::new()),
+        duration: Duration::from_millis(track.duration_ms as u64),
+        track_number: Some(TrackNumber::Number(track.track_number as i32)),
+        isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
+        release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
+        ..Default::default()
+    }
 }

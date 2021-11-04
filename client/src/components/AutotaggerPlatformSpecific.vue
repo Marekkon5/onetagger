@@ -2,7 +2,7 @@
 <div class='text-center'>
 
     <!-- No settings available -->
-    <div v-if='!beatport && !discogs && !beatsource'>
+    <div v-if='!beatport && !discogs && !beatsource && !spotify'>
         <div class='text-h5 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
             No platform specific settings available for the selected platform(s)
         </div>
@@ -102,16 +102,26 @@
         ></q-select>
     </div>
 
+    <!-- Spotify -->
+    <div v-if='spotify' class='q-mb-xl'>
+        <div class='text-h5 text-grey-4'>Spotify</div>
+        <SpotifyLogin v-if='!$1t.spotify.authorized'></SpotifyLogin>
+        <div v-if='$1t.spotify.authorized'>
+            <div class='text-h6'>You are logged in to Spotify!</div>
+        </div>
+    </div>
+
 
 </div>
 </template>
 
 <script>
 import TagFields from './TagFields.vue';
+import SpotifyLogin from './SpotifyLogin.vue';
 
 export default {
     name: 'AutotaggerPlatformSpecific',
-    components: {TagFields},
+    components: {TagFields, SpotifyLogin},
     data() {
         return {
             resolutions: [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600],
@@ -147,6 +157,9 @@ export default {
         },
         beatsource() {
             return this.$1t.config.platforms.includes('beatsource');
+        },
+        spotify() {
+            return this.$1t.config.platforms.includes('spotify');
         }
     },
 }

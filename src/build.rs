@@ -34,7 +34,7 @@ fn get_commit() {
             String::new()
         }
     };
-    //  Trim
+    // Trim
     if commit.len() > 8 {
         commit = commit[..8].to_string()
     }
