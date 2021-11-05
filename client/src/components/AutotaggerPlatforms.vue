@@ -87,8 +87,8 @@ export default {
                     name: 'Spotify',
                     value: 'spotify',
                     enabled: false,
-                    description: '//TODO: Description and image',
-                    image: null //TODO: Description and image
+                    description: 'Requires a free account',
+                    image: require('../assets/spotify.png')
                 }
             ]
         }

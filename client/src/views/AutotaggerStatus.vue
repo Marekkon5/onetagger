@@ -9,7 +9,7 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-check' round :color='filter == "ok" ? "primary" : "green"' @click='toggleFilter("ok")'>
+                            <q-btn icon='mdi-check' round :color='filter == "ok" ? "primary" : "green"' class='text-black' @click='toggleFilter("ok")'>
                                 <q-tooltip content-style="font-size: 13px">
                                     Total amount found
                                 </q-tooltip>
@@ -27,7 +27,7 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-alert-circle' round :color='filter == "error" ? "primary" : "red"' @click='toggleFilter("error")'>
+                            <q-btn icon='mdi-alert-circle-outline' round :color='filter == "error" ? "primary" : "red"' class='text-black' @click='toggleFilter("error")'>
                                 <q-tooltip content-style="font-size: 13px">
                                     Total amount not found
                                 </q-tooltip>
@@ -104,11 +104,11 @@
                     <q-item-section>
                         <q-item-label overline>
                             <span>
-                                <span v-if='$1t.taggerStatus.type != "audioFeatures"' class='selectable text-grey-6'>{{platformText(item.platform)}}</span>
+                                <span v-if='$1t.taggerStatus.type != "audioFeatures"' class='selectable text-white'>{{platformText(item.platform)}}</span>
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'></q-icon>
                             </span>
                         </q-item-label>
-                        <span class='selectable'>{{item.status.path}}</span>
+                        <span class='selectable text-grey-5'>{{item.status.path}}</span>
                     </q-item-section>
                 </q-item>
             </template>

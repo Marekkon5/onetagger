@@ -9,7 +9,7 @@
        
         <img svg-inline src="../assets/logo.svg" width='310px' height='100%' style='margin-top: 6%;'>
         
-        <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
+        <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate <span class='text-weight-bold'>cross-platform</span> music tagger for DJs</div>
         
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.version}}</div>
         <span class='dotted-underline text-subtitle1 text-primary clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
