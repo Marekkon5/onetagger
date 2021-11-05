@@ -5,6 +5,11 @@
     <div v-if='!$1t.spotify.authorized' class='af-content'>
         <div class='text-h5 q-mt-md text-grey-4'>Setup</div>
         <SpotifyLogin></SpotifyLogin>
+        <!-- Description -->
+        <div class='q-mt-xl text-subtitle2 text-grey-6'>
+            Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match<br>
+            More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
+        </div>
     </div>
 
     <!-- Logged in -->

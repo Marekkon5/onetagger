@@ -17,7 +17,7 @@
                 <div v-if='filename'>
                     <q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs' color='primary'></q-icon>
                     <span class='text-subtitle1 text-grey-4'>{{filename}}</span>
-                    <q-btn @click='remove' icon='mdi-close' color='red' flat round class='q-ml-sm q-mb-xs'></q-btn>
+                    <q-btn @click='remove' icon='mdi-delete' color='red' flat round class='q-ml-sm q-mb-xs'></q-btn>
                 </div>
             </div>
         </q-card-section>

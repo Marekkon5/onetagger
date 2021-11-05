@@ -215,6 +215,7 @@ class OneTagger {
             "postCommand": null,
             "stylesOptions": "default",
             "trackNumberLeadingZeroes": 0,
+            "enableShazam": false,
             "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
             "beatport": {
                 "artResolution": 500,

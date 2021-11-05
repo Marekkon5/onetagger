@@ -11,11 +11,6 @@
         <q-input v-model='$1t.spotify.clientSecret' :type='$1t.info.os == "macos" ? "text" : "password"' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
         <q-btn push color='primary' class='text-black' @click='authorize'>Login</q-btn>
     </form>
-    <!-- Description -->
-    <div class='q-mt-xl text-subtitle2 text-grey-6'>
-        Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match<br>
-        More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
-    </div>
 </div>
 </template>
 

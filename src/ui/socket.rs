@@ -67,6 +67,7 @@ impl TaggerConfigs {
             TaggerConfigs::AutoTagger(c) => {
                 let mut c = c.clone();
                 c.discogs.token = None;
+                c.spotify = None;
                 info!("AutoTagger config: {:?}", c);
             },
             TaggerConfigs::AudioFeatures(c) => {

@@ -21,6 +21,7 @@ use serde::{Serialize, Deserialize};
 use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, TagSeparators, EXTENSIONS};
 use crate::ui::{OTError, Settings};
 use crate::ui::player::AudioSources;
+use shazam::Shazam;
 
 pub mod beatport;
 pub mod traxsource;
@@ -30,6 +31,7 @@ pub mod spotify;
 pub mod itunes;
 pub mod musicbrainz;
 pub mod beatsource;
+pub mod shazam;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -109,6 +111,7 @@ pub struct TaggerConfig {
     // Option to prevent update errors
     pub styles_custom_tag: Option<UITag>,
     pub track_number_leading_zeroes: usize,
+    pub enable_shazam: bool,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -611,7 +614,7 @@ impl AudioFileInfo {
     }
 
     // Try to split artist string with common separators
-    fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
+    pub fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
         // Already an array
         if input.len() > 1 {
             return input.into_iter().map(|v| v.to_owned()).collect();
@@ -1110,51 +1113,81 @@ impl Tagger {
             }
         }
 
-        match AudioFileInfo::load_file(path, template) {
-            Ok(mut info) => {
-                //  Load duration for matching
-                if config.match_duration {
-                    info.load_duration();
-                }
-                // Match track
-                let result = if let Some(tagger) = tagger_mt {
-                    tagger.match_track(&info, &config)
-                } else if let Some(tagger) = tagger_st {
-                    tagger.match_track(&info, &config)
-                } else {
-                    out.message = Some("No tagger!".to_owned());
-                    return out;
-                };
-                match result {
-                    Ok(o) => {
-                        match o {
-                            Some((acc, track)) => {
-                                // Save to file
-                                match track.write_to_file(&info, &config) {
-                                    Ok(_) => {
-                                        out.accuracy = Some(acc);
-                                        out.status = TaggingState::Ok;
-                                    },
-                                    Err(e) => out.message = Some(format!("Failed writing tags to file: {}", e))
-                                }
-                            },
-                            None => out.message = Some("No match!".to_owned())
-                        }
-                    },
-                    // Failed matching track
-                    Err(e) => {
-                        error!("Matching error: {} ({})", e, path);
-                        out.message = Some(format!("Error marching track: {}", e));
-                    }
-                }
-            },
+        // Load track audio file info
+        let mut info = match AudioFileInfo::load_file(path, template) {
+            Ok(info) => info,
             // Failed loading file
             Err(e) => {
-                out.status = TaggingState::Skipped;
-                warn!("Error loading file: {}", e);
-                out.message = Some(format!("Error loading file: {}", e));
+                // Try shazam if enabled
+                if config.enable_shazam {
+                    info!("Recognizing on Shazam: {}", path);
+                    match Shazam::recognize_from_file(path) {
+                        Ok((shazam_track, duration)) => {
+                            info!("Recognized on Shazam: {}: {} - {}", path, shazam_track.title, shazam_track.subtitle);
+                            AudioFileInfo {
+                                title: Some(shazam_track.title),
+                                artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),
+                                format: AudioFileFormat::from_extension(path.split(".").last().unwrap()).unwrap(),
+                                path: path.to_string(),
+                                isrc: Some(shazam_track.isrc),
+                                duration: Some(Duration::from_millis(duration as u64)),
+                                track_number: None,
+                                ids: Default::default(),
+                            }
+                        },
+                        // Mark as failed
+                        Err(e) => {
+                            warn!("Shazam failed: {}", e);
+                            out.status = TaggingState::Skipped;
+                            out.message = Some(format!("Error loading file: {}", e));
+                            return out;
+                        }
+                    }
+                } else {
+                    out.status = TaggingState::Skipped;
+                    warn!("Error loading file: {}", e);
+                    out.message = Some(format!("Error loading file: {}", e));
+                    return out;
+                }
+            }
+        };
+
+        // Load duration for matching
+        if config.match_duration {
+            info.load_duration();
+        }
+        // Match track
+        let result = if let Some(tagger) = tagger_mt {
+            tagger.match_track(&info, &config)
+        } else if let Some(tagger) = tagger_st {
+            tagger.match_track(&info, &config)
+        } else {
+            out.message = Some("No tagger!".to_owned());
+            return out;
+        };
+        match result {
+            Ok(o) => {
+                match o {
+                    Some((acc, track)) => {
+                        // Save to file
+                        match track.write_to_file(&info, &config) {
+                            Ok(_) => {
+                                out.accuracy = Some(acc);
+                                out.status = TaggingState::Ok;
+                            },
+                            Err(e) => out.message = Some(format!("Failed writing tags to file: {}", e))
+                        }
+                    },
+                    None => out.message = Some("No match!".to_owned())
+                }
+            },
+            // Failed matching track
+            Err(e) => {
+                error!("Matching error: {} ({})", e, path);
+                out.message = Some(format!("Error marching track: {}", e));
             }
         }
+
         out
     }
 

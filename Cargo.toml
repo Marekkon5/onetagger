@@ -41,7 +41,7 @@ threadpool = "1.8"
 serde_json = "1.0"
 lazy_static = "1.4"
 minify-html = "0.6"
-tungstenite = "0.15"
+tungstenite = "0.16"
 urlencoding = "2.1"
 directories = "4.0"
 mp3-duration = "0.1"
@@ -55,6 +55,7 @@ reqwest = { version = "0.11", features = ["json", "blocking"] }
 
 id3 = { git = "https://github.com/polyfloyd/rust-id3.git" }
 rspotify = { git = "https://github.com/Marekkon5/rspotify", branch = "0.10-fix", features = ["blocking"] }
+songrec = { git = "https://github.com/Marekkon5/SongRec" }
 
 [target.'cfg(windows)'.dependencies]
 winit = "0.25"

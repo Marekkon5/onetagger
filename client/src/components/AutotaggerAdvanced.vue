@@ -43,6 +43,12 @@
             v-model='$1t.config.matchById'
         ></AdvancedSettingsToggle>
 
+        <AdvancedSettingsToggle 
+            label='Enable Shazam'
+            tooltip='Match tracks without any tags on Shazam'
+            v-model='$1t.config.enableShazam'
+        ></AdvancedSettingsToggle>
+
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 
             label='Parse metadata from filename'

@@ -130,6 +130,19 @@ pub enum AudioFileFormat {
     FLAC, AIFF, MP3, MP4
 }
 
+impl AudioFileFormat {
+    // Recognize format from extension
+    pub fn from_extension(ext: &str) -> Option<AudioFileFormat> {
+        match &ext.to_lowercase()[..] {
+            "flac" => Some(AudioFileFormat::FLAC),
+            "aiff" | "aif" => Some(AudioFileFormat::AIFF),
+            "mp3" => Some(AudioFileFormat::MP3),
+            "m4a" | "mp4" => Some(AudioFileFormat::MP4),
+            _ => None
+        }
+    }
+}
+
 // Tag fields from UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
