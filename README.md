@@ -23,8 +23,8 @@ sudo apt install libsndfile1-dev
 ```
 
 ## Credits
-Bas Curtiz - UI, Idea, Help
-SongRec - https://github.com/marin-m/SongRec
+Bas Curtiz - UI, Idea, Help  
+SongRec (Shazam support) - https://github.com/marin-m/SongRec
 
 ## Support
 You can support this project by donating on [PayPal](https://paypal.me/marekkon5) or [Patreon](https://www.patreon.com/onetagger)
