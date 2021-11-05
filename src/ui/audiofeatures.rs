@@ -132,7 +132,7 @@ impl AudioFeatures {
                 let mut status = TaggingStatus {
                     status: TaggingState::Error,
                     path: file.to_owned(),
-                    message: None, accuracy: None
+                    message: None, accuracy: None, used_shazam: false
                 };
                 // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None) {

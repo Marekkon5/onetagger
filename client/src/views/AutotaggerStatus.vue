@@ -105,6 +105,7 @@
                         <q-item-label overline>
                             <span>
                                 <span v-if='$1t.taggerStatus.type != "audioFeatures"' class='selectable text-white'>{{platformText(item.platform)}}</span>
+                                <img width='14' class='q-ml-sm' style='margin-bottom: -2px;' v-if='item.status.usedShazam' :src='require("../assets/shazam_icon.svg")' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'></q-icon>
                             </span>
                         </q-item-label>

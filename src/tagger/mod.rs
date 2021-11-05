@@ -877,6 +877,7 @@ pub struct TaggingStatus {
     pub path: String,
     pub message: Option<String>,
     pub accuracy: Option<f64>,
+    pub used_shazam: bool,
 }
 
 // Wrap for sending into UI
@@ -1102,7 +1103,8 @@ impl Tagger {
             status: TaggingState::Error,
             path: path.to_owned(),
             accuracy: None,
-            message: None
+            message: None,
+            used_shazam: false
         };
 
         // Filename template
@@ -1124,6 +1126,7 @@ impl Tagger {
                     match Shazam::recognize_from_file(path) {
                         Ok((shazam_track, duration)) => {
                             info!("Recognized on Shazam: {}: {} - {}", path, shazam_track.title, shazam_track.subtitle);
+                            out.used_shazam = true;
                             AudioFileInfo {
                                 title: Some(shazam_track.title),
                                 artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),

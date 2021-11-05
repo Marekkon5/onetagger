@@ -43,11 +43,15 @@
             v-model='$1t.config.matchById'
         ></AdvancedSettingsToggle>
 
-        <AdvancedSettingsToggle 
-            label='Enable Shazam'
-            tooltip='Match tracks without any tags on Shazam'
-            v-model='$1t.config.enableShazam'
-        ></AdvancedSettingsToggle>
+        <div class='row'>
+            <img width='16' class='q-ml-md' :src='require("../assets/shazam_icon.svg")' />
+            <AdvancedSettingsToggle 
+                label='Enable Shazam'
+                tooltip='Match tracks without any tags on Shazam'
+                v-model='$1t.config.enableShazam'
+                style='width: calc(100% - 34px)'
+            ></AdvancedSettingsToggle>
+        </div>
 
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 

@@ -47,7 +47,7 @@ pub struct ShazamResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShazamTrack {
     pub albumadamid: String,
-    pub artists: Vec<ShazamSmall>,
+    pub artists: Option<Vec<ShazamSmall>>,
     pub genres: ShazamGenres,
     pub images: ShazamImages,
     pub isrc: String,
