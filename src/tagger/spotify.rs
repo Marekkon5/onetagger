@@ -5,6 +5,7 @@ use std::thread::sleep;
 use rspotify::blocking::oauth2::{SpotifyClientCredentials, SpotifyOAuth};
 use rspotify::blocking::util::get_token_by_code;
 use rspotify::blocking::client;
+use rspotify::model::album::FullAlbum;
 use rspotify::senum::SearchType;
 use rspotify::model::search::SearchResult;
 use rspotify::model::track::FullTrack;
@@ -151,6 +152,7 @@ impl Spotify {
         }
     }
 
+    /// Fetch audio features for track id
     pub fn audio_features(&self, id: &str) -> Result<AudioFeatures, Box<dyn Error>> {
         match self.spotify.audio_features(id) {
             Ok(f) => Ok(f),
@@ -161,6 +163,18 @@ impl Spotify {
             }
         }
     }
+
+    /// Fetch full album
+    pub fn album(&self, id: &str) -> Result<FullAlbum, Box<dyn Error>> {
+        match self.spotify.album(id) {
+            Ok(a) => Ok(a),
+            Err(e) => {
+                // Handle error and retry on rate limit
+                self.handle_rspotify_error(e)?;
+                self.album(id)
+            }
+        }
+    }
 }
 
 impl TrackMatcherST for Spotify {
@@ -168,8 +182,19 @@ impl TrackMatcherST for Spotify {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search_tracks(&query, 20)?;
         let tracks: Vec<Track> = results.into_iter().map(|t| full_track_to_track(t)).collect();
-        let r = MatchingUtils::match_track(info, &tracks, config, true);
-        Ok(r)
+        if let Some((acc, mut track)) = MatchingUtils::match_track(info, &tracks, config, true) {
+            // Fetch album
+            if config.label {
+                match self.album(&track.release_id) {
+                    Ok(album) => {
+                        track.label = album.label;
+                    }
+                    Err(e) => warn!("Failed to fetch album data: {}", e),
+                }
+            }
+            return Ok(Some((acc, track)));
+        }
+        Ok(None)
     }
 }
 

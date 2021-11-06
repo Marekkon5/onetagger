@@ -44,7 +44,7 @@
         ></AdvancedSettingsToggle>
 
         <div class='row'>
-            <img width='16' class='q-ml-md' :src='require("../assets/shazam_icon.svg")' />
+            <img width='16' class='q-ml-md' src='../assets/shazam_icon.svg' svg-inline />
             <AdvancedSettingsToggle 
                 label='Enable Shazam'
                 tooltip='Match tracks without any tags on Shazam'

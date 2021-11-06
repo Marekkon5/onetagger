@@ -31,7 +31,7 @@
                         ></q-chip>
                     </div>
                     <div class='col-6 text-grey-4'>
-                        <span>{{track.genres.join(", ")}}</span>
+                        <span>{{track.genre || track.genres.join(", ")}}</span>
                     </div>
                     <div class='col-1'>
                         <span>{{track.bpm}}</span>
