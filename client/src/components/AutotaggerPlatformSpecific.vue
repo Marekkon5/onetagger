@@ -3,75 +3,88 @@
 
     <!-- No settings available -->
     <div v-if='!beatport && !discogs && !beatsource && !spotify'>
-        <div class='text-h5 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
+        <div class='text-subtitle1 q-my-md text-grey-4' v-if='!$1t.settings.autoTaggerSinglePage'>
             No platform specific settings available for the selected platform(s)
         </div>
     </div>
 
     <!-- Beatport settings -->
-    <div v-if='beatport' class='q-mb-xl'>
-        <div class='text-h5 text-grey-4'>Beatport</div>
+    <div v-if='beatport'>
+        <div class='text-h6 text-grey-4'>Beatport</div>
+        <div class='text-subtitle2 text-grey-6 q-mb-md'>Select album art resolution. Drag slider to set amount of search page results to scan for</div>
         <!-- Album art resolution -->
         <q-select 
             dark 
             standout='text-grey-4 bg-dark' 
             v-model='$1t.config.beatport.artResolution' 
             :options='resolutions' 
-            class='select' 
+            class='select'
             label='Album art resolution'
         ></q-select>
         <!-- Max pages -->
-        <div class='q-my-sm'>
+        <div class='q-my-lg'>
             <q-chip text-color='black' color='primary'>Max pages: {{$1t.config.beatport.maxPages}}
                 <q-tooltip content-style="font-size: 13px">
                     How many pages of search results to scan for tracks
                 </q-tooltip>
             </q-chip>
             <div class='row justify-center'>
-                <q-slider label-text-color='black' v-model='$1t.config.beatport.maxPages' :min='1' :max='10' label class='slider'></q-slider>
+                <q-slider 
+                    label-text-color='black' 
+                    v-model='$1t.config.beatport.maxPages' 
+                    :min='1' 
+                    :max='10' 
+                    label 
+                    class='slider q-my-sm q-pb-lg col-10'
+                ></q-slider>
             </div>  
-        </div>
+        </div>        
+        <q-separator class='custom-separator' inset color="dark"/>
     </div>
 
+    
     <!-- Discogs -->
-    <div v-if='discogs' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md text-grey-4'>Discogs</div>
+    <div v-if='discogs'>
+        <div class='text-h6 q-mt-lg text-grey-4'>Discogs</div>
+        <div class='text-subtitle2 text-grey-6 q-mb-md'>Copy/paste Discogs token. Drag slider to set amount of album search results to check</div>
         <!-- Token -->
         <q-input
             dark
             standout='text-grey-4 bg-dark'
             v-model='$1t.config.discogs.token'
-            class='input'
+            class='input' 
             label='Token'
         >
             <template v-slot:append>
                 <q-icon name='mdi-help-circle-outline text-grey-6' size='xs'>
                     <q-tooltip content-style='font-size: 13px'>
-                        To obtain token, create a free account on discogs.com<br> More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
+                        To obtain token, create a free account on Discogs. More info? Click <q-icon style='padding-bottom: 4px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
                     </q-tooltip>
                 </q-icon>
             </template>
         </q-input>
         <!-- Max results -->
-        <div class='q-my-sm'>
+        <div class='q-my-lg'>
             <q-chip text-color='black' color='primary'>Max albums to check: {{$1t.config.discogs.maxResults}}
                 <q-tooltip content-style="font-size: 13px">
-                    How many albums (search results) to check<br>Due to rate limiting this increases tagging time by a lot
+                    How many albums in search results to check. Due to rate limiting this increases tagging time by a lot
                 </q-tooltip>
             </q-chip>
             <div class='row justify-center'>
-                <q-slider label-text-color='black' v-model='$1t.config.discogs.maxResults' :min='1' :max='16' label class='slider'></q-slider>
+                <q-slider label-text-color='black' v-model='$1t.config.discogs.maxResults' :min='1' :max='16' label class='slider q-my-sm q-pb-lg col-10'></q-slider>
             </div>
         </div>
         <!-- Track number as int -->
         <div>
-            <q-toggle v-model='$1t.config.discogs.trackNumberInt' label="Write track number as number, rather than Discogs's format"></q-toggle>
+            <q-toggle v-model='$1t.config.discogs.trackNumberInt' class='q-mb-lg' label="Write track number as number, rather than Discogs's format"><br></q-toggle>
         </div>
+        <q-separator class='q-mx-auto q-mt-xl custom-separator' inset color="dark"/>
     </div>
 
     <!-- Shared -->
-    <div v-if='discogs || beatport' class='q-mb-xl'>
-        <div class='text-h5 q-mt-md text-grey-4'>Discogs & Beatport</div>
+    <div v-if='discogs || beatport'>
+        <div class='text-h6 q-mt-lg text-grey-4'>Discogs / Beatport</div>
+        <div class='text-subtitle2 text-grey-6 q-mb-md'>Select Genres/Styles tag to fetch both, if it should merge them, or write elsewhere</div>
         <!-- Styles -->
         <q-select
             dark
@@ -83,14 +96,16 @@
             @input='updateStyleOption'
         ></q-select>
         <!-- Styles custom tag -->
-        <div v-if='$1t.config.stylesOptions == "customTag"' class='q-my-sm q-mx-md'>
+        <div v-if='$1t.config.stylesOptions == "customTag"'>
             <TagFields v-model='$1t.config.stylesCustomTag' class='input'></TagFields>
         </div>
+        <q-separator class='q-mx-auto q-mt-xl custom-separator' inset color="dark"/>
     </div>
 
     <!-- Beatsource settings -->
-    <div v-if='beatsource' class='q-mb-xl'>
-        <div class='text-h5 text-grey-4'>Beatsource</div>
+    <div v-if='beatsource'>
+        <div class='text-h6 q-mt-lg text-grey-4'>Beatsource</div>
+        <div class='text-subtitle2 text-grey-6 q-mb-md'>Select album art resolution</div>
         <!-- Album art resolution -->
         <q-select 
             dark 
@@ -100,15 +115,20 @@
             class='select' 
             label='Album art resolution'
         ></q-select>
+        <p><br></p>
+        <q-separator class='custom-separator' inset color="dark"/>
     </div>
 
     <!-- Spotify -->
-    <div v-if='spotify' class='q-mb-xl'>
-        <div class='text-h5 text-grey-4'>Spotify</div>
-        <SpotifyLogin v-if='!$1t.spotify.authorized'></SpotifyLogin>
-        <div v-if='$1t.spotify.authorized'>
-            <div class='text-h6'>You are logged in to Spotify!</div>
+    <div v-if='spotify'>
+        <div class='text-h6 q-mt-lg text-grey-4'>Spotify</div>
+        <div class='justify-center' style='max-width: 836px; margin: auto;'>
+            <SpotifyLogin v-if='!$1t.spotify.authorized'></SpotifyLogin>
         </div>
+        <div v-if='$1t.spotify.authorized'>
+            <div class='q-mt-xs text-h7 text-primary'>You are successfully logged in to Spotify</div>
+        </div>
+        <br>
     </div>
 
 
@@ -148,7 +168,7 @@ export default {
 
     },
     computed: {
-        //If enabled
+        // If enabled
         beatport() {
             return this.$1t.config.platforms.includes('beatport');
         },
@@ -164,3 +184,10 @@ export default {
     },
 }
 </script>
+
+<style>
+.custom-separator {
+    max-width: 550px;
+    margin: auto;
+}
+</style>

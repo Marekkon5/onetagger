@@ -9,10 +9,10 @@
        
         <img svg-inline src="../assets/logo.svg" width='310px' height='100%' style='margin-top: 6%;'>
         
-        <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate <span class='text-weight-bold'>cross-platform</span> music tagger for DJs</div>
+        <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.version}}</div>
-        <span class='dotted-underline text-subtitle1 text-primary clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
+        <span a class='doc-link text-subtitle1 clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
         <div class='q-pt-sm text-subtitle2 text-grey-4'>
             Developed by Marekkon5 & UI design by Bas Curtiz
         </div>
@@ -24,12 +24,11 @@
                     <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
                         <q-card-section>
                             <div class='col-3 text-primary text-bold'>AUTO TAG</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm'>
-                                Auto Tag lets you automatically tag from Beatport,
-                                Discogs, Junodownload & Traxsource, to your local
-                                audio files, based on Artist & Title tag, filename or playlist.<br>
+                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
+                                Automatically tag your local audio files, from several online platforms,
+                                based on <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> & <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag, filename or playlist. <br> Or identify tracks with <b>Shazam</b>.<br>
                                 
-                                <q-btn dense push color='primary' class='rounded-borders q-mt-md text-black text-weight-medium text-caption' @click='help("autotagger")'>More info</q-btn>
+                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("autotagger")'>Read more</q-btn>
                                 
                             </div>
                         </q-card-section>
@@ -40,12 +39,10 @@
                     <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
                         <q-card-section>
                             <div class='col-3 text-primary text-bold'>AUDIO FEATURES</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm'>
-                                Audio Features lets you automatically tag Spotify’s
-                                so called audio features to your local audio files,
-                                based on ISRC & exact match.
-                                (Free) Spotify account required.<br>
-                                <q-btn dense push color='primary' class='rounded-borders q-mt-md text-black text-weight-medium text-caption' @click='help("audiofeatures")'>More info</q-btn>
+                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
+                                Automatically tag your local audio files, with so called audio features by <b>Spotify</b>, based on <q-badge outline color='primary'><span class='text-white'>ISRC</span></q-badge> tag or exact match.<br>
+                                (free) account required.<br>
+                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("audiofeatures")'>Read more</q-btn>
                             </div>
                         </q-card-section>
                     </q-card>
@@ -55,12 +52,16 @@
                     <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
                         <q-card-section>
                             <div class='col-3 text-primary text-bold'>QUICK TAG</div>
-                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm'>
-                                Quick Tag lets you manually tag your local audio files, 
-                                based on energy, mood, genre & other characteristics
-                                you defined. Key bind compatible for quick access.<br>
+                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
+                                Manually tag your local audio files quickly
+                                based on 
+                                    <q-badge outline color='primary'><span class='text-white'>Energy</span></q-badge> , 
+                                    <q-badge outline color='primary'><span class='text-white'>Mood</span></q-badge> , 
+                                    <q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge>
+                                     & other characteristics
+                                you defined. <br> Key bind compatible for quick access.<br>
                                 
-                                <q-btn dense push color='primary' class='rounded-borders q-mt-md text-black text-weight-medium text-caption' @click='help("quicktag")'>More info</q-btn>
+                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("quicktag")'>Read more</q-btn>
                             </div>                
                         </q-card-section>            
                     </q-card>                    
@@ -71,7 +72,7 @@
 
         <div class="row bottom-line flex-center" style="width: 100%;">
             <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
-                Need help? Click on <span class='text-bold'>More info</span> buttons
+                Need help? Click on <span class='text-bold'>Read more</span> buttons
             </div>
             <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
                 Found a bug or have a request? Post it on <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'><img svg-inline src="../assets/github.svg" width='64px' style='margin-bottom: -2px;'></span>
@@ -108,7 +109,6 @@ export default {
     overflow: hidden;
     height: calc(100vh - 59px);
 }
-
 .getting-started-cards {
     position: relative;
     margin-top: 30px;
@@ -118,13 +118,19 @@ export default {
     position: absolute;
     bottom: 35px;    
 }
-
 .bg-image {
     max-width: 100%;    
     position: fixed;    
     z-index: -100;    
     animation: anim 30s infinite;
 }
+.doc-link {
+    color: var(--q-color-primary);
+}
+.doc-link:hover {
+    color: #f0f0f0;
+}
+
 @keyframes anim {
   0% {
     transform: scale(1,1);

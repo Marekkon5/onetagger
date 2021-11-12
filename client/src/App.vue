@@ -120,7 +120,7 @@
                                     {{ $1t.quickTag.track.title }}
                                 </div>
                             </div>
-                            <div class="text-caption full-width">
+                            <div class="text-caption full-width text-grey-5">
                                 <div
                                     v-if="$1t.quickTag.track"
                                     class="text-no-wrap overflow-hidden"

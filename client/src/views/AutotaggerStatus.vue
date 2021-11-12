@@ -105,7 +105,7 @@
                         <q-item-label overline>
                             <span>
                                 <span v-if='$1t.taggerStatus.type != "audioFeatures"' class='selectable text-white'>{{platformText(item.platform)}}</span>
-                                <img width='14' height='15' class='q-ml-sm' style='margin-bottom: -2px;' v-if='item.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
+                                <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='item.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'></q-icon>
                             </span>
                         </q-item-label>
@@ -204,8 +204,12 @@ export default {
                 html: true,
                 ok: {
                     color: 'primary',
+                    label: 'Open Folder'
                 },
-                cancel: true
+                cancel: {
+                    color: 'primary',
+                    flat: true
+                }
             })
             .onOk(() => {
                 if (path) {

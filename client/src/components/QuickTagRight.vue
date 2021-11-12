@@ -33,22 +33,15 @@ export default {
         }
     },
     methods: {
-        //If the value is present in tag
+        // If the value is present in tag
         selected(tag, value) {
             if (!this.$1t.quickTag.track) return false;
             return this.$1t.quickTag.track.custom[tag].includes(value);
         },
-        //Tag value click
+        // Tag value click
         valueClick(tag, value) {
             if (!this.$1t.quickTag.track) return false;
-            let i = this.$1t.quickTag.track.custom[tag].indexOf(value);
-            // Add or remove
-            if (i == -1) {
-                this.$1t.quickTag.track.custom[tag].push(value);
-            } else {
-                this.$1t.quickTag.track.custom[tag].splice(i, 1);
-            }
-            
+            this.$1t.quickTag.track.toggleCustom(tag, value);           
         }
     }
 }

@@ -3,51 +3,71 @@
 
     <!-- Login -->
     <div v-if='!$1t.spotify.authorized' class='af-content'>
-        <div class='text-h5 q-mt-md text-grey-4'>Setup</div>
+        <div class='text-h5 q-mt-lg text-grey-4'>Setup</div>
         <SpotifyLogin></SpotifyLogin>
         <!-- Description -->
-        <div class='q-mt-xl text-subtitle2 text-grey-6'>
-            Automatically tag Spotify’s so called audio features to your local audio files, based on ISRC & exact match<br>
-            More info? Hit <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right
+        <div class='q-mt-xl text-subtitle2 text-grey-6' style='line-height: 24px'>
+            Automatically tag your local audio files, with so called audio features by Spotify, based on <q-badge outline color='primary'><span class='text-white'>ISRC</span></q-badge> tag or exact match.<br>
+            More info? Click <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right <br>            
         </div>
     </div>
 
     <!-- Logged in -->
     <div v-if='$1t.spotify.authorized' class='af-content'>
         <!-- Path -->
-        <div class='text-h5 q-mt-md q-mb-md text-grey-4'>Select folder</div>
-        <q-input filled class='path-field inset-shadow-down' label='Path' v-model='config.path'>
-            <template v-slot:append>
-                <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
-            </template>
-        </q-input>
+        <div class='text-h5 q-mt-lg text-grey-4'>Select input</div>
+            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
+        <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
+            <div class='col-1'></div>
+            <q-input filled class='col-10' label='Path' v-model='config.path'>
+                <template v-slot:append>
+                    <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
+                </template>
+            </q-input>
 
+            <div class='col-1'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='path-tooltip q-mx-sm q-pt-md q-mt-xs'>
+                    <q-tooltip content-style="font-size: 13px">Subfolders are included</q-tooltip>
+                </q-icon>
+            </div>
+        </div>
+            
         <!-- Drag and drop -->
-        <div class='row justify-center' style='width: 100%'>
+        <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
+            <div class='col-1'></div>
             <PlaylistDropZone 
                 :value='playlist' 
                 @input='Object.assign(playlist, $event)'
-                class='q-my-sm q-py-md' 
-                style='width: 50%'
-            ></PlaylistDropZone>
+                class='q-my-sm q-pt-md q-pb-lg col-10'                 
+                ></PlaylistDropZone>            
+                    
+            <div class='col-1'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='playlist-tooltip q-mx-sm q-mt-xl q-pt-sm'>
+                    <q-tooltip content-style="font-size: 13px">.m3u and .m3u8 extensions are supported</q-tooltip>
+                </q-icon>
+            </div>
         </div>
 
         <!-- Main tag -->
-        <div class='text-h5 q-mt-xl text-grey-4'>Prominent tag</div>
-        <div class='text-subtitle1 q-mt-xs text-grey-6'>Converts most prominent audio features value (0-100) to a description - based on threshold - and writes to entered tagcode field</div>
-        <div class='text-subtitle2 q-mt-xs q-mb-sm text-grey-6'>e.g. #acoustic, #dynamics-low, #energy-high, #vocal-med, #live, #speech, #positive</div>
+        
+        <q-separator class='q-mt-lg custom-separator' inset color="dark"/>
+        <div class='text-h5 q-mt-lg text-grey-4'>Prominent tag</div>
+        <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tagcode field</div>
+        <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-5'>e.g. #dance-high, #energy-med, #vocal-low, #positive, #popular</div>
 
-        <TagFields class='q-mx-xl q-pl-md' v-model='config.mainTag'></TagFields>
+        <TagFields class='q-mx-xl q-pl-md' style='max-width: 550px; margin: auto;' v-model='config.mainTag'></TagFields>
 
         <!-- Values -->
-        <div class='text-h5 q-mt-xl q-mb-md text-grey-4'>Properties</div>
+        <p></p>
+        <q-separator class='q-mt-lg custom-separator' inset color="dark"  />
+        <div class='text-h5 q-mt-lg text-grey-4'>Properties</div>
         <div class='q-px-xl'>
             <!-- Header -->
-            <div class='row text-subtitle1 text-bold q-mb-sm text-grey-6'>
+            <div class='row text-subtitle2 q-mb-md text-grey-6'>
                 <div class='col-1'>Include
                     <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
                         <q-tooltip content-style="font-size: 13px">
-                            Include the audio feature in prominent tag
+                            Include the audio feature in Prominent tag
                         </q-tooltip>
                     </q-icon>
                 </div>
@@ -144,7 +164,7 @@ export default {
                         tag: {id3: '1T_SPEECHINESS', vorbis: '1T_SPEECHINESS', mp4: '1T_SPEECHINESS'}},
                     valence: {enabled: true, range: {min: 15, max: 85}, 
                         tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE', mp4: '1T_VALENCE'}},
-                    popularity: {enabled: false, range: {min: 0, max: 80}, 
+                    popularity: {enabled: true, range: {min: 0, max: 80}, 
                         tag: {id3: '1T_POPULARITY', vorbis: '1T_POPULARITY', mp4: '1T_POPULARITY'}}
                     
                 }
@@ -215,5 +235,8 @@ export default {
 .t-range .q-slider__track-container {
     background: var(--q-color-primary) !important;    
 }
-
+.custom-separator {
+    max-width: 550px;
+    margin: auto;
+}
 </style>

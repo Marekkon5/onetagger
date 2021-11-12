@@ -26,7 +26,7 @@
     <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container qt-full-height' @click='selectFolder'>
         <div>
             <div class='text-center text-h4 text-grey-6 q-my-sm'>No folder selected!</div>
-            <div class='text-center text-grey-6 text-h6'>Click here to select folder</div>
+            <div class='text-center text-subtitle1 text-grey-6'>Click here to select folder</div>
             <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
                 Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
                 Seek -10s: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon><br>
@@ -42,10 +42,10 @@
     <q-dialog v-model='saveDialog'>
         <q-card>
             <q-card-section>
-                <div class='text-h6'>Unsaved changes</div>
+                <div class='text-h6 text-grey-3'>Unsaved changes</div>
             </q-card-section>
             <q-card-section>
-                <div>Warning, there are unsaved changes on this track, do you want to save them?</div>
+                <div class='text-grey-3'>Warning, there are unsaved changes on this track, do you want to save them?</div>
             </q-card-section>
             <q-card-actions align='right'>
                 <q-btn color='red' flat text @click='saveDialogCallback(false)'>Discard</q-btn>
@@ -93,13 +93,13 @@ export default {
         }
     },
     methods: {
-        //Click on track card
+        // Click on track card
         trackClick(track) {
-            //Prevent clicking on same track
+            // Prevent clicking on same track
             if (this.$1t.quickTag.track && track.path == this.$1t.quickTag.track.path) return;
             this.$1t.loadQTTrack(track);
         },
-        //Save dialog callback
+        // Save dialog callback
         async saveDialogCallback(save) {
             if (save) {
                 await this.$1t.saveQTTrack();
@@ -113,11 +113,11 @@ export default {
             this.$1t.loadQTTrack(null, true);
             this.saveDialog = false;
         },
-        //Select folder and load tracks
+        // Select folder and load tracks
         selectFolder() {
             this.$1t.send('browse', {context: 'qt'});
         },
-        //Focus
+        // Focus
         onNoteDialogShow() {
             this.$refs.noteDialogInput.focus();
         }

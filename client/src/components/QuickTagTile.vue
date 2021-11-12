@@ -16,8 +16,8 @@
                 </div>
                 <!-- Title -->
                 <div class='col-5 q-pl-sm'>
-                    <span class='text-h6 text-grey-4 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
-                    <span class='text-subtitle1 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
+                    <span class='text-subtitle1 text-grey-4 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
+                    <span class='text-subtitle2 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
                 </div>
                 <!-- Details -->
                 <div class='col-6 row text-grey-6 text-weight-medium text-center items-center'>
@@ -42,9 +42,9 @@
                 </div>
             </div>
             <!-- Custom tags -->
-            <div class='row q-mx-sm q-my-sm no-wrap overflow-hidden'>
+            <div class='row q-mx-sm q-my-md no-wrap overflow-hidden text-caption'>
                 <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'>
-                    <q-chip :label='tag' outline color='primary' text-color='white' class='chip-text-white'></q-chip>
+                    <q-chip dense square :label='tag' outline color='primary' class='chip-text-white text-caption'></q-chip>
                 </div>
             </div>
             

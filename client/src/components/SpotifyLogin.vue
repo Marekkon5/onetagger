@@ -1,9 +1,11 @@
 <template>
 <div>
     <div class='text-subtitle1 text-grey-6 q-mt-md'>
-        <span class='text-grey-4'>1.</span> Open <span class='dotted-underline clickable text-primary' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer</span> account and create an app<br>
+        <span class='text-grey-4'>1.</span> Open 
+            <span class='clickable doc-link' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer <q-icon name='mdi-open-in-new'></q-icon></span> account & create an app<br>
         <span class='text-grey-4'>2.</span> In settings set the Callback URL to: <span class='selectable text-grey-4'>{{redirectUrl}}</span> <br>
-        <span class='text-grey-4'>3.</span> Enter your Client ID and Client Secret below and press login <br>
+        <span class='text-grey-4'>3.</span> Enter your Client ID & Client Secret below & click login <br>
+        <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable doc-link'><q-icon name='mdi-youtube' class='q-pr-xs'></q-icon>video demo</span>
     </div>
     <!-- Client ID and secret field -->
     <form class='row q-mt-xl auth-container justify-evenly'>
@@ -46,3 +48,12 @@ export default {
     }
 }
 </script>
+
+<style>
+.doc-link {
+    color: var(--q-color-primary);
+}
+.doc-link:hover {
+    color: #f0f0f0;    
+}
+</style>

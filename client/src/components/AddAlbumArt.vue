@@ -27,7 +27,7 @@
                 @drop.prevent='drop'
             >
                 <q-img v-if='image' :src='image' style='height: 200px;' ref='image'></q-img>
-                <span class='text-grey-7 text-h6' v-if='!image'>Drag and drop image here</span>
+                <span class='text-grey-7 text-h6' v-if='!image'>Drag & drop image here</span>
             </div>
         </q-card-section>
         <q-card-section class='justify-around row'>

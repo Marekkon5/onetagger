@@ -1,5 +1,5 @@
 <template>
-    <div class='row justify-center q-mt-md'>
+    <div class='row justify-center q-mb-xl'>
         <draggable v-model='platforms' @change='update'>
             <q-card class='card q-ma-md' v-for='platform in platforms' :key='platform.value'>
                 <q-card-section horizontal class='row justify-between'>
@@ -15,8 +15,8 @@
                     </q-card-section>
                 </q-card-section>
             </q-card>
-        </draggable>
-    </div>
+        </draggable>        
+    </div>    
 </template>
 
 <script>

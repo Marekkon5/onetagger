@@ -1,7 +1,7 @@
 # Intended for Github Actions
 # Requires Ubuntu, rustup and nodejs, npm installed
-#sudo apt update
-#sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
+# sudo apt update
+# sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 # Compile UI
 cd client
 npm i

@@ -93,14 +93,14 @@
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 
                 <div class='col-12 text-h4 text-grey-6 text-center q-my-sm'>No file selected!</div><br>
-                <span class='text-h6 text-grey-6'>Tip: Click the path to select folder using your OS's picker</span>
+                <span class='text-center text-subtitle1 text-grey-6'>Tip: Click the path to select folder using your OS's picker</span>
             </div>
 
             <div v-if='file' class='q-px-md'>
                 <div class='text-center q-py-md text-subtitle1 text-primary'>{{file.filename}}</div>
                 <div class='q-mt-md'>
                     <div v-for='(tag, i) in Object.keys(file.tags)' :key='i' class='row q-my-sm'>
-                        <div class='col-3 text-subtitle1 q-mt-xs q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
+                        <div class='col-3 text-subtitle1  text-grey-3 q-mt-xs q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
                             <span v-if='abstractions[tag]'><span class='text-weight-bold'>{{abstractions[tag]}}</span> ({{tag}})</span>
                             <span v-if='!abstractions[tag]'>{{tag}}</span>
                         </div>
@@ -123,7 +123,7 @@
 
                 <!-- Add new tag -->
                 <div class='row q-mt-xl'>
-                    <div class='text-subtitle1 text-weight-bold col-3 q-pt-xs'>Add new text tag:</div>
+                    <div class='text-subtitle1 text-primary text-weight-bold col-3 q-pt-xs'>Add new text tag:</div>
                     <TagField tageditor class='col-8' dense :format='tagFormat' @change='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
@@ -133,13 +133,13 @@
                 </div>
 
                 <!-- Album art -->
-                <div class='text-subtitle1 text-weight-bold'>
+                <div class='text-subtitle1 text-grey-3 text-weight-bold'>
                     Album art
                     <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
                         <q-icon name='mdi-plus' color='primary'></q-icon>
                     </q-btn>
                 </div>
-                <div class='q-mt-sm albumart-container text-center'>
+                <div class='q-mt-sm  text-grey-4 albumart-container text-center'>
                     <div v-for='(image, i) in file.images' :key='"art"+i' class='q-mr-md'>
                         <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
                         <div class='q-pt-sm q-mb-md'>
@@ -155,7 +155,7 @@
                 <div v-if='file.id3'>
                     <!-- Comments -->
                     <div class='text-subtitle1'>
-                        <span class='text-weight-bold'>Comments</span> (COMM)
+                        <span class='text-grey-3 text-weight-bold'>Comments</span> (COMM)
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3Comment'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -196,7 +196,7 @@
                     </div>
 
                     <!-- Unsynchronized lyrics -->
-                    <div class='text-subtitle1'>
+                    <div class='text-subtitle1 text-grey-3'>
                         <span class='text-weight-bold'>Unsynchronized lyrics</span> (USLT)
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3USLT'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
@@ -242,7 +242,7 @@
 
                     <!-- Popularimeter -->
                     <div>
-                        <div class='text-subtitle1'>
+                        <div class='text-subtitle1 text-grey-3'>
                             <span class='text-weight-bold'>Popularimeter</span> (POPM)
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
                                 <q-icon name='mdi-plus' color='primary'></q-icon>
@@ -355,7 +355,6 @@ export default {
             }
 
             this.changes = [];
-            this.newTag = null;
             // Will be joined in backend
             this.$1t.send('tagEditorLoad', {path});
         },
@@ -442,7 +441,7 @@ export default {
                 });
                 return;
             }
-            //Remove removal of tag
+            // Remove removal of tag
             let i = this.changes.findIndex((c) => c.type == 'remove' && c.tag == this.newTag);
             if (i > -1) this.changes.splice(i, 1);
 

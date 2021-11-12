@@ -668,7 +668,7 @@ class OneTagger {
 
             // Note tag
             if (this.checkKeybind(event, this.settings.quickTag.noteTag.keybind)) {
-                this.onQTNoteTag();
+                this.onQuickTagEvent('onNoteTag');
             }
 
             // Moods
@@ -680,7 +680,7 @@ class OneTagger {
             // Genres
             this.settings.quickTag.genres.forEach((genre) => {
                 if (this.checkKeybind(event, genre.keybind)) {
-                    this.quickTag.track.setGenre(genre.genre);
+                    this.quickTag.track.genre = genre.genre;
                 }
             });
 
@@ -693,10 +693,10 @@ class OneTagger {
             }
 
             // Custom values
-            this.settings.quickTag.custom.forEach((tag) => {
+            this.settings.quickTag.custom.forEach((tag, tagIndex) => {
                 for (let i=0; i<tag.values.length; i++) {
                     if (this.checkKeybind(event, tag.values[i].keybind)) {
-                        this.quickTag.track.toggleCustom(tag, i);
+                        this.quickTag.track.toggleCustom(tagIndex, tag.values[i].val);
                     }
                 }
             });

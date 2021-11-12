@@ -83,6 +83,17 @@ class QTTrack {
         return 0;
     }
 
+    // Enable or disable custom value
+    toggleCustom(tag, value) {
+        let i = this.custom[tag].indexOf(value);
+        // Add or remove
+        if (i == -1) {
+            this.custom[tag].push(value);
+        } else {
+            this.custom[tag].splice(i, 1);
+        }
+    }
+
     // Load custom tags
     loadCustom() {
         let output = [];
@@ -141,6 +152,7 @@ class QTTrack {
                 value: [this.genre]
             })
         }
+        
         // Note change
         if (this._originalNote != this.note) {
             let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);

@@ -16,14 +16,16 @@
             <!-- Quicktag options -->
             <div v-if='tab == "quicktag"'>
                 <!-- Path options -->
-                <div class='text-grey-6 text-bold'>Folder</div>
-                <div class='row items-center'>
-                    <div class='col-11 text-subtitle2 monospace text-bold text-primary'>{{$1t.settings.path}}</div>
-                    <div class='col-1'>
-                        <q-btn round flat icon='mdi-open-in-app' @click='browseQuickTag'></q-btn>
-                    </div>
+                <div class='select'>
+                <div class='col-1'></div>
+                    <q-input filled v-model='$1t.settings.path'>
+                        <!-- <div class='row items-center col-12 text-subtitle2 monospace text-bold text-primary'>{{$1t.settings.path}}</div> -->
+                        <template v-slot:append>
+                            <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browseQuickTag'></q-btn>
+                        </template>
+                    </q-input>
                 </div>
-                <div class='q-mb-sm'>
+                <div class='q-mt-sm q-pl-sm'>
                     <q-checkbox 
                         v-model='$1t.settings.quickTag.recursive'
                         label='Include subfolders'
@@ -34,12 +36,14 @@
                 <PlaylistDropZone 
                     v-model='qtPlaylist' 
                     @input='loadQTPlaylist' 
-                    class='q-mb-lg'
-                    dark
+                    class='input'                    
                 ></PlaylistDropZone>
-
+                
                 <!-- Energy keybinds -->
-                <div class='q-mb-sm text-bold text-grey-6'>Energy keybinds</div>
+                <p><br></p>
+                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                
+                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm'>Energy<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
@@ -55,31 +59,36 @@
                         </div>
                     </div>
                 </div>
-                <!-- Energy settings -->
-                <div class='q-mb-sm text-bold text-grey-6'>Energy tag options</div>
+                
+                <!-- Energy settings -->                
+                <div class='q-mb-sm text-bold text-grey-4'>Energy tag<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; &nbsp;  &nbsp;  &nbsp;  &nbsp;  Save to</span></div>
                 <q-select
                     v-model='$1t.settings.quickTag.energyTag.type'
                     dense
                     filled
                     label='Tag type'
                     :options='["rating", "symbol"]'
-                    class='q-mb-sm'
+                    class='q-mb-lg'                    
                 ></q-select>
+                
                 <div v-if='$1t.settings.quickTag.energyTag.type != "rating"' class='row'>
                     <div class='col-2 q-pr-md'>
                         <q-input v-model='$1t.settings.quickTag.energyTag.symbol' filled dense label='Symbol'></q-input>
                     </div>
-                    <div class='col-10'>
+                    <div class='col-10 q-mb-md'>
                         <TagFields dense v-model='$1t.settings.quickTag.energyTag.tag'></TagFields>
                     </div>
                 </div>
-                <div class='q-mb-lg'></div>
+                
                 <!-- Mood tag -->
-                <div class='q-my-sm text-grey-6 text-bold'>Mood tag</div>
-                <TagFields class='q-mb-md' v-model='$1t.settings.quickTag.moodTag'></TagFields>
+                
+                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                
+                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm'>Mood tag<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; &nbsp;  &nbsp;  &nbsp;  &nbsp; Save to</span></div>
+                <TagFields class='q-mb-sm' v-model='$1t.settings.quickTag.moodTag'></TagFields>
 
                 <!-- Moods -->
-                <div class='q-my-sm text-bold text-grey-6'>Moods</div>
+                <div class='q-mb-sm text-bold text-grey-4'>Moods<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Key binds</span></div>
                 <div class='q-mb-md'>
                     <draggable v-model='$1t.settings.quickTag.moods'>
                         <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
@@ -111,16 +120,20 @@
                         </div>
                     </draggable>
                     <!-- Add new mood -->
-                    <div class='text-subtitle2 q-mb-sm'>Add new mood:</div>
+                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Add new mood</div>
                     <div class='row'>
-                        <q-input v-model='newMood.mood' filled dense class='col-6 q-pr-md q-mb-md'></q-input>
+                        <q-input v-model='newMood.mood' filled dense class='col-5 q-pr-md q-mb-lg'></q-input>
                         <q-select v-model='newMood.color' :options='colors' filled dense class='col-5 q-pr-md'></q-select>
-                        <q-btn @click='addMood' round flat dense icon='mdi-plus' class='col-1 text-primary'></q-btn>
+                        <div class='col-1'>
+                        <q-btn flat round icon='mdi-plus' @click='addMood' color='primary'></q-btn>  
+                        </div>                      
                     </div>
                 </div>
-                <div class='q-mb-lg'></div>
+                
                 <!-- Genres -->
-                <div class='q-my-sm text-bold text-grey-6'>Genres</div>
+                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                <br>
+                <div class='q-mb-sm q-mt- text-bold text-grey-4'>Genres<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
                 <div>
                     <draggable v-model='$1t.settings.quickTag.genres'>
                         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
@@ -142,9 +155,9 @@
                         </div>
                     </draggable>
                     <!-- Add new genre -->
-                    <div class='text-subtitle2 q-mb-sm'>Add new genre:</div>
+                    <div class='q-mt-md q-mb-sm text-uppercase text-primary text-subtitle2'>Add new genre</div>
                     <div class='row'>
-                        <q-input filled dense class='col-11 q-pr-md' v-model='newGenre'></q-input>
+                        <q-input filled dense class='col-10 q-pr-md' v-model='newGenre'></q-input>
                         <div class='col-1'>
                             <q-btn flat round icon='mdi-plus' @click='addGenre' color='primary'></q-btn>
                         </div>
@@ -154,7 +167,7 @@
             <!-- Quicktag custom -->
             <div v-if='tab == "quicktag-custom"'>
                  <!-- Note tag -->
-                <div class='text-grey-6 text-bold q-mb-sm'>Custom note tag</div>
+                <div class='text-primary text-bold q-mb-md'>CUSTOM NOTE<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Save to  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Key binds</span></div>
                 <div class='row'>
                     <TagFields class='col-10 q-mb-md' dense v-model='$1t.settings.quickTag.noteTag.tag'></TagFields>
                     <Keybind 
@@ -162,7 +175,11 @@
                         @set='$1t.settings.quickTag.noteTag.keybind = $event'
                         :initial='$1t.settings.quickTag.noteTag.keybind'
                     ></Keybind>
+                    
                 </div>
+
+                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                <div class='q-mb-lg'></div>
                 <div v-for='(tag, i) in $1t.settings.quickTag.custom' :key='"tag"+i' class='q-mb-md'>
                     <div class='row'>
                         <div class='text-subtitle1 text-bold q-mb-sm' v-if='!customQTEdit[i]'>{{tag.name}}</div>
@@ -201,12 +218,14 @@
                     <q-btn 
                         flat 
                         color='primary' 
-                        class='q-mt-sm' 
+                        class='q-mt-sm q-mb-sm' 
                         icon='mdi-plus'
                         @click='$1t.settings.quickTag.custom[i].values.push({val: "New", keybind: null})'
                     >Add new value</q-btn>
                 </div>
                 <!-- Add new tag -->
+                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                <div class='q-mb-lg'></div>
                 <div class='row q-mt-md'>
                     <div class='text-subtitle1 text-bold q-my-lg col-4'>Add new section</div>
                     <q-input v-model='newCustomQT' filled label='Name' class='q-mt-sm col-7 q-pr-md'></q-input>
@@ -218,50 +237,53 @@
 
             <!-- Advanced -->
             <div v-if='tab == "advanced"'>
-                <div class='text-bold text-grey-6'>Display</div>
-                <q-checkbox
-                    v-model='$1t.settings.helpButton'
-                    label='Show help button'
-                    class='checkbox'
-                ></q-checkbox>
-                <br>
-                <q-checkbox
-                    v-model='$1t.settings.tagEditorDouble'
-                    label="Show 'Your list' in Edit Tags"
-                    class='checkbox'
-                ></q-checkbox>
-                <br>
+                
+                <!-- Open settings folder -->
+                <q-btn
+                    color='primary'
+                    class='text-black q-mb-md'
+                    @click='$1t.send("openSettingsFolder")'
+                >Open data folder</q-btn>
+                
+                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Auto Tag</div>
                 <q-checkbox
                     v-model='$1t.settings.autoTaggerSinglePage'
-                    label="Show Auto Tag as single page"
+                    label="Show as single page"
                     class='checkbox'
                 ></q-checkbox><br>
-                <div class='text-bold text-grey-6'>Quick Tag</div>
+                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Quick Tag</div>
                 <q-checkbox
                     v-model='$1t.settings.quickTag.autosave'
                     label='Autosave changes when switching to a different track'
                     class='checkbox'
-                ></q-checkbox><br>
+                ></q-checkbox>
                 <q-checkbox
                     v-model='$1t.settings.continuePlayback'
                     label='Continue playback when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
-                <div class='text-bold text-grey-6'>Edit Tags</div>
+                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Edit Tags</div>
+                <q-checkbox
+                    v-model='$1t.settings.tagEditorDouble'
+                    label="Show 'Your list'"
+                    class='checkbox'
+                ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.tagEditorAutosave'
                     label='Autosave changes when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
 
-                <!-- Open settings folder -->
-                <q-btn
-                    color='primary'
-                    class='text-black q-mt-md'
-                    @click='$1t.send("openSettingsFolder")'
-                >Open data folder</q-btn>
+                
+
+                <div class='q-mt-lg text-subtitle2 text-uppercase text-bold text-grey-4'>Display</div>
+                <q-checkbox
+                    v-model='$1t.settings.helpButton'
+                    label='Show help button'
+                    class='checkbox'
+                ></q-checkbox>                
                 <!-- Color picker -->
-                <div class='q-pt-md q-my-sm text-bold text-grey-6'>Primary color</div>
+                <div class='q-pt-xs q-my-sm text-subtitle2 text-bold text-grey-4'>Primary color</div>
                 <q-color 
                     v-model='$1t.settings.primaryColor'
                     @change='colorChange'
@@ -392,7 +414,7 @@ export default {
 <style>
 .parent-card {
     max-height: 80vh;
-    height: 80vh;
+    height: 78vh;
     width: 70vw;
     min-width: 600px;
 }

@@ -21,7 +21,7 @@
             class='text-center step'>
 
             <div class='text-h5 text-grey-4'>Select platforms</div>
-            <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
+            <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
             <AutotaggerPlatforms class='q-mb-xl'></AutotaggerPlatforms>
         </q-step>
 
@@ -56,8 +56,13 @@
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-h5 q-my-s text-grey-4'>Advanced</div>
-            <AutotaggerAdvanced class='q-mb-xl'></AutotaggerAdvanced>
+            <div class='text-h5 text-grey-4'>Advanced</div>
+            <span class='text-subtitle2 text-grey-6'>Enable 
+                <q-icon name='mdi-toggle-switch' class='text-grey-4'></q-icon> 
+                toggle to activate stated options
+            </span>
+            <br>
+            <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
         </q-step>
 
     </q-stepper>
@@ -80,7 +85,7 @@
             </div>
             <div class='col q-px-xl'>
                 <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
-                <div class='text-subtitle1 q-mt-xs text-grey-6'>Use the checkbox to enable/disable, drag and drop to reorder fallback</div>
+                <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
                 <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
             </div>
@@ -158,7 +163,6 @@ export default {
     }
 };
 </script>
-
 <style>
 .step {
     min-height: calc(100vh - 164px);
@@ -170,21 +174,23 @@ export default {
 }
 
 .input {
-    max-width: 50vw;
+    max-width: 526px;
     margin: auto;
     margin-top: 8px;
     padding-left: 16px;
     padding-right: 16px;
 }
+
 .select {
-    max-width: 50vw;
+    max-width: 526px;
     margin: auto;
     margin-top: 8px;
     padding-left: 16px;
     padding-right: 16px;
 }
+
 .slider {
-    max-width: 34vw;
+    max-width: 550px !important;
 }
 
 .at-stepper-bar {
