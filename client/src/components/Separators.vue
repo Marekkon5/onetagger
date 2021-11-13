@@ -6,7 +6,7 @@
             v-model='id3'
             filled
             label='ID3 Separator (MP3 + AIFF)'
-            class='col-4 q-px-sm'
+            class='col-4 q-pr-sm'
             @input='save'
         ></q-input>
         <q-input
@@ -20,7 +20,7 @@
             v-model='mp4'
             filled
             label='M4A Separator'
-            class='col-4 q-px-sm'
+            class='col-4 q-pl-sm'
             @input='save'
         ></q-input>
     </div>

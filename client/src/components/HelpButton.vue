@@ -138,7 +138,7 @@
                         <div class='row' style='width: 90%; margin-left:15%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md'>Step-by-step guide</div>
                         <div class='col-10 q-mt-md text-subtitle2 text-grey-4' style='line-height: 24px'>
-                            <span class='text-number text-bold text-grey-6'>1.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Enable/disable checkbox to fetch from particular platform</span> <br>
+                            <span class='text-number text-bold text-grey-6'>1.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Check the box to fetch from particular platform</span> <br>
                             <span class='text-number text-bold text-grey-6'>2. </span><span class='q-pl-sm'>Drag & drop the cards to reorder fallback.  Click <q-badge color='primary' class='text-dark'>Next</q-badge></span> <br>
                             <span class='text-number text-bold text-grey-6'>3. </span><span class='q-pl-sm'>Drag & drop folder, copy/paste path directly or click the browse <q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span> <br>
                             <span class='text-number text-bold text-grey-10'>_</span><span class='q-pl-md'>Or drag & drop playlist onto the card</span> <br>

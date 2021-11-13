@@ -10,7 +10,7 @@
 
     <!-- Beatport settings -->
     <div v-if='beatport'>
-        <div class='text-h6 text-grey-4'>Beatport</div>
+        <div class='text-h6 text-grey-4' style='margin-top: 1px;'>Beatport</div>
         <div class='text-subtitle2 text-grey-6 q-mb-md'>Select album art resolution. Drag slider to set amount of search page results to scan for</div>
         <!-- Album art resolution -->
         <q-select 
@@ -36,16 +36,17 @@
                     :max='10' 
                     label 
                     class='slider q-my-sm q-pb-lg col-10'
+                    style='margin-bottom: 13px;'
                 ></q-slider>
             </div>  
         </div>        
-        <q-separator class='custom-separator' inset color="dark"/>
+        <q-separator class='q-mx-auto custom-separator' inset color="dark"/>
     </div>
 
     
     <!-- Discogs -->
     <div v-if='discogs'>
-        <div class='text-h6 q-mt-lg text-grey-4'>Discogs</div>
+        <div class='text-h6 q-mt-lg text-grey-4 custom-margin-1'>Discogs</div>
         <div class='text-subtitle2 text-grey-6 q-mb-md'>Copy/paste Discogs token. Drag slider to set amount of album search results to check</div>
         <!-- Token -->
         <q-input
@@ -76,14 +77,14 @@
         </div>
         <!-- Track number as int -->
         <div>
-            <q-toggle v-model='$1t.config.discogs.trackNumberInt' class='q-mb-lg' label="Write track number as number, rather than Discogs's format"><br></q-toggle>
+            <q-toggle style='margin-bottom: 10px;' v-model='$1t.config.discogs.trackNumberInt' label="Write track number as number, rather than Discogs's format"><br></q-toggle>
         </div>
-        <q-separator class='q-mx-auto q-mt-xl custom-separator' inset color="dark"/>
+        <q-separator class='q-mx-auto q-mt-lg custom-separator' inset color="dark"/>
     </div>
 
     <!-- Shared -->
     <div v-if='discogs || beatport'>
-        <div class='text-h6 q-mt-lg text-grey-4'>Discogs / Beatport</div>
+        <div class='text-h6 q-mt-lg text-grey-4 custom-margin-1'>Discogs / Beatport</div>
         <div class='text-subtitle2 text-grey-6 q-mb-md'>Select Genres/Styles tag to fetch both, if it should merge them, or write elsewhere</div>
         <!-- Styles -->
         <q-select
@@ -97,14 +98,14 @@
         ></q-select>
         <!-- Styles custom tag -->
         <div v-if='$1t.config.stylesOptions == "customTag"'>
-            <TagFields v-model='$1t.config.stylesCustomTag' class='input'></TagFields>
+            <TagFields v-model='$1t.config.stylesCustomTag' class='input' style='margin-bottom: 28px;'></TagFields>
         </div>
-        <q-separator class='q-mx-auto q-mt-xl custom-separator' inset color="dark"/>
+        <q-separator class='q-mx-auto q-mt-lg custom-separator' inset color="dark"/>
     </div>
 
     <!-- Beatsource settings -->
     <div v-if='beatsource'>
-        <div class='text-h6 q-mt-lg text-grey-4'>Beatsource</div>
+        <div class='text-h6 q-mt-lg text-grey-4 custom-margin-1'>Beatsource</div>
         <div class='text-subtitle2 text-grey-6 q-mb-md'>Select album art resolution</div>
         <!-- Album art resolution -->
         <q-select 
@@ -114,14 +115,15 @@
             :options='resolutions' 
             class='select' 
             label='Album art resolution'
+            style='margin-bottom: 3px;'
         ></q-select>
         <p><br></p>
-        <q-separator class='custom-separator' inset color="dark"/>
+        <q-separator class='q-mx-auto q-mt-lg custom-separator' inset color="dark"/>
     </div>
 
     <!-- Spotify -->
     <div v-if='spotify'>
-        <div class='text-h6 q-mt-lg text-grey-4'>Spotify</div>
+        <div class='text-h6 q-mt-lg text-grey-4 custom-margin-1'>Spotify</div>
         <div class='justify-center' style='max-width: 836px; margin: auto;'>
             <SpotifyLogin v-if='!$1t.spotify.authorized'></SpotifyLogin>
         </div>
@@ -189,5 +191,8 @@ export default {
 .custom-separator {
     max-width: 550px;
     margin: auto;
+}
+.custom-margin-1 {
+    margin-top: 34px !important;
 }
 </style>

@@ -29,21 +29,20 @@
                     <q-checkbox 
                         v-model='$1t.settings.quickTag.recursive'
                         label='Include subfolders'
-                        class='checkbox'
+                        class='checkbox'                        
                         @input="$1t.loadQuickTag()"
                     ></q-checkbox>
                 </div>
                 <PlaylistDropZone 
                     v-model='qtPlaylist' 
                     @input='loadQTPlaylist' 
-                    class='input'                    
+                    class='input'   
+                    style='margin-bottom: 40px;'                 
                 ></PlaylistDropZone>
                 
-                <!-- Energy keybinds -->
-                <p><br></p>
-                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
-                
-                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm'>Energy<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
+                <!-- Energy keybinds --> 
+                <q-separator class='custom-separator' inset color="darker"/>
+                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm' style='margin-top: 28px;'>Energy<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
@@ -68,7 +67,8 @@
                     filled
                     label='Tag type'
                     :options='["rating", "symbol"]'
-                    class='q-mb-lg'                    
+                    class='q-mb-lg'
+                    style='margin-bottom: 40px;'                    
                 ></q-select>
                 
                 <div v-if='$1t.settings.quickTag.energyTag.type != "rating"' class='row'>
@@ -81,10 +81,8 @@
                 </div>
                 
                 <!-- Mood tag -->
-                
-                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
-                
-                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm'>Mood tag<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; &nbsp;  &nbsp;  &nbsp;  &nbsp; Save to</span></div>
+                <q-separator class='custom-separator' inset color="darker"/>
+                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm' style='margin-top: 28px;'>Mood tag<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; &nbsp;  &nbsp;  &nbsp;  &nbsp; Save to</span></div>
                 <TagFields class='q-mb-sm' v-model='$1t.settings.quickTag.moodTag'></TagFields>
 
                 <!-- Moods -->
@@ -131,9 +129,8 @@
                 </div>
                 
                 <!-- Genres -->
-                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
-                <br>
-                <div class='q-mb-sm q-mt- text-bold text-grey-4'>Genres<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
+                <q-separator class='custom-separator' inset color="darker"/>                
+                <div class='q-mb-sm q-mt- text-bold text-grey-4' style='margin-top:31px;'>Genres<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
                 <div>
                     <draggable v-model='$1t.settings.quickTag.genres'>
                         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
@@ -164,25 +161,41 @@
                     </div>
                 </div>
             </div>
+
             <!-- Quicktag custom -->
             <div v-if='tab == "quicktag-custom"'>
-                 <!-- Note tag -->
-                <div class='text-primary text-bold q-mb-md'>CUSTOM NOTE<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Save to  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Key binds</span></div>
+
+                <!-- Separators -->
+                <div class='text-center text-body1 text-grey-4 q-mb-md'>Separators</div>
+                <Separators
+                    :initial="$1t.settings.quickTag.separators"
+                    @input='$1t.settings.quickTag.separators = $event'
+                    class='q-mb-md'
+                ></Separators>
+                <q-separator class='custom-separator q-my-lg' inset color="darker"/>
+
+                <!-- Note tag -->
+                <div class='text-primary text-bold q-mb-md row'>
+                    CUSTOM NOTE
+                    <span class='text-grey-5 text-uppercase text-caption' style='padding-left: 300px;'>
+                        <span>Save to</span>
+                        <span style='padding-left: 26px;'>Key binds</span>
+                    </span>
+                </div>
                 <div class='row'>
-                    <TagFields class='col-10 q-mb-md' dense v-model='$1t.settings.quickTag.noteTag.tag'></TagFields>
+                    <TagFields class='col-10 q-mb-md' style='margin-bottom: 20px;' dense v-model='$1t.settings.quickTag.noteTag.tag'></TagFields>
                     <Keybind 
                         class='col-2 text-center' 
                         @set='$1t.settings.quickTag.noteTag.keybind = $event'
                         :initial='$1t.settings.quickTag.noteTag.keybind'
                     ></Keybind>
-                    
                 </div>
 
-                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                <q-separator class='custom-separator' inset color="darker"/>
                 <div class='q-mb-lg'></div>
                 <div v-for='(tag, i) in $1t.settings.quickTag.custom' :key='"tag"+i' class='q-mb-md'>
                     <div class='row'>
-                        <div class='text-subtitle1 text-bold q-mb-sm' v-if='!customQTEdit[i]'>{{tag.name}}</div>
+                        <div class='text-subtitle1 text-bold q-mb-sm' style='margin-top: 4px;' v-if='!customQTEdit[i]'>{{tag.name}}</div>
                         <q-input dense filled v-if='customQTEdit[i]' v-model='$1t.settings.quickTag.custom[i].name'></q-input>
                         <div class='q-mx-md mt-2'>
                             <q-btn
@@ -190,7 +203,7 @@
                                 flat 
                                 round 
                                 :icon='customQTEdit[i] ? "mdi-check" : "mdi-pencil"' 
-                                class='q-mr-sm' 
+                                class='q-mr-sm'                                 
                                 color='primary' 
                                 @click='editCustomQT(i)'
                             ></q-btn>
@@ -219,12 +232,13 @@
                         flat 
                         color='primary' 
                         class='q-mt-sm q-mb-sm' 
+                        style='margin-bottom: 11px;'
                         icon='mdi-plus'
                         @click='$1t.settings.quickTag.custom[i].values.push({val: "New", keybind: null})'
                     >Add new value</q-btn>
                 </div>
                 <!-- Add new tag -->
-                <q-separator style='max-width: 550px; margin: auto;' inset color="darker"  />
+                <q-separator class='custom-separator' inset color="darker"/>
                 <div class='q-mb-lg'></div>
                 <div class='row q-mt-md'>
                     <div class='text-subtitle1 text-bold q-my-lg col-4'>Add new section</div>
@@ -244,6 +258,7 @@
                     class='text-black q-mb-md'
                     @click='$1t.send("openSettingsFolder")'
                 >Open data folder</q-btn>
+                
                 
                 <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Auto Tag</div>
                 <q-checkbox
@@ -273,10 +288,7 @@
                     label='Autosave changes when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
-
-                
-
-                <div class='q-mt-lg text-subtitle2 text-uppercase text-bold text-grey-4'>Display</div>
+                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Display</div>
                 <q-checkbox
                     v-model='$1t.settings.helpButton'
                     label='Show help button'
@@ -307,6 +319,7 @@
 <script>
 import Keybind from './Keybind';
 import TagFields from './TagFields';
+import Separators from './Separators.vue';
 import PlaylistDropZone from './PlaylistDropZone.vue';
 import Vue from 'vue';
 import draggable from 'vuedraggable';
@@ -314,7 +327,7 @@ import { colors } from 'quasar';
 
 export default {
     name: 'Settings',
-    components: {Keybind, TagFields, PlaylistDropZone, draggable},
+    components: {Keybind, TagFields, PlaylistDropZone, Separators, draggable},
     data() {
         return {
             open: this.value,
@@ -423,5 +436,9 @@ export default {
 }
 .mt-2 {
     margin-top: 2px;
+}
+.custom-separator {
+    max-width: 550px; 
+    margin: auto;
 }
 </style>

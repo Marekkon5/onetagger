@@ -278,6 +278,7 @@ class OneTagger {
             quickTag: {
                 recursive: false,
                 autosave: false,
+                separators: {id3: ', ', vorbis: null, mp4: ', '},
                 noteTag: {
                     tag: {
                         id3: 'COMM', 

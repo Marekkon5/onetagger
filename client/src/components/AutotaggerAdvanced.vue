@@ -57,6 +57,7 @@
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 
             label='Parse metadata from filename'
+            style='margin-bottom: 29px;' 
             tooltip='Valid variables are: %track%, %artist%, %title%, etc. anything in between % % gets treated as dynamic content'
             v-model='$1t.config.parseFilename'
         ></AdvancedSettingsToggle>
@@ -65,15 +66,13 @@
                 v-model='$1t.config.filenameTemplate'
                 filled
                 label='Filename scheme'
-                class='input'
+                class='input q-mb-xl' 
             ></q-input>
         </div>
     </q-list>
 
     <!-- Multiple matches ordering -->
-    <p><br></p>
-    <q-separator class='custom-separator' inset color="dark"/>
-    <br><br>
+    <q-separator class='q-mx-auto q-mb-xl custom-separator' inset color="dark"/>
     <q-select 
         dark
         standout='text-grey-4 bg-dark'
@@ -125,7 +124,7 @@
 
     <!-- Duration -->
     <br>
-    <div class='row justify-center items-center'>
+    <div class='row justify-center items-center' style='margin-bottom: -3px;'>
         <q-toggle v-model='$1t.config.matchDuration' label='Match duration'></q-toggle>
         <div class='text-grey-6 q-ml-sm'>
             <q-icon name='mdi-alert-circle-outline' class='q-mb-xs'></q-icon>
@@ -149,8 +148,8 @@
     <br>
 
     <!-- Track number padding -->
-    <q-separator class='custom-separator' inset color="dark"/>
-    <div class='text-center text-body1 text-grey-4 q-mt-sm'><br>Tag options</div>
+    <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
+    <div class='text-center text-body1 text-grey-4 q-mt-md' style='margin-top: 14px;'><br>Tag options</div>
     <div class='row q-pb-xs justify-center half-width'>
     <q-input 
         v-model.number='$1t.config.trackNumberLeadingZeroes' 

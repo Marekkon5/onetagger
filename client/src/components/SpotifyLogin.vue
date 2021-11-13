@@ -5,7 +5,7 @@
             <span class='clickable doc-link' @click='$1t.url("https://developer.spotify.com/dashboard")'>Spotify Developer <q-icon name='mdi-open-in-new'></q-icon></span> account & create an app<br>
         <span class='text-grey-4'>2.</span> In settings set the Callback URL to: <span class='selectable text-grey-4'>{{redirectUrl}}</span> <br>
         <span class='text-grey-4'>3.</span> Enter your Client ID & Client Secret below & click login <br>
-        <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable doc-link'><q-icon name='mdi-youtube' class='q-pr-xs'></q-icon>video demo</span>
+        <span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable doc-link'>video demo <q-icon name='mdi-youtube' class='q-pr-xs'></q-icon></span>
     </div>
     <!-- Client ID and secret field -->
     <form class='row q-mt-xl auth-container justify-evenly'>

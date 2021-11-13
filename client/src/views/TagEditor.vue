@@ -54,7 +54,7 @@
             v-if='$1t.settings.tagEditorDouble'
             style='max-height: 100%; overflow-y: scroll;'
         >
-            <div class='bg-grey-8 separator'></div>
+            <div class='bg-darker separator'></div>
             <div class='row justify-between'>
                 <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>Your list</div>
                 <div>
@@ -88,8 +88,7 @@
         <!-- Tags -->
         <div 
             :class='{"col-8": !$1t.settings.tagEditorDouble, "col-6": $1t.settings.tagEditorDouble}'
-            style='max-height: 100%; overflow-y: scroll;'
-        >
+            style='max-height: 100%; overflow-y: scroll;'>
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 
                 <div class='col-12 text-h4 text-grey-6 text-center q-my-sm'>No file selected!</div><br>

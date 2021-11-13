@@ -38,7 +38,7 @@
             <PlaylistDropZone 
                 :value='playlist' 
                 @input='Object.assign(playlist, $event)'
-                class='q-my-sm q-pt-md q-pb-lg col-10'                 
+                class='q-my-sm q-pt-md q-pb-md col-10'                 
                 ></PlaylistDropZone>            
                     
             <div class='col-1'>
@@ -49,18 +49,16 @@
         </div>
 
         <!-- Main tag -->
-        
-        <q-separator class='q-mt-lg custom-separator' inset color="dark"/>
-        <div class='text-h5 q-mt-lg text-grey-4'>Prominent tag</div>
+        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' inset color="dark" />
+        <div class='text-h5 text-grey-4 custom-margin'>Prominent tag</div>
         <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tagcode field</div>
         <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-5'>e.g. #dance-high, #energy-med, #vocal-low, #positive, #popular</div>
 
-        <TagFields class='q-mx-xl q-pl-md' style='max-width: 550px; margin: auto;' v-model='config.mainTag'></TagFields>
+        <TagFields style='max-width: 550px; margin: auto;' v-model='config.mainTag'></TagFields>
 
         <!-- Values -->
-        <p></p>
-        <q-separator class='q-mt-lg custom-separator' inset color="dark"  />
-        <div class='text-h5 q-mt-lg text-grey-4'>Properties</div>
+        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
+        <div class='text-h5 q-mt-lg text-grey-4 custom-margin'>Properties</div>
         <div class='q-px-xl'>
             <!-- Header -->
             <div class='row text-subtitle2 q-mb-md text-grey-6'>
@@ -106,6 +104,7 @@
         </div>
 
         <!-- Separators -->
+        <div class='text-h5 q-mt-lg text-grey-4 custom-margin'>Separators</div>
         <div class='row q-mx-xl q-my-md justify-center'>
             <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
         </div>
@@ -238,5 +237,8 @@ export default {
 .custom-separator {
     max-width: 550px;
     margin: auto;
+}
+.custom-margin {
+    margin-top: 35px !important;
 }
 </style>

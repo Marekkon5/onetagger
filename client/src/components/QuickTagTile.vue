@@ -42,9 +42,9 @@
                 </div>
             </div>
             <!-- Custom tags -->
-            <div class='row q-mx-sm q-my-md no-wrap overflow-hidden text-caption'>
+            <div class='row q-mx-sm q-my-md no-wrap overflow-hidden'>
                 <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'>
-                    <q-chip dense square :label='tag' outline color='primary' class='chip-text-white text-caption'></q-chip>
+                    <q-chip dense square :label='tag' outline color='primary' class='chip-text-white'></q-chip>
                 </div>
             </div>
             

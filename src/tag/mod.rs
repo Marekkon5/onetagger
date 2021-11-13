@@ -267,13 +267,15 @@ pub enum TagChange {
 #[serde(rename_all = "camelCase")]
 pub struct TagChanges {
     changes: Vec<TagChange>,
-    pub path: String
+    pub path: String,
+    separators: TagSeparators
 }
 
 impl TagChanges {
     // Save all changes to file
     pub fn commit(&self) -> Result<Tag, Box<dyn Error>> {
         let mut tag_wrap = Tag::load_file(&self.path, false)?;
+        tag_wrap.set_separators(&self.separators);
 
         // Format specific changes
         if let Tag::ID3(id3) = &mut tag_wrap {

@@ -57,10 +57,7 @@
             class='text-center step'>
 
             <div class='text-h5 text-grey-4'>Advanced</div>
-            <span class='text-subtitle2 text-grey-6'>Enable 
-                <q-icon name='mdi-toggle-switch' class='text-grey-4'></q-icon> 
-                toggle to activate stated options
-            </span>
+            <span class='text-subtitle2 text-grey-6'>Miscellaneous options</span>
             <br>
             <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
         </q-step>

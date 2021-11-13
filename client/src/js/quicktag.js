@@ -194,7 +194,12 @@ class QTTrack {
                 })
             }
         }
-        return {changes, path: this.path};
+        
+        return {
+            changes, 
+            path: this.path,
+            separators: this.settings.separators
+        };
     }
 
     // Wether the track has changes
