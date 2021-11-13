@@ -94,6 +94,7 @@
             :options='stylesOptions'
             class='select'
             label='Genres/Styles tag'
+            style='margin-bottom: 48px;'
             @input='updateStyleOption'
         ></q-select>
         <!-- Styles custom tag -->

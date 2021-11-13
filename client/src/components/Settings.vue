@@ -166,16 +166,17 @@
             <div v-if='tab == "quicktag-custom"'>
 
                 <!-- Separators -->
-                <div class='text-center text-body1 text-grey-4 q-mb-md'>Separators</div>
-                <Separators
-                    :initial="$1t.settings.quickTag.separators"
-                    @input='$1t.settings.quickTag.separators = $event'
-                    class='q-mb-md'
-                ></Separators>
+                <div class='text-center text-body1 text-grey-4 q-mb-sm'>Separators</div>
+                <div class='text-center' style='margin-bottom: 40px;'>
+                    <Separators
+                        :initial="$1t.settings.quickTag.separators"
+                        @input='$1t.settings.quickTag.separators = $event'                    
+                    ></Separators>
+                </div>
                 <q-separator class='custom-separator q-my-lg' inset color="darker"/>
 
                 <!-- Note tag -->
-                <div class='text-primary text-bold q-mb-md row'>
+                <div class='text-primary text-bold q-mb-md row' style='margin-top: 35px'>
                     CUSTOM NOTE
                     <span class='text-grey-5 text-uppercase text-caption' style='padding-left: 300px;'>
                         <span>Save to</span>

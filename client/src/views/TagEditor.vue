@@ -599,7 +599,13 @@ export default {
 
         // Save to file
         save() {
-            this.$1t.send('tagEditorSave', {changes: {path: this.file.path, changes: this.changes}});
+            this.$1t.send('tagEditorSave', {
+                changes: {
+                    path: this.file.path, 
+                    changes: this.changes,
+                    separators: {id3: ', ', vorbis: null, mp4: ', '},
+                }
+            });
             this.changes = [];
         },
         saveSettings() {

@@ -104,8 +104,8 @@
         </div>
 
         <!-- Separators -->
-        <div class='text-h5 q-mt-lg text-grey-4 custom-margin'>Separators</div>
-        <div class='row q-mx-xl q-my-md justify-center'>
+        <div class='text-center text-body1 text-grey-4 q-mt-md q-mb-sm'>Separators</div>
+        <div class='row q-pb-lg q-mt-sm justify-center'>            
             <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
         </div>
 
