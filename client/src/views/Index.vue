@@ -7,7 +7,7 @@
     <!-- Welcome -->
     <div class='flex flex-center column'>
        
-        <img svg-inline src="../assets/logo.svg" width='310px' height='100%' style='margin-top: 6%;'>
+        <img svg-inline src="../assets/logo.svg" height='160px' style='margin-top: 6%;'>
         
         <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
