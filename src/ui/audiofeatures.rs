@@ -41,7 +41,7 @@ impl AFProperties {
     pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, track: &FullTrack, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
         vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
-                .add_main_value("#dynamics-high", "#dynamics-med", "#dynamics-low"),
+                .add_main_value("#dance-high", "#dance-med", "#dance-low"),
             AFPropertyMerged::new(features.acousticness, &self.acousticness, &format)
                 .add_main_value("#electronic", "", "#acoustic"),
             AFPropertyMerged::new(features.energy, &self.energy, &format)

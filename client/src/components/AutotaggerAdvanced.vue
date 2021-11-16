@@ -171,7 +171,14 @@
     
 
     <!-- Command -->
-    <div class='text-center text-body1 text-grey-4 q-mt-lg'>Execute command when tagging is finished</div>
+    <div class='text-center text-body1 text-grey-4 q-mt-lg'>
+        Execute command when tagging is finished
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
+            <q-tooltip content-style="font-size: 13px">
+                $success and $failed will be substituted with paths to files containing paths of affected tracks.
+            </q-tooltip>
+        </q-icon>
+    </div>
     <q-input label='$success, $failed will be substituted' filled class='row input q-py-sm justify-center' style='max-width: 526px; margin: auto;' v-model='$1t.config.postCommand'></q-input>
     <br><br>
 </div>
