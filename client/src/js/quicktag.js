@@ -15,7 +15,7 @@ class QTTrack {
 
     // Get note from tags
     getNote() {
-        if (this.note) {
+        if (this.note || this.note === '') {
             return this.note;
         }
         let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
