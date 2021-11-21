@@ -101,7 +101,11 @@ impl BeatsourceTrack {
                 .trim()
                 .to_string()
             ),
-            bpm: self.bpm,
+            bpm: if self.bpm - self.bpm / 100 * 100 >= 50 {
+                self.bpm / 100
+            } else {
+                self.bpm / 100 +1
+            },
             genres: vec![self.genre.name],
             art: self.release.image.map(|i| i.dynamic_uri
                 .replace("{w}", &config.beatsource.art_resolution.to_string())
