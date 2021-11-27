@@ -2177,9 +2177,9 @@ dependencies = [
 
 [[package]]
 name = "minify-html"
-version = "0.6.10"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cac5b6b3e2eebc4c99750325b106990cf5334afcdcde6b4479e5f2c6be5ceb8"
+checksum = "611e65ee3ec1563f58258440598398a3141831225cedd92820ca52d3a7a66a04"
 dependencies = [
  "aho-corasick",
  "lazy_static",
@@ -2789,6 +2789,7 @@ dependencies = [
  "threadpool",
  "tinyfiledialogs",
  "tungstenite",
+ "unidecode",
  "urlencoding 2.1.0",
  "walkdir",
  "web-view",
@@ -4524,6 +4525,12 @@ name = "unicode-xid"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
+
+[[package]]
+name = "unidecode"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "402bb19d8e03f1d1a7450e2bd613980869438e0666331be3e073089124aa1adc"
 
 [[package]]
 name = "url"

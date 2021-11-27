@@ -175,7 +175,7 @@
         Execute command when tagging is finished
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
             <q-tooltip content-style="font-size: 13px">
-                $success and $failed will be substituted with paths to files containing paths of affected tracks.
+                $success and $failed will be substituted with paths to files containing paths of affected tracks
             </q-tooltip>
         </q-icon>
     </div>

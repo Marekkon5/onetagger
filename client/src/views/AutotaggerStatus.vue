@@ -47,7 +47,7 @@
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-debug-step-over' round :color='filter == "skipped" ? "primary" : "yellow"' class='text-black' @click='toggleFilter("skipped")'>
                                 <q-tooltip content-style="font-size: 13px">
-                                    Total amount skipped due missing tags or corruption
+                                    Total amount skipped due missing tags, corruption, or Shazam not being able to identify
                                 </q-tooltip>
                             </q-btn>
                         </div>

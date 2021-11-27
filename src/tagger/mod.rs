@@ -16,6 +16,7 @@ use reqwest::StatusCode;
 use walkdir::WalkDir;
 use threadpool::ThreadPool;
 use strsim::normalized_levenshtein;
+use unidecode::unidecode;
 use chrono::{NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
 use crate::tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, UITag, TagSeparators, EXTENSIONS};
@@ -718,7 +719,7 @@ impl MatchingUtils {
             out = out.replace(c, "");
         }
         out = out.replace("  ", " ");
-        out.trim().to_string()
+        unidecode(out.trim())
     }
 
     // Clean list of artists

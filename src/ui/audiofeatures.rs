@@ -55,7 +55,7 @@ impl AFProperties {
             AFPropertyMerged::new(features.valence, &self.valence, &format)
                 .add_main_value("#negative", "#neutral", "#positive"),
             AFPropertyMerged::new(track.popularity as f32 / 100.0, &self.popularity, &format)
-                .add_main_value("", "", "#popular")
+                .add_main_value("#unpopular", "", "#popular")
         ]
     }
 }
