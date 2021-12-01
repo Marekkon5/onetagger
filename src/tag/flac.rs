@@ -119,10 +119,12 @@ impl TagImpl for FLACTag {
 
     // Get all tags
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
+        let mut out = HashMap::new();
         if let Some(vorbis) = self.tag.vorbis_comments() {
-            return vorbis.comments.clone();
+            // Get value of tag with proper separators
+            vorbis.comments.iter().for_each(|(k, _)| { out.insert(k.to_string(), self.get_raw(k).unwrap()); } );
         }
-        HashMap::new()
+        out
     }
 
     // Set date in tag

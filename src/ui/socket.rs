@@ -9,7 +9,7 @@ use directories::UserDirs;
 use dunce::canonicalize;
 use serde::{Serialize, Deserialize};
 
-use crate::tag::TagChanges;
+use crate::tag::{TagChanges, TagSeparators};
 use crate::tagger::{TaggerConfig, Tagger};
 use crate::tagger::spotify::Spotify;
 use crate::ui::{Settings, StartContext};
@@ -40,7 +40,7 @@ enum Action {
     PlayerSeek { pos: u64 },
     PlayerVolume { volume: f32 },
 
-    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool> },
+    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators },
     QuickTagSave { changes: TagChanges },
 
     #[serde(rename_all = "camelCase")]
@@ -284,15 +284,15 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         },
         Action::PlayerVolume { volume } => context.player.volume(volume),
         // Load quicktag files or playlist
-        Action::QuickTagLoad { path, playlist, recursive } => {
+        Action::QuickTagLoad { path, playlist, recursive, separators } => {
             let mut files = vec![];
             // Playlist
             if let Some(playlist) = playlist {
-                files = QuickTag::load_files_playlist(&playlist)?;
+                files = QuickTag::load_files_playlist(&playlist, &separators)?;
             }
             // Path
             if let Some(path) = path {
-                files = QuickTag::load_files_path(&path, recursive.unwrap_or(false))?;
+                files = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
             }
             websocket.write_message(Message::from(json!({
                 "action": "quickTagLoad",

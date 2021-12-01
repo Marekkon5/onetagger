@@ -603,14 +603,15 @@ class OneTagger {
     // Quicktag
     loadQuickTag(playlist = null) {
         if (playlist) {
-            this.send('quickTagLoad', {playlist});
+            this.send('quickTagLoad', {playlist, separators: this.settings.quickTag.separators});
             return;
         }
            
         if (this.settings.path)
             this.send('quickTagLoad', {
                 path: this.settings.path,
-                recursive: this.settings.quickTag.recursive
+                recursive: this.settings.quickTag.recursive,
+                separators: this.settings.quickTag.separators
             });
     }
 

@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 use image::ImageOutputFormat;
 use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
-use crate::tag::{AudioFileFormat, Field, Tag, EXTENSIONS};
+use crate::tag::{AudioFileFormat, Field, Tag, EXTENSIONS, TagSeparators};
 use crate::playlist::{UIPlaylist, get_files_from_playlist_file};
 
 pub struct QuickTag {}
@@ -15,10 +15,10 @@ pub struct QuickTag {}
 impl QuickTag {
 
     // Load all files from folder
-    pub fn load_files_path(path: &str, recursive: bool) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+    pub fn load_files_path(path: &str, recursive: bool, separators: &TagSeparators) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
         // Check if path to playlist
         if !Path::new(path).is_dir() {
-            return QuickTag::load_files(get_files_from_playlist_file(path)?);
+            return QuickTag::load_files(get_files_from_playlist_file(path)?, separators);
         }
         
         let mut files = vec![];
@@ -49,20 +49,20 @@ impl QuickTag {
             }
         }
         
-        QuickTag::load_files(files)
+        QuickTag::load_files(files, separators)
     }
 
     // Load all files from playlist
-    pub fn load_files_playlist(playlist: &UIPlaylist) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
-        QuickTag::load_files(playlist.get_files()?)
+    pub fn load_files_playlist(playlist: &UIPlaylist, separators: &TagSeparators) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+        QuickTag::load_files(playlist.get_files()?, separators)
     }
 
     // Check extension and load file
-    pub fn load_files(files: Vec<String>) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
+    pub fn load_files(files: Vec<String>, separators: &TagSeparators) -> Result<Vec<QuickTagFile>, Box<dyn Error>> {
         let mut out = vec![];
         for path in files {
             if EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
-                match QuickTagFile::from_path(&path) {
+                match QuickTagFile::from_path(&path, separators) {
                     Ok(t) => out.push(t),
                     Err(e) => error!("Error loading file: {} {}", path, e)
                 }
@@ -88,8 +88,9 @@ pub struct QuickTagFile {
 
 impl QuickTagFile {
     // Load tags from path
-    pub fn from_path(path: &str) -> Result<QuickTagFile, Box<dyn Error>> {
-        let tag_wrap = Tag::load_file(path, false)?;
+    pub fn from_path(path: &str, separators: &TagSeparators) -> Result<QuickTagFile, Box<dyn Error>> {
+        let mut tag_wrap = Tag::load_file(path, false)?;
+        tag_wrap.set_separators(separators);
         Ok(QuickTagFile::from_tag(path, &tag_wrap).ok_or("Unable to load tags!")?)
     }
 

@@ -646,9 +646,17 @@ impl AudioFileIDs {
     // Load IDs from file
     pub fn load(tag: &Box<&dyn TagImpl>) -> AudioFileIDs {
         AudioFileIDs {
-            discogs_release_id: tag.get_raw("DISCOGS_RELEASE_ID").map(|v| v[0].parse().ok()).flatten(),
-            beatport_track_id: tag.get_raw("BEATPORT_TRACK_ID").map(|v| v[0].parse().ok()).flatten()
+            discogs_release_id: tag.get_raw("DISCOGS_RELEASE_ID").map(|v| AudioFileIDs::try_parse_int(&v)).flatten(),
+            beatport_track_id: tag.get_raw("BEATPORT_TRACK_ID").map(|v| AudioFileIDs::try_parse_int(&v)).flatten()
         }
+    }
+
+    /// Clean tag data and parse as int ID
+    fn try_parse_int(input: &Vec<String>) -> Option<i64> {
+        if input.is_empty() {
+            return None;
+        }
+        input[0].trim().replace("\0", "").parse().ok()
     }
 
     // If all values are missing
