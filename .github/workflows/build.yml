@@ -16,6 +16,11 @@ jobs:
         sudo apt update
         sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 
+    - name: Install NodeJS
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
     - name: Run build script
       run: |
         chmod +x assets/compile-nix.sh
