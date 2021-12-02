@@ -89,7 +89,7 @@ class OneTagger {
                     this.taggerStatus.statuses = this.taggerStatus.statuses.filter((s) => {
                         return s.status.path != json.status.status.path;
                     });
-                    this.taggerStatus.statuses.push(json.status);
+                    this.taggerStatus.statuses.unshift(json.status);
                     
                     break;
                 // Tagging done
