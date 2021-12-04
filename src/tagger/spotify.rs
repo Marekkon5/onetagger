@@ -6,6 +6,7 @@ use rspotify::blocking::oauth2::{SpotifyClientCredentials, SpotifyOAuth};
 use rspotify::blocking::util::get_token_by_code;
 use rspotify::blocking::client;
 use rspotify::model::album::FullAlbum;
+use rspotify::model::artist::FullArtist;
 use rspotify::senum::SearchType;
 use rspotify::model::search::SearchResult;
 use rspotify::model::track::FullTrack;
@@ -175,13 +176,25 @@ impl Spotify {
             }
         }
     }
+
+    /// Fetch full artist
+    pub fn artist(&self, id: &str) -> Result<FullArtist, Box<dyn Error>> {
+        match self.spotify.artist(id) {
+            Ok(a) => Ok(a),
+            Err(e) => {
+                // Handle error and retry on rate limit
+                self.handle_rspotify_error(e)?;
+                self.artist(id)
+            }
+        }
+    }
 }
 
 impl TrackMatcherST for Spotify {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search_tracks(&query, 20)?;
-        let tracks: Vec<Track> = results.into_iter().map(|t| full_track_to_track(t)).collect();
+        let tracks: Vec<Track> = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
         if let Some((acc, mut track)) = MatchingUtils::match_track(info, &tracks, config, true) {
             // Fetch album
             if config.label {
@@ -192,6 +205,23 @@ impl TrackMatcherST for Spotify {
                     Err(e) => warn!("Failed to fetch album data: {}", e),
                 }
             }
+            // Fetch artist
+            if config.genre {
+                // Get artist id
+                let t = results.iter().find(|t| t.id == track.track_id).unwrap();
+                if let Some(artist_id) = t.artists.first().map(|a| a.id.clone()).flatten() {
+                    match self.artist(&artist_id) {
+                        Ok(artist) => {
+                            track.genres = artist.genres;
+                        },
+                        Err(e) => warn!("Failed to fetch artist data: {}", e)
+                    }
+                } else {
+                    warn!("Missing artist ID");
+                }
+                
+            }
+
             return Ok(Some((acc, track)));
         }
         Ok(None)
