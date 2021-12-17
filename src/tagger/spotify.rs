@@ -28,6 +28,8 @@ static CALLBACK_HTML: &'static str = "
 </html>
 ";
 
+static PITCH_CLASS: [&'static str; 12] = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
 #[derive(Clone)]
 pub struct Spotify {
     pub spotify: client::Spotify
@@ -220,6 +222,18 @@ impl TrackMatcherST for Spotify {
                     warn!("Missing artist ID");
                 }
                 
+            }
+            // Fetch audio features
+            if config.key {
+                let t = results.iter().find(|t| t.id == track.track_id).unwrap();
+                if let Some(track_id) = &t.id {
+                    match self.audio_features(track_id) {
+                        Ok(features) => {
+                            track.key = Some(PITCH_CLASS[features.key as usize].to_string());
+                        },
+                        Err(e) => warn!("Failed to fetch audio features: {}", e)
+                    }
+                }
             }
 
             return Ok(Some((acc, track)));
