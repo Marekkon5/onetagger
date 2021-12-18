@@ -27,8 +27,8 @@ static CALLBACK_HTML: &'static str = "
     </body>
 </html>
 ";
-
-static PITCH_CLASS: [&'static str; 12] = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+static PITCH_CLASS_MAJOR: [&'static str; 12] = ["C", "C#",   "D",  "D#",  "E",  "F",  "F#",  "G",  "G#",  "A",  "A#",  "B" ];
+static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Gm", "Abm", "Am", "Bbm", "Bm"];
 
 #[derive(Clone)]
 pub struct Spotify {
@@ -229,7 +229,15 @@ impl TrackMatcherST for Spotify {
                 if let Some(track_id) = &t.id {
                     match self.audio_features(track_id) {
                         Ok(features) => {
-                            track.key = Some(PITCH_CLASS[features.key as usize].to_string());
+                            if features.key < 0 || features.key >= 12 {
+                                warn!("Spotify returned unkown key!");
+                            } else {
+                                match features.mode.round() as i8 {
+                                    1 => track.key = Some(PITCH_CLASS_MAJOR[features.key as usize].to_string()),
+                                    0 => track.key = Some(PITCH_CLASS_MINOR[features.key as usize].to_string()),
+                                    v => warn!("Invalid audio features mode: {}", v)
+                                }
+                            }
                         },
                         Err(e) => warn!("Failed to fetch audio features: {}", e)
                     }
