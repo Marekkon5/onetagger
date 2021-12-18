@@ -162,7 +162,7 @@ impl BeatportAPITrack {
     /// Get track number struct
     pub fn track_number(&self) -> TrackNumber {
         if self.number == 0 {
-            TrackNumber::Number(0)
+            TrackNumber::Number(1)
         } else {
             TrackNumber::Number(self.number)
         }
