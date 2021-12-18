@@ -10,6 +10,8 @@ use serde::{Serialize, Deserialize};
 
 use crate::tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, StylesOptions, parse_duration};
 
+use super::TrackNumber;
+
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 lazy_static::lazy_static! {
     // Shared global API access token because multiple threads
@@ -143,7 +145,8 @@ pub struct BeatportTrack {
     pub title: Option<String>,
     pub duration: BeatportDuration,
     pub sub_genres: Option<Vec<BeatportSmall>>,
-    pub remixers: Option<Vec<BeatportSmall>>
+    pub remixers: Option<Vec<BeatportSmall>>,
+    pub exclusive: Option<bool>
 }
 
 // TODO: Track from private API has different data!
@@ -155,9 +158,20 @@ pub struct BeatportAPITrack {
     pub isrc: Option<String>
 }
 
+impl BeatportAPITrack {
+    /// Get track number struct
+    pub fn track_number(&self) -> TrackNumber {
+        if self.number == 0 {
+            TrackNumber::Number(0)
+        } else {
+            TrackNumber::Number(self.number)
+        }
+    }
+}
+
 impl BeatportTrack {
     pub fn to_track(&self, art_resolution: u32) -> Track {
-        Track {
+        let mut t = Track {
             platform: MusicPlatform::Beatport,
             title: self.name.to_string(),
             version: self.mix.as_ref().map(String::from),
@@ -199,7 +213,13 @@ impl BeatportTrack {
             remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect(),
             track_number: None,
             isrc: None
+        };
+
+        // Exclusive beatport tag
+        if self.exclusive.is_some() && self.exclusive.unwrap() {
+            t.other.push(("BEATPORT_EXCLUSIVE".to_string(), "1".to_string()));
         }
+        t
     }
 
     // Get dynamic or first image
@@ -300,7 +320,8 @@ impl TrackMatcher for Beatport {
             let api_track = self.fetch_track_embed(id)?;
             let bp_track = self.fetch_track(&api_track.slug, api_track.id)?;
             let mut track = bp_track.to_track(config.beatport.art_resolution);
-            track.track_number = Some(api_track.number.into());
+            track.isrc = api_track.isrc.clone();
+            track.track_number = Some(api_track.track_number());
             return Ok(Some((1.0, track)));
         }
 
@@ -341,7 +362,7 @@ impl TrackMatcher for Beatport {
                             info!("Fetching track info from API for track number!");
                             match self.fetch_track_embed(res.tracks[i].id) {
                                 Ok(t) => {
-                                    track.track_number = Some(t.number.into());
+                                    track.track_number = Some(t.track_number());
                                     track.isrc = t.isrc;
                                 },
                                 Err(e) => warn!("Beatport failed fetching full API track data for track number! {}", e)
