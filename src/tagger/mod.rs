@@ -1107,6 +1107,7 @@ impl Tagger {
 
     // Tag single track
     pub fn tag_track(path: &str, tagger_mt: Option<&dyn TrackMatcher>, tagger_st: Option<&mut dyn TrackMatcherST>, config: &TaggerConfig) -> TaggingStatus {
+        info!("Tagging: {}", path);
         // Output
         let mut out = TaggingStatus {
             status: TaggingState::Error,
