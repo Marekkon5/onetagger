@@ -88,11 +88,14 @@ impl ID3Tag {
 
         match ID3Tag::load_file(path) {
             Ok(tag) => tag,
-            Err(_) => ID3Tag {
-                tag: Tag::new(),
-                format,
-                id3_separator: String::from(", "),
-                id3v24: true
+            Err(e) => {
+                warn!("Failed loading: {}, creating new tag. {}", path, e);
+                ID3Tag {
+                    tag: Tag::new(),
+                    format,
+                    id3_separator: String::from(", "),
+                    id3v24: true
+                }
             }
         }
     }
