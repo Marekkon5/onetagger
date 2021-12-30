@@ -54,7 +54,8 @@ serde = { version = "1.0", features = ["derive"] }
 sndfile = { version = "0.0.4", features = ["ndarray_features"] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 
-id3 = { git = "https://github.com/Marekkon5/rust-id3.git", branch = "fix_sylt" }
+id3 = { git = "https://github.com/Marekkon5/rust-id3.git", branch = "disable_sylt" }
+
 songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
 rspotify = { git = "https://github.com/Marekkon5/rspotify.git", branch = "0.10-fix", features = ["blocking"] }
 

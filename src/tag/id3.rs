@@ -89,7 +89,7 @@ impl ID3Tag {
         match ID3Tag::load_file(path) {
             Ok(tag) => tag,
             Err(e) => {
-                warn!("Failed loading: {}, creating new tag. {}", path, e);
+                warn!("Failed loading: {}, creating new tag. {:?}", path, e);
                 ID3Tag {
                     tag: Tag::new(),
                     format,
