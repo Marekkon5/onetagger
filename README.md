@@ -54,7 +54,7 @@ assets/compile-nix.sh
 Output files will be in the `dist/` directory.
 
 ### Windows
-You need to install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://visualstudio.microsoft.com/downloads/)
+You need to install dependencies: [rustup](https://rustup.rs), [node v14](https://nodejs.org/en/blog/release/v14.18.2/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe)
 
 **Compile UI:**
 ```
