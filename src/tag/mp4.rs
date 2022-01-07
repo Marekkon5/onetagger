@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use mp4ameta::{Tag, Data, Img, ImgFmt};
 use mp4ameta::ident::DataIdent;
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc, Datelike};
 
 use crate::tag::{TagImpl, TagDate, CoverType, Picture, Field};
 
@@ -162,6 +162,7 @@ impl TagImpl for MP4Tag {
 
     fn set_publish_date(&mut self, _date: &TagDate, _overwrite: bool) {
         // Unsupported (mp4 barely even supports dates)
+        warn!("M4A Publish date isn't supported, skipping!");
     }
 
     // RATING NOT FINAL, used same as KID3
@@ -267,4 +268,26 @@ impl TagImpl for MP4Tag {
     fn remove_raw(&mut self, tag: &str) {
         self.tag.remove_data_of(&MP4Tag::string_to_ident(tag));
     }
+
+    fn get_date(&self) -> Option<TagDate> {
+        let ident = DataIdent::fourcc(*b"\xa9day");
+        let data = &self.raw_by_ident(&ident)?[0];
+        // Only year
+        if let Ok(year) = data.parse() {
+            return Some(TagDate {
+                year: year,
+                month: None,
+                day: None
+            });
+        }
+        // Parse ISO timestamp 
+        let date = DateTime::parse_from_str(&data, "%+").ok()?;
+        Some(TagDate {
+            year: date.year(),
+            month: Some(date.month() as u8),
+            day: Some(date.day() as u8)
+        })
+    }
+
+    
 }

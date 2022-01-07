@@ -433,6 +433,26 @@ impl TagImpl for ID3Tag {
 
         self.tag.remove(tag);
     }
+
+    fn get_date(&self) -> Option<TagDate> {
+        if let Some(date) = self.tag.date_recorded() {
+            return Some(TagDate {
+                year: date.year,
+                month: date.month,
+                day: date.day
+            });
+        }
+        // ID3v2.3
+        if let Some(tag) = self.get_raw("TYER") {
+            return Some(TagDate {
+                year: tag[0].parse().ok()?,
+                month: None,
+                day: None
+            });
+        }
+        None
+    }
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

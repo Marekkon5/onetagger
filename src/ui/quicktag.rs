@@ -84,6 +84,8 @@ pub struct QuickTagFile {
     bpm: Option<i64>,
     rating: u8,
     tags: HashMap<String, Vec<String>>,
+    year: Option<i32>,
+    key: Option<String>
 }
 
 impl QuickTagFile {
@@ -117,6 +119,8 @@ impl QuickTagFile {
                 None => None
             },
             tags: all_tags,
+            year: tag.get_date().map(|d| d.year),
+            key: tag.get_field(Field::Key).map(|f| f.first().map(String::from)).flatten()
         })
     }
 

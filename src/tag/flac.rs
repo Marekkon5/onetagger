@@ -217,4 +217,25 @@ impl TagImpl for FLACTag {
         self.tag.remove_vorbis(tag);
     }
 
+    fn get_date(&self) -> Option<TagDate> {
+        let data = &self.get_raw("DATE")?[0];
+        // YYYY-MM-DD
+        if data.len() >= 10 {
+            return Some(TagDate {
+                year: data[0..4].parse().ok()?,
+                month: data[5..7].parse().ok(),
+                day: data[8..10].parse().ok()
+            });
+        }
+        // YYYY
+        if data.len() >= 4 {
+            return Some(TagDate {
+                year: data.parse().ok()?,
+                month: None,
+                day: None
+            });
+        }
+        None
+    }
+
 }

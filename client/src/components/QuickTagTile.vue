@@ -15,13 +15,13 @@
                     />
                 </div>
                 <!-- Title -->
-                <div class='col-5 q-pl-sm'>
+                <div class='col-4 q-pl-sm'>
                     <span class='text-subtitle1 text-grey-4 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
                     <span class='text-subtitle2 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
                 </div>
                 <!-- Details -->
-                <div class='col-6 row text-grey-6 text-weight-medium text-center items-center'>
-                    <div class='col-4'>
+                <div class='col-7 row text-grey-6 text-weight-medium text-center items-center'>
+                    <div class='col-3'>
                         <!-- Mood -->
                         <q-chip 
                             v-if='getMood(track.mood)'
@@ -30,11 +30,23 @@
                             :label='getMood(track.mood).mood'
                         ></q-chip>
                     </div>
-                    <div class='col-6 text-grey-4'>
+                    <div class='col-3'>
+                        <q-rating 
+                            size='1.4em' 
+                            v-model='track.energy'
+                            no-reset
+                        ></q-rating>
+                    </div>
+
+                    <div class='col-4 text-grey-4'>
                         <span>{{track.genre || track.genres.join(", ")}}</span>
+                        <br v-if='(track.genre || track.genres) && track.year'>
+                        <span class='text-grey-6'>{{track.year}}</span>
                     </div>
                     <div class='col-1'>
                         <span>{{track.bpm}}</span>
+                        <br v-if='track.bpm && track.key'>
+                        <span>{{track.key}}</span>
                     </div>
                     <div class='col-1 q-mt-xs'>
                         <!-- <q-btn round flat icon='mdi-dots-horizontal' color='primary'></q-btn> -->

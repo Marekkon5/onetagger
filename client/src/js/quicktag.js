@@ -89,9 +89,18 @@ class QTTrack {
         // Add or remove
         if (i == -1) {
             this.custom[tag].push(value);
+            this.sortCustom(tag);
         } else {
             this.custom[tag].splice(i, 1);
         }
+    }
+
+    // Properly order the values
+    sortCustom(tag) {
+        this.custom[tag].sort((a, b) => 
+            this.settings.custom[tag].values.findIndex((i) => i.val == a) - 
+            this.settings.custom[tag].values.findIndex((i) => i.val == b)
+        );
     }
 
     // Load custom tags

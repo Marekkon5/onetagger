@@ -53,6 +53,13 @@
                 style='width: calc(100% - 32px)'
             ></AdvancedSettingsToggle>
         </div>
+        <AdvancedSettingsToggle 
+            label='Force Shazam'
+            tooltip='Indentify tracks with Shazam, even if tags are present'
+            v-model='$1t.config.forceShazam'
+            v-if='$1t.config.enableShazam'
+        ></AdvancedSettingsToggle>
+
 
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 

@@ -100,6 +100,7 @@ pub trait TagImpl {
     fn all_tags(&self) -> HashMap<String, Vec<String>>;
 
     // Set/Get dates
+    fn get_date(&self) -> Option<TagDate>;
     fn set_date(&mut self, date: &TagDate, overwrite: bool);
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool);
 

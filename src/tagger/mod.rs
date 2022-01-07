@@ -113,6 +113,7 @@ pub struct TaggerConfig {
     pub styles_custom_tag: Option<UITag>,
     pub track_number_leading_zeroes: usize,
     pub enable_shazam: bool,
+    pub force_shazam: bool,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -633,6 +634,31 @@ impl AudioFileInfo {
         }
         vec![src.to_owned().to_owned()]
     }
+
+    // Recognize on Shazam
+    pub fn shazam(path: &str) -> Result<AudioFileInfo, Box<dyn Error>> {
+        info!("Recognizing on Shazam: {}", path);
+        match Shazam::recognize_from_file(path) {
+            Ok((shazam_track, duration)) => {
+                info!("Recognized on Shazam: {}: {} - {}", path, shazam_track.title, shazam_track.subtitle);
+                return Ok(AudioFileInfo {
+                    title: Some(shazam_track.title),
+                    artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),
+                    format: AudioFileFormat::from_extension(path.split(".").last().unwrap()).unwrap(),
+                    path: path.to_string(),
+                    isrc: Some(shazam_track.isrc),
+                    duration: Some(Duration::from_millis(duration as u64)),
+                    track_number: None,
+                    ids: Default::default(),
+                });
+            },
+            // Mark as failed
+            Err(e) => {
+                warn!("Shazam failed: {}", e);
+                return Err(e);
+            }
+        }
+    }
 }
 
 /// IDs from various platforms
@@ -1125,42 +1151,44 @@ impl Tagger {
             }
         }
 
-        // Load track audio file info
-        let mut info = match AudioFileInfo::load_file(path, template) {
-            Ok(info) => info,
-            // Failed loading file
-            Err(e) => {
-                // Try shazam if enabled
-                if config.enable_shazam {
-                    info!("Recognizing on Shazam: {}", path);
-                    match Shazam::recognize_from_file(path) {
-                        Ok((shazam_track, duration)) => {
-                            info!("Recognized on Shazam: {}: {} - {}", path, shazam_track.title, shazam_track.subtitle);
-                            out.used_shazam = true;
-                            AudioFileInfo {
-                                title: Some(shazam_track.title),
-                                artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),
-                                format: AudioFileFormat::from_extension(path.split(".").last().unwrap()).unwrap(),
-                                path: path.to_string(),
-                                isrc: Some(shazam_track.isrc),
-                                duration: Some(Duration::from_millis(duration as u64)),
-                                track_number: None,
-                                ids: Default::default(),
-                            }
-                        },
-                        // Mark as failed
-                        Err(e) => {
-                            warn!("Shazam failed: {}", e);
-                            out.status = TaggingState::Skipped;
-                            out.message = Some(format!("Error loading file: {}", e));
-                            return out;
-                        }
-                    }
-                } else {
+
+        // Load audio file info by shazam or tags
+        let mut info = if config.enable_shazam && config.force_shazam {
+            match AudioFileInfo::shazam(path) {
+                Ok(i) => {
+                    out.used_shazam = true;
+                    i
+                },
+                Err(e) => {
                     out.status = TaggingState::Skipped;
-                    warn!("Error loading file: {}", e);
-                    out.message = Some(format!("Error loading file: {}", e));
+                    out.message = Some(format!("Error Shazaming file: {}", e));
                     return out;
+                }
+            }
+        } else {
+            match AudioFileInfo::load_file(path, template) {
+                Ok(info) => info,
+                Err(e) => {
+                    // Try shazam if enabled
+                    if config.enable_shazam {
+                        match AudioFileInfo::shazam(path) {
+                            Ok(info) => {
+                                out.used_shazam = true;
+                                info
+                            },
+                            // Mark as failed
+                            Err(e) => {
+                                out.status = TaggingState::Skipped;
+                                out.message = Some(format!("Error loading file: {}", e));
+                                return out;
+                            }
+                        }
+                    } else {
+                        out.status = TaggingState::Skipped;
+                        warn!("Error loading file: {}", e);
+                        out.message = Some(format!("Error loading file: {}", e));
+                        return out;
+                    }
                 }
             }
         };

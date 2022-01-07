@@ -21,6 +21,11 @@
         </div>
     </div>
 
+    <!-- Reorder the values inside of tag -->
+    <div class='full-width row justify-center'>
+        <q-btn flat class='text-bold' color='primary' @click='sortValues' v-if='this.$1t.quickTag.track'>Sort values</q-btn>
+    </div>
+
 </div>
 </template>
 
@@ -42,6 +47,12 @@ export default {
         valueClick(tag, value) {
             if (!this.$1t.quickTag.track) return false;
             this.$1t.quickTag.track.toggleCustom(tag, value);           
+        },
+        // Sort values inside of tag
+        sortValues() {
+            for (let i=0; i<this.$1t.quickTag.track.custom.length; i++) {
+                this.$1t.quickTag.track.sortCustom(i);
+            }
         }
     }
 }
