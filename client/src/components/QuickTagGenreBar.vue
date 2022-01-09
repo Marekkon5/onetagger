@@ -25,10 +25,10 @@ export default {
     },
     methods: {
         isSelected(genre) {
-            return this.$1t.quickTag.track.genre == genre.genre;
+            return this.$1t.quickTag.track.genres.includes(genre.genre);
         },
         setGenre(genre) {
-            this.$1t.quickTag.track.genre = genre.genre;
+            this.$1t.quickTag.track.toggleGenre(genre.genre);
         }
     }
 }

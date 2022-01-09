@@ -683,7 +683,7 @@ class OneTagger {
             // Genres
             this.settings.quickTag.genres.forEach((genre) => {
                 if (this.checkKeybind(event, genre.keybind)) {
-                    this.quickTag.track.genre = genre.genre;
+                    this.quickTag.track.toggleGenre(genre.genre);
                 }
             });
 

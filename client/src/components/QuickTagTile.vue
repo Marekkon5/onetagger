@@ -1,9 +1,9 @@
 <template>
 <div @mouseleave='mouseOver = false' @mouseenter="mouseOver = true">
     <q-card flat class='q-mx-md q-my-sm qt-tile' :class='{"bg-darker": selected || mouseOver}'>
-        <div class='row'>
+        <div class='row qt-tile'>
             <div class='selected-bar bg-primary' v-if='selected'></div>
-            <div class='row q-pt-md q-pl-md full-width'>
+            <div class='row q-pt-md q-pl-md full-width full-height'>
                 <!-- Art -->
                 <div class='col-1 q-pt-xs'>
                     <q-img 
@@ -39,9 +39,8 @@
                     </div>
 
                     <div class='col-4 text-grey-4'>
-                        <span>{{track.genre || track.genres.join(", ")}}</span>
-                        <br v-if='(track.genre || track.genres) && track.year'>
-                        <span class='text-grey-6'>{{track.year}}</span>
+                        <div>{{track.genres.join(", ")}}</div>
+                        <div class='text-grey-6'>{{track.year}}</div>
                     </div>
                     <div class='col-1'>
                         <span>{{track.bpm}}</span>
@@ -53,15 +52,16 @@
                     </div>
                 </div>
             </div>
-            <!-- Custom tags -->
-            <div class='row q-mx-sm q-my-md no-wrap overflow-hidden'>
-                <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'>
-                    <q-chip dense square :label='tag' outline color='primary' class='chip-text-white'></q-chip>
-                </div>
-            </div>
-            
 
         </div>
+
+        <!-- Custom tags -->
+        <div class='row q-mx-sm no-wrap overflow-hidden custom-tag-chips'>
+            <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'>
+                <q-chip dense square :label='tag' outline color='primary' class='chip-text-white'></q-chip>
+            </div>
+        </div>
+
     </q-card>
 </div>
 </template>
@@ -120,5 +120,8 @@ export default {
     text-overflow: ellipsis;
     overflow: hidden;
     display: block;
+}
+.custom-tag-chips {
+    margin-top: -38px;
 }
 </style>

@@ -9,8 +9,9 @@ class QTTrack {
         this.energy = this.getEnergy();
         this.note = this.getNote();
         this._originalNote = this.note;
-        this.genre = this.genres[0];
         this.custom = this.loadCustom();
+        // very retarded, but it is what it is
+        this._genres = JSON.parse(JSON.stringify(this.genres));
     }
 
     // Get note from tags
@@ -95,6 +96,16 @@ class QTTrack {
         }
     }
 
+    // Add or remove genre
+    toggleGenre(genre) {
+        let i = this.genres.indexOf(genre);
+        if (i == -1) {
+            this.genres.push(genre);
+        } else {
+            this.genres.splice(i, 1);
+        }
+    }
+
     // Properly order the values
     sortCustom(tag) {
         this.custom[tag].sort((a, b) => 
@@ -155,10 +166,10 @@ class QTTrack {
             }
         }
         // Genre change
-        if (this.genre != this.genres[0]) {
+        if (this.genres != this._genres) {
             changes.push({
                 type: 'genre',
-                value: [this.genre]
+                value: this.genres
             })
         }
         
