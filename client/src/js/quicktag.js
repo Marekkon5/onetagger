@@ -166,7 +166,7 @@ class QTTrack {
             }
         }
         // Genre change
-        if (this.genres != this._genres) {
+        if (this.genres.join('') != this._genres.join('')) {
             changes.push({
                 type: 'genre',
                 value: this.genres
