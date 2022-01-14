@@ -269,11 +269,14 @@ impl TagImpl for ID3Tag {
         }
         Some(rating)
     }
+    
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
         let frame = ID3Popularimeter::new("no@email", rating * 51, 0).to_frame();
         if overwrite || self.tag.get("POPM").is_none() {
             self.tag.remove("POPM");
-            self.tag.add_frame(frame);
+            if rating > 0 {
+                self.tag.add_frame(frame);
+            }
         }
     }
 

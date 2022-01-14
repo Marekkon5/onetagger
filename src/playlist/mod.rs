@@ -1,12 +1,13 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 use serde::{Serialize, Deserialize};
 
 use crate::tag::EXTENSIONS;
 use crate::ui::OTError;
 
-pub const PLAYLIST_EXTENSIONS: [&str; 2] = [".m3u", ".m3u8"];
+pub const PLAYLIST_EXTENSIONS: [&str; 2] = ["m3u", "m3u8"];
 
 // Playlist info from UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,7 +25,7 @@ impl UIPlaylist {
                 // Decode base64 from JS
                 let bytes = base64::decode(self.data[self.data.find(';').ok_or("Invalid data!")? + 8..].trim())?;
                 let m3u = String::from_utf8(bytes)?;
-                get_files_from_m3u(&m3u)
+                get_files_from_m3u(&m3u, None)
             }
         };
         // Filter extensions
@@ -41,14 +42,14 @@ pub enum PlaylistFormat {
 }
 
 
-pub fn get_files_from_playlist_file(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
+pub fn get_files_from_playlist_file(path: impl AsRef<Path>) -> Result<Vec<String>, Box<dyn Error>> {
     // Validate extension
-    if !PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
+    if !PLAYLIST_EXTENSIONS.iter().any(|e| &&path.as_ref().extension().unwrap_or_default().to_string_lossy().to_lowercase() == e) {
         return Err(OTError::new("Unsupported playlist!").into());
     };
     
     // Load file
-    let mut file = File::open(path)?;
+    let mut file = File::open(&path)?;
     let mut buf = vec![];
     file.read_to_end(&mut buf)?;
 
@@ -56,18 +57,23 @@ pub fn get_files_from_playlist_file(path: &str) -> Result<Vec<String>, Box<dyn E
 
     // M3U
     let data = String::from_utf8(buf)?;
-    Ok(get_files_from_m3u(&data))
+    Ok(get_files_from_m3u(&data, Some(path.as_ref().parent().unwrap().to_owned())))
 }
 
 
 // Get file list from M3U playlist
-pub fn get_files_from_m3u(m3u: &str) -> Vec<String> {
+pub fn get_files_from_m3u(m3u: &str, base_path: Option<PathBuf>) -> Vec<String> {
     let clean = m3u.replace("\r", "\n").replace("\n\n", "\n");
     let entries = clean.split("\n");
     let mut out = vec![];
     for entry in entries {
         if !entry.starts_with("#") && !entry.starts_with("http://") && !entry.is_empty() {
-            out.push(entry.trim().to_string());
+            if base_path.is_none() {
+                out.push(entry.trim().to_string());
+            } else {
+                // Add base path
+                out.push(base_path.clone().unwrap().join(entry).to_str().unwrap().to_string());
+            }
         }
     }
     out

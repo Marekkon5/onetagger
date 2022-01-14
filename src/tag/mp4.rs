@@ -178,7 +178,11 @@ impl TagImpl for MP4Tag {
 
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
         let val = rating * 20;
-        self.set_raw("rate", vec![val.to_string()], overwrite);
+        if rating > 0 {
+            self.set_raw("rate", vec![val.to_string()], overwrite);
+        } else {
+            self.remove_raw("rate");
+        }
     }
 
     fn set_art(&mut self, _kind: CoverType, mime: &str, _description: Option<&str>, data: Vec<u8>) {

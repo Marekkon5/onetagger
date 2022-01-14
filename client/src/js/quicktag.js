@@ -149,19 +149,19 @@ class QTTrack {
             });
         }
         // Energy change
-        if (this.getEnergy() != this.energy && this.energy != 0) {
+        if (this.getEnergy() != this.energy) {
             // Rating tag
             if (this.settings.energyTag.type == 'rating') {
                 changes.push({
                     type: 'rating',
-                    value: this.energy
+                    value: this.energy??0
                 });
             // Custom symbol
             } else {
                 changes.push({
                     type: 'raw',
                     tag: this.settings.energyTag.tag[this.getTagField()],
-                    value: [this.settings.energyTag.symbol.repeat(this.energy)]
+                    value: this.energy ? [this.settings.energyTag.symbol.repeat(this.energy)] : []
                 });
             }
         }

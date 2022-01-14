@@ -1,26 +1,7 @@
 <template>
-<div class='q-ma-md'>
-
-    <!-- Energy -->
-    <div class='text-subtitle1 text-bold text-grey-4' ref='energyTitle'>Energy</div>
-    <q-rating 
-        size='1.5em' 
-        class='q-mt-sm' 
-        v-if='$1t.quickTag.track'
-        v-model='$1t.quickTag.track.energy'
-        no-reset
-    ></q-rating>
-    <q-rating 
-        size='1.5em' 
-        class='q-mt-sm' 
-        :value='0' 
-        v-if='!$1t.quickTag.track'
-    ></q-rating>
-
-    <!-- Mood -->
-    <div class='text-subtitle1 text-bold q-mt-lg text-grey-4'>Mood</div>
-    <div class='q-mt-sm moods'>
-        <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i'>
+<div class='q-mx-md'>
+    <div class='q-mt-sm moods row'>
+        <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i' class='q-mx-xs'>
             <q-chip 
                 :outline='!(moodSelected(mood) || moodHover == i)' 
                 :color='mood.color + ((moodSelected(mood) || moodHover == i) ? "-6" : "")'
@@ -58,9 +39,6 @@ export default {
 </script>
 
 <style>
-.moods {
-    margin-left: -4px;
-}
 .pointer {
     cursor: pointer;    
 }

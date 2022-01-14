@@ -148,7 +148,11 @@ impl TagImpl for FLACTag {
     }
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
         let value = (rating * 20).to_string();
-        self.set_raw("RATING", vec![value], overwrite);
+        if rating > 0 {
+            self.set_raw("RATING", vec![value], overwrite);
+        } else {
+            self.tag.remove_vorbis("RATING");
+        }
     }
 
     // Set/Get album art

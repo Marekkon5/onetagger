@@ -2,11 +2,9 @@ use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::thread;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
-use directories::UserDirs;
-use dunce::canonicalize;
 use serde::{Serialize, Deserialize};
 
 use crate::tag::{TagChanges, TagSeparators};
@@ -17,7 +15,8 @@ use crate::ui::player::{AudioSources, AudioPlayer};
 use crate::ui::quicktag::{QuickTag, QuickTagFile};
 use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use crate::ui::tageditor::TagEditor;
-use crate::playlist::UIPlaylist;
+use crate::ui::browser::FileBrowser;
+use crate::playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +41,7 @@ enum Action {
 
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators },
     QuickTagSave { changes: TagChanges },
+    QuickTagFolder { path: Option<String>, subdir: Option<String> },
 
     #[serde(rename_all = "camelCase")]
     SpotifyAuthorize { client_id: String, client_secret: String },
@@ -292,7 +292,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }
             // Path
             if let Some(path) = path {
-                files = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
+                if PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
+                    files = QuickTag::load_files(get_files_from_playlist_file(&path)?, &separators)?;
+                } else {
+                    files = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
+                }
             }
             websocket.write_message(Message::from(json!({
                 "action": "quickTagLoad",
@@ -308,6 +312,15 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "file": QuickTagFile::from_tag(&changes.path, &tag).ok_or("Failed loading tags")?
             }).to_string())).ok();
         },
+        // List dir
+        Action::QuickTagFolder { path, subdir } => {
+            let (new_path, files) = FileBrowser::list_dir_or_default(path.clone().map(|p| PathBuf::from(p)), subdir, true, false, false)?;
+            websocket.write_message(Message::from(json!({
+                "action": "quickTagFolder",
+                "files": files,
+                "path": new_path,
+            }).to_string())).ok();
+        }
         Action::SpotifyAuthorize { client_id, client_secret } => {
             // Authorize cached
             if let Some(spotify) = Spotify::try_cached_token(&client_id, &client_secret) {
@@ -332,31 +345,12 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }).to_string())).ok();
         },
         Action::TagEditorFolder { path, subdir, recursive } => {
-            let user_dirs = UserDirs::new().ok_or("Invalid home dir!")?;
-            let path_raw = path.unwrap_or(user_dirs.audio_dir().ok_or("Missing path!")?.to_str().ok_or("Invalid path!")?.to_string());
-            // Get parent
-            let path = Path::new(&path_raw);
-            let subdir = subdir.unwrap_or(String::new());
-            // Override for playlists
-            let path = if !path.is_dir() {
-                if subdir == ".." {
-                    path.parent().ok_or("Invalid playlist parent!")?.to_owned()
-                } else {
-                    path.to_owned()
-                }
-            } else {
-                canonicalize(Path::new(&path_raw).join(subdir))?
-            };
-            // Load
-            let path = path.to_str().unwrap();
-            let files = match recursive.unwrap_or(false) {
-                true => TagEditor::list_dir_recursive(path)?,
-                false => TagEditor::list_dir(path)?
-            };
+            let recursive = recursive.unwrap_or(false);
+            let (new_path, files) = FileBrowser::list_dir_or_default(path.clone().map(|p| PathBuf::from(p)), subdir, true, true, recursive)?;
             websocket.write_message(Message::from(json!({
                 "action": "tagEditorFolder",
                 "files": files,
-                "path": path,
+                "path": new_path,
                 // Stateless
                 "recursive": recursive
             }).to_string())).ok();

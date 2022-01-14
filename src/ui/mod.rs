@@ -1,7 +1,5 @@
 use std::error::Error;
-use std::fmt;
-use std::thread;
-use std::fs;
+use std::{fmt, fs, thread};
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
@@ -12,6 +10,7 @@ use directories::ProjectDirs;
 
 pub mod socket;
 pub mod player;
+pub mod browser;
 pub mod quicktag;
 pub mod audiofeatures;
 pub mod tageditor;

@@ -40,6 +40,14 @@ Mac version is cross compiled from linux, the build script is designed to run on
 sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 ```
 
+**Compile UI**
+```
+cd client
+npm i
+npm run build
+cd ..
+```
+
 **Compile Linux only**
 ```
 cargo build --release

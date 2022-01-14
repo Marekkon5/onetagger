@@ -82,7 +82,7 @@
                 side="left"
                 :width="200"
             >
-                <QuickTagLeft></QuickTagLeft>
+                <QuickTagFileBrowser v-if='left'></QuickTagFileBrowser>
             </q-drawer>
             <q-drawer
                 :breakpoint="1000"
@@ -102,7 +102,10 @@
 
             <!-- Footer -->
             <q-footer reveal class="bg-darker text-white" v-if="footer">
+                
+                <QuickTagMoods v-if="$1t.quickTag.track"></QuickTagMoods>
                 <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
+
                 <div class="row q-mx-md">
                     <div class="row q-mr-md" style="width: 264px">
                         <div
@@ -249,9 +252,10 @@
 
 <script>
     import Waveform from "./components/Waveform.vue";
-    import QuickTagLeft from "./components/QuickTagLeft";
+    import QuickTagFileBrowser from './components/QuickTagFileBrowser.vue';
     import Settings from "./components/Settings";
     import QuickTagGenreBar from "./components/QuickTagGenreBar";
+    import QuickTagMoods from './components/QuickTagMoods.vue';
     import QuickTagRight from "./components/QuickTagRight";
     import HelpButton from "./components/HelpButton";
     import PlaylistDropZone from "./components/PlaylistDropZone.vue";
@@ -263,12 +267,13 @@
         name: "App",
         components: {
             Waveform,
-            QuickTagLeft,
             Settings,
             QuickTagGenreBar,
             QuickTagRight,
             HelpButton,
             PlaylistDropZone,
+            QuickTagFileBrowser,
+            QuickTagMoods
         },
         data() {
             return {

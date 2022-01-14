@@ -31,10 +31,19 @@
                         ></q-chip>
                     </div>
                     <div class='col-3'>
+                        <!-- Not current track rating -->
                         <q-rating 
                             size='1.4em' 
                             v-model='track.energy'
                             no-reset
+                            readonly
+                            v-if='!selected'
+                        ></q-rating>
+                        <!-- Current track rating -->
+                        <q-rating 
+                            size='1.4em' 
+                            v-model='$1t.quickTag.track.energy'
+                            v-if='selected'
                         ></q-rating>
                     </div>
 

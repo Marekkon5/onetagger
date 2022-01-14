@@ -121,6 +121,10 @@ class OneTagger {
                         this.onError('quickTagSaved: Invalid track');
                     }
                     break;
+                // Browser folder
+                case 'quickTagFolder':
+                    this.onQuickTagBrowserEvent(json);
+                    break;
                 // Spotify
                 case 'spotifyAuthorized':
                     this.onSpotifyAuthEvent(json);
@@ -432,6 +436,7 @@ class OneTagger {
     onError(msg) {console.error(msg);}
     onTaggingDone() {}
     onQuickTagEvent() {}
+    onQuickTagBrowserEvent() {}
     onTagEditorEvent() {}
     onAudioFeaturesEvent() {}
     onSpotifyAuthEvent() {}
@@ -608,12 +613,14 @@ class OneTagger {
             return;
         }
            
-        if (this.settings.path)
+        if (this.settings.path) {
             this.send('quickTagLoad', {
                 path: this.settings.path,
                 recursive: this.settings.quickTag.recursive,
                 separators: this.settings.quickTag.separators
             });
+            this.saveSettings(false);
+        }
     }
 
     // Handle keydown event for keyboard bindings
