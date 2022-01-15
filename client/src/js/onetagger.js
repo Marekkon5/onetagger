@@ -57,7 +57,6 @@ class OneTagger {
                     if (json.context == 'qt') {
                         Vue.set(this.settings, 'path', json.path);
                         this.loadQuickTag();
-                        this.saveSettings();
                     }
                     // Audio features path
                     if (json.context == 'af')
@@ -321,7 +320,7 @@ class OneTagger {
                     {genre: 'Breakbeat', keybind: null},
                     {genre: 'Disco', keybind: null},
                     {genre: 'Drum & Bass', keybind: null},
-                    {genre: 'Electro', keybind: null},
+                    {genre: 'Electro', keybind: null, subgenres: ['House', 'Dubstep', 'EDM']},
                     {genre: 'Funk', keybind: null},
                     {genre: 'Hardcore', keybind: null},
                     {genre: 'Hiphop', keybind: null},
@@ -487,6 +486,13 @@ class OneTagger {
         if (!this.settings.tagEditorCustom) this.settings.tagEditorCustom = [];
         this.spotify.clientId = this.settings.audioFeatures.spotifyClientId;
         this.spotify.clientSecret = this.settings.audioFeatures.spotifyClientSecret;
+
+        // Migrate to enable subgenres
+        for (let i=0; i<this.settings.quickTag.genres.length; i++) {
+            if (!this.settings.quickTag.genres[i].subgenres) {
+                Vue.set(this.settings.quickTag.genres[i], 'subgenres', []);
+            }
+        }
     }
 
     // Wrapper to prevent multiple waveforms

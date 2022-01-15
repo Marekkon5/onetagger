@@ -149,6 +149,19 @@
                                     :initial='$1t.settings.quickTag.genres[i].keybind'
                                 ></Keybind>
                             </div>
+                            <div class='row'>
+                                <div class='col-2 text-body q-mt-sm'>Subgenres: </div>
+                                <q-input
+                                    clearable
+                                    filled
+                                    dense
+                                    class='col-10'
+                                    placeholder='Use , as separator'
+                                    @input='$1t.settings.quickTag.genres[i].subgenres = $event.split(",")'
+                                    :value='($1t.settings.quickTag.genres[i].subgenres||[]).join(",")'
+                                ></q-input>
+                            </div>
+                            <div class='q-mt-xl'></div>
                         </div>
                     </draggable>
                     <!-- Add new genre -->

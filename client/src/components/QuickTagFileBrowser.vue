@@ -47,6 +47,7 @@ export default {
             files: [],
             originalFiles: [],
             filter: null,
+            initial: true,
         }
     },
     methods: {
@@ -54,7 +55,7 @@ export default {
             this.$1t.send('quickTagFolder', {path: this.path, subdir: f});
         },
         browse() {
-            this.$1t.send('browse', {context: 'te', path: this.path});
+            this.$1t.send('browse', {context: 'qt', path: this.path});
         },
         applyFilter() {
             if (!this.filter || this.filter.trim().length == 0) {
@@ -74,19 +75,22 @@ export default {
         this.$1t.onQuickTagBrowserEvent = (json) => {
             switch (json.action) {
                 case 'quickTagFolder':
-                    if (json.files.length == 0) {
-                        // Load dir
+                    // Load dir
+                    if (!this.initial) {
                         this.$1t.settings.path = json.path;
                         this.$1t.loadQuickTag();
-                        return;
-                    }
-
+                    } 
+                    this.initial = false;
+                
+                    if (json.files.length == 0) return;
                     this.files = json.files;
                     this.originalFiles = json.files;
                     this.path = json.path;
                     break;
             }
         }
+
+        this.initial = true;
         this.loadFiles('..');
     }
 }
