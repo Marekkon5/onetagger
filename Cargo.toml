@@ -2,7 +2,7 @@
 name = "onetagger"
 version = "1.3.0"
 authors = ["Marekkon5"]
-edition = "2018"
+edition = "2021"
 license = "Apache"
 description = "App to tag your music library."
 keywords = ["gui", "audio"]
@@ -11,6 +11,7 @@ build = "src/build.rs"
 
 [dependencies]
 mp4 = "0.9"
+id3 = "1.0.1"
 rand = "0.8"
 alac = "0.5"
 slog = "2.7"
@@ -32,7 +33,7 @@ scraper = "0.12"
 tempfile = "3.2"
 web-view = "0.7"
 mp4ameta = "0.11"
-metaflac = "0.2.4"
+metaflac = "0.2.5"
 unidecode = "0.3"
 backtrace = "0.3"
 slog-term = "2.8"
@@ -53,8 +54,6 @@ ndarray = "0.13"
 serde = { version = "1.0", features = ["derive"] }
 sndfile = { version = "0.0.4", features = ["ndarray_features"] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
-
-id3 = { git = "https://github.com/Marekkon5/rust-id3.git", branch = "disable_sylt" }
 
 songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
 rspotify = { git = "https://github.com/Marekkon5/rspotify.git", branch = "0.10-fix", features = ["blocking"] }

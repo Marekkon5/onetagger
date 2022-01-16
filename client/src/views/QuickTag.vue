@@ -156,9 +156,10 @@ export default {
                     break;
                 // Change track position relatively
                 case 'changeTrack':
+                    var offset = data.offset;
                     var i = this.tracks.findIndex((t) => t.path == this.$1t.quickTag.track.path);
-                    if (i != -1 && (i + data) != this.tracks.length && (i + data) >= 0) {
-                        this.$1t.loadQTTrack(this.tracks[i + data]);
+                    if (i != -1 && (i + offset) != this.tracks.length && (i + offset) >= 0) {
+                        this.$1t.loadQTTrack(this.tracks[i + offset], data.force??false);
                     }
                     break;
                 case 'focusSearch':

@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::convert::TryInto;
-use id3::{Version, Tag, Timestamp, Frame, Content};
-use id3::frame::{Picture, PictureType, Comment, Lyrics};
+use id3::{Version, Tag, Timestamp, Content, TagLike};
+use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText};
 use serde::{Serialize, Deserialize};
 use crate::tag::{TagDate, CoverType, Field, TagImpl};
 
@@ -61,7 +60,7 @@ impl ID3Tag {
         }
         // AIFF
         if path.to_lowercase().ends_with(".aif") || path.to_lowercase().ends_with(".aiff") {
-            let tag = Tag::read_from_aiff(path)?;
+            let tag = Tag::read_from_aiff_path(path)?;
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
@@ -113,7 +112,8 @@ impl ID3Tag {
     pub fn set_comments(&mut self, comments: &Vec<ID3Comment>) {
         self.tag.remove("COMM");
         for c in comments {
-            self.tag.add_comment(c.clone().into())
+            let comment: Comment = c.clone().into();
+            self.tag.add_frame(comment);
         }
     }
 
@@ -125,21 +125,24 @@ impl ID3Tag {
     pub fn set_unsync_lyrics(&mut self, lyrics: &Vec<ID3Comment>) {
         self.tag.remove("USLT");
         for l in lyrics {
-            self.tag.add_lyrics(l.clone().into());
+            let lyric: Lyrics = l.clone().into();
+            self.tag.add_frame(lyric);
         }
     }
 
     // POPM
     pub fn get_popularimeter(&self) -> Option<ID3Popularimeter> {
         let tag = self.tag.get("POPM")?;
-        let data = tag.content().unknown()?;
-        let popm = ID3Popularimeter::from_bytes(data)?;
-        Some(popm)
+        if let Content::Popularimeter(popm) = tag.content() {
+            return Some(popm.clone().into());
+        }
+        None
     }
 
     pub fn set_popularimeter(&mut self, popm: &ID3Popularimeter) {
         self.tag.remove("POPM");
-        self.tag.add_frame(popm.to_frame());
+        let popularimeter: Popularimeter = popm.clone().into();
+        self.tag.add_frame(popularimeter);
     }
 
     // Convert between different cover/picture types
@@ -187,7 +190,7 @@ impl TagImpl for ID3Tag {
         }
         // AIFF
         if self.format == ID3AudioFormat::AIFF {
-            self.tag.write_to_aiff(path, version)?;
+            self.tag.write_to_aiff_path(path, version)?;
         }
         Ok(())
     }
@@ -260,18 +263,18 @@ impl TagImpl for ID3Tag {
     // Rating
     fn get_rating(&self) -> Option<u8> {
         let tag = self.tag.get("POPM")?;
-        let value = tag.content().unknown()?;
-        let popm = ID3Popularimeter::from_bytes(value)?;
-        // Byte to 1 - 5
-        let rating = (popm.rating as f32 / 51.0).ceil() as u8;
-        if rating == 0 {
-            return Some(1)
+        if let Content::Popularimeter(popm) = tag.content() {
+            let rating = (popm.rating as f32 / 51.0).ceil() as u8;
+            if rating == 0 {
+                return Some(1)
+            }
+            return Some(rating)
         }
-        Some(rating)
+        None
     }
     
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
-        let frame = ID3Popularimeter::new("no@email", rating * 51, 0).to_frame();
+        let frame: Popularimeter = ID3Popularimeter::new("no@email", rating * 51, 0).into();
         if overwrite || self.tag.get("POPM").is_none() {
             self.tag.remove("POPM");
             if rating > 0 {
@@ -284,7 +287,7 @@ impl TagImpl for ID3Tag {
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
         let picture_type = self.picture_type(&kind);
         self.tag.remove_picture_by_type(picture_type);
-        self.tag.add_picture(Picture {
+        self.tag.add_frame(Picture {
             mime_type: mime.to_string(),
             picture_type,
             description: description.unwrap_or("Cover").to_owned(),
@@ -339,7 +342,10 @@ impl TagImpl for ID3Tag {
                     self.tag.remove_extended_text(Some(tag), None);
                     return;
                 }
-                self.tag.add_extended_text(tag, value.join(&self.id3_separator));
+                self.tag.add_frame(ExtendedText {
+                    description: tag.to_string(),
+                    value: value.join(&self.id3_separator),
+                });
             }
             return;
         }
@@ -359,7 +365,7 @@ impl TagImpl for ID3Tag {
                 self.tag.remove("COMM");
                 if !value.is_empty() {
                     comment.text = value.join(&self.id3_separator);
-                    self.tag.add_comment(comment);
+                    self.tag.add_frame(comment);
                 }
             }
             return;
@@ -369,7 +375,7 @@ impl TagImpl for ID3Tag {
         if tag.to_uppercase() == "USLT" {
             if overwrite || self.tag.lyrics().next().is_none() {
                 self.tag.remove_all_lyrics();
-                self.tag.add_lyrics(Lyrics {
+                self.tag.add_frame(Lyrics {
                     lang: "eng".to_string(),
                     description: String::new(),
                     text: value.join(&self.id3_separator),
@@ -462,43 +468,35 @@ impl TagImpl for ID3Tag {
 pub struct ID3Popularimeter {
     pub email: String,
     pub rating: u8,
-    pub counter: u32
+    pub counter: u64
 }
 
 impl ID3Popularimeter {
-    pub fn new(email: &str, rating: u8, counter: u32) -> ID3Popularimeter {
+    pub fn new(email: &str, rating: u8, counter: u64) -> ID3Popularimeter {
         ID3Popularimeter {
             email: email.to_string(),
             rating, counter
         }
     }
+}
 
-    //  EMAIL \0 RATING (u8) COUNTER (u32)
-    pub fn from_bytes(data: &[u8]) -> Option<ID3Popularimeter> {
-        let pos = data.iter().position(|b| b == &0u8)?;
-        if pos + 6 > data.len() {
-            warn!("POMP Tag has invalid length! Len: {}, null: {}", data.len(), pos);
-            return None;
+impl Into<Popularimeter> for ID3Popularimeter {
+    fn into(self) -> Popularimeter {
+        Popularimeter {
+            user: self.email,
+            rating: self.rating,
+            counter: self.counter,
         }
-
-        Some(ID3Popularimeter {
-            email: String::from_utf8(data[0..pos].to_vec()).ok()?,
-            rating: data[pos+1],
-            counter: u32::from_be_bytes(data[pos+2..pos+6].try_into().unwrap_or([0,0,0,0]))
-        })
     }
+}
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut out: Vec<u8> = vec![];
-        out.extend(self.email.as_bytes());
-        out.push(0);
-        out.push(self.rating);
-        out.extend(self.counter.to_be_bytes().iter());
-        out
-    }
-
-    pub fn to_frame(&self) -> Frame {
-        Frame::with_content("POPM", Content::Unknown(self.to_bytes()))
+impl From<Popularimeter> for ID3Popularimeter {
+    fn from(p: Popularimeter) -> Self {
+        ID3Popularimeter {
+            email: p.user,
+            rating: p.rating,
+            counter: p.counter
+        }
     }
 }
 

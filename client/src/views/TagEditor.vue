@@ -240,7 +240,7 @@
                     </div>
 
                     <!-- Popularimeter -->
-                    <div>
+                    <div class='q-mb-xl'>
                         <div class='text-subtitle1 text-grey-3'>
                             <span class='text-weight-bold'>Popularimeter</span> (POPM)
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>

@@ -119,6 +119,11 @@ class OneTagger {
                     } else {
                         this.onError('quickTagSaved: Invalid track');
                     }
+                    // Force reload current track
+                    if (this.quickTag.track && json.path == this.quickTag.track.path) {
+                        this.onQuickTagEvent('changeTrack', { offset: 0, force: true });
+                    }
+
                     break;
                 // Browser folder
                 case 'quickTagFolder':
@@ -655,10 +660,10 @@ class OneTagger {
                 let i = this.quickTag.tracks.findIndex((t) => t.path == this.quickTag.track.path);
                 // Skip tracks using arrow keys
                 if (event.key == 'ArrowUp' && i > 0) {
-                    this.onQuickTagEvent('changeTrack', -1);
+                    this.onQuickTagEvent('changeTrack', {offset: -1});
                 }
                 if (event.key == 'ArrowDown' && i >= 0 && i < this.quickTag.tracks.length - 1) {
-                    this.onQuickTagEvent('changeTrack', 1);
+                    this.onQuickTagEvent('changeTrack', {offset: 1});
                 }
                 return true;
             }
