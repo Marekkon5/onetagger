@@ -5,7 +5,6 @@
 
 use std::env;
 use std::panic;
-use std::path::Path;
 use std::fs::OpenOptions;
 use std::sync::Mutex;
 use backtrace::Backtrace;
@@ -20,10 +19,12 @@ macro_rules! timestamp {
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-mod tagger;
-mod tag;
 mod ui;
+mod cli;
+mod tag;
+mod tagger;
 mod playlist;
+
 
 fn main() {
     // Logging setup
@@ -59,37 +60,5 @@ fn main() {
         }
     }));
 
-    info!("\n\nStarting OneTagger v{} Commit: {} OS: {}\n\n", VERSION, env!("COMMIT"), env::consts::OS);
-
-    // Parse arguments
-    let args: Vec<String> = env::args().skip(1).collect();
-    let mut server_mode = false;
-    let mut start_path = None;
-    let mut expose = false;
-    for arg in args {
-        match arg.as_str() {
-            "--server" => server_mode = true,
-            "-S" => server_mode = true,
-            "--expose" => expose = true,
-            // Webview2 bootstrap
-            #[cfg(target_os = "windows")]
-            "--bootstrap-webview2" => {
-                ui::bootstrap_webview2_wrap();
-                return;
-            },
-            _ => {
-                // Use argument as start path
-                if !arg.starts_with("-") {
-                    if Path::new(&arg).exists() {
-                        start_path = Some(arg.to_string());
-                    }
-                }
-            }
-        }
-    }
-    // Start
-    let context = ui::StartContext {
-        start_path, server_mode, expose
-    };
-    ui::start_all(context);
+    cli::parse_args();
 }

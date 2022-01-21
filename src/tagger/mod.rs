@@ -93,7 +93,7 @@ pub struct TaggerConfig {
     pub separators: TagSeparators,
     pub id3v24: bool,
     pub overwrite: bool,
-    pub threads: i16,
+    pub threads: u16,
     // From 0 to 1
     pub strictness: f64,
     pub merge_genres: bool,
