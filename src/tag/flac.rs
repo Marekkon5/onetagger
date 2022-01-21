@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use metaflac::Tag;
@@ -41,7 +42,7 @@ impl FLACTag {
     // Load from file
     pub fn load_file(path: &str) -> Result<FLACTag, Box<dyn Error>> {
         // Load header
-        let mut file = File::open(path)?;
+        let mut file = BufReader::new(File::open(path)?);
         let mut header: [u8; 4] = [0; 4];
         file.read_exact(&mut header)?;
         // Check if not ID3

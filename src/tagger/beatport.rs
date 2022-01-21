@@ -328,7 +328,7 @@ impl TrackMatcher for Beatport {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         for page in 1..config.beatport.max_pages+1 {
-            match self.search(&query, page, 150) {
+            match self.search(&query, page, 25) {
                 Ok(res) => {
                     // Convert tracks
                     let tracks = res.tracks.iter().map(|t| t.to_track(config.beatport.art_resolution)).collect();
