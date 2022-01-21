@@ -199,7 +199,7 @@ export default {
     flex-basis: 100% !important;
 }
 .tag {
-    width: 150px;
+    width: 164px;
 }
 .tags {
     max-width: 40vw !important;

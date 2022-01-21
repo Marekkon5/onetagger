@@ -114,6 +114,7 @@ pub struct TaggerConfig {
     pub track_number_leading_zeroes: usize,
     pub enable_shazam: bool,
     pub force_shazam: bool,
+    pub skip_tagged: bool,
 
     // Platform specific
     pub beatport: BeatportConfig,
@@ -510,7 +511,8 @@ pub struct AudioFileInfo {
     pub isrc: Option<String>,
     pub duration: Option<Duration>,
     pub track_number: Option<u16>,
-    pub ids: AudioFileIDs
+    pub ids: AudioFileIDs,
+    pub was_tagged: bool,
 }
 
 impl AudioFileInfo {
@@ -560,7 +562,8 @@ impl AudioFileInfo {
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
             track_number,
-            ids
+            ids,
+            was_tagged: tag.get_raw("1T_TAGGEDDATE").is_some()
         })
     }
 
@@ -650,6 +653,7 @@ impl AudioFileInfo {
                     duration: Some(Duration::from_millis(duration as u64)),
                     track_number: None,
                     ids: Default::default(),
+                    was_tagged: false
                 });
             },
             // Mark as failed
@@ -1192,6 +1196,13 @@ impl Tagger {
                 }
             }
         };
+
+        // Skip tagged
+        if config.skip_tagged && info.was_tagged {
+            info!("Skipping (already tagged): {path}");
+            out.status = TaggingState::Skipped;
+            return out;
+        }
 
         // Load duration for matching
         if config.match_duration {

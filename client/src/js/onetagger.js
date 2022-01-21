@@ -225,6 +225,7 @@ class OneTagger {
             "trackNumberLeadingZeroes": 0,
             "enableShazam": false,
             "forceShazam": false,
+            "skipTagged": false,
             "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
             "beatport": {
                 "artResolution": 500,
