@@ -56,7 +56,7 @@ impl Default for MusicPlatform {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
     // Global
@@ -123,21 +123,54 @@ pub struct TaggerConfig {
     pub spotify: Option<SpotifyConfig>,
 }
 
+
+impl Default for TaggerConfig {
+    // Suffering, but threads has to be 16 by default, strictness >0 etc and Default::default() caused stack overflow
+    fn default() -> Self {
+        Self {
+            platforms: vec![MusicPlatform::Beatport], threads: 16, strictness: 0.7, path: None,
+            title: false, artist: false, album: false, key: false, bpm: false, genre: false,
+            style: false, label: false, release_date: false, publish_date: false, album_art: false,
+            other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,
+            version: false, duration: false, album_artist: false, remixer: false, track_number: false,
+            isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false,
+            overwrite: false, merge_genres: false, album_art_file: false, camelot: false,
+            parse_filename: false, filename_template: None, short_title: false, match_duration: false,
+            max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default,
+            post_command: None, styles_options: StylesOptions::Default, styles_custom_tag: None,
+            track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false,
+            beatport: Default::default(), discogs: Default::default(), beatsource: Default::default(), spotify: None,
+        }
+    }
+}
+
 // Beatport specific settings
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BeatportConfig {
     pub art_resolution: u32,
     pub max_pages: i64
 }
 
+impl Default for BeatportConfig {
+    fn default() -> Self {
+        Self { art_resolution: 500, max_pages: 1 }
+    }
+}
+
 // Discogs specific settings
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
     pub track_number_int: bool
+}
+
+impl Default for DiscogsConfig {
+    fn default() -> Self {
+        Self { token: None, max_results: 4, track_number_int: false }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,10 +181,16 @@ pub struct SpotifyConfig {
 }
 
 /// Beatsource specific settings
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BeatsourceConfig {
     pub art_resolution: u32
+}
+
+impl Default for BeatsourceConfig {
+    fn default() -> Self {
+        Self { art_resolution: 1400 }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

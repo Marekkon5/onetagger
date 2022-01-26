@@ -1,7 +1,10 @@
-use clap::{Parser, Subcommand, ArgEnum};
+use std::fs::File;
+use clap::{Parser, Subcommand};
 
 use crate::VERSION;
-use crate::tagger::{MusicPlatform, TaggerConfig, Tagger};
+use crate::tagger::spotify::Spotify;
+use crate::tagger::{TaggerConfig, Tagger};
+use crate::ui::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use crate::ui::{self, StartContext};
 
 /// Parse args and continue
@@ -16,6 +19,18 @@ pub fn parse_args() {
             return;
         }
         panic!("Windows only install option!");
+    }
+
+    // Default configs
+    if cli.autotagger_config {
+        let config = serde_json::to_string_pretty(&TaggerConfig::default()).expect("Failed serializing default config!");
+        println!("{config}");
+        return;
+    }
+    if cli.audiofeatures_config {
+        let config = serde_json::to_string_pretty(&AudioFeaturesConfig::default()).expect("Failed serializing config!");
+        println!("{config}");
+        return;
     }
 
     info!("\n\nStarting OneTagger v{VERSION} Commit: {} OS: {}\n\n", env!("COMMIT"), std::env::consts::OS);
@@ -34,8 +49,9 @@ pub fn parse_args() {
     // CLI
     if let Some(action) = cli.action {
         match &action {
-            Actions::Autotagger { path, .. } => {
-                let config = action.generate_at_config();
+            Actions::Autotagger { path, config } => {
+                let file = File::open(config).expect("Failed reading config file!");
+                let config = serde_json::from_reader(&file).expect("Failed parsing config file!");
                 let files = Tagger::get_file_list(&path);
                 let rx = Tagger::tag_files(&config, files);
                 let start = timestamp!();
@@ -44,6 +60,28 @@ pub fn parse_args() {
                 }
                 info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             },
+            Actions::Audiofeatures { path, config, client_id, client_secret } => {
+                let file = File::open(config).expect("Failed reading config file!");
+                let config = serde_json::from_reader(&file).expect("Failed parsing config file!");
+                // Auth spotify
+                let spotify = Spotify::try_cached_token(client_id, client_secret)
+                    .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
+                
+                let files = Tagger::get_file_list(&path);
+                let rx = AudioFeatures::start_tagging(config, spotify, files);
+                let start = timestamp!();
+                for status in rx {
+                    debug!("{status:?}");
+                }
+                info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
+            },
+            // Spotify OAuth flow
+            Actions::AuthorizeSpotify { client_id, client_secret, expose } => {
+                let (auth_url, mut oauth) = Spotify::generate_auth_url(&client_id, &client_secret);
+                println!("Please go to the following URL and authorize 1T:\n{auth_url}");
+                // should cache the token
+                let _spotify = Spotify::auth_server(&mut oauth, *expose).expect("Spotify authentication failed!");
+            }
         }
     }
 
@@ -70,156 +108,58 @@ struct Cli {
     /// Windows only installer option
     #[clap(long)]
     bootstrap_webview2: bool,
+
+    /// Prints the default Autotagger config and exits
+    #[clap(long)]
+    autotagger_config: bool,
+
+    /// Prints the default Audio Features config and exits
+    #[clap(long)]
+    audiofeatures_config: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 enum Actions {
-    /// Start autotagger in CLI mode
+    /// Start Autotagger in CLI mode
     Autotagger {
-        #[clap(short, long, parse(try_from_str = ConfigTagsWrap::parse_arg))]
-        tags: ConfigTagsWrap,
-
-        /// List of music platforms to fetch data from
-        #[clap(short = 'P', long, parse(try_from_str = MusicPlatformsArgWrap::parse_arg))]
-        platforms: MusicPlatformsArgWrap,
-
-        /// Use ID3v2.4 for MP3 and AIFF files
-        #[clap(long)]
-        id3v24: bool,
-
-        /// How many tracks to tag concurrently (not supported on every platform)
-        #[clap(long, default_value_t = 8)]
-        threads: u16,
-
-        /// How strict should the matching process be (0% to 100%)
-        #[clap(long, default_value_t = 80)]
-        strictness: u8,
-
-        /// Path to music files
+        /// Path to music files (overrides config)
         #[clap(short, long)]
         path: String,
-    }
-}
 
-impl Actions {
-    /// Generate autotagger config
-    pub fn generate_at_config(&self) -> TaggerConfig {
-        match self {
-            Actions::Autotagger { tags, platforms, id3v24, threads, strictness, path } => {
-                if *strictness > 100 {
-                    panic!("Invalid strictness!");
-                }
+        /// Specify a path to config file
+        #[clap(short, long)]
+        config: String
+    },
+    /// Start Audio Features in CLI mode
+    Audiofeatures {
+        /// Path to music files (overrides config)
+        #[clap(short, long)]
+        path: String,
 
-                TaggerConfig {
-                    platforms: platforms.0.iter().map(|p| (*p).into()).collect(),
-                    path: Some(path.to_string()),
-                    title: tags.0.contains(&ConfigTags::Title),
-                    artist: tags.0.contains(&ConfigTags::Artist),
-                    album: tags.0.contains(&ConfigTags::Album),
-                    key: tags.0.contains(&ConfigTags::Key),
-                    bpm: tags.0.contains(&ConfigTags::BPM),
-                    genre: tags.0.contains(&ConfigTags::Genre),
-                    style: tags.0.contains(&ConfigTags::Style),
-                    label: tags.0.contains(&ConfigTags::Label),
-                    release_date: tags.0.contains(&ConfigTags::ReleaseDate),
-                    publish_date: tags.0.contains(&ConfigTags::PublishDate),
-                    album_art: tags.0.contains(&ConfigTags::AlbumArt),
-                    other_tags: tags.0.contains(&ConfigTags::Other),
-                    catalog_number: tags.0.contains(&ConfigTags::CatalogNumber),
-                    url: tags.0.contains(&ConfigTags::URL),
-                    track_id: tags.0.contains(&ConfigTags::TrackID),
-                    release_id: tags.0.contains(&ConfigTags::ReleaseID),
-                    version: tags.0.contains(&ConfigTags::Version),
-                    duration: tags.0.contains(&ConfigTags::Duration),
-                    album_artist: tags.0.contains(&ConfigTags::AlbumArtist),
-                    remixer: tags.0.contains(&ConfigTags::Remixer),
-                    track_number: tags.0.contains(&ConfigTags::TrackNumber),
-                    isrc: tags.0.contains(&ConfigTags::ISRC),
-                    meta_tags: tags.0.contains(&ConfigTags::Meta),
-                    id3v24: *id3v24,
-                    threads: *threads,
-                    strictness: *strictness as f64 / 100.0,
-                    ..Default::default()
-                }
-            },
-            // Should be handled earlier on
-            // _ => unreachable!()
-        }
-    }
-}
+        /// Specify a path to config file
+        #[clap(short, long)]
+        config: String,
 
+        /// Spotify Client ID
+        #[clap(long)]
+        client_id: String,
 
-/// Wrapper so it can be used as argument
-#[derive(Debug, Clone, Copy, ArgEnum)]
-enum MusicPlatformsArg {
-    Beatport,
-    Traxsource,
-    Discogs,
-    Junodownload,
-    Itunes,
-    Musicbrainz,
-    Beatsource,
-    Spotify,
-}
+        /// Spotify Client Secret
+        #[clap(long)]
+        client_secret: String
+    },
+    /// Authorize Spotify and cache the token
+    AuthorizeSpotify {
+        /// Spotify Client ID
+        #[clap(long)]
+        client_id: String,
+        
+        /// Spotify Client Secret
+        #[clap(long)]
+        client_secret: String,
 
-impl Into<MusicPlatform> for MusicPlatformsArg {
-    fn into(self) -> MusicPlatform {
-        match self {
-            MusicPlatformsArg::Beatport => MusicPlatform::Beatport,
-            MusicPlatformsArg::Traxsource => MusicPlatform::Traxsource,
-            MusicPlatformsArg::Discogs => MusicPlatform::Discogs,
-            MusicPlatformsArg::Junodownload => MusicPlatform::JunoDownload,
-            MusicPlatformsArg::Itunes => MusicPlatform::ITunes,
-            MusicPlatformsArg::Musicbrainz => MusicPlatform::MusicBrainz,
-            MusicPlatformsArg::Beatsource => MusicPlatform::Beatsource,
-            MusicPlatformsArg::Spotify => MusicPlatform::Spotify,
-        }
-    }
-}
-
-/// Wrapper for parsing arguments
-#[derive(Debug, Clone)]
-struct MusicPlatformsArgWrap(Vec<MusicPlatformsArg>);
-
-impl MusicPlatformsArgWrap {
-    /// Parse comma separated argument
-    pub fn parse_arg(input: &str) -> Result<MusicPlatformsArgWrap, &'static str> {
-        Ok(MusicPlatformsArgWrap(
-            input.split(",")
-                .filter_map(|i| match MusicPlatformsArg::from_str(i, true).ok() {
-                    Some(i) => Some(i),
-                    None => {
-                        warn!("Invalid platform: {i}");
-                        None
-                    }
-                }).collect::<Vec<_>>()))
-    }
-}
-
-
-/// Wrapper for parsing arguments
-#[derive(Debug, Clone, ArgEnum, PartialEq, Eq, Copy)]
-enum ConfigTags {
-    Title, Artist, Album, Key, BPM, Genre, Style, Label, ReleaseDate, PublishDate,
-    AlbumArt, Other, CatalogNumber, URL, TrackID, ReleaseID, Version, Duration, 
-    AlbumArtist, Remixer, TrackNumber, ISRC, Meta
-}
-
-/// Wrapper for parsing arguments
-#[derive(Debug, Clone)]
-struct ConfigTagsWrap(Vec<ConfigTags>);
-
-impl ConfigTagsWrap {
-    /// Parse comma separated argument
-    pub fn parse_arg(input: &str) -> Result<ConfigTagsWrap, &'static str> {
-        Ok(ConfigTagsWrap(
-            input.split(",")
-                .filter_map(|i| match ConfigTags::from_str(i, true).ok() {
-                    Some(i) => Some(i),
-                    None => {
-                        warn!("Invalid tag: {i}");
-                        None
-                    }
-                }).collect::<Vec<_>>()))
+        /// Run Spotify authentication callback server on `0.0.0.0`
+        #[clap(long)]
+        expose: bool
     }
 }

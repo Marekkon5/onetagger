@@ -22,6 +22,17 @@ pub struct AudioFeaturesConfig {
     pub properties: AFProperties
 }
 
+impl Default for AudioFeaturesConfig {
+    fn default() -> Self {
+        Self { 
+            path: None,
+            main_tag: UITag { id3: "AUDIO_FEATURES".to_string(), vorbis: "AUDIO_FEATURES".to_string(), mp4: "AUDIO_FEATURES".to_string() },
+            separators: Default::default(),
+            properties: Default::default()
+        }
+    }
+}
+
 // Audio features
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,6 +46,40 @@ pub struct AFProperties {
     pub valence: AFProperty,
     pub popularity: AFProperty
 }
+
+impl Default for AFProperties {
+    fn default() -> Self {
+        // Suffering, but copy pasted from AudioFeatures.vue
+        Self {
+            acousticness: AFProperty { enabled: true, range: AFRange {min: 0, max: 90}, 
+                tag: UITag {id3: "1T_ACOUSTICNESS".to_string(), vorbis: "1T_ACOUSTICNESS".to_string(), mp4: "1T_ACOUSTICNESS".to_string()}},
+            danceability: AFProperty { enabled: true, range: AFRange {min: 20, max: 80}, 
+                tag: UITag {id3: "1T_DANCEABILITY".to_string(), vorbis: "1T_DANCEABILITY".to_string(), mp4: "1T_DANCEABILITY".to_string()}},
+            energy: AFProperty { enabled: true, range: AFRange {min: 20, max: 90}, 
+                tag: UITag {id3: "1T_ENERGY".to_string(), vorbis: "1T_ENERGY".to_string(), mp4: "1T_ENERGY".to_string()}},
+            instrumentalness: AFProperty { enabled: true, range: AFRange {min: 50, max: 90}, 
+                tag: UITag {id3: "1T_INSTRUMENTALNESS".to_string(), vorbis: "1T_INSTRUMENTALNESS".to_string(), mp4: "1T_INSTRUMENTALNESS".to_string()}},
+            liveness: AFProperty { enabled: true, range: AFRange {min: 0, max: 80}, 
+                tag: UITag {id3: "1T_LIVENESS".to_string(), vorbis: "1T_LIVENESS".to_string(), mp4: "1T_LIVENESS".to_string()}},
+            speechiness: AFProperty { enabled: true, range: AFRange {min: 0, max: 70}, 
+                tag: UITag {id3: "1T_SPEECHINESS".to_string(), vorbis: "1T_SPEECHINESS".to_string(), mp4: "1T_SPEECHINESS".to_string()}},
+            valence: AFProperty { enabled: true, range: AFRange {min: 15, max: 85}, 
+                tag: UITag {id3: "1T_VALENCE".to_string(), vorbis: "1T_VALENCE".to_string(), mp4: "1T_VALENCE".to_string()}},
+            popularity: AFProperty { enabled: true, range: AFRange {min: 0, max: 80}, 
+                tag: UITag {id3: "1T_POPULARITY".to_string(), vorbis: "1T_POPULARITY".to_string(), mp4: "1T_POPULARITY".to_string()}}
+        }
+    }
+}
+
+// Audio Features property
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AFProperty {
+    pub tag: UITag,
+    pub range: AFRange,
+    pub enabled: bool
+}
+
 
 impl AFProperties {
     // Merge properties into list with actual values
@@ -88,15 +133,6 @@ impl AFPropertyMerged {
         }
         self
     }
-}
-
-// Audio Features property
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AFProperty {
-    pub tag: UITag,
-    pub range: AFRange,
-    pub enabled: bool
 }
 
 // Threshold range in config
