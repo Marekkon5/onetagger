@@ -96,7 +96,7 @@
                             :max='100' 
                             v-model='config.properties[key].range'
                             class='t-range'
-                            color='grey-8'                            
+                            color='grey-8'
                         ></q-range>
                     </div>
                 </div>
@@ -231,7 +231,7 @@ export default {
     width: 100%;
     max-width: 1400px;
 }
-.t-range .q-slider__track-container {
+.t-range .q-slider__inner.absolute {
     background: var(--q-color-primary) !important;    
 }
 .custom-separator {

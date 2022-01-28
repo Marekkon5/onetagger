@@ -63,7 +63,7 @@ rspotify = { git = "https://github.com/Marekkon5/rspotify.git", branch = "0.10-f
 winit = "0.26"
 webview2 = "0.1"
 once_cell = "1.8"
-winapi = { version = "0.3", features = ["winuser"] }
+winapi = { version = "0.3", features = ["winuser", "consoleapi"] }
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"

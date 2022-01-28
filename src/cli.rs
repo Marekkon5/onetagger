@@ -46,6 +46,10 @@ pub fn parse_args() {
         ui::start_all(context);
     }
 
+    // Windows terminal window
+    #[cfg(target_os = "windows")]
+    unsafe { winapi::um::consoleapi::AllocConsole(); }
+
     // CLI
     if let Some(action) = cli.action {
         match &action {
@@ -84,7 +88,6 @@ pub fn parse_args() {
             }
         }
     }
-
 }
 
 #[derive(Parser, Debug, Clone)]

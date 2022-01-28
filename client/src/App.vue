@@ -187,7 +187,7 @@
                     ></PlaylistDropZone>
 
                     <!-- Volume -->
-                    <div class="volume-container q-pt-sm" style="width: 90px">
+                    <div class="q-pt-sm" style="width: 90px">
                         <q-slider
                             v-model="$1t.player.volume"
                             :min="0.0"
@@ -195,7 +195,7 @@
                             :step="0.01"
                             @input="$1t.setVolume($event)"
                             @change="$1t.saveSettings(false)"
-                            style="margin-top: 1px"
+                            style="margin-top: 6px"
                         ></q-slider>
                     </div>
                 </div>
