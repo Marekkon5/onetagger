@@ -1,7 +1,7 @@
 <template>
-<div class='genre-bar'>
+<div class='genre-bar' @mouseleave="onMouseLeave">
 
-    <div class='row q-mx-md q-pt-sm no-wrap' @mouseleave="menuOpen ? mouseOver = -1 : null">
+    <div class='row q-mx-md q-pt-sm no-wrap'>
         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
             <div 
                 @mouseenter="mouseOver = i"
@@ -13,7 +13,7 @@
 
                 <!-- Subgenres -->
                 <q-menu v-if='genre.subgenres' :value='mouseOver == i'>
-                    <q-list @mouseenter='menuOpen = true' @mouseleave="menuMouseLeave">
+                    <q-list @mouseleave="mouseOver = -1">
                         <div v-for='(subgenre, j) in genre.subgenres' :key='"sg"+j'>
                             <q-item clickable @click='setGenre(subgenre)'>
                                 <q-item-section>
@@ -41,7 +41,6 @@ export default {
     data() {
         return {
             mouseOver: -1,
-            menuOpen: false
         }
     },
     methods: {
@@ -51,9 +50,10 @@ export default {
         setGenre(genre) {
             this.$1t.quickTag.track.toggleGenre(genre);
         },
-        // Hide menu
-        menuMouseLeave() {
-            this.menuOpen = false;
+        // Stay open if subgenres are present
+        onMouseLeave() {
+            if (this.mouseOver == -1) return;
+            if (this.$1t.settings.quickTag.genres[this.mouseOver].subgenres.length > 0) return;
             this.mouseOver = -1;
         }
     }
