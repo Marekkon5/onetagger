@@ -80,11 +80,22 @@ pub fn parse_args() {
                 info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             },
             // Spotify OAuth flow
-            Actions::AuthorizeSpotify { client_id, client_secret, expose } => {
+            Actions::AuthorizeSpotify { client_id, client_secret, expose, prompt } => {
                 let (auth_url, mut oauth) = Spotify::generate_auth_url(&client_id, &client_secret);
-                println!("Please go to the following URL and authorize 1T:\n{auth_url}");
+                println!("\nPlease go to the following URL and authorize 1T:\n{auth_url}");
                 // should cache the token
-                let _spotify = Spotify::auth_server(&mut oauth, *expose).expect("Spotify authentication failed!");
+                match prompt {
+                    true => {
+                        println!("\nEnter the URL you were redirected to and press enter: ");
+                        let mut url = String::new();
+                        std::io::stdin().read_line(&mut url).expect("Couldn't read from stdin!");
+                        let _spotify = Spotify::auth_token_code(&mut oauth, url.trim()).expect("Spotify authentication failed!");
+                    },
+                    false => {
+                        let _spotify = Spotify::auth_server(&mut oauth, *expose).expect("Spotify authentication failed!");
+                    }
+                }
+                info!("Succesfully authorized Spotify!");
             }
         }
     }
@@ -163,6 +174,10 @@ enum Actions {
 
         /// Run Spotify authentication callback server on `0.0.0.0`
         #[clap(long)]
-        expose: bool
+        expose: bool,
+
+        /// Don't start server, prompt for the redirected URL 
+        #[clap(long)]
+        prompt: bool
     }
 }

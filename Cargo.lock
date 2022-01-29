@@ -2890,6 +2890,7 @@ dependencies = [
  "tinyfiledialogs",
  "tungstenite",
  "unidecode",
+ "url 2.2.2",
  "urlencoding 2.1.0",
  "walkdir",
  "web-view",

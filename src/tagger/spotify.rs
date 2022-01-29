@@ -12,6 +12,7 @@ use rspotify::model::search::SearchResult;
 use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
 use rspotify::client::ApiError;
+use url::Url;
 use rouille::{Server, router};
 
 use crate::ui::Settings;
@@ -88,6 +89,24 @@ impl Spotify {
         let token = token_lock.as_ref().unwrap();
         // Create client
         let token_info = get_token_by_code(oauth, token).ok_or("Invalid token")?;
+        let credentials = SpotifyClientCredentials::default()
+            .token_info(token_info)
+            .build();
+        let spotify = client::Spotify::default()
+            .client_credentials_manager(credentials)
+            .build();
+
+        Ok(Spotify {
+            spotify
+        })
+    }
+
+    /// Parse auth token code from URL
+    pub fn auth_token_code(oauth: &mut SpotifyOAuth, url: &str) -> Result<Spotify, Box<dyn Error>> {
+        let url = Url::parse(url)?;
+        let (_, code) = url.query_pairs().find(|(q, _)| q == "code").ok_or("Missing code parameter")?;
+        let token_info = get_token_by_code(oauth, &code.to_string()).ok_or("Invalid token")?;
+        // Create client
         let credentials = SpotifyClientCredentials::default()
             .token_info(token_info)
             .build();
