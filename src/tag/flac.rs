@@ -154,6 +154,19 @@ impl TagImpl for FLACTag {
         } else {
             self.tag.remove_vorbis("RATING");
         }
+
+        // Rating WMP
+        if overwrite || self.get_raw("RATING WMP").is_none() {
+            self.tag.remove_vorbis("RATING WMP");
+            if rating > 0 {
+                let value = match rating {
+                    1 => 1,
+                    5 => 255,
+                    i => (i - 1) * 64
+                };
+                self.set_raw("RATING WMP", vec![value.to_string()], overwrite);
+            }
+        }
     }
 
     // Set/Get album art

@@ -281,6 +281,18 @@ impl TagImpl for ID3Tag {
                 self.tag.add_frame(frame);
             }
         }
+        // Rating WMP
+        if overwrite || self.tag.get("RATING WMP").is_none() {
+            self.tag.remove("RATING WMP");
+            if rating > 0 {
+                let value = match rating {
+                    1 => 1,
+                    5 => 255,
+                    i => (i - 1) * 64
+                };
+                self.set_raw("RATING WMP", vec![value.to_string()], overwrite);
+            }
+        }
     }
 
     // Set album art

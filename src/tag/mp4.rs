@@ -183,6 +183,19 @@ impl TagImpl for MP4Tag {
         } else {
             self.remove_raw("rate");
         }
+
+        // Rating WMP
+        if overwrite || self.get_raw("RATING WMP").is_none() {
+            self.remove_raw("RATING WMP");
+            if rating > 0 {
+                let value = match rating {
+                    1 => 1,
+                    5 => 255,
+                    i => (i - 1) * 64
+                };
+                self.set_raw("RATING WMP", vec![value.to_string()], overwrite);
+            }
+        }
     }
 
     fn set_art(&mut self, _kind: CoverType, mime: &str, _description: Option<&str>, data: Vec<u8>) {
