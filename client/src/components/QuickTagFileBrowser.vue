@@ -2,7 +2,7 @@
 <div class='q-px-sm'>
 
     <!-- Path -->
-    <div class='text-weight-bold text-subtitle2 clickable path-display q-my-sm' @click='browse'>
+    <div class='text-weight-bold clickable path-display q-my-sm' @click='browse'>
         <div class='row inline'>
             <span style="direction:ltr;" class='text-primary monospace'>{{path}}</span>
         </div>
@@ -10,13 +10,13 @@
 
     <div class='q-mt-sm'>
 
-        <!-- Filter -->
+        <!-- Filter -->        
         <q-input dense filled label='Filter' class='q-mb-sm' @input='applyFilter' v-model='filter'></q-input>
 
         <!-- Parent -->
         <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
-            <q-icon size='xs' class='q-mb-xs text-grey-4' name='mdi-folder-upload'></q-icon>
-            <span class='q-ml-sm text-subtitle2 text-grey-4'>Parent folder</span>
+            <q-icon size='xs' class='q-mb-xs text-grey-5' name='mdi-folder-upload'></q-icon>
+            <span class='q-ml-sm text-caption text-grey-5'>Parent folder</span>
         </div>
 
         <!-- Files -->
@@ -24,12 +24,12 @@
             <div 
                 class='clickable te-file' 
                 @click='(file.dir || file.playlist) ? loadFiles(file.filename) : loadFile(file.path)'
-                :class='{"text-primary": isSelected(file.path), "text-grey-4": !isSelected(file.path)}'
+                :class='{"text-primary": isSelected(file.path), "text-grey-5": !isSelected(file.path)}'
             >
-                <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='!file.dir && !file.playlist' name='mdi-music'></q-icon>
-                <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.dir' name='mdi-folder'></q-icon>
-                <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.playlist' name='mdi-playlist-music'></q-icon>
-                <span class='q-ml-sm text-subtitle2'>{{file.filename}}</span>
+                <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='!file.dir && !file.playlist' name='mdi-music'></q-icon>
+                <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='file.dir' name='mdi-folder'></q-icon>
+                <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='file.playlist' name='mdi-playlist-music'></q-icon>
+                <span class='q-ml-sm'>{{file.filename}}</span>
             </div>
         </div>
 

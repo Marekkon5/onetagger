@@ -5,9 +5,13 @@
         <q-input
             filled
             v-model='filter'
-            label='Search'
+            :label-slot="true"
             class='q-px-md q-py-md'
-        ></q-input>
+        >
+            <template v-slot:label>
+                <q-icon name="mdi-magnify" size="sm"></q-icon>
+            </template>
+        </q-input>
         
         <div v-for='(item, i) in tracks' :key='i'>
             <q-intersection style='height: 136px;' @click.native='trackClick(item)'>

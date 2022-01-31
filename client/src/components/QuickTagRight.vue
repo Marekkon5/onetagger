@@ -2,7 +2,7 @@
 
 <div class='q-pa-md'>
     <!-- Note -->
-    <div class='full-width row justify-center'>
+    <div class='full-width row justify-center q-my-xs'>
         <q-btn class='text-bold' flat color='primary' v-if='$1t.quickTag.track' @click='$1t.onQuickTagEvent("onNoteTag")'>
             Custom note
         </q-btn>
@@ -13,7 +13,7 @@
             :label='tag.name' 
             dense 
             :value='true'
-            class='text-subtitle1 text-bold q-pb-sm text-grey-4'
+            class='text-subtitle1 text-bold q-pb-sm'
             style='margin-bottom: -24px;'
         >
             <!-- Values -->
@@ -23,7 +23,7 @@
                     :value='selected(i, value.val)'
                     @input='valueClick(i, value.val)'
                     dense
-                    class='text-subtitle2 text-grey-6 full-width'
+                    class='text-subtitle2 text-grey-5 full-width'
                 ></q-checkbox>
             </div>
 
