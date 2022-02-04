@@ -1,7 +1,7 @@
 <template>
 <div class='genre-bar' @mouseleave="onMouseLeave">
 
-    <div class='row q-mx-md q-pt-sm no-wrap'>
+    <div class='row q-mx-md q-pt-sm no-wrap genre-bar-container'>
         <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
             <div 
                 @mouseenter="mouseOver = i"
@@ -63,5 +63,15 @@ export default {
 <style>
 .genre-bar {
     height: 36px;
+
 }
+.genre-bar-container {
+    max-width: calc(100vw - 32px); 
+    width: calc(100vw - 32px); 
+    overflow-x: scroll;
+}
+.genre-bar-container::-webkit-scrollbar:horizontal {
+    height: 5px !important;
+}
+
 </style>
