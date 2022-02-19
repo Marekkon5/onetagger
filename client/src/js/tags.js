@@ -50,6 +50,9 @@ const ABSTRACTIONS = {
     "soal": "Album Sort Order",
     "soar": "Artist Sort Order",
     "soco": "Composer Sort Order",
+    "MVNM": "Movement Name",
+    "©prd": "(Producer)",
+    "©mvn": "(Movement Name)",
 };
 
 const MP4 = [
@@ -69,7 +72,12 @@ const MP4 = [
     "©lyr (Lyrics)",
     "©ope (Original Artist)",
     "©wrk (Work)",
-    "©day (Year/Date)"
+    "©day (Year/Date)",
+    "aART (Album Artist)",
+    "©prd (Producer)",
+    "©mvn (Movement Name)",
+    "LABEL",
+    "CATALOGNUMBER"
 ];
 
 const VORBIS = [
@@ -105,7 +113,8 @@ const ID3 = [
     "IPLS (Producer ID3v2.3)",
     "TIPL (Producer ID3v2.4)", 
     "TPE4 (Remixer)", 
-    "USLT (Unsynchronized Lyrics)"
+    "USLT (Unsynchronized Lyrics)",
+    "MVNM (Movement Name)"
 ];
 
 export {ABSTRACTIONS, MP4, VORBIS, ID3};

@@ -296,7 +296,7 @@
             };
         },
         methods: {
-            //Hide/Show footer and drawer
+            // Hide/Show footer and drawer
             hideSide() {
                 this.left = false;
                 this.right = false;
@@ -307,21 +307,21 @@
                 this.right = true;
                 this.footer = true;
             },
-            //Navigate to homepage
+            // Navigate to homepage
             home() {
                 if (!this.$1t.lock.locked) {
                     this.hideSide();
                     this.$router.push("/");
                 }
             },
-            //Navigate to audio features
+            // Navigate to audio features
             audioFeatures() {
                 if (!this.$1t.lock.locked) {
                     this.hideSide();
                     this.$router.push("/audiofeatures");
                 }
             },
-            //Load quicktag playlist
+            // Load quicktag playlist
             loadQTPlaylist() {
                 if (!this.qtPlaylist || !this.qtPlaylist.data) {
                     this.$1t.loadQuickTag();
@@ -330,7 +330,7 @@
                 this.$1t.loadQuickTag(this.qtPlaylist);
             },
             async checkUpdates() {
-                //Fetch latest version info
+                // Fetch latest version info
                 let url = "https://1t.marekkon5.workers.dev/latest";
                 let data = null;
                 try {
@@ -341,7 +341,7 @@
                 }
                 if (!data) return;
 
-                //New version
+                // New version
                 if (compareVersions(data.version, this.$1t.info.version) == 1) {
                     this.update = data;
                     this.$q.notify({
@@ -359,7 +359,7 @@
                     });
                 }
             },
-            //Unfocus from current element to make shortcuts work
+            // Unfocus from current element to make shortcuts work
             quickTagUnfocus() {
                 if (this.$router.currentRoute.path.includes('quicktag')) {
                     this.$refs.playButton.$el.focus();

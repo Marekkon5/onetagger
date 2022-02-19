@@ -117,10 +117,12 @@ export default {
                     color: 'primary',
                     textColor: 'black',
                     timeout: 500,
-                })
+                });
             }
             this.$1t.loadQTTrack(null, true);
             this.saveDialog = false;
+            // focus on custom tags fix
+            setTimeout(() => {this.$parent.$parent.$parent.quickTagUnfocus();}, 50);
         },
         // Select folder and load tracks
         selectFolder() {
@@ -172,7 +174,6 @@ export default {
                     }
                     break;
                 case 'focusSearch':
-
                     break
                 default:
                     console.log(`Unknown QT Event: ${action} ${data}`);

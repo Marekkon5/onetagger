@@ -98,7 +98,7 @@ impl AFProperties {
             AFPropertyMerged::new(features.speechiness, &self.speechiness, &format)
                 .add_main_value("#music", "", "#speech"),
             AFPropertyMerged::new(features.valence, &self.valence, &format)
-                .add_main_value("#negative", "#neutral", "#positive"),
+                .add_main_value("#negative", "#balanced", "#positive"),
             AFPropertyMerged::new(track.popularity as f32 / 100.0, &self.popularity, &format)
                 .add_main_value("#unpopular", "", "#popular")
         ]
