@@ -58,7 +58,7 @@ export default {
             //Save key
             if (e.code.match(/F\d{1,2}/) || e.code.startsWith('Key') || e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {
                 this.key.key = e.code.toLowerCase().replace("key", "").replace("digit", "").replace("numpad", "");
-                this.key.ctrl = e.ctrlKey;
+                this.key.ctrl = (e.ctrlKey || e.metaKey);
                 this.key.alt = e.altKey;
                 this.key.shift = e.shiftKey;
                 e.preventDefault();

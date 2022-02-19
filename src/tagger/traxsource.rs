@@ -135,12 +135,6 @@ impl Traxsource {
         let album_text = album_element.text().collect::<Vec<_>>();
         track.album = Some(album_text.first().unwrap().to_owned().to_owned());
 
-        // Select album art element
-        selector = Selector::parse("div.tr-image img").unwrap();
-        let img_element = document.select(&selector).next().unwrap();
-        let art_url = img_element.value().attr("src").unwrap();
-        track.art = Some(art_url.to_owned());
-
         // Get release id
         let release_id = album_url.replace("/title/", "");
         track.release_id = release_id[..release_id.find("/").unwrap()].to_string();
@@ -183,7 +177,12 @@ impl Traxsource {
         if let Ok(tn) = track_number_text.trim().parse() {
             track.track_number = Some(TrackNumber::Number(tn));
         }
-        
+
+        // Album art
+        selector = Selector::parse("div.t-image img").unwrap();
+        let img_element = document.select(&selector).next().unwrap();
+        let art_url = img_element.value().attr("src").unwrap();
+        track.art = Some(art_url.to_owned());
 
         Ok(())
     }
@@ -198,7 +197,7 @@ impl TrackMatcher for Traxsource {
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
             if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist || config.track_number {
-                match self.extend_track(&mut track, config.catalog_number || config.track_number) {
+                match self.extend_track(&mut track, config.catalog_number || config.track_number || config.album_art) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
                 }

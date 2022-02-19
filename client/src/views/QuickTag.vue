@@ -14,7 +14,7 @@
         </q-input>
         
         <div v-for='(item, i) in tracks' :key='i'>
-            <q-intersection style='height: 136px;' @click.native='trackClick(item)'>
+            <q-intersection style='height: 136px;' @click.native='trackClick(item)' once>
                 <QuickTagTile :track='$1t.quickTag.track' v-if='$1t.quickTag.track && item.path == $1t.quickTag.track.path'></QuickTagTile>
                 <QuickTagTile :track='item' v-if='!$1t.quickTag.track || item.path != $1t.quickTag.track.path'></QuickTagTile>
             </q-intersection>
@@ -26,9 +26,14 @@
         </div>
     </div>
 
-    <!-- No path selected -->
-    <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container qt-full-height' @click='selectFolder'>
-        <div>
+    <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container qt-full-height'>
+        <!-- Loading -->
+        <div v-if='$1t.lock.locked' class='row justify-center'>
+            <q-circular-progress indeterminate color='primary' size='64px'></q-circular-progress>
+        </div>
+
+        <!-- No path selected -->
+        <div @click='selectFolder' v-if='!$1t.lock.locked'>
             <div class='text-center text-h4 text-grey-6 q-my-sm'>No folder selected!</div>
             <div class='text-center text-subtitle1 text-grey-6'>Click here to select folder</div>
             <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
@@ -175,14 +180,13 @@ export default {
             }
         }
 
-        //Load tracks if path available
+        // Load tracks if path available
         this.$1t.loadQuickTag();
     },
     watch: {
         '$1t.quickTag.track'() {
             let index = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
-            this.$refs.tracklist.scrollTop = index * 136 - 140;
-            // window.scrollTo(0, index * 60);
+            this.$refs.tracklist.scrollTop = index * 144 - 140;
         }
     }
 }

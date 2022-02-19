@@ -48,7 +48,19 @@
                     </div>
 
                     <div class='col-4 text-grey-4'>
-                        <div>{{track.genres.join(", ")}}</div>
+                        <!-- Genres -->
+                        <div v-if='selected'>
+                            <span 
+                                v-for='(genre, i) in track.genres' 
+                                :key='"gen"+i'
+                                :class='{"hover-strike": selected}'
+                                @click='removeGenre(genre)'
+                            >
+                                {{genre}}<span v-if='i != track.genres.length - 1'>, </span>
+                            </span>
+                        </div>
+                        <div v-if='!selected'>{{track.genres.join(', ')}}</div>
+
                         <div class='text-grey-6'>{{track.year}}</div>
                     </div>
                     <div class='col-1'>
@@ -87,17 +99,21 @@ export default {
         track: Object
     },
     methods: {
-        //Get mood by name
+        // Get mood by name
         getMood(name) {
             if (!name) return null;
             let mood = this.$1t.settings.quickTag.moods.find(m => m.mood == name);
-            //Inject outline if unknown mood
+            // Inject outline if unknown mood
             if (mood) {
                 mood.outline = false;
                 return mood;
             }
             return {mood: name, color: 'white', outline: true};
         },
+        // Remove genre from track
+        removeGenre(genre) {
+            this.$1t.quickTag.track.toggleGenre(genre);
+        }
     },
     computed: {
         selected() {
@@ -132,5 +148,9 @@ export default {
 }
 .custom-tag-chips {
     margin-top: -38px;
+}
+.hover-strike:hover {
+    text-decoration: line-through;
+    cursor: pointer;
 }
 </style>

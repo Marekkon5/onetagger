@@ -76,29 +76,37 @@
             <HelpButton></HelpButton>
 
             <!-- Drawers -->
-            <q-drawer
-                :breakpoint="1000"
-                v-model="left"
-                side="left"
-                :width="200"
-            >
-                <QuickTagFileBrowser v-if='left'></QuickTagFileBrowser>
-            </q-drawer>
-            <q-drawer
-                :breakpoint="1000"
-                v-model="right"
-                side="right"
-                :width="200"
-            >
-                <QuickTagRight></QuickTagRight>
-            </q-drawer>
+            <div v-if='$1t.info.ready'>
+                <q-drawer
+                    :breakpoint="1000"
+                    v-model="left"
+                    side="left"
+                    :width="200"
+                >
+                    <QuickTagFileBrowser v-if='left'></QuickTagFileBrowser>
+                </q-drawer>
+                <q-drawer
+                    :breakpoint="1000"
+                    v-model="right"
+                    side="right"
+                    :width="200"
+                >
+                    <QuickTagRight></QuickTagRight>
+                </q-drawer>
+            </div>
 
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
-                <transition name="fade">
+                <transition name="fade" v-if='$1t.info.ready'>
                     <router-view />
                 </transition>
+                <!-- Loading -->
+                <div v-if='!$1t.info.ready' class='row justify-center items-center' style='height: calc(100vh - 64px)'>
+                    <q-circular-progress indeterminate color='primary' size='64px'></q-circular-progress>
+                </div>
             </q-page-container>
+
+
 
             <!-- Footer -->
             <q-footer reveal class="bg-darker text-white" v-if="footer">

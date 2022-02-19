@@ -8,6 +8,8 @@ class OneTagger {
     constructor() {
         this.WAVES = 180;
         this.ws = new WebSocket(`ws://${window.location.hostname}:36912`);
+        this._wsPromiseResolve;
+        this.wsPromise = new Promise((res) => this._wsPromiseResolve = res);
 
         // WS error
         this.ws.onerror = (_, e) => {
@@ -18,6 +20,12 @@ class OneTagger {
         }
         // Load settings on load
         this.ws.onopen = () => {
+            // Mark WS as connected
+            if (this._wsPromiseResolve) {
+                this._wsPromiseResolve();
+                this._wsPromiseResolve = null;
+            }
+            // init data
             this.send('loadSettings');
             setTimeout(() => {
                 this.send('init');
@@ -25,7 +33,7 @@ class OneTagger {
             }, 100);
         }
 
-        this.info = Vue.observable({version: '0.0.0', os: null});
+        this.info = Vue.observable({version: '0.0.0', os: null, ready: false});
 
         // WS Message handler
         this.ws.onmessage = (event) => {
@@ -38,11 +46,12 @@ class OneTagger {
                 case 'init':
                     this.info.version = json.version;
                     this.info.os = json.os;
-                    //Path from args
+                    // Path from args
                     if (json.startContext.startPath) {
                         this.settings.path = json.startContext.startPath;
                         this.config.path = json.startContext.startPath;
                     }
+                    this.info.ready = true;
                     break;
                 // Settings loaded
                 case 'loadSettings':
@@ -109,6 +118,7 @@ class OneTagger {
                     break;
                 // Quicktag
                 case 'quickTagLoad':
+                    this.lock.locked = false;
                     this.quickTag.tracks = json.data.map(t => new QTTrack(t, this.settings.quickTag));
                     break;
                 /*eslint-disable no-case-declarations*/
@@ -250,7 +260,7 @@ class OneTagger {
             total: 0,
             type: null
         });
-        // Lock, enable when tagging
+        // Lock, enable when tagging/loading
         this.lock = Vue.observable({locked: false});
 
         // Player
@@ -447,7 +457,13 @@ class OneTagger {
     onSpotifyAuthEvent() {}
 
     // Send to socket
-    send(action, params = {}) {
+    async send(action, params = {}) {
+        // Wait for connection
+        if (this.wsPromise) {
+            await this.wsPromise;
+            this.wsPromise = null;
+        }
+
         let data = { action };
         Object.assign(data, params);
         this.ws.send(JSON.stringify(data));
@@ -620,12 +636,19 @@ class OneTagger {
 
     // Quicktag
     loadQuickTag(playlist = null) {
+        // Loading
+        if (playlist || this.settings.path) {
+            this.lock.locked = true;
+            this.quickTag.tracks = [];
+        }
+
         if (playlist) {
             this.send('quickTagLoad', {playlist, separators: this.settings.quickTag.separators});
             return;
         }
-           
+
         if (this.settings.path) {
+            this.lock.locked = true;
             this.send('quickTagLoad', {
                 path: this.settings.path,
                 recursive: this.settings.quickTag.recursive,
@@ -678,7 +701,7 @@ class OneTagger {
             }
 
             // Save
-            if (event.code == "KeyS" && event.ctrlKey) {
+            if (event.code == "KeyS" && (event.ctrlKey || event.metaKey)) {
                 this.saveQTTrack().then(() => {
                     Notify.create({
                         message: "Track saved!",
@@ -727,7 +750,7 @@ class OneTagger {
         }
 
         // Tag editor save
-        if (event.code == "KeyS" && event.ctrlKey && this.onTagEditorEvent) {
+        if (event.code == "KeyS" && (event.ctrlKey || event.metaKey) && this.onTagEditorEvent) {
             this.onTagEditorEvent({action: '_tagEditorSave'});
             return true;
         }
@@ -742,7 +765,7 @@ class OneTagger {
             return (key == keybind.key && 
                 e.altKey == keybind.alt && 
                 e.shiftKey == keybind.shift && 
-                e.ctrlKey == keybind.ctrl);
+                (e.ctrlKey || e.metaKey) == keybind.ctrl);
         }
     }
 }
