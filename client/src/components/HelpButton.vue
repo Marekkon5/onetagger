@@ -235,7 +235,7 @@
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md text-right'>Prominent tag</div>
                         <div class='col-10 q-mt-md text-subtitle2 text-grey-4 q-pl-sm' style='line-height: 24px'>
                             You can customize the threshold, so it's not only writing the simple value from <q-badge color='grey-8'><span class='textnumber text-grey-2'>0-100</span></q-badge> per audio feature, <br>
-                            but also determine when it should translate the value into a meaningful description & write to a <q-badge outline color='primary'><span class='text-white'>custom</span></q-badge> predefined tag field.
+                            but also determine when it should translate the value into a meaningful description & write to a <q-badge outline color='primary'><span class='text-white'>custom</span></q-badge> predefined tag frame.
                         </div>
                         </div>
 
@@ -417,7 +417,7 @@
                             <DJAppIcons></DJAppIcons>                                                                           
                         </div>
                         <div class='text-subtitle3 text-grey-5 text-center text-caption' style='line-height: 24px'>
-                            Which tag codes can be read by your DJ software? <q-icon name='mdi-cursor-default-outline' class='q-pb-xs'></q-icon> Click on the app icon above<br>
+                            Which tag frames can be read by your DJ software? <q-icon name='mdi-cursor-default-outline' class='q-pb-xs'></q-icon> Click on the app icon above<br>
                             Also shows you recommended tags to use
                         </div>
                     </div>
@@ -458,7 +458,7 @@
                         <div class='col-10 q-mt-lg q-mb-xs text-subtitle2 text-grey-4' style='line-height: 24px'>  
                             <span class='text-number text-bold text-grey-6'>1. <span class='text-number text-bold text-grey-10'>.</span></span><span class='q-pl-sm'>Click the settings <q-icon name='mdi-cog'></q-icon> icon</span> <br>
                             <span class='text-number text-bold text-grey-6'>2. </span><span class='q-pl-sm'>Set path to a folder which you like to quick tag - or drag & drop playlist</span> <br>
-                            <span class='text-number text-bold text-grey-6'>3. </span><span class='q-pl-sm'>Predefine energy level to write to either <q-badge outline color='primary'><span class='text-white'>Rating</span></q-badge> or a different tag field as symbol, like *'s</span> <br>
+                            <span class='text-number text-bold text-grey-6'>3. </span><span class='q-pl-sm'>Predefine energy level to write to either <q-badge outline color='primary'><span class='text-white'>Rating</span></q-badge> or a different tag frame as symbol, like *'s</span> <br>
                             <span class='text-number text-bold text-grey-6'>4. </span><span class='q-pl-sm'>Predefine <q-badge outline color='primary'><span class='text-white'>Mood</span></q-badge> & assign a color, <q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge> & other characteristics</span> <br>
                             <span class='text-number text-bold text-grey-6'>5. </span><span class='q-pl-sm'>Key bind them all to a character on your keyboard for quick access</span> <br>
                             <span class='text-number text-bold text-grey-6'>6. </span><span class='q-pl-sm'>Decide where you want all the above data written to</span> <br>
@@ -480,7 +480,7 @@
                             Tag energy level using stars <q-icon name='mdi-star'></q-icon>.<br>
                             Some DJ software can’t read out the <q-badge outline color='primary'><span class='text-white'>Rating</span></q-badge> tag, or simply don’t have the ability to show it. <br>
                             Then you can alternatively set the output to ‘symbol’ instead. Predefine the symbol (a * for example)<br>
-                            Also predefine where to write the energy rating by selecting a proper tag code. <br>                            
+                            Also predefine where to write the energy rating by selecting a proper tag frame. <br>                            
                         </div>
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%'>
@@ -510,7 +510,7 @@
                             <DJAppIcons></DJAppIcons>                                                                           
                         </div>
                         <div class='text-subtitle3 text-grey-5 text-center text-caption' style='line-height: 24px'>
-                            Which tag codes can be read by your DJ software? <q-icon name='mdi-cursor-default-outline'></q-icon> Click on the app icon above<br>
+                            Which tag frames can be read by your DJ software? <q-icon name='mdi-cursor-default-outline'></q-icon> Click on the app icon above<br>
                             Also shows you recommended tags to use
                             </div>
                                                
@@ -543,13 +543,13 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             Click the path on top left to select folder using your OS's picker.<br>
                             A list of all audio files within the folder will be populated.<br>
-                            Click on a file to show the metadata & its tag codes sorted by alphabet *<br>
+                            Click on a file to show the metadata & its tag frames sorted by alphabet *<br>
                         </div>
                         </div>
                         <div class='row' style='width: 82%; margin-left:18%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'></div>
                         <div class='text-subtitle2 q-my-md text-grey-4' style='line-height: 24px'>
-                            * <q-badge outline color='primary'><span class='text-white'>Comments</span></q-badge> , (Unsynchronized) <q-badge outline color='primary'><span class='text-white'>Lyrics</span></q-badge> & Popularimeter <q-badge outline color='primary'><span class='text-white'>Rating</span></q-badge> are special tag fields.<br>
+                            * <q-badge outline color='primary'><span class='text-white'>Comments</span></q-badge> , (Unsynchronized) <q-badge outline color='primary'><span class='text-white'>Lyrics</span></q-badge> & Popularimeter <q-badge outline color='primary'><span class='text-white'>Rating</span></q-badge> are special tag frames.<br>
                             They show at the bottom below the <q-badge outline color='primary'><span class='text-white'>Album art</span></q-badge><br>
                             <br>
                             Review & alter them to your liking. Click <span><q-badge color='primary' class='text-dark'>Save</q-badge></span> at the bottom to write the changes made.<br>

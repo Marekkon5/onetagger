@@ -13,12 +13,12 @@
 
                 <!-- Subgenres -->
                 <q-menu v-if='genre.subgenres' :value='mouseOver == i'>
-                    <q-list @mouseleave="mouseOver = -1">
+                    <q-list @mouseleave="mouseOver = -1" class='bg-darker'>
                         <div v-for='(subgenre, j) in genre.subgenres' :key='"sg"+j'>
                             <q-item clickable @click='setGenre(subgenre)'>
                                 <q-item-section>
                                     <div class='row'>
-                                        <q-icon name='mdi-check' class='q-pr-sm q-pt-xs' v-if='isSelected(subgenre)'></q-icon>
+                                        <q-icon name='mdi-check' class='q-pr-sm q-pt-xs' color='primary' v-if='isSelected(subgenre)'></q-icon>
                                         <div>{{subgenre}}</div>
                                     </div>
 
@@ -62,7 +62,7 @@ export default {
 
 <style>
 .genre-bar {
-    height: 36px;
+    height: 40px;
 
 }
 .genre-bar-container {

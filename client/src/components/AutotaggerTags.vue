@@ -46,7 +46,11 @@
                     <q-tooltip content-style="font-size: 13px">Resolution is platform dependent</q-tooltip>
                 </q-icon>
             </q-checkbox>
-            <q-checkbox class='tag checkbox' label='Genre' v-model='$1t.config.genre' :class='{"text-yellow": $1t.config.genre && spotify, "text-grey-4": !spotify || !$1t.config.genre}'></q-checkbox>
+            <q-checkbox class='tag checkbox' label='Genre' v-model='$1t.config.genre'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                    <q-tooltip content-style="font-size: 13px">Spotify will populate multiple genres based on artist</q-tooltip>
+                </q-icon>
+            </q-checkbox>
             <div class='flex-break'></div>
             <q-checkbox class='tag checkbox text-grey-4' label='Album' v-model='$1t.config.album'></q-checkbox>
             <q-checkbox :disabled='!isSupported("style")' class='tag checkbox text-grey-4' label='Style/Subgenre' v-model='$1t.config.style'>            

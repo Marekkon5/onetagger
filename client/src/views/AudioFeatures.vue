@@ -51,7 +51,7 @@
         <!-- Main tag -->
         <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' inset color="dark" />
         <div class='text-h5 text-grey-4 custom-margin'>Prominent tag</div>
-        <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tagcode field</div>
+        <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tag frame</div>
         <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-5'>e.g. #dance-high, #energy-med, #vocal-low, #positive, #popular</div>
 
         <TagFields style='max-width: 550px; margin: auto;' v-model='config.mainTag'></TagFields>
@@ -70,7 +70,7 @@
                     </q-icon>
                 </div>
                 <div class='col-2'>Audio feature</div>
-                <div class='col-6'>Tag name</div>
+                <div class='col-6'>Tag frame</div>
                 <div class='col-3'>Threshold</div>
             </div>
 
