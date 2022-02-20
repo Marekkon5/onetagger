@@ -24,7 +24,7 @@ impl Default for AudioFeaturesConfig {
     fn default() -> Self {
         Self { 
             path: None,
-            main_tag: FrameName { id3: "AUDIO_FEATURES".to_string(), vorbis: "AUDIO_FEATURES".to_string(), mp4: "AUDIO_FEATURES".to_string() },
+            main_tag: FrameName::same("AUDIO_FEATURES"),
             separators: Default::default(),
             properties: Default::default()
         }

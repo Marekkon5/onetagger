@@ -219,7 +219,7 @@ pub struct Track {
     pub label: Option<String>,
     pub catalog_number: Option<String>,
     //  Tag name, Value
-    pub other: Vec<(String, String)>,
+    pub other: Vec<(FrameName, String)>,
     pub track_id: Option<String>,
     pub release_id: String,
     pub duration: Duration,

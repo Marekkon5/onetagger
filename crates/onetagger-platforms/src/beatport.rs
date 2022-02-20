@@ -7,6 +7,7 @@ use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
+use onetagger_tag::FrameName;
 use onetagger_tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, StylesOptions, TrackNumber};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
@@ -202,7 +203,7 @@ impl BeatportTrack {
             catalog_number: None,
             art: self.get_image().map(|i| i.get_url(art_resolution)).flatten(),
             other: vec![
-                ("UNIQUEFILEID".to_string(), format!("https://beatport.com|{}", &self.id))
+                (FrameName::same("UNIQUEFILEID"), format!("https://beatport.com|{}", &self.id))
             ],
             track_id: Some(self.id.to_string()),
             release_id: self.release.id.to_string(),
@@ -214,7 +215,7 @@ impl BeatportTrack {
 
         // Exclusive beatport tag
         if self.exclusive.is_some() && self.exclusive.unwrap() {
-            t.other.push(("BEATPORT_EXCLUSIVE".to_string(), "1".to_string()));
+            t.other.push((FrameName::same("BEATPORT_EXCLUSIVE"), "1".to_string()));
         }
         t
     }

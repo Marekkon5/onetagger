@@ -8,6 +8,7 @@ use reqwest::StatusCode;
 use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
+use onetagger_tag::FrameName;
 use onetagger_tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, 
     MatchingUtils, StylesOptions, DiscogsConfig, TrackNumber};
 
@@ -384,7 +385,7 @@ impl ReleaseMaster {
             release_year: self.year,
             release_date,
             catalog_number,
-            other: vec![("VINYLTRACK".to_string(), self.tracks[track_index].position.to_string())],
+            other: vec![(FrameName::same("VINYLTRACK"), self.tracks[track_index].position.to_string())],
             track_id: None,
             release_id: self.id.to_string(),
             duration: MatchingUtils::parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),

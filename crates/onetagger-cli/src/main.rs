@@ -110,7 +110,7 @@ enum Actions {
 
         /// Specify a path to config file
         #[clap(short, long)]
-        config: String
+        config: String,
     },
     /// Start Audio Features in CLI mode
     Audiofeatures {

@@ -62,4 +62,4 @@ cd target/x86_64-apple-darwin/release
 chmod +x onetagger-cli
 zip OneTagger-mac-cli.zip onetagger-cli
 cd -
-mv target/x86_64-apple-darwin/release/OneTagger-mac-cli.zip
+mv target/x86_64-apple-darwin/release/OneTagger-mac-cli.zip dist/
