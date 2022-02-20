@@ -15,7 +15,7 @@ use rspotify::client::ApiError;
 use url::Url;
 use rouille::{Server, router};
 use onetagger_shared::Settings;
-use onetagger_tagger::{TrackMatcherST, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, TrackNumber};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, TrackNumber};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -212,7 +212,7 @@ impl Spotify {
     }
 }
 
-impl TrackMatcherST for Spotify {
+impl AutotaggerSource for Spotify {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search_tracks(&query, 20)?;
@@ -268,6 +268,15 @@ impl TrackMatcherST for Spotify {
         }
         Ok(None)
     }
+
+    fn new(config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        let spotify_config = config.spotify.as_ref().ok_or("Missing Spotify config!")?;
+        let spotify = Spotify::try_cached_token(&spotify_config.client_id, &spotify_config.client_secret)
+            .ok_or("Spotify not authorized!")?;
+        Ok(spotify)
+    }
+
+    
 }
 
 fn full_track_to_track(track: FullTrack) -> Track {

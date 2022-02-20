@@ -44,7 +44,7 @@ export PKG_CONFIG_PATH="$PATH:$(pwd)/target/SDK/MacOSX10.10.sdk/usr/lib/pkgconfi
 cd ..
 # Compile 1t
 cargo install cargo-bundle
-cd crates/onetagger-ui
+cd crates/onetagger
 cargo bundle --target x86_64-apple-darwin --release
 cd -
 cargo build --target x86_64-apple-darwin --release --bin onetagger-cli

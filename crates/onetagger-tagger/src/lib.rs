@@ -140,12 +140,14 @@ impl Default for BeatportConfig {
 pub struct DiscogsConfig {
     pub token: Option<String>,
     pub max_results: i16,
-    pub track_number_int: bool
+    pub track_number_int: bool,
+    #[serde(skip)]
+    pub rate_limit_override: Option<i16>,
 }
 
 impl Default for DiscogsConfig {
     fn default() -> Self {
-        Self { token: None, max_results: 4, track_number_int: false }
+        Self { token: None, max_results: 4, track_number_int: false, rate_limit_override: None }
     }
 }
 
@@ -357,13 +359,10 @@ impl AudioFileIDs {
 }
 
 /// For all the platforms
-pub trait TrackMatcher {
-    /// Returns (accuracy, track)
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
-}
+pub trait AutotaggerSource {
+    /// Create new instance
+    fn new(config: &TaggerConfig) -> Result<Self, Box<dyn Error>> where Self: Sized;
 
-/// Single threaded, mutable
-pub trait TrackMatcherST {
     /// Returns (accuracy, track)
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
 }

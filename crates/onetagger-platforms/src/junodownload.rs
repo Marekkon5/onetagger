@@ -6,7 +6,7 @@ use regex::Regex;
 use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
-use onetagger_tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber};
+use onetagger_tagger::{Track, MusicPlatform, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber};
 
 pub struct JunoDownload {
     client: Client
@@ -14,7 +14,7 @@ pub struct JunoDownload {
 
 impl JunoDownload {
     // New instance
-    pub fn new() -> JunoDownload {
+    fn new() -> JunoDownload {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
             .build()
@@ -163,8 +163,8 @@ impl JunoDownload {
     }
 }
 
-impl TrackMatcher for JunoDownload {
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+impl AutotaggerSource for JunoDownload {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search(&query)?;
@@ -173,5 +173,9 @@ impl TrackMatcher for JunoDownload {
             return Ok(Some((acc, track)));
         }
         Ok(None)
+    }
+
+    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::new())
     }
 }

@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::thread;
-use std::sync::mpsc::{channel, Receiver};
+use crossbeam_channel::{unbounded, Receiver};
 use serde::{Serialize, Deserialize};
 use onetagger_tagger::{AudioFileInfo, MusicPlatform, MatchingUtils};
 use onetagger_platforms::spotify::{Spotify, rspotify};
@@ -159,7 +159,7 @@ impl AudioFeatures {
     pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> Receiver<TaggingStatusWrap> {
         let file_count = files.len();
         // Start
-        let (tx, rx) = channel();
+        let (tx, rx) = unbounded();
         thread::spawn(move || {
             for (i, file) in files.iter().enumerate() {
                 // Create status

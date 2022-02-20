@@ -9,21 +9,19 @@ use std::fs::File;
 use std::time::Duration;
 use std::default::Default;
 use std::io::prelude::*;
-use std::sync::Arc;
-use std::sync::mpsc::{channel, Receiver};
 use chrono::Local;
 use execute::Execute;
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
-use threadpool::ThreadPool;
 use chrono::Datelike;
 use serde::{Serialize, Deserialize};
+use crossbeam_channel::{unbounded, Sender, Receiver};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 use onetagger_shared::{OTError, Settings};
 use onetagger_player::AudioSources;
 use onetagger_tagger::{Track, AudioFileInfo, AudioFileIDs, TaggerConfig, StylesOptions, TrackNumber, 
-    MusicPlatform, TrackMatcher, TrackMatcherST, CAMELOT_NOTES};
+    MusicPlatform, AutotaggerSource, CAMELOT_NOTES};
 use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource};
 
 use crate::shazam::Shazam;
@@ -459,8 +457,8 @@ impl Tagger {
         info!("Starting tagger with: {} files!", total_files);
 
         // Create thread
-        let (tx, rx) = channel();
-        let config = cfg.clone();
+        let (tx, rx) = unbounded();
+        let mut config = cfg.clone();
         thread::spawn(move || {
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
@@ -472,128 +470,44 @@ impl Tagger {
                     info!("All tagged succesfully!");
                     break;
                 }
-                match platform {
-                    // Discogs
-                    MusicPlatform::Discogs => {
-                        // Auth discogs
-                        let mut discogs = discogs::Discogs::new();
-                        if config.discogs.token.as_ref().is_none() {
-                            error!("Missing Discogs token! Skipping Discogs...");
-                            continue;
-                        }
-                        discogs.set_auth_token(config.discogs.token.as_ref().unwrap());
-                        if !discogs.validate_token() {
-                            error!("Invalid Discogs token! Skipping Discogs...");
-                            continue;
-                        }
-                        // Remove rate limit for small batches
-                        if files.len() <= 35 {
-                            discogs.set_rate_limit(150);
-                        }
-                        if files.len() <= 20 {
-                            discogs.set_rate_limit(1000);
-                        }
-                        // Tag
-                        let rx = Tagger::tag_dir_single_thread(&files, discogs, &config);
-                        info!("Starting Discogs");
-                        for status in rx {
-                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::Discogs, status.status, status.accuracy, status.path);
-                            processed += 1;
-                            // Send to UI
-                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::Discogs, &status, 
-                                platform_index, config.platforms.len(), processed, total
-                            )).ok();
-                            // Fallback
-                            if status.status == TaggingState::Ok {
-                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
-                            }
-                        }
-                    },
-                    // iTunes
-                    MusicPlatform::ITunes => {
-                        let itunes = itunes::ITunes::new();
-                        let rx = Tagger::tag_dir_single_thread(&files, itunes, &config);
-                        info!("Starting iTunes");
-                        for status in rx {
-                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::ITunes, status.status, status.accuracy, status.path);
-                            processed += 1;
-                            // Send to UI
-                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::ITunes, &status, 
-                                platform_index, config.platforms.len(), processed, total
-                            )).ok();
-                            // Fallback
-                            if status.status == TaggingState::Ok {
-                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
-                            }
-                        }
-                    },
-                    MusicPlatform::Spotify => {
-                        // Login
-                        if config.spotify.is_none() {
-                            error!("Spotify authorization missing, skipping!");
-                            continue;
-                        }
-                        let spotify_config = config.spotify.clone().unwrap();
-                        let spotify = match spotify::Spotify::try_cached_token(&spotify_config.client_id, &spotify_config.client_secret) {
-                            Some(spotify) => spotify,
-                            None => {
-                                error!("Spotify not logged in, skipping!");
-                                continue;
-                            }
-                        };
-                        // Tagger
-                        let rx = Tagger::tag_dir_single_thread(&files, spotify, &config);
-                        info!("Starting Spotify");
-                        for status in rx {
-                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", MusicPlatform::Spotify, status.status, status.accuracy, status.path);
-                            processed += 1;
-                            // Send to UI
-                            tx.send(TaggingStatusWrap::wrap(MusicPlatform::Spotify, &status, 
-                                platform_index, config.platforms.len(), processed, total
-                            )).ok();
-                            // Fallback
-                            if status.status == TaggingState::Ok {
-                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
-                            }
-                        }
-                    },
-                    platform => {
-                        // No config platforms
-                        let tagger: Box<dyn TrackMatcher + Send + Sync + 'static> = match platform {
-                            MusicPlatform::Beatport => Box::new(beatport::Beatport::new()),
-                            MusicPlatform::Traxsource => Box::new(traxsource::Traxsource::new()),
-                            MusicPlatform::JunoDownload => Box::new(junodownload::JunoDownload::new()),
-                            MusicPlatform::MusicBrainz => Box::new(musicbrainz::MusicBrainz::new()),
-                            MusicPlatform::Beatsource => Box::new(beatsource::Beatsource::new()),
-                            _ => unreachable!()
-                        };
-                        info!("Starting {:?}", platform);
-                        
-                        let rx = if platform == &MusicPlatform::JunoDownload || platform == &MusicPlatform::MusicBrainz {
-                            // Cap max threads due to rate limiting
-                            let mut config = config.clone();
-                            if config.threads > 4 {
-                                config.threads = 4;
-                            }
-                            Tagger::tag_dir_multi_thread(&files, tagger, &config)
-                        } else {
-                            Tagger::tag_dir_multi_thread(&files, tagger, &config)
-                        };
-                         
-                        // Get statuses
-                        for status in rx {
-                            info!("[{:?}] State: {:?}, Accuracy: {:?}, Path: {}", platform, status.status, status.accuracy, status.path);
-                            processed += 1;
-                            // Send to UI
-                            tx.send(TaggingStatusWrap::wrap(platform.to_owned(), &status, 
-                                platform_index, (&config.platforms).len(), processed, total
-                            )).ok();
-                            // Fallback
-                            if status.status == TaggingState::Ok {
-                                files.remove(files.iter().position(|f| f == &status.path).unwrap());
-                            }
-                        }
 
+                // Discogs rate limit override
+                if files.len() <= 35 {
+                    config.discogs.rate_limit_override = Some(150);
+                }
+                if files.len() <= 20 {
+                    config.discogs.rate_limit_override = Some(1000);
+                }
+
+                // Get platform and threads override
+                let tagger = match platform {
+                    MusicPlatform::Beatport => beatport::Beatport::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, config.threads)),
+                    MusicPlatform::Traxsource => traxsource::Traxsource::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, config.threads)),
+                    MusicPlatform::Discogs => discogs::Discogs::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 1)),
+                    MusicPlatform::JunoDownload => junodownload::JunoDownload::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 4)),
+                    MusicPlatform::ITunes => itunes::ITunes::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 1)),
+                    MusicPlatform::MusicBrainz => musicbrainz::MusicBrainz::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 4)),
+                    MusicPlatform::Beatsource => beatsource::Beatsource::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, config.threads)),
+                    MusicPlatform::Spotify => spotify::Spotify::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 1)),
+                    MusicPlatform::None => unreachable!(),
+                };
+                // Tagging
+                let rx = match tagger {
+                    Ok(t) => t,
+                    Err(e) => {
+                        error!("Failed creating platform: {platform:?}, skipping... {e}");
+                        continue;
+                    }
+                };
+                info!("Starting {platform:?}");
+                for status in rx {
+                    info!("[{platform:?}] State: {:?}, Accuracy: {:?}, Path: {}", status.status, status.accuracy, status.path);
+                    processed += 1;
+                    // Send to UI
+                    tx.send(TaggingStatusWrap::wrap(platform.clone(), &status,  platform_index, config.platforms.len(), processed, total)).ok();
+                    // Fallback
+                    if status.status == TaggingState::Ok {
+                        files.remove(files.iter().position(|f| f == &status.path).unwrap());
                     }
                 }
             }
@@ -647,7 +561,9 @@ impl Tagger {
     }
 
     // Tag single track
-    pub fn tag_track(path: &str, tagger_mt: Option<&dyn TrackMatcher>, tagger_st: Option<&mut dyn TrackMatcherST>, config: &TaggerConfig) -> TaggingStatus {
+    pub fn tag_track<T>(path: &str, tagger: &mut T, config: &TaggerConfig) -> TaggingStatus 
+    where T: AutotaggerSource + ?Sized
+    {
         info!("Tagging: {}", path);
         // Output
         let mut out = TaggingStatus {
@@ -720,14 +636,7 @@ impl Tagger {
             info.load_duration();
         }
         // Match track
-        let result = if let Some(tagger) = tagger_mt {
-            tagger.match_track(&info, &config)
-        } else if let Some(tagger) = tagger_st {
-            tagger.match_track(&info, &config)
-        } else {
-            out.message = Some("No tagger!".to_owned());
-            return out;
-        };
+        let result = tagger.match_track(&info, &config);
         match result {
             Ok(o) => {
                 match o {
@@ -767,37 +676,49 @@ impl Tagger {
     }
 
     // Tag all files with threads specified in config
-    pub fn tag_dir_multi_thread(files: &Vec<String>, tagger: Box<(dyn TrackMatcher + Send + Sync + 'static)>, config: &TaggerConfig) -> Receiver<TaggingStatus> {
-        info!("Starting tagging: {} files, {} threads!", files.len(), config.threads);
-        // Create threadpool
-        let pool = ThreadPool::new(config.threads as usize);
-        let (tx, rx) = channel();
-        let tagger_arc = Arc::new(tagger);
-        for file in files {
-            let tx = tx.clone();
+    pub fn tag_dir<T>(files: &Vec<String>, mut tagger: T, config: &TaggerConfig, threads: u16) -> Receiver<TaggingStatus>
+    where T: AutotaggerSource + Send + Sync + Sized + 'static
+    {
+        info!("Starting tagging: {} files, {} threads!", files.len(), threads);
+        let (tx, rx) = unbounded();
+
+        // Single threaded platforms
+        if threads == 1 {
+            let files = files.clone();
             let config = config.clone();
-            let t = tagger_arc.clone();
-            let f = file.to_owned();
-            pool.execute(move || {
-                let res: TaggingStatus = Tagger::tag_track(&f, Some(&**t), None, &config);
-                tx.send(res).ok();
+            std::thread::spawn(move || {
+                for f in files {
+                    let res = Tagger::tag_track(&f, &mut tagger, &config);
+                    tx.send(res).ok();
+                }
+            });
+            return rx;
+        }
+
+        // Multithreaded
+        let (file_tx, file_rx): (Sender<String>, Receiver<String>) = unbounded();
+        for _ in 0..threads {
+            let tx = tx.clone();
+            let file_rx = file_rx.clone();
+            let config = config.clone();
+            std::thread::spawn(move || {
+                let mut tagger = match T::new(&config) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        error!("Failed creating AutotaggerSource instance: {e}");
+                        return;
+                    }
+                };
+                while let Ok(f) = file_rx.recv() {
+                    let res = Tagger::tag_track(&f, &mut tagger, &config);
+                    tx.send(res).ok();
+                }
             });
         }
-        rx
-    }
-
-    // Tag all files with single thread
-    pub fn tag_dir_single_thread(files: &Vec<String>, mut tagger: (impl TrackMatcherST + Send + 'static), config: &TaggerConfig) -> Receiver<TaggingStatus> {
-        info!("Starting single threaded tagging of {} files!", files.len());
-        // Spawn thread
-        let (tx, rx) = channel();
-        let c = config.clone();
-        let f = files.clone();
-        thread::spawn(move || {
-            for file in f {
-                tx.send(Tagger::tag_track(&file, None, Some(&mut tagger), &c)).ok();
-            }
-        });
+        // Send files
+        for f in files {
+            file_tx.send(f.to_string()).ok();
+        }
         rx
     }
 }

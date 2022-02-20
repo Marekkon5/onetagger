@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, MusicPlatform, TrackMatcher, AudioFileInfo, MatchingUtils, StylesOptions, TrackNumber};
+use onetagger_tagger::{Track, TaggerConfig, MusicPlatform, AutotaggerSource, AudioFileInfo, MatchingUtils, StylesOptions, TrackNumber};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 lazy_static::lazy_static! {
@@ -22,7 +22,7 @@ pub struct Beatport {
 
 impl Beatport {
     /// Create new instance
-    pub fn new() -> Beatport {
+    fn new() -> Beatport {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
             .build()
@@ -309,8 +309,8 @@ impl BeatportImage {
 }
 
 // Match track
-impl TrackMatcher for Beatport {
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
+impl AutotaggerSource for Beatport {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
         // Fetch by ID
         if let Some(id) = info.ids.beatport_track_id {
             info!("Fetching by ID: {}", id);
@@ -402,5 +402,9 @@ impl TrackMatcher for Beatport {
             }
         }
         Ok(None)
+    }
+
+    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::new())
     }
 }

@@ -5,14 +5,14 @@ use rand::Rng;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use onetagger_tagger::{Track, MusicPlatform, TrackMatcher, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber};
+use onetagger_tagger::{Track, MusicPlatform, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber};
 
 pub struct MusicBrainz {
     client: Client
 }
 
 impl MusicBrainz {
-    pub fn new() -> MusicBrainz {
+    fn new() -> MusicBrainz {
         MusicBrainz {
             client: Client::builder()
                 .user_agent("OneTagger/1.0")
@@ -92,8 +92,8 @@ impl MusicBrainz {
     }
 }
 
-impl TrackMatcher for MusicBrainz {
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+impl AutotaggerSource for MusicBrainz {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         let query = format!("{} {}~", info.artist()?, MatchingUtils::clean_title(info.title()?));
         match self.search(&query) {
             Ok(results) => {
@@ -114,6 +114,10 @@ impl TrackMatcher for MusicBrainz {
             }
         }
         Ok(None)
+    }
+
+    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::new())
     }
 }
 

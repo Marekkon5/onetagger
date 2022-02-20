@@ -9,7 +9,7 @@ use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{MusicPlatform, Track, TrackMatcherST, TaggerConfig, AudioFileInfo, 
+use onetagger_tagger::{MusicPlatform, Track, AutotaggerSource, TaggerConfig, AudioFileInfo, 
     MatchingUtils, StylesOptions, DiscogsConfig, TrackNumber};
 
 pub struct Discogs {
@@ -24,7 +24,7 @@ pub struct Discogs {
 
 impl Discogs {
     // Create new instance
-    pub fn new() -> Discogs {
+    fn new() -> Discogs {
         let client = Client::builder()
             .user_agent("OneTagger/1.0")
             .build()
@@ -148,7 +148,7 @@ impl Discogs {
     }
 }
 
-impl TrackMatcherST for Discogs {
+impl AutotaggerSource for Discogs {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Exact ID match
         if config.match_by_id && info.ids.discogs_release_id.is_some() {
@@ -220,6 +220,21 @@ impl TrackMatcherST for Discogs {
         }
         Ok(None)
     }
+
+    fn new(config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        let token = config.discogs.token.as_ref().ok_or("Missing Discogs token!")?;
+        let mut discogs = Discogs::new();
+        discogs.set_auth_token(token);
+        if !discogs.validate_token() {
+            return Err("Invalid Discogs token!".into());
+        }
+        if let Some(rl) = config.discogs.rate_limit_override {
+            discogs.set_rate_limit(rl);
+        }
+        Ok(discogs)
+    }
+
+    
 }
 
 

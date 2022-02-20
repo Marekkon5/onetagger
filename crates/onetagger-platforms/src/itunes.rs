@@ -4,7 +4,7 @@ use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
-use onetagger_tagger::{TrackMatcherST, AudioFileInfo, TaggerConfig, Track, MatchingUtils, MusicPlatform};
+use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, MusicPlatform};
 
 pub struct ITunes {
     client: Client,
@@ -15,7 +15,7 @@ pub struct ITunes {
 
 impl ITunes {
     /// Create new instance
-    pub fn new() -> ITunes {
+    fn new() -> ITunes {
         ITunes {
             client: Client::builder()
                 .user_agent("OneTagger/1.0")
@@ -59,7 +59,7 @@ impl ITunes {
     }
 }
 
-impl TrackMatcherST for ITunes {
+impl AutotaggerSource for ITunes {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
@@ -70,6 +70,12 @@ impl TrackMatcherST for ITunes {
         }
         Ok(None)
     }
+
+    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::new())
+    }
+    
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

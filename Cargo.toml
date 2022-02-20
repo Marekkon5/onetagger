@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "crates/onetagger-ui",
+    "crates/onetagger",
     "crates/onetagger-cli",
     "crates/onetagger-tag",
     "crates/onetagger-shared",

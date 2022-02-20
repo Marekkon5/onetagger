@@ -7,7 +7,7 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 
-use onetagger_tagger::{TrackMatcher, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils};
 
 lazy_static::lazy_static! {
     static ref TOKEN_MANAGER: BeatsourceTokenManager = BeatsourceTokenManager::new();
@@ -19,7 +19,7 @@ pub struct Beatsource {
 
 impl Beatsource {
     /// Create new instance
-    pub fn new() -> Beatsource {
+    fn new() -> Beatsource {
         Beatsource {
             client: Client::builder()
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
@@ -32,7 +32,7 @@ impl Beatsource {
     pub fn search(&self, query: &str) -> Result<BeatsourceSearchResponse, Box<dyn Error>> {
         let res: BeatsourceSearchResponse = self.client.get("https://api.beatsource.com/v4/catalog/search")
             .query(&[
-                ("per_page", "100"),
+                ("pubper_page", "100"),
                 ("page", "1"),
                 ("type", "tracks"),
                 ("q", query)
@@ -44,8 +44,8 @@ impl Beatsource {
     }
 }
 
-impl TrackMatcher for Beatsource {
-    fn match_track(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+impl AutotaggerSource for Beatsource {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let res = match self.search(&query) {
@@ -58,6 +58,10 @@ impl TrackMatcher for Beatsource {
         let tracks: Vec<Track> = res.tracks.into_iter().map(|t| t.into_track(&config)).collect();
         let matched = MatchingUtils::match_track(&info, &tracks, config, true);
         Ok(matched)
+    }
+
+    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::new())
     }
 }
 
