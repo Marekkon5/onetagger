@@ -44,7 +44,8 @@ export PKG_CONFIG_PATH="$PATH:$(pwd)/target/SDK/MacOSX10.10.sdk/usr/lib/pkgconfi
 cd ..
 # Compile 1t
 cargo install cargo-bundle
-cargo bundle --target x86_64-apple-darwin --release
+cargo bundle --target x86_64-apple-darwin --release --bin onetagger
+cargo build --target x86_64-apple-darwin --release --bin onetagger-cli
 x86_64-apple-darwin14-strip target/x86_64-apple-darwin/release/onetagger
 x86_64-apple-darwin14-strip target/x86_64-apple-darwin/release/onetagger-cli
 # Create own zip with proper permissions
