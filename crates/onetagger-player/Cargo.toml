@@ -1,0 +1,17 @@
+[package]
+name = "onetagger-player"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mp4 = "0.9"
+alac = "0.5"
+rodio = "0.14"
+redlux = "0.4"
+ndarray = "0.13"
+mp3-duration = "0.1"
+
+sndfile = { version = "0.0.4", features = ["ndarray_features"] }
+onetagger-shared = { path = "../onetagger-shared" }

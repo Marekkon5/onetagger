@@ -31,12 +31,24 @@ jobs:
       with:
         name: onetagger-linux
         path: dist/OneTagger-linux.tar.gz
+    
+    - name: Upload Linux CLI
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-linux-cli
+        path: dist/OneTagger-linux-cli.tar.gz
 
     - name: Upload Mac
       uses: actions/upload-artifact@v2
       with:
         name: onetagger-mac
         path: dist/OneTagger-mac.zip
+
+    - name: Upload Mac CLI
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-mac-cli
+        path: dist/OneTagger-mac-cli.zip
 
   build-win:
     name: Windows
@@ -71,6 +83,7 @@ jobs:
         powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
         &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
         copy target\release\onetagger.exe dist\OneTagger-windows.exe
+        copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
 
     - name: Upload Archive
       uses: actions/upload-artifact@v2
@@ -83,4 +96,10 @@ jobs:
       with:
         name: onetagger-win-setup
         path: dist/OneTagger-windows-setup.exe
+
+    - name: Upload CLI
+      uses: actions/upload-artifact@v2
+      with:
+        name: onetagger-win-cli
+        path: dist/OneTagger-windows-cli.exe
       

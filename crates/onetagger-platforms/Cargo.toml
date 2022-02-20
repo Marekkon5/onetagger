@@ -1,0 +1,28 @@
+[package]
+name = "onetagger-platforms"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+url = "2.2"
+rand = "0.8"
+regex = "1.5"
+chrono = "0.4"
+failure = "0.1"
+rouille = "3.0"
+scraper = "0.12"
+serde_json = "1.0"
+urlencoding = "2.1"
+minify-html = "0.8"
+lazy_static = "1.4"
+
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+rspotify = { git = "https://github.com/Marekkon5/rspotify.git", branch = "0.10-fix", features = ["blocking"] }
+
+onetagger-tag = { path = "../onetagger-tag" }
+onetagger-shared = { path = "../onetagger-shared" }
+onetagger-tagger = { path = "../onetagger-tagger" }

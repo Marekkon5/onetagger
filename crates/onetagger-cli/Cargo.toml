@@ -1,0 +1,20 @@
+[package]
+name = "onetagger-cli"
+version = "1.3.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+serde_json = "1.0"
+
+clap = { version = "3.0", features = ["derive"] }
+
+onetagger-tagger = { path = "../onetagger-tagger" }
+onetagger-shared = { path = "../onetagger-shared" }
+onetagger-autotag = { path = "../onetagger-autotag" }
+onetagger-platforms = { path = "../onetagger-platforms" }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

@@ -1,87 +1,16 @@
-[package]
-name = "onetagger"
-version = "1.3.0"
-authors = ["Marekkon5"]
-edition = "2021"
-license = "Apache"
-description = "App to tag your music library."
-keywords = ["gui", "audio"]
-categories = ["multimedia::audio"]
-build = "src/build.rs"
-
-[dependencies]
-mp4 = "0.9"
-url = "2.2"
-id3 = "1.0.2"
-rand = "0.8"
-alac = "0.5"
-slog = "2.7"
-dunce = "1.0"
-regex = "1.5"
-image = "0.24"
-rodio = "0.14"
-chrono = "0.4"
-msgbox = "0.7"
-opener = "0.5"
-redlux = "0.4"
-strsim = "0.10"
-base64 = "0.13"
-failure = "0.1"
-walkdir = "2.3"
-execute = "0.2"
-rouille = "3.0"
-scraper = "0.12"
-tempfile = "3.2"
-web-view = "0.7"
-mp4ameta = "0.11"
-metaflac = "0.2.5"
-unidecode = "0.3"
-backtrace = "0.3"
-slog-term = "2.8"
-webbrowser = "0.6"
-slog-scope = "4.4"
-threadpool = "1.8"
-serde_json = "1.0"
-lazy_static = "1.4"
-minify-html = "0.8"
-tungstenite = "0.17"
-urlencoding = "2.1"
-directories = "4.0"
-mp3-duration = "0.1"
-tinyfiledialogs = "3.3"
-
-# Use outdated version for compatibility with sndfile
-ndarray = "0.13"
-clap = { version = "3.0", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
-sndfile = { version = "0.0.4", features = ["ndarray_features"] }
-reqwest = { version = "0.11", features = ["json", "blocking"] }
-
-songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
-rspotify = { git = "https://github.com/Marekkon5/rspotify.git", branch = "0.10-fix", features = ["blocking"] }
-
-[target.'cfg(windows)'.dependencies]
-winit = "0.26"
-webview2 = "0.1"
-once_cell = "1.8"
-winapi = { version = "0.3", features = ["winuser", "consoleapi"] }
-
-[target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
+[workspace]
+members = [
+    "crates/onetagger-ui",
+    "crates/onetagger-cli",
+    "crates/onetagger-tag",
+    "crates/onetagger-shared",
+    "crates/onetagger-player",
+    "crates/onetagger-tagger",
+    "crates/onetagger-autotag",
+    "crates/onetagger-playlist",
+    "crates/onetagger-platforms",
+]
 
 # Optimize for size
 [profile.release]
 opt-level = 'z'
-
-[package.metadata.bundle]
-name = "OneTagger"
-identifier = "com.marekkon5.onetagger"
-icon = ["assets/32x32.png", "assets/128x128.png", "assets/128x128@2x.png", "assets/icon.icns", "assets/icon.ico"]
-version = "1.3.0"
-resources = []
-copyright = "Copyright (c) Marekkon5 2021. All rights reserved."
-category = "Music"
-short_description = "Tool to tag your audio library."
-long_description = """
-Tool to tag your audio library.
-"""

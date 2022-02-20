@@ -1,0 +1,26 @@
+[package]
+name = "onetagger-autotag"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+regex = "1.5"
+rodio = "0.14"
+chrono = "0.4"
+execute = "0.2"
+walkdir = "2.3"
+threadpool = "1.8"
+serde_json = "1.0"
+
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
+
+onetagger-tag = { path = "../onetagger-tag" }
+onetagger-tagger = { path = "../onetagger-tagger" }
+onetagger-player = { path = "../onetagger-player" }
+onetagger-shared = { path = "../onetagger-shared" }
+onetagger-platforms = { path = "../onetagger-platforms" }

@@ -1,0 +1,61 @@
+[package]
+name = "onetagger-ui"
+version = "1.3.0"
+edition = "2021"
+
+[[bin]]
+name = "onetagger"
+path = "src/main.rs"
+
+[dependencies]
+log = "0.4"
+dunce = "1.0"
+image = "0.24"
+opener = "0.5"
+base64 = "0.13"
+rouille = "3.0"
+walkdir = "2.3"
+web-view = "0.7"
+tempfile = "3.2"
+serde_json = "1.0"
+webbrowser = "0.6"
+urlencoding = "2.1"
+directories = "4.0"
+tungstenite = "0.17"
+tinyfiledialogs = "3.3"
+
+clap = { version = "3.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+
+onetagger-tag = { path = "../onetagger-tag" }
+onetagger-shared = { path = "../onetagger-shared" }
+onetagger-tagger = { path = "../onetagger-tagger" }
+onetagger-player = { path = "../onetagger-player" }
+onetagger-autotag = { path = "../onetagger-autotag" }
+onetagger-playlist = { path = "../onetagger-playlist" }
+onetagger-platforms = { path = "../onetagger-platforms" }
+
+# Windows specific 
+[target.'cfg(windows)'.dependencies]
+winit = "0.26"
+webview2 = "0.1"
+once_cell = "1.8"
+winapi = { version = "0.3", features = ["winuser", "consoleapi"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+
+[package.metadata.bundle]
+name = "OneTagger"
+identifier = "com.marekkon5.onetagger"
+icon = ["assets/32x32.png", "assets/128x128.png", "assets/128x128@2x.png", "assets/icon.icns", "assets/icon.ico"]
+version = "1.3.0"
+resources = []
+copyright = "Copyright (c) Marekkon5 2022. All rights reserved."
+category = "Music"
+short_description = "Tool to tag your audio library."
+long_description = """
+Tool to tag your audio library.
+"""

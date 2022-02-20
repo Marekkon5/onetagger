@@ -1,0 +1,21 @@
+[package]
+name = "onetagger-tag"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4"
+chrono = "0.4"
+
+id3 = { version = "1.0.2", optional = true }
+base64 = { version = "0.13", optional = true }
+mp4ameta = { version = "0.11", optional = true }
+metaflac = { version = "0.2.5", optional = true}
+
+serde = { version = "1.0", features = ["derive"] }
+
+[features]
+default = ["tag"]
+tag = ["id3", "mp4ameta", "metaflac", "base64"]
