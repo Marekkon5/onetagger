@@ -59,7 +59,7 @@ export default {
         // If the value is present in tag
         selected(tag, value) {
             if (!this.$1t.quickTag.track) return false;
-            return this.$1t.quickTag.track.custom[tag].includes(value);
+            return (this.$1t.quickTag.track.custom[tag]??[]).includes(value);
         },
         // Tag value click
         valueClick(tag, value) {

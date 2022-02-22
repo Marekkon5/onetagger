@@ -1,3 +1,5 @@
+import Vue from 'vue';
+
 class QTTrack {
     // From backend
     constructor(data, settings) {
@@ -86,6 +88,9 @@ class QTTrack {
 
     // Enable or disable custom value
     toggleCustom(tag, value) {
+        // newly added custom value
+        if (!this.custom[tag]) Vue.set(this.custom, tag, []);
+
         let i = this.custom[tag].indexOf(value);
         // Add or remove
         if (i == -1) {
@@ -189,7 +194,7 @@ class QTTrack {
         // Custom tags
         let original = this.loadCustom();
         for(let i=0; i<original.length; i++) {
-            if (original[i].length != this.custom[i].length) {
+            if (this.custom[i] && original[i].length != this.custom[i].length) {
                 
                 let field = this.removeAbstractions(this.settings.custom[i].tag[this.getTagField()]);
                 let values = [];
