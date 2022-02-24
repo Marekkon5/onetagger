@@ -2794,7 +2794,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "failure",
- "lazy_static",
  "log",
  "minify-html",
  "onetagger-shared",

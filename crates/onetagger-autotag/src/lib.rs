@@ -11,6 +11,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
+use onetagger_tagger::AutotaggerSourceBuilder;
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -479,23 +480,24 @@ impl Tagger {
                     config.discogs.rate_limit_override = Some(1000);
                 }
 
-                // Get platform and threads override
-                let tagger = match platform {
-                    MusicPlatform::Beatport => beatport::Beatport::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, config.threads)),
-                    MusicPlatform::Traxsource => traxsource::Traxsource::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, config.threads)),
-                    MusicPlatform::Discogs => discogs::Discogs::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 1)),
-                    MusicPlatform::JunoDownload => junodownload::JunoDownload::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 4)),
-                    MusicPlatform::ITunes => itunes::ITunes::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 1)),
-                    MusicPlatform::MusicBrainz => musicbrainz::MusicBrainz::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 4)),
-                    MusicPlatform::Beatsource => beatsource::Beatsource::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, config.threads)),
-                    MusicPlatform::Spotify => spotify::Spotify::new(&config).map(|t| Tagger::tag_dir(&files, t, &config, 1)),
+                
+                //TODO: Use threads from platform info
+                let (mut tagger, threads): (Box<dyn AutotaggerSourceBuilder>, u16) = match platform {
+                    MusicPlatform::Beatport => (Box::new(beatport::BeatportBuilder::new(&config)), config.threads),
+                    MusicPlatform::Traxsource => (Box::new(traxsource::TraxsourceBuilder::new(&config)), config.threads),
+                    MusicPlatform::Discogs => (Box::new(discogs::DiscogsBuilder::new(&config)), 1),
+                    MusicPlatform::JunoDownload => (Box::new(junodownload::JunoDownloadBuilder::new(&config)), 4),
+                    MusicPlatform::ITunes => (Box::new(itunes::ITunesBuilder::new(&config)), 1),
+                    MusicPlatform::MusicBrainz => (Box::new(musicbrainz::MusicBrainzBuilder::new(&config)), 4),
+                    MusicPlatform::Beatsource => (Box::new(beatsource::BeatsourceBuilder::new(&config)), config.threads),
+                    MusicPlatform::Spotify => (Box::new(spotify::SpotifyBuilder::new(&config)), 1),
                     MusicPlatform::None => unreachable!(),
                 };
                 // Tagging
-                let rx = match tagger {
-                    Ok(t) => t,
-                    Err(e) => {
-                        error!("Failed creating platform: {platform:?}, skipping... {e}");
+                let rx = match Tagger::tag_dir(&files, &mut tagger, &config, threads) {
+                    Some(t) => t,
+                    None => {
+                        error!("Failed creating platform: {platform:?}, skipping...");
                         continue;
                     }
                 };
@@ -561,7 +563,7 @@ impl Tagger {
     }
 
     // Tag single track
-    pub fn tag_track<T>(path: &str, tagger: &mut T, config: &TaggerConfig) -> TaggingStatus 
+    pub fn tag_track<T>(path: &str, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
     where T: AutotaggerSource + ?Sized
     {
         info!("Tagging: {}", path);
@@ -676,49 +678,39 @@ impl Tagger {
     }
 
     // Tag all files with threads specified in config
-    pub fn tag_dir<T>(files: &Vec<String>, mut tagger: T, config: &TaggerConfig, threads: u16) -> Receiver<TaggingStatus>
-    where T: AutotaggerSource + Send + Sync + Sized + 'static
-    {
+    pub fn tag_dir(files: &Vec<String>, tagger: &mut Box<dyn AutotaggerSourceBuilder>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
         info!("Starting tagging: {} files, {} threads!", files.len(), threads);
         let (tx, rx) = unbounded();
-
-        // Single threaded platforms
-        if threads == 1 {
-            let files = files.clone();
-            let config = config.clone();
-            std::thread::spawn(move || {
-                for f in files {
-                    let res = Tagger::tag_track(&f, &mut tagger, &config);
-                    tx.send(res).ok();
-                }
-            });
-            return rx;
-        }
-
-        // Multithreaded
         let (file_tx, file_rx): (Sender<String>, Receiver<String>) = unbounded();
+
+        let mut ok_sources = 0;
         for _ in 0..threads {
             let tx = tx.clone();
             let file_rx = file_rx.clone();
             let config = config.clone();
+            let mut source = match tagger.get_source() {
+                Ok(s) => s,
+                Err(e) => {
+                    warn!("Failed creating AT source! {e}");
+                    continue;
+                }
+            };
+            ok_sources += 1;
             std::thread::spawn(move || {
-                let mut tagger = match T::new(&config) {
-                    Ok(t) => t,
-                    Err(e) => {
-                        error!("Failed creating AutotaggerSource instance: {e}");
-                        return;
-                    }
-                };
                 while let Ok(f) = file_rx.recv() {
-                    let res = Tagger::tag_track(&f, &mut tagger, &config);
+                    let res = Tagger::tag_track(&f, &mut source, &config);
                     tx.send(res).ok();
                 }
             });
+        }
+        if ok_sources == 0 {
+            error!("All AT sources failed to create!");
+            return None;
         }
         // Send files
         for f in files {
             file_tx.send(f.to_string()).ok();
         }
-        rx
+        Some(rx)
     }
 }

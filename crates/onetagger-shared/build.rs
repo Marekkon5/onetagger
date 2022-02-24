@@ -8,7 +8,7 @@ fn main() {
         commit
     } else {
         // Local commit
-        if let Ok(mut f) = File::open(Path::new(".git").join("refs").join("heads").join("master")) {
+        if let Ok(mut f) = File::open(Path::new("../../.git").join("refs").join("heads").join("master")) {
             let mut buf = String::new();
             f.read_to_string(&mut buf).ok();
             buf

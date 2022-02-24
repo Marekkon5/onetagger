@@ -1,6 +1,8 @@
 #[macro_use] extern crate log;
 
 use std::error::Error;
+use std::collections::HashMap;
+use std::any::Any;
 use std::cmp::Ordering;
 use std::time::Duration;
 use chrono::NaiveDate;
@@ -358,14 +360,62 @@ impl AudioFileIDs {
     }
 }
 
-/// For all the platforms
-pub trait AutotaggerSource {
-    /// Create new instance
-    fn new(config: &TaggerConfig) -> Result<Self, Box<dyn Error>> where Self: Sized;
 
+/// For generating `AutotaggerSource`
+pub trait AutotaggerSourceBuilder: Any + Send + Sync {
+    /// Constructor so creation can be generalized
+    fn new(config: &TaggerConfig) -> Self where Self: Sized;
+
+    /// Get AutotaggerSource for tagging
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>>;
+
+    /// Get info about this platform
+    fn info(&self) -> PlatformInfo;
+}
+
+/// For all the platforms
+pub trait AutotaggerSource: Any + Send + Sync {
     /// Returns (accuracy, track)
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
 }
+
+/// Platform info for GUI platform selector
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformInfo {
+    /// Should be unique
+    pub id: String,
+    /// Shown in UI
+    pub name: String,
+    /// Shown only in UI, can use HTML
+    pub description: String,
+    /// Image bytes, use 1:1 aspect ratio, PNG for transparency recommended
+    pub icon: Vec<u8>,
+    /// Max amounts of threads this tagger can use (use 0 for any user defined amount)
+    pub max_threads: u16,
+    /// For showing custom options in UI
+    pub custom_options: PlatformCustomOptions
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum PlatformCustomOption {
+    /// Switch
+    Boolean { label: String, value: bool },
+    /// Slider
+    Number { label: String, min: i32, max: i32, value: i32},
+    /// Input field
+    String { label: String, value: String},
+    /// Custom tag picker
+    Tag { label: String, value: FrameName },
+    /// Select / dropdown
+    Option { label: String, values: Vec<String>, value: String }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformCustomOptions {
+    options: HashMap<String, PlatformCustomOption>
+}
+
 
 pub struct MatchingUtils;
 impl MatchingUtils {

@@ -8,27 +8,25 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, MusicPlatform, AutotaggerSource, AudioFileInfo, MatchingUtils, StylesOptions, TrackNumber};
+use onetagger_tagger::{Track, TaggerConfig, MusicPlatform, AutotaggerSource, AudioFileInfo, MatchingUtils, StylesOptions, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
-lazy_static::lazy_static! {
-    // Shared global API access token because multiple threads
-    static ref ACCESS_TOKEN: Arc<Mutex<Option<BeatportOAuth>>> = Arc::new(Mutex::new(None));
-}
+
 
 pub struct Beatport {
     client: Client,
+    access_token: Arc<Mutex<Option<BeatportOAuth>>>
 }
 
 impl Beatport {
     /// Create new instance
-    fn new() -> Beatport {
+    pub fn new(access_token: Arc<Mutex<Option<BeatportOAuth>>>) -> Beatport {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
             .build()
             .unwrap();
         Beatport {
-            client,
+            client, access_token
         }
     }
 
@@ -86,7 +84,7 @@ impl Beatport {
 
     /// Update embed auth token
     pub fn update_token(&self) -> Result<String, Box<dyn Error>> {
-        let mut token = ACCESS_TOKEN.lock().unwrap();
+        let mut token = self.access_token.lock().unwrap();
         // Fetch new if doesn't exist
         if (*token).is_none() {
             let mut response: BeatportOAuth = self.client.get("https://embed.beatport.com/token")
@@ -403,8 +401,25 @@ impl AutotaggerSource for Beatport {
         }
         Ok(None)
     }
+}
 
-    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
-        Ok(Self::new())
+/// For creating Beatport instances
+pub struct BeatportBuilder {
+    access_token: Arc<Mutex<Option<BeatportOAuth>>>
+}
+
+impl AutotaggerSourceBuilder for BeatportBuilder {
+    fn new(_config: &TaggerConfig) -> BeatportBuilder {
+        BeatportBuilder {
+            access_token: Arc::new(Mutex::new(None))
+        }
+    }
+
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        Ok(Box::new(Beatport::new(self.access_token.clone())))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        todo!()
     }
 }

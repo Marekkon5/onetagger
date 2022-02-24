@@ -15,7 +15,7 @@ use rspotify::client::ApiError;
 use url::Url;
 use rouille::{Server, router};
 use onetagger_shared::Settings;
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, TrackNumber};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, SpotifyConfig};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -268,15 +268,7 @@ impl AutotaggerSource for Spotify {
         }
         Ok(None)
     }
-
-    fn new(config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
-        let spotify_config = config.spotify.as_ref().ok_or("Missing Spotify config!")?;
-        let spotify = Spotify::try_cached_token(&spotify_config.client_id, &spotify_config.client_secret)
-            .ok_or("Spotify not authorized!")?;
-        Ok(spotify)
-    }
-
-    
+   
 }
 
 fn full_track_to_track(track: FullTrack) -> Track {
@@ -296,5 +288,28 @@ fn full_track_to_track(track: FullTrack) -> Track {
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
         release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
         ..Default::default()
+    }
+}
+
+/// For creating instance of Spotify AT plugin
+pub struct SpotifyBuilder {
+    config: Option<SpotifyConfig>
+}
+
+impl AutotaggerSourceBuilder for SpotifyBuilder {
+    fn new(config: &TaggerConfig) -> SpotifyBuilder {
+        SpotifyBuilder {
+            config: config.spotify.clone()
+        }
+    }
+
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        let config = self.config.take().ok_or("Missing Spotify config!")?;
+        let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or("Spotify not authorized!")?;
+        Ok(Box::new(spotify))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        todo!()
     }
 }

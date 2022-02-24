@@ -7,24 +7,22 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils};
-
-lazy_static::lazy_static! {
-    static ref TOKEN_MANAGER: BeatsourceTokenManager = BeatsourceTokenManager::new();
-}
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct Beatsource {
-    client: Client
+    client: Client,
+    token_manager: BeatsourceTokenManager
 }
 
 impl Beatsource {
     /// Create new instance
-    fn new() -> Beatsource {
+    pub fn new(token_manager: BeatsourceTokenManager) -> Beatsource {
         Beatsource {
             client: Client::builder()
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
                 .build()
-                .unwrap()
+                .unwrap(),
+            token_manager
         }
     }
 
@@ -37,7 +35,7 @@ impl Beatsource {
                 ("type", "tracks"),
                 ("q", query)
             ])
-            .bearer_auth(TOKEN_MANAGER.token()?)
+            .bearer_auth(self.token_manager.token()?)
             .send()?
             .json()?;
         Ok(res)
@@ -58,10 +56,6 @@ impl AutotaggerSource for Beatsource {
         let tracks: Vec<Track> = res.tracks.into_iter().map(|t| t.into_track(&config)).collect();
         let matched = MatchingUtils::match_track(&info, &tracks, config, true);
         Ok(matched)
-    }
-
-    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
-        Ok(Self::new())
     }
 }
 
@@ -154,13 +148,15 @@ pub struct BeatsourceImage {
     pub uri: String
 }
 
-struct BeatsourceToken {
+#[derive(Debug, Clone)]
+pub struct BeatsourceToken {
     pub token: String,
     pub expires: u128
 }
 
 /// Manages the OAuth token
-struct BeatsourceTokenManager {
+#[derive(Debug, Clone)]
+pub struct BeatsourceTokenManager {
     token: Arc<Mutex<BeatsourceToken>>,
     client: Client
 }
@@ -215,19 +211,34 @@ impl BeatsourceTokenManager {
     }
 }
 
-
-
-#[test]
-/// Check if refreshing token works
-fn test_beatsource_token_manager() {
-    let token_manager = BeatsourceTokenManager::new();
-    let _token = token_manager.token().unwrap();
+pub struct BeatsourceBuilder {
+    token_manager: BeatsourceTokenManager
 }
+
+impl AutotaggerSourceBuilder for BeatsourceBuilder {
+    fn new(_config: &TaggerConfig) -> BeatsourceBuilder {
+        BeatsourceBuilder {
+            token_manager: BeatsourceTokenManager::new()
+        }
+    }
+
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        Ok(Box::new(Beatsource::new(self.token_manager.clone())))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        todo!()
+    }
+}
+
+
 
 #[test]
 /// Make sure it doesn't panic / response format ok
 fn test_beatsource() {
-    let b = Beatsource::new();
+    let token_manager = BeatsourceTokenManager::new();
+    let _token = token_manager.token().unwrap();
+    let b = Beatsource::new(token_manager);
     b.search("martin garrix").unwrap();
     b.search("illenium").unwrap();
     b.search("test").unwrap();

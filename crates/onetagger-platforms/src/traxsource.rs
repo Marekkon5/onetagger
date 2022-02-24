@@ -2,7 +2,7 @@ use std::error::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use onetagger_tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber};
+use onetagger_tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct Traxsource {
     client: Client
@@ -10,7 +10,7 @@ pub struct Traxsource {
 
 impl Traxsource {
     // Create new instance
-    fn new() -> Traxsource {
+    pub fn new() -> Traxsource {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
             .build()
@@ -205,8 +205,20 @@ impl AutotaggerSource for Traxsource {
         }
         Ok(None)
     }
+}
 
-    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
-        Ok(Self::new())
+pub struct TraxsourceBuilder;
+
+impl AutotaggerSourceBuilder for TraxsourceBuilder {
+    fn new(_config: &TaggerConfig) -> TraxsourceBuilder {
+        TraxsourceBuilder
+    }
+
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        Ok(Box::new(Traxsource::new()))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        todo!()
     }
 }

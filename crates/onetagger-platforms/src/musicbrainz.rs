@@ -5,14 +5,14 @@ use rand::Rng;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use onetagger_tagger::{Track, MusicPlatform, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber};
+use onetagger_tagger::{Track, MusicPlatform, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct MusicBrainz {
     client: Client
 }
 
 impl MusicBrainz {
-    fn new() -> MusicBrainz {
+    pub fn new() -> MusicBrainz {
         MusicBrainz {
             client: Client::builder()
                 .user_agent("OneTagger/1.0")
@@ -114,10 +114,6 @@ impl AutotaggerSource for MusicBrainz {
             }
         }
         Ok(None)
-    }
-
-    fn new(_config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
-        Ok(Self::new())
     }
 }
 
@@ -266,6 +262,22 @@ pub struct BrowseReleases {
     pub release_offset: usize,
     pub release_count: usize,
     pub releases: Vec<Release>
+}
+
+pub struct MusicBrainzBuilder;
+
+impl AutotaggerSourceBuilder for MusicBrainzBuilder {
+    fn new(_config: &TaggerConfig) -> MusicBrainzBuilder {
+        MusicBrainzBuilder
+    }
+
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        Ok(Box::new(MusicBrainz::new()))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        todo!()
+    }
 }
 
 

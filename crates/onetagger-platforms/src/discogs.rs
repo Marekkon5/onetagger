@@ -10,7 +10,7 @@ use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{MusicPlatform, Track, AutotaggerSource, TaggerConfig, AudioFileInfo, 
-    MatchingUtils, StylesOptions, DiscogsConfig, TrackNumber};
+    MatchingUtils, StylesOptions, DiscogsConfig, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct Discogs {
     client: Client,
@@ -24,7 +24,7 @@ pub struct Discogs {
 
 impl Discogs {
     // Create new instance
-    fn new() -> Discogs {
+    pub fn new() -> Discogs {
         let client = Client::builder()
             .user_agent("OneTagger/1.0")
             .build()
@@ -221,20 +221,6 @@ impl AutotaggerSource for Discogs {
         Ok(None)
     }
 
-    fn new(config: &TaggerConfig) -> Result<Self, Box<dyn Error>> {
-        let token = config.discogs.token.as_ref().ok_or("Missing Discogs token!")?;
-        let mut discogs = Discogs::new();
-        discogs.set_auth_token(token);
-        if !discogs.validate_token() {
-            return Err("Invalid Discogs token!".into());
-        }
-        if let Some(rl) = config.discogs.rate_limit_override {
-            discogs.set_rate_limit(rl);
-        }
-        Ok(discogs)
-    }
-
-    
 }
 
 
@@ -410,5 +396,37 @@ impl ReleaseMaster {
             }),
             ..Default::default()
         }
+    }
+}
+
+pub struct DiscogsBuilder {
+    token: Option<String>,
+    rate_limit: Option<i16>
+}
+
+impl AutotaggerSourceBuilder for DiscogsBuilder {
+    fn new(config: &TaggerConfig) -> DiscogsBuilder {
+        DiscogsBuilder {
+            token: config.discogs.token.clone(),
+            rate_limit: config.discogs.rate_limit_override.clone()
+        }
+    }
+
+    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        let token = self.token.take().ok_or("Missing Discogs token!")?;
+        let mut discogs = Discogs::new();
+        // Auth
+        discogs.set_auth_token(&token);
+        if !discogs.validate_token() {
+            return Err("Invalid Discogs token!".into());
+        }
+        if let Some(rl) = self.rate_limit {
+            discogs.set_rate_limit(rl);
+        }
+        Ok(Box::new(discogs))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        todo!()
     }
 }
