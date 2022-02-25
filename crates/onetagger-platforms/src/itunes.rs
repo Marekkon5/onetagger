@@ -4,7 +4,7 @@ use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
-use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, MusicPlatform, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct ITunes {
     client: Client,
@@ -110,7 +110,7 @@ impl SearchResult {
         match self {
             SearchResult::Track { collection_id, track_id, artist_name, collection_name, track_name, track_view_url, track_time_millis, primary_genre_name, release_date, track_number, artwork_url100, .. } => {
                 Some(Track {
-                    platform: MusicPlatform::ITunes,
+                    platform: "itunes".to_string(),
                     title: track_name.clone(),
                     artists: artist_name.clone().map(|a| vec![a]).unwrap_or(vec![]),
                     album: collection_name.clone(),
@@ -142,15 +142,22 @@ pub enum TrackKind {
 pub struct ITunesBuilder;
 
 impl AutotaggerSourceBuilder for ITunesBuilder {
-    fn new(_config: &TaggerConfig) -> ITunesBuilder {
+    fn new() -> ITunesBuilder {
         ITunesBuilder
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         Ok(Box::new(ITunes::new()))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "itunes".to_string(),
+            name: "iTunes".to_string(),
+            description: "Slow due rate limits (~20 tracks / min)".to_string(),
+            icon: include_bytes!("../assets/itunes.png"),
+            max_threads: 1,
+            custom_options: Default::default(),
+        }
     }
 }

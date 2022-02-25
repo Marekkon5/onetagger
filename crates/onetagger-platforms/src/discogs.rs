@@ -9,8 +9,8 @@ use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{MusicPlatform, Track, AutotaggerSource, TaggerConfig, AudioFileInfo, 
-    MatchingUtils, StylesOptions, DiscogsConfig, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, StylesOptions, 
+    TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
 
 pub struct Discogs {
     client: Client,
@@ -150,17 +150,18 @@ impl Discogs {
 
 impl AutotaggerSource for Discogs {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+        let discogs_config = DiscogsConfig::parse(config)?;
         // Exact ID match
         if config.match_by_id && info.ids.discogs_release_id.is_some() {
             let release = self.full_release(ReleaseType::Release, info.ids.discogs_release_id.unwrap())?;
             // Exact track number match
             if let Some(track_number) = info.track_number {
-                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options, &config.discogs))))
+                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options, &discogs_config))))
             }
             // Match inside release
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options, &config.discogs));
+                tracks.push(release.get_track(i, &config.styles_options, &discogs_config));
             }
             return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
         }
@@ -177,7 +178,7 @@ impl AutotaggerSource for Discogs {
             return Ok(None);
         }
         // Turncate
-        results.truncate(config.discogs.max_results as usize);
+        results.truncate(discogs_config.max_albums as usize);
         for release_data in results {
             // Get full
             let r = self.full_release(release_data.rtype, release_data.id);
@@ -189,7 +190,7 @@ impl AutotaggerSource for Discogs {
             
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options, &config.discogs));
+                tracks.push(release.get_track(i, &config.styles_options, &discogs_config));
             }
             if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
@@ -360,7 +361,7 @@ impl ReleaseMaster {
 
         // Generate track
         Track {
-            platform: MusicPlatform::Discogs,
+            platform: "discogs".to_string(),
             title: self.tracks[track_index].title.to_string(),
             artists: match self.tracks[track_index].artists.as_ref() {
                 // Use track artists if available
@@ -399,34 +400,65 @@ impl ReleaseMaster {
     }
 }
 
-pub struct DiscogsBuilder {
-    token: Option<String>,
-    rate_limit: Option<i16>
-}
+pub struct DiscogsBuilder {}
 
 impl AutotaggerSourceBuilder for DiscogsBuilder {
-    fn new(config: &TaggerConfig) -> DiscogsBuilder {
-        DiscogsBuilder {
-            token: config.discogs.token.clone(),
-            rate_limit: config.discogs.rate_limit_override.clone()
-        }
+    fn new() -> DiscogsBuilder {
+        DiscogsBuilder {}
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
-        let token = self.token.take().ok_or("Missing Discogs token!")?;
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        let config = DiscogsConfig::parse(config)?;
         let mut discogs = Discogs::new();
         // Auth
-        discogs.set_auth_token(&token);
+        discogs.set_auth_token(&config.token);
         if !discogs.validate_token() {
             return Err("Invalid Discogs token!".into());
         }
-        if let Some(rl) = self.rate_limit {
-            discogs.set_rate_limit(rl);
+        if let Some(rl) = config.rate_limit {
+            discogs.set_rate_limit(rl as i16);
         }
         Ok(Box::new(discogs))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "discogs".to_string(),
+            name: "Discogs".to_string(),
+            description: "Slow due rate limits (~25 tracks / min) & requires a free account".to_string(),
+            icon: include_bytes!("../assets/discogs.png"),
+            max_threads: 1,
+            custom_options: PlatformCustomOptions::new()
+                // Discogs token
+                .add_tooltip("token", "Token", 
+                "To obtain token, create a free account on Discogs. More info? Click <q-icon style='padding-bottom: 4px;' name='mdi-help-circle-outline'></q-icon> HELP on the right", 
+                PlatformCustomOptionValue::String { value: String::new() })
+                // How many max albums to check
+                .add_tooltip("max_albums", "Max albums to check", 
+                "How many albums in search results to check. Due to rate limiting this increases tagging time by a lot", 
+                PlatformCustomOptionValue::Number { min: 1, max: 16, step: 1, value: 4 })
+                // Write track number as int
+                .add("track_number_int", "Write track number as number, rather than Discogs's format", PlatformCustomOptionValue::Boolean { value: false })
+        }
+    }
+}
+
+pub struct DiscogsConfig {
+    pub token: String,
+    pub max_albums: i32,
+    pub track_number_int: bool,
+    pub rate_limit: Option<i32>,
+}
+
+impl DiscogsConfig {
+    /// Parse custom options from config
+    pub fn parse(config: &TaggerConfig) -> Result<DiscogsConfig, Box<dyn Error>> {
+        let config = config.custom.get("discogs").ok_or("Missing discogs config!")?;
+        Ok(DiscogsConfig {
+            token: config.get_str("token").ok_or("Missing token!")?,
+            max_albums: config.get_i32("max_albums").ok_or("Missing max_albums")?,
+            track_number_int: config.get_bool("track_number_int").unwrap_or(false),
+            rate_limit: config.get_i32("_rate_limit")
+        })
     }
 }

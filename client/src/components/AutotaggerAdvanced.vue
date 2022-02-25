@@ -194,22 +194,63 @@
         </q-icon>
     </div>
     <q-input label='$success, $failed will be substituted' filled class='row input q-py-sm justify-center' style='max-width: 526px; margin: auto;' v-model='$1t.config.postCommand'></q-input>
-    <br><br>
+    <br>
+    
+    <!-- Styles / genres action -->
+    <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
+    <div class='text-center text-body1 text-grey-4 q-mt-lg'>
+        Select Genres/Styles tag to fetch both, if it should merge them, or write elsewhere (used only in supported platforms)
+        <!-- Styles -->
+        <q-select
+            dark
+            standout='text-grey-4 bg-dark'
+            v-model='stylesOption'
+            :options='stylesOptions'
+            class='select'
+            label='Genres/Styles tag'
+            style='margin-bottom: 48px;'
+            @input='updateStyleOption'
+        ></q-select>
+        <!-- Styles custom tag -->
+        <div v-if='$1t.config.stylesOptions == "customTag"'>
+            <TagFields v-model='$1t.config.stylesCustomTag' class='input' style='margin-bottom: 28px;'></TagFields>
+        </div>
+    </div>
+
+    <br>
 </div>
 </template>
 
 <script>
 import Separators from './Separators';
 import AdvancedSettingsToggle from './AdvancedSettingsToggle.vue';
+import TagFields from './TagFields.vue';
 
 export default {
     name: 'AutotaggerAdvanced',
-    components: {Separators, AdvancedSettingsToggle},
+    components: {Separators, AdvancedSettingsToggle, TagFields},
     data() {
         return {
-            multipleMatches: ['Default', 'Oldest', 'Newest']
+            multipleMatches: ['Default', 'Oldest', 'Newest'],
+            stylesOptions: ["Default", "Only genres", "Only styles", "Merge to genres tag", 
+                "Merge to styles tag", "Write styles to genre tag", "Write genres to style tag",
+                "Write styles to custom tag"],
+            values: ["default", "onlyGenres", "onlyStyles", "mergeToGenres", "mergeToStyles",
+                "stylesToGenre", "genresToStyle", "customTag"],
+            stylesOption: "Default"
         }
-    }
+    },
+    methods: {
+        updateStyleOption() {
+            this.$1t.config.stylesOptions = this.values[this.stylesOptions.indexOf(this.stylesOption)];
+        },
+    },
+    mounted() {
+        this.stylesOption = this.stylesOptions[this.values.indexOf(this.$1t.config.stylesOptions)];
+        // In case of null because of update
+        if (!this.$1t.config.stylesCustomTag)
+            this.$1t.config.stylesCustomTag = {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'};
+    },
 }
 </script>
 

@@ -6,7 +6,7 @@ use regex::Regex;
 use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
-use onetagger_tagger::{Track, MusicPlatform, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct JunoDownload {
     client: Client
@@ -138,7 +138,7 @@ impl JunoDownload {
             }
             // Generate track
             out.push(Track {
-                platform: MusicPlatform::JunoDownload,
+                platform: "junodownload".to_string(),
                 title: track_title,
                 artists: track_artists.into_iter().map(|a| a.to_string()).collect(),
                 album_artists: artists.clone().into_iter().map(String::from).collect(),
@@ -179,15 +179,22 @@ impl AutotaggerSource for JunoDownload {
 pub struct JunoDownloadBuilder;
 
 impl AutotaggerSourceBuilder for JunoDownloadBuilder {
-    fn new(_config: &TaggerConfig) -> JunoDownloadBuilder {
+    fn new() -> JunoDownloadBuilder {
         JunoDownloadBuilder
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         Ok(Box::new(JunoDownload::new()))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "junodownload".to_string(),
+            name: "Juno Download".to_string(),
+            description: "Overall a mixed bag with a lot of niche genres".to_string(),
+            icon: include_bytes!("../assets/junodownload.png"),
+            max_threads: 4,
+            custom_options: Default::default(),
+        }
     }
 }

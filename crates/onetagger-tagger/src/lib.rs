@@ -12,33 +12,11 @@ use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat};
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum MusicPlatform {
-    Beatport,
-    Traxsource,
-    Discogs,
-    JunoDownload,
-    ITunes,
-    MusicBrainz,
-    Beatsource,
-    Spotify,
-
-    // For default
-    None
-}
-
-impl Default for MusicPlatform {
-    fn default() -> Self {
-        MusicPlatform::None
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
     // Global
-    pub platforms: Vec<MusicPlatform>,
+    pub platforms: Vec<String>,
     pub path: Option<String>,
 
     // Tags
@@ -94,10 +72,8 @@ pub struct TaggerConfig {
     pub force_shazam: bool,
     pub skip_tagged: bool,
 
-    // Platform specific
-    pub beatport: BeatportConfig,
-    pub discogs: DiscogsConfig,
-    pub beatsource: BeatsourceConfig,
+    /// Platform specific (Platform ID, Value)
+    pub custom: HashMap<String, PlatformCustomOptions>,
     pub spotify: Option<SpotifyConfig>,
 }
 
@@ -106,50 +82,18 @@ impl Default for TaggerConfig {
     // Suffering, but threads has to be 16 by default, strictness >0 etc and Default::default() caused stack overflow
     fn default() -> Self {
         Self {
-            platforms: vec![MusicPlatform::Beatport], threads: 16, strictness: 0.7, path: None,
+            platforms: vec!["beatport".to_string()], threads: 16, strictness: 0.7, path: None,
             title: false, artist: false, album: false, key: false, bpm: false, genre: false,
             style: false, label: false, release_date: false, publish_date: false, album_art: false,
             other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,
             version: false, duration: false, album_artist: false, remixer: false, track_number: false,
             isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false,
-            overwrite: false, merge_genres: false, album_art_file: false, camelot: false,
+            overwrite: false, merge_genres: false, album_art_file: false, camelot: false, styles_options: StylesOptions::Default,
             parse_filename: false, filename_template: None, short_title: false, match_duration: false,
             max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default,
-            post_command: None, styles_options: StylesOptions::Default, styles_custom_tag: None,
+            post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(),
             track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false,
-            beatport: Default::default(), discogs: Default::default(), beatsource: Default::default(), spotify: None,
         }
-    }
-}
-
-// Beatport specific settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BeatportConfig {
-    pub art_resolution: u32,
-    pub max_pages: i64
-}
-
-impl Default for BeatportConfig {
-    fn default() -> Self {
-        Self { art_resolution: 500, max_pages: 1 }
-    }
-}
-
-// Discogs specific settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DiscogsConfig {
-    pub token: Option<String>,
-    pub max_results: i16,
-    pub track_number_int: bool,
-    #[serde(skip)]
-    pub rate_limit_override: Option<i16>,
-}
-
-impl Default for DiscogsConfig {
-    fn default() -> Self {
-        Self { token: None, max_results: 4, track_number_int: false, rate_limit_override: None }
     }
 }
 
@@ -160,37 +104,6 @@ pub struct SpotifyConfig {
     pub client_secret: String
 }
 
-/// Beatsource specific settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BeatsourceConfig {
-    pub art_resolution: u32
-}
-
-impl Default for BeatsourceConfig {
-    fn default() -> Self {
-        Self { art_resolution: 1400 }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum StylesOptions {
-    Default,
-    OnlyGenres,
-    OnlyStyles,
-    MergeToGenres,
-    MergeToStyles,
-    StylesToGenre,
-    GenresToStyle,
-    CustomTag
-}
-
-impl Default for StylesOptions {
-    fn default() -> Self {
-        Self::Default
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MultipleMatchesSort {
@@ -207,7 +120,8 @@ impl Default for MultipleMatchesSort {
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Track {
-    pub platform: MusicPlatform,
+    // Use platform id
+    pub platform: String,
     // Short title
     pub title: String,
     pub version: Option<String>,
@@ -263,6 +177,26 @@ pub enum TrackNumber {
 impl From<i32> for TrackNumber {
     fn from(i: i32) -> Self {
         TrackNumber::Number(i)
+    }
+}
+
+/// For Discogs & Beatport
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum StylesOptions {
+    Default,
+    OnlyGenres,
+    OnlyStyles,
+    MergeToGenres,
+    MergeToStyles,
+    StylesToGenre,
+    GenresToStyle,
+    CustomTag
+}
+
+impl Default for StylesOptions {
+    fn default() -> Self {
+        Self::Default
     }
 }
 
@@ -364,10 +298,10 @@ impl AudioFileIDs {
 /// For generating `AutotaggerSource`
 pub trait AutotaggerSourceBuilder: Any + Send + Sync {
     /// Constructor so creation can be generalized
-    fn new(config: &TaggerConfig) -> Self where Self: Sized;
+    fn new() -> Self where Self: Sized;
 
     /// Get AutotaggerSource for tagging
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>>;
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>>;
 
     /// Get info about this platform
     fn info(&self) -> PlatformInfo;
@@ -381,6 +315,7 @@ pub trait AutotaggerSource: Any + Send + Sync {
 
 /// Platform info for GUI platform selector
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlatformInfo {
     /// Should be unique
     pub id: String,
@@ -389,7 +324,8 @@ pub struct PlatformInfo {
     /// Shown only in UI, can use HTML
     pub description: String,
     /// Image bytes, use 1:1 aspect ratio, PNG for transparency recommended
-    pub icon: Vec<u8>,
+    #[serde(skip)]
+    pub icon: &'static [u8],
     /// Max amounts of threads this tagger can use (use 0 for any user defined amount)
     pub max_threads: u16,
     /// For showing custom options in UI
@@ -398,22 +334,104 @@ pub struct PlatformInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
-pub enum PlatformCustomOption {
+#[serde(rename_all = "camelCase")]
+pub enum PlatformCustomOptionValue {
     /// Switch
-    Boolean { label: String, value: bool },
+    Boolean { value: bool },
     /// Slider
-    Number { label: String, min: i32, max: i32, value: i32},
+    Number { min: i32, max: i32, step: i32, value: i32 },
     /// Input field
-    String { label: String, value: String},
+    String { value: String},
     /// Custom tag picker
-    Tag { label: String, value: FrameName },
+    Tag { value: FrameName },
     /// Select / dropdown
-    Option { label: String, values: Vec<String>, value: String }
+    Option { values: Vec<String>, value: String }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformCustomOption {
+    pub id: String,
+    pub label: String,
+    pub tooltip: Option<String>,
+    pub value: PlatformCustomOptionValue
+}
+
+impl PlatformCustomOption {
+    /// Create new custom option
+    pub fn new(id: &str, label: &str, value: PlatformCustomOptionValue) -> PlatformCustomOption {
+        PlatformCustomOption {
+            id: id.to_string(),
+            label: label.to_string(),
+            tooltip: None,
+            value,
+        }
+    }
+
+    /// Add tooltip
+    pub fn tooltip(mut self, tooltip: &str) -> PlatformCustomOption {
+        self.tooltip = Some(tooltip.to_string());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PlatformCustomOptions {
-    options: HashMap<String, PlatformCustomOption>
+    pub options: Vec<PlatformCustomOption>
+}
+
+impl PlatformCustomOptions {
+    /// Create new empty instance
+    pub fn new() -> PlatformCustomOptions {
+        PlatformCustomOptions {
+            options: vec![]
+        }
+    }
+
+    /// Short to get number field
+    pub fn get_i32(&self, id: &str) -> Option<i32> {
+        self.options.iter().find(|o| o.id == id).map(|o| match o.value {
+            PlatformCustomOptionValue::Number { value, .. } => Some(value),
+            _ => None
+        }).flatten()
+    }
+
+    /// Short to get string/option field
+    pub fn get_str(&self, id: &str) -> Option<String> {
+        self.options.iter().find(|o| o.id == id).map(|o| match &o.value {
+            PlatformCustomOptionValue::String { value } => Some(value.to_string()),
+            PlatformCustomOptionValue::Option { value, .. } => Some(value.to_string()),
+            _ => None
+        }).flatten()
+    }
+
+    /// Short to get tag value
+    pub fn get_tag(&self, id: &str) -> Option<FrameName> {
+        self.options.iter().find(|o| o.id == id).map(|o| match &o.value {
+            PlatformCustomOptionValue::Tag { value, .. } => Some(value.clone()),
+            _ => None
+        }).flatten()
+    }
+
+    /// Short to get boolean
+    pub fn get_bool(&self, id: &str) -> Option<bool> {
+        self.options.iter().find(|o| o.id == id).map(|o| match o.value {
+            PlatformCustomOptionValue::Boolean { value, .. } => Some(value),
+            _ => None
+        }).flatten()
+    }
+
+    /// Add new option
+    pub fn add(mut self, id: &str, label: &str, value: PlatformCustomOptionValue) -> PlatformCustomOptions {
+        self.options.push(PlatformCustomOption::new(id, label, value));
+        self
+    }
+
+    /// Add new option with tooltip
+    pub fn add_tooltip(mut self, id: &str, label: &str, tooltip: &str, value: PlatformCustomOptionValue) -> PlatformCustomOptions {
+        self.options.push(PlatformCustomOption::new(id, label, value).tooltip(tooltip));
+        self
+    }
 }
 
 

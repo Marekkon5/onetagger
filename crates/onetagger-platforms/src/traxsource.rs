@@ -2,7 +2,7 @@ use std::error::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use onetagger_tagger::{Track, MusicPlatform, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct Traxsource {
     client: Client
@@ -98,7 +98,7 @@ impl Traxsource {
 
             // Create track
             tracks.push(Track {
-                platform: MusicPlatform::Traxsource,
+                platform: "traxsource".to_string(),
                 version, artists, bpm, key, title, url,
                 album_artists: vec![],
                 label: Some(label.to_string()),
@@ -210,15 +210,22 @@ impl AutotaggerSource for Traxsource {
 pub struct TraxsourceBuilder;
 
 impl AutotaggerSourceBuilder for TraxsourceBuilder {
-    fn new(_config: &TaggerConfig) -> TraxsourceBuilder {
+    fn new() -> TraxsourceBuilder {
         TraxsourceBuilder
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         Ok(Box::new(Traxsource::new()))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "traxsource".to_string(),
+            name: "Traxsource".to_string(),
+            description: "Overall more specialized in House".to_string(),
+            icon: include_bytes!("../assets/traxsource.png"),
+            max_threads: 0,
+            custom_options: Default::default(),
+        }
     }
 }

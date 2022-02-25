@@ -2756,9 +2756,12 @@ dependencies = [
 name = "onetagger-autotag"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "chrono",
  "crossbeam-channel",
  "execute",
+ "image",
+ "lazy_static",
  "log",
  "onetagger-platforms",
  "onetagger-player",

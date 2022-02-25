@@ -7,7 +7,7 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
 
 pub struct Beatsource {
     client: Client,
@@ -44,6 +44,8 @@ impl Beatsource {
 
 impl AutotaggerSource for Beatsource {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+        let beatsource_config = BeatsourceConfig::parse(config)?;
+        
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let res = match self.search(&query) {
@@ -53,7 +55,7 @@ impl AutotaggerSource for Beatsource {
                 return Err(e);
             }
         };
-        let tracks: Vec<Track> = res.tracks.into_iter().map(|t| t.into_track(&config)).collect();
+        let tracks: Vec<Track> = res.tracks.into_iter().map(|t| t.into_track(&beatsource_config)).collect();
         let matched = MatchingUtils::match_track(&info, &tracks, config, true);
         Ok(matched)
     }
@@ -85,9 +87,9 @@ pub struct BeatsourceTrack {
 }
 
 impl BeatsourceTrack {
-    pub fn into_track(self, config: &TaggerConfig) -> Track {
+    pub fn into_track(self, config: &BeatsourceConfig) -> Track {
         Track {
-            platform: MusicPlatform::Beatsource,
+            platform: "beatsource".to_string(),
             title: self.name,
             version: self.mix_name,
             artists: self.artists.into_iter().map(|a| a.name).collect(),
@@ -102,8 +104,8 @@ impl BeatsourceTrack {
             bpm: self.bpm,
             genres: vec![self.genre.name],
             art: self.release.image.map(|i| i.dynamic_uri
-                .replace("{w}", &config.beatsource.art_resolution.to_string())
-                .replace("{h}", &config.beatsource.art_resolution.to_string())
+                .replace("{w}", &config.art_resolution.to_string())
+                .replace("{h}", &config.art_resolution.to_string())
             ),
             url: format!("https://beatsource.com/track/{}/{}", self.slug, self.id),
             label: Some(self.release.label.name),
@@ -216,21 +218,47 @@ pub struct BeatsourceBuilder {
 }
 
 impl AutotaggerSourceBuilder for BeatsourceBuilder {
-    fn new(_config: &TaggerConfig) -> BeatsourceBuilder {
+    fn new() -> BeatsourceBuilder {
         BeatsourceBuilder {
             token_manager: BeatsourceTokenManager::new()
         }
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         Ok(Box::new(Beatsource::new(self.token_manager.clone())))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "beatsource".to_string(),
+            name: "Beatsource".to_string(),
+            description: "Overall more specialized in open-format (Hip Hop/Latin/Dancehall)".to_string(),
+            icon: include_bytes!("../assets/beatsource.png"),
+            max_threads: 0,
+            custom_options: PlatformCustomOptions::new()
+                .add_tooltip("art_resolution", "Album art resolution", "Select album art resolution", PlatformCustomOptionValue::Number {
+                    min: 100, max: 1600, step: 100, value: 500
+                }),
+        }
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BeatsourceConfig {
+    pub art_resolution: i32
+}
+
+impl BeatsourceConfig {
+    /// Get custom config from tagger config
+    pub fn parse(config: &TaggerConfig) -> Result<BeatsourceConfig, Box<dyn Error>> {
+        let c = config.custom.get("beatsource").map(|config| {
+            BeatsourceConfig {
+                art_resolution: config.get_i32("art_resolution").unwrap_or(500)
+            }
+        }).ok_or("Missing beatsource config!")?;
+        Ok(c)
+    }
+}
 
 
 #[test]

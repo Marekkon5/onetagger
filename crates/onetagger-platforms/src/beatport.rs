@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, MusicPlatform, AutotaggerSource, AudioFileInfo, MatchingUtils, StylesOptions, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, StylesOptions, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -31,7 +31,7 @@ impl Beatport {
     }
 
     /// Search for tracks on beatport
-    pub fn search(&self, query: &str, page: i64, results_per_page: usize) -> Result<BeatportSearchResults, Box<dyn Error>> {
+    pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportSearchResults, Box<dyn Error>> {
         let response = self.client.get("https://www.beatport.com/search/tracks")
             .query(&[
                 ("q", query), 
@@ -168,7 +168,7 @@ impl BeatportAPITrack {
 impl BeatportTrack {
     pub fn to_track(&self, art_resolution: u32) -> Track {
         let mut t = Track {
-            platform: MusicPlatform::Beatport,
+            platform: "beatport".to_string(),
             title: self.name.to_string(),
             version: self.mix.as_ref().map(String::from),
             artists: self.artists.iter().map(|a| a.name.to_string()).collect(),
@@ -306,16 +306,20 @@ impl BeatportImage {
     }
 }
 
+
 // Match track
 impl AutotaggerSource for Beatport {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
+        // Load custom config
+        let custom_config = BeatportConfig::parse(config)?;
+
         // Fetch by ID
         if let Some(id) = info.ids.beatport_track_id {
             info!("Fetching by ID: {}", id);
             // TODO: Serialize properly the private API response, rather than double request
             let api_track = self.fetch_track_embed(id)?;
             let bp_track = self.fetch_track(&api_track.slug, api_track.id)?;
-            let mut track = bp_track.to_track(config.beatport.art_resolution);
+            let mut track = bp_track.to_track(custom_config.art_resolution);
             track.isrc = api_track.isrc.clone();
             track.track_number = Some(api_track.track_number());
             return Ok(Some((1.0, track)));
@@ -323,11 +327,11 @@ impl AutotaggerSource for Beatport {
 
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
-        for page in 1..config.beatport.max_pages+1 {
+        for page in 1..custom_config.max_pages+1 {
             match self.search(&query, page, 25) {
                 Ok(res) => {
                     // Convert tracks
-                    let tracks = res.tracks.iter().map(|t| t.to_track(config.beatport.art_resolution)).collect();
+                    let tracks = res.tracks.iter().map(|t| t.to_track(custom_config.art_resolution)).collect();
                     // Match
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
                         let i = tracks.iter().position(|t| t == &track).unwrap();
@@ -409,17 +413,50 @@ pub struct BeatportBuilder {
 }
 
 impl AutotaggerSourceBuilder for BeatportBuilder {
-    fn new(_config: &TaggerConfig) -> BeatportBuilder {
+    fn new() -> BeatportBuilder {
         BeatportBuilder {
             access_token: Arc::new(Mutex::new(None))
         }
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         Ok(Box::new(Beatport::new(self.access_token.clone())))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "beatport".to_string(),
+            name: "Beatport".to_string(),
+            description: "Overall more specialized in Techno".to_string(),
+            icon: include_bytes!("../assets/beatport.png"),
+            max_threads: 0,
+            custom_options: PlatformCustomOptions::new()
+                // Album art resolution
+                .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {
+                    min: 200, max: 1600, step: 100, value: 500 
+                })
+                // Max pages to search
+                .add_tooltip("max_pages", "Max pages", "How many pages of search results to scan for tracks", PlatformCustomOptionValue::Number {
+                    min: 1, max: 10, step: 1, value: 1
+                })
+        }
+    }
+}
+
+
+#[derive(Debug, Clone)]
+struct BeatportConfig {
+    pub art_resolution: u32,
+    pub max_pages: i32,
+}
+
+impl BeatportConfig {
+    /// Load custom options from tagger config
+    pub fn parse(config: &TaggerConfig) -> Result<BeatportConfig, Box<dyn Error>> {
+        let config = config.custom.get("beatport").ok_or("Missing Beatport config!")?;
+        Ok(BeatportConfig {
+            art_resolution: config.get_i32("art_resolution").ok_or("Missing art_resolution")? as u32,
+            max_pages: config.get_i32("max_pages").ok_or("Missing max_pages")?,
+        })
     }
 }

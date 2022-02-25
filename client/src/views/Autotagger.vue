@@ -125,6 +125,15 @@ export default {
     },
     methods: {
         startTagging() {
+            // Merge custom fields
+            let custom = {};
+            for (let platform of this.$1t.info.platforms) {
+                if (platform.platform.customOptions.options.length > 0)
+                    custom[platform.platform.id] = {options: platform.platform.customOptions.options}
+            }
+            this.$1t.config.custom = custom;
+
+            // Save settings
             this.$1t.saveSettings();
             this.$1t.config.type = 'autoTagger';
 
@@ -143,6 +152,7 @@ export default {
                 this.$1t.config.spotify = null;
             }
 
+            // Start
             this.$1t.send('startTagging', {
                 config: this.$1t.config,
                 playlist

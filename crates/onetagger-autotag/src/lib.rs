@@ -2,6 +2,7 @@
 #[macro_use] extern crate onetagger_shared;
 
 use std::error::Error;
+use std::io::Cursor;
 use std::thread;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,7 +12,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
-use onetagger_tagger::AutotaggerSourceBuilder;
+use image::ImageOutputFormat;
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -21,14 +22,106 @@ use crossbeam_channel::{unbounded, Sender, Receiver};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 use onetagger_shared::{OTError, Settings};
 use onetagger_player::AudioSources;
-use onetagger_tagger::{Track, AudioFileInfo, AudioFileIDs, TaggerConfig, StylesOptions, TrackNumber, 
-    MusicPlatform, AutotaggerSource, CAMELOT_NOTES};
+use onetagger_tagger::{Track, AudioFileInfo, AudioFileIDs, TaggerConfig, TrackNumber, StylesOptions, PlatformCustomOptionValue,
+    AutotaggerSource, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOption, CAMELOT_NOTES};
 use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource};
+use image::io::Reader as ImageReader;
 
 use crate::shazam::Shazam;
 mod shazam;
 
 pub mod audiofeatures;
+
+
+lazy_static::lazy_static! {
+    /// Globally loaded all platforms
+    pub static ref AUTOTAGGER_PLATFORMS: AutotaggerPlatforms = AutotaggerPlatforms::all();
+}
+
+
+/// For passing platform list into UI
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutotaggerPlatforms(Vec<AutotaggerPlatform>);
+
+impl AutotaggerPlatforms {
+    /// Get all the available platforms
+    pub fn all() -> AutotaggerPlatforms {
+        let mut output = vec![];
+
+        // Built-ins
+        AutotaggerPlatform::add_builtin::<beatport::BeatportBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<discogs::DiscogsBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<beatsource::BeatsourceBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<itunes::ITunesBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<junodownload::JunoDownloadBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<musicbrainz::MusicBrainzBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<spotify::SpotifyBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<traxsource::TraxsourceBuilder>(&mut output);
+
+        AutotaggerPlatforms(output)
+    }
+
+    /// Get the source
+    pub fn get_builder(&self, id: &str) -> Option<Box<dyn AutotaggerSourceBuilder>> {
+        let platform = self.0.iter().find(|p| p.id == id)?;
+        if platform.built_in {
+            let platform: Box<dyn AutotaggerSourceBuilder> = match platform.id.as_ref() {
+                "beatport" => Box::new(beatport::BeatportBuilder::new()),
+                "discogs" => Box::new(discogs::DiscogsBuilder::new()),
+                "beatsource" => Box::new(beatsource::BeatsourceBuilder::new()),
+                "itunes" => Box::new(itunes::ITunesBuilder::new()),
+                "junodownload" => Box::new(junodownload::JunoDownloadBuilder::new()),
+                "musicbrainz" => Box::new(musicbrainz::MusicBrainzBuilder::new()),
+                "spotify" => Box::new(spotify::SpotifyBuilder::new()),
+                "traxsource" => Box::new(traxsource::TraxsourceBuilder::new()),
+                _ => unreachable!()
+            };
+            Some(platform)
+        } else {
+            //TODO: Custom platforms
+            todo!()
+        }
+    }
+}
+
+/// For passing platform list into UI
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutotaggerPlatform {
+    pub id: String,
+    pub built_in: bool,
+    pub platform: PlatformInfo,
+    /// Encoded for UI
+    pub icon: String
+} 
+
+impl AutotaggerPlatform {
+    /// Add a builtin platform to output list
+    fn add_builtin<P: AutotaggerSourceBuilder>(output: &mut Vec<AutotaggerPlatform>) {
+        let info = P::new().info();
+        output.push(AutotaggerPlatform {
+            id: info.id.clone(),
+            built_in: true,
+            icon: match Self::reencode_image(info.icon) {
+                Ok(s) => s,
+                Err(e) => {
+                    warn!("Failed generating icon for platform id: {}. {e}", info.id);
+                    String::new()
+                }
+            },
+            platform: info
+        })
+    }
+
+    /// Prepare image for the UI
+    fn reencode_image(data: &'static [u8]) -> Result<String, Box<dyn Error>> {
+        let img = ImageReader::new(Cursor::new(data)).with_guessed_format()?.decode()?;
+        let mut buf = vec![];
+        img.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png)?;
+        Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::encode(buf)))
+    }
+}
+
+
 
 trait TrackImpl {
     fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>>;
@@ -434,14 +527,14 @@ pub struct TaggingStatus {
 #[serde(rename_all = "camelCase")]
 pub struct TaggingStatusWrap {
     pub status: TaggingStatus,
-    pub platform: MusicPlatform,
+    pub platform: String,
     pub progress: f64,
 }
 impl TaggingStatusWrap {
     // pi = platform index, pl = platforms length, p = processed, total = total tracks in this platform
-    pub fn wrap(platform: MusicPlatform, status: &TaggingStatus, pi: usize, pl: usize, p: i64, total: usize) -> TaggingStatusWrap {
+    pub fn wrap(platform: &str, status: &TaggingStatus, pi: usize, pl: usize, p: i64, total: usize) -> TaggingStatusWrap {
         TaggingStatusWrap {
-            platform,
+            platform: platform.to_string(),
             status: status.to_owned(),
             progress: (pi as f64 / pl as f64) + ((p as f64 / total as f64) / pl as f64)
         }
@@ -473,27 +566,29 @@ impl Tagger {
                 }
 
                 // Discogs rate limit override
-                if files.len() <= 35 {
-                    config.discogs.rate_limit_override = Some(150);
-                }
-                if files.len() <= 20 {
-                    config.discogs.rate_limit_override = Some(1000);
+                if let Some(discogs) = config.custom.get_mut("discogs") {
+                    if let Some(i) = discogs.options.iter().position(|o| o.id == "_rate_limit") {
+                        discogs.options.remove(i);
+                    }
+                    if files.len() <= 35 {
+                        let value = if files.len() <= 20 { 1000 } else { 150 };
+                        discogs.options.push(PlatformCustomOption::new("_rate_limit", "", PlatformCustomOptionValue::Number { min: 0, max: 0, step: 0, value }));
+                    }
                 }
 
-                
-                //TODO: Use threads from platform info
-                let (mut tagger, threads): (Box<dyn AutotaggerSourceBuilder>, u16) = match platform {
-                    MusicPlatform::Beatport => (Box::new(beatport::BeatportBuilder::new(&config)), config.threads),
-                    MusicPlatform::Traxsource => (Box::new(traxsource::TraxsourceBuilder::new(&config)), config.threads),
-                    MusicPlatform::Discogs => (Box::new(discogs::DiscogsBuilder::new(&config)), 1),
-                    MusicPlatform::JunoDownload => (Box::new(junodownload::JunoDownloadBuilder::new(&config)), 4),
-                    MusicPlatform::ITunes => (Box::new(itunes::ITunesBuilder::new(&config)), 1),
-                    MusicPlatform::MusicBrainz => (Box::new(musicbrainz::MusicBrainzBuilder::new(&config)), 4),
-                    MusicPlatform::Beatsource => (Box::new(beatsource::BeatsourceBuilder::new(&config)), config.threads),
-                    MusicPlatform::Spotify => (Box::new(spotify::SpotifyBuilder::new(&config)), 1),
-                    MusicPlatform::None => unreachable!(),
+                // Get tagger
+                let mut tagger = match AUTOTAGGER_PLATFORMS.get_builder(platform) {
+                    Some(tagger) => tagger,
+                    None => {
+                        error!("Invalid platform: {platform}");
+                        continue;
+                    }
                 };
-                // Tagging
+                let platform_info = tagger.info();
+                let mut threads = config.threads;
+                if platform_info.max_threads > 0 && platform_info.max_threads < config.threads {
+                    threads = platform_info.max_threads;
+                }
                 let rx = match Tagger::tag_dir(&files, &mut tagger, &config, threads) {
                     Some(t) => t,
                     None => {
@@ -501,12 +596,13 @@ impl Tagger {
                         continue;
                     }
                 };
-                info!("Starting {platform:?}");
+                // Start tagging
+                info!("Starting {platform}");
                 for status in rx {
-                    info!("[{platform:?}] State: {:?}, Accuracy: {:?}, Path: {}", status.status, status.accuracy, status.path);
+                    info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {}", status.status, status.accuracy, status.path);
                     processed += 1;
                     // Send to UI
-                    tx.send(TaggingStatusWrap::wrap(platform.clone(), &status,  platform_index, config.platforms.len(), processed, total)).ok();
+                    tx.send(TaggingStatusWrap::wrap(platform, &status,  platform_index, config.platforms.len(), processed, total)).ok();
                     // Fallback
                     if status.status == TaggingState::Ok {
                         files.remove(files.iter().position(|f| f == &status.path).unwrap());
@@ -688,7 +784,7 @@ impl Tagger {
             let tx = tx.clone();
             let file_rx = file_rx.clone();
             let config = config.clone();
-            let mut source = match tagger.get_source() {
+            let mut source = match tagger.get_source(&config) {
                 Ok(s) => s,
                 Err(e) => {
                     warn!("Failed creating AT source! {e}");

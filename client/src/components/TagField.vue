@@ -40,13 +40,13 @@ const bannedTagEditor = {
     mp4: []
 }
 
-//Autocompletion
+// Autocompletion
 const options = {id3: ID3, vorbis: VORBIS, mp4: MP4};
 
 export default {
     name: 'TagField',
     props: {
-        //id3, vorbis, mp4
+        // id3, vorbis, mp4
         format: String,
         initial: String,
         dense: {
@@ -67,18 +67,18 @@ export default {
         }
     },
     methods: {
-        //Remove ID3 helper text
+        // Remove ID3 helper text
         removeHelper() {
             if ((this.format == 'id3' || this.format == 'mp4') && this.value.match(/[©a-zA-Z0-9]{4} \(.*\)/)) {
                 this.value = this.value.replace(/ \(.*\)/, '');
             }
         },
-        //Clear helpers
+        // Clear helpers
         onInput(v) {
             this.value = v;
             this.removeHelper();
         },
-        //Update text typed without autocomplete taking over
+        // Update text typed without autocomplete taking over
         onInputValue(v) {
             v = v.trim();
             this.value = v;
@@ -102,7 +102,7 @@ export default {
 
             this.$emit('change', v);
         },
-        //On filter for quasar
+        // On filter for quasar
         onFilter(val, update) {
             update(() => {
                 let n = val.toUpperCase();
@@ -119,7 +119,7 @@ export default {
             }
             return null;
         },
-        //Different color if writing to comment/custom tag
+        // Different color if writing to comment/custom tag
         color() {
             if ((this.format == 'id3' || this.format == 'mp4') && (this.value??'').length != 4) return 'yellow';
             return 'primary';

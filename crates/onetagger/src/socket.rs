@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 use std::env;
@@ -8,7 +9,7 @@ use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::{TagChanges, TagSeparators};
 use onetagger_tagger::TaggerConfig;
-use onetagger_autotag::Tagger;
+use onetagger_autotag::{Tagger, AutotaggerPlatforms};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -68,7 +69,8 @@ impl TaggerConfigs {
         match self {
             TaggerConfigs::AutoTagger(c) => {
                 let mut c = c.clone();
-                c.discogs.token = None;
+                // don't leak secrets
+                c.custom = HashMap::new();
                 c.spotify = None;
                 info!("AutoTagger config: {:?}", c);
             },
@@ -96,6 +98,30 @@ impl SocketContext {
     }
 }
 
+
+/// Reply to init call
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InitData {
+    action: &'static str,
+    version: &'static str,
+    os: &'static str,
+    start_context: StartContext,
+    platforms: &'static AutotaggerPlatforms
+}
+
+impl InitData {
+    /// Create new default instance
+    pub fn new(start_context: StartContext) -> InitData {
+        InitData {
+            action: "init",
+            version: crate::VERSION,
+            os: env::consts::OS,
+            start_context,
+            platforms: &onetagger_autotag::AUTOTAGGER_PLATFORMS,
+        }
+    }
+}
 
 // Start WebSocket UI server
 pub fn start_socket_server(context: StartContext) {
@@ -151,12 +177,9 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
     match action {
         // Get initial info
         Action::Init => {
-            websocket.write_message(Message::from(json!({
-                "action": "init",
-                "version": crate::VERSION,
-                "os": env::consts::OS,
-                "startContext": context.start_context
-            }).to_string())).ok();
+            websocket.write_message(Message::from(
+                serde_json::to_string(&InitData::new(context.start_context.clone())).unwrap()
+            )).ok();
         },
         Action::SaveSettings { settings } => Settings::from_ui(&settings).save()?,
         Action::LoadSettings => match Settings::load() {

@@ -33,7 +33,12 @@ class OneTagger {
             }, 100);
         }
 
-        this.info = Vue.observable({version: '0.0.0', os: null, ready: false});
+        this.info = Vue.observable({
+            version: '0.0.0', 
+            os: null, 
+            ready: false,
+            platforms: []
+        });
 
         // WS Message handler
         this.ws.onmessage = (event) => {
@@ -51,6 +56,25 @@ class OneTagger {
                         this.settings.path = json.startContext.startPath;
                         this.config.path = json.startContext.startPath;
                     }
+                    this.info.platforms = json.platforms;
+
+                    // restore custom platform fields
+                    for (const [key, value] of Object.entries(this.config.custom)) {
+                        for (let platform of this.info.platforms) {
+                            if (platform.platform.id == key) {
+                                // restore keys
+                                for (let newCustomValue of value.options) {
+                                    for (let i in platform.platform.customOptions.options) {
+                                        if (platform.platform.customOptions.options[i].id == newCustomValue.id) {
+                                            platform.platform.customOptions.options[i].value.value = newCustomValue.value.value;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+
                     this.info.ready = true;
                     break;
                 // Settings loaded
@@ -237,15 +261,7 @@ class OneTagger {
             "forceShazam": false,
             "skipTagged": false,
             "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
-            "beatport": {
-                "artResolution": 500,
-                "maxPages": 1
-            },
-            "discogs": {
-                "token": null,
-                "maxResults": 4,
-                "trackNumberInt": false
-            },
+            "custom": {},
             "beatsource": {
                 "artResolution": 1400
             },

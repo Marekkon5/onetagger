@@ -55,7 +55,7 @@ export default {
         }
     },
     methods: {
-        //Update
+        // Update
         onChange() {
             this.$emit('input', this.tag);
         }

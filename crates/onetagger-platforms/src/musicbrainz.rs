@@ -5,7 +5,7 @@ use rand::Rng;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use onetagger_tagger::{Track, MusicPlatform, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 pub struct MusicBrainz {
     client: Client
@@ -139,7 +139,7 @@ pub struct Recording {
 impl Into<Track> for Recording {
     fn into(self) -> Track {
         Track {
-            platform: MusicPlatform::MusicBrainz,
+            platform: "musicbrainz".to_string(),
             title: self.title,
             version: None,
             artists: self.artist_credit.unwrap_or(Vec::new()).into_iter().map(|a| a.name).collect(),
@@ -267,16 +267,23 @@ pub struct BrowseReleases {
 pub struct MusicBrainzBuilder;
 
 impl AutotaggerSourceBuilder for MusicBrainzBuilder {
-    fn new(_config: &TaggerConfig) -> MusicBrainzBuilder {
+    fn new() -> MusicBrainzBuilder {
         MusicBrainzBuilder
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         Ok(Box::new(MusicBrainz::new()))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "musicbrainz".to_string(),
+            name: "MusicBrainz".to_string(),
+            description: "Published & unpublished, western & non-western".to_string(),
+            icon: include_bytes!("../assets/musicbrainz.png"),
+            max_threads: 4,
+            custom_options: Default::default(),
+        }
     }
 }
 

@@ -2,7 +2,7 @@ use std::error::Error;
 use std::thread;
 use crossbeam_channel::{unbounded, Receiver};
 use serde::{Serialize, Deserialize};
-use onetagger_tagger::{AudioFileInfo, MusicPlatform, MatchingUtils};
+use onetagger_tagger::{AudioFileInfo, MatchingUtils};
 use onetagger_platforms::spotify::{Spotify, rspotify};
 use onetagger_platforms::spotify::rspotify::model::track::FullTrack;
 use onetagger_tag::{Tag, AudioFileFormat, FrameName, TagSeparators};
@@ -193,7 +193,7 @@ impl AudioFeatures {
                 }
                 // Send status
                 tx.send(TaggingStatusWrap::wrap(
-                    MusicPlatform::Spotify, 
+                    "spotify", 
                     &status, 
                     0,
                     1,

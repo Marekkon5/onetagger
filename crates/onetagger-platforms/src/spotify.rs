@@ -15,7 +15,7 @@ use rspotify::client::ApiError;
 use url::Url;
 use rouille::{Server, router};
 use onetagger_shared::Settings;
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MusicPlatform, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, SpotifyConfig};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -273,7 +273,7 @@ impl AutotaggerSource for Spotify {
 
 fn full_track_to_track(track: FullTrack) -> Track {
     Track {
-        platform: MusicPlatform::Spotify,
+        platform: "spotify".to_string(),
         title: track.name,
         version: None,
         artists: track.artists.into_iter().map(|a| a.name).collect(),
@@ -292,24 +292,27 @@ fn full_track_to_track(track: FullTrack) -> Track {
 }
 
 /// For creating instance of Spotify AT plugin
-pub struct SpotifyBuilder {
-    config: Option<SpotifyConfig>
-}
+pub struct SpotifyBuilder;
 
 impl AutotaggerSourceBuilder for SpotifyBuilder {
-    fn new(config: &TaggerConfig) -> SpotifyBuilder {
-        SpotifyBuilder {
-            config: config.spotify.clone()
-        }
+    fn new() -> SpotifyBuilder {
+        SpotifyBuilder
     }
 
-    fn get_source(&mut self) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
-        let config = self.config.take().ok_or("Missing Spotify config!")?;
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+        let config = config.spotify.clone().ok_or("Missing Spotify config!")?;
         let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or("Spotify not authorized!")?;
         Ok(Box::new(spotify))
     }
 
     fn info(&self) -> PlatformInfo {
-        todo!()
+        PlatformInfo {
+            id: "spotify".to_string(),
+            name: "Spotify".to_string(),
+            description: "Requires a free account".to_string(),
+            icon: include_bytes!("../assets/spotify.png"),
+            max_threads: 1,
+            custom_options: Default::default()
+        }
     }
 }
