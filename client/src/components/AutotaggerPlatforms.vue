@@ -9,6 +9,9 @@
                             <div class='text-h6 q-mt-xs'>{{platform.platform.name}}</div>
                         </div>
                         <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6' v-html='platform.platform.description'></div>
+                        <div v-if='!platform.builtIn' class='text-grey-8 q-pl-sm text-bold monospace' style='font-size: 10px;'>
+                            [{{platform.id}}@{{platform.platform.version}}]
+                        </div>
                     </q-card-section>
                     <q-card-section class='row'>
                         <img :src='platform.icon' :height='dense ? 40 : 50'>

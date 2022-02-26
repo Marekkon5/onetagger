@@ -103,7 +103,7 @@ impl AutotaggerPlatforms {
             let entry = entry?;
             match AutotaggerPlatform::load_custom_platform(&entry.path()) {
                 Ok(p) => {
-                    info!("Loaded custom platform: {:?}", entry.path());
+                    info!("Loaded custom platform: {}@{}", p.id, p.platform.version);
                     self.0.push(p);
                 }, 
                 Err(e) => {
@@ -118,6 +118,7 @@ impl AutotaggerPlatforms {
 
 /// For passing platform list into UI
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AutotaggerPlatform {
     pub id: String,
     pub built_in: bool,
