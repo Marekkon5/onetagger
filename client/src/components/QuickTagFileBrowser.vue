@@ -62,7 +62,7 @@ export default {
                 this.files = this.originalFiles;
                 return;
             }
-            this.files = this.originalFiles.filter(f => f.filename.toLowerCase().includes(this.filter));
+            this.files = this.originalFiles.filter(f => f.filename.toLowerCase().includes(this.filter.toLowerCase()));
         },
         isSelected(path) {
             return path == this.$1t.settings.path;
@@ -87,11 +87,14 @@ export default {
                     this.originalFiles = json.files;
                     this.path = json.path;
                     break;
+                case 'pathUpdate':
+                    this.initial = true;
+                    this.$1t.send('quickTagFolder', { path: this.$1t.settings.path, subdir: '..' });
             }
         }
 
         this.initial = true;
         this.loadFiles('..');
-    }
+    },
 }
 </script>

@@ -89,6 +89,7 @@ class OneTagger {
                     // Quicktag path
                     if (json.context == 'qt') {
                         Vue.set(this.settings, 'path', json.path);
+                        this.onQuickTagBrowserEvent({action: 'pathUpdate'});
                         this.loadQuickTag();
                     }
                     // Audio features path
