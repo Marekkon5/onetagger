@@ -1,6 +1,7 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate onetagger_shared;
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::io::Cursor;
 use std::thread;
@@ -25,7 +26,7 @@ use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EX
 use onetagger_shared::{OTError, Settings};
 use onetagger_player::AudioSources;
 use onetagger_tagger::{Track, AudioFileInfo, AudioFileIDs, TaggerConfig, TrackNumber, StylesOptions, PlatformCustomOptionValue,
-    AutotaggerSource, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOption, CAMELOT_NOTES};
+    AutotaggerSource, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptionsResponse, CAMELOT_NOTES};
 use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource};
 use image::io::Reader as ImageReader;
 
@@ -208,6 +209,27 @@ impl CustomPlatform {
     }
 }
 
+pub trait TaggerConfigExt {
+    /// Add custom platform configs to the default config
+    fn custom_default() -> TaggerConfig;
+}
+impl TaggerConfigExt for TaggerConfig {
+    fn custom_default() -> TaggerConfig {
+        let mut custom = HashMap::new();
+        for platform in &AUTOTAGGER_PLATFORMS.0 {
+            if !platform.platform.custom_options.options.is_empty() {
+                let mut options = PlatformCustomOptionsResponse::new();
+                for option in &platform.platform.custom_options.options {
+                    options.0.insert(option.id.to_string(), option.value.clone());
+                }
+                custom.insert(platform.platform.id.to_string(), options);
+            }
+        }
+        let mut default = TaggerConfig::default();
+        default.custom = custom;
+        default
+    }
+} 
 
 
 trait TrackImpl {
@@ -654,12 +676,10 @@ impl Tagger {
 
                 // Discogs rate limit override
                 if let Some(discogs) = config.custom.get_mut("discogs") {
-                    if let Some(i) = discogs.options.iter().position(|o| o.id == "_rate_limit") {
-                        discogs.options.remove(i);
-                    }
+                    discogs.0.remove("_rate_limit");
                     if files.len() <= 35 {
                         let value = if files.len() <= 20 { 1000 } else { 150 };
-                        discogs.options.push(PlatformCustomOption::new("_rate_limit", "", PlatformCustomOptionValue::Number { min: 0, max: 0, step: 0, value }));
+                        discogs.0.insert("_rate_limit".to_string(), PlatformCustomOptionValue::Number { min: 0, max: 0, step: 0, value });
                     }
                 }
 

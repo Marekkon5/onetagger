@@ -5,18 +5,17 @@ use std::fs::File;
 use clap::{Parser, Subcommand};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_shared::{VERSION, COMMIT};
-use onetagger_tagger::TaggerConfig;
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
-use onetagger_autotag::Tagger;
+use onetagger_autotag::{Tagger, TaggerConfigExt};
+use onetagger_tagger::TaggerConfig;
 
 
 fn main() {
-    onetagger_shared::setup();
     let cli = Cli::parse();
 
     // Default configs
     if cli.autotagger_config {
-        let config = serde_json::to_string_pretty(&TaggerConfig::default()).expect("Failed serializing default config!");
+        let config = serde_json::to_string_pretty(&TaggerConfig::custom_default()).expect("Failed serializing default config!");
         println!("{config}");
         return;
     }
@@ -31,6 +30,8 @@ fn main() {
         return;
     }
 
+    // Setup logging
+    onetagger_shared::setup();
     info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
 
 

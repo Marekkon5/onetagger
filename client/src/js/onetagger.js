@@ -63,10 +63,10 @@ class OneTagger {
                         for (let platform of this.info.platforms) {
                             if (platform.platform.id == key) {
                                 // restore keys
-                                for (let newCustomValue of value.options) {
+                                for (const [id, newValue] of Object.entries(value)) {
                                     for (let i in platform.platform.customOptions.options) {
-                                        if (platform.platform.customOptions.options[i].id == newCustomValue.id) {
-                                            platform.platform.customOptions.options[i].value.value = newCustomValue.value.value;
+                                        if (platform.platform.customOptions.options[i].id == id) {
+                                            platform.platform.customOptions.options[i].value.value = newValue.value;
                                         }
                                     }
                                 }

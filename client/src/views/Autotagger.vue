@@ -128,8 +128,12 @@ export default {
             // Merge custom fields
             let custom = {};
             for (let platform of this.$1t.info.platforms) {
-                if (platform.platform.customOptions.options.length > 0)
-                    custom[platform.platform.id] = {options: platform.platform.customOptions.options}
+                if (platform.platform.customOptions.options.length > 0) {
+                    custom[platform.platform.id] = {}
+                    for (let option of platform.platform.customOptions.options) {
+                        custom[platform.platform.id][option.id] = option.value;
+                    }
+                }
             }
             this.$1t.config.custom = custom;
 

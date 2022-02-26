@@ -75,8 +75,8 @@ pub struct TaggerConfig {
     pub force_shazam: bool,
     pub skip_tagged: bool,
 
-    /// Platform specific (Platform ID, Value)
-    pub custom: HashMap<String, PlatformCustomOptions>,
+    /// Platform specific. Format: `{ platform: { custom_option: value }}`
+    pub custom: HashMap<String, PlatformCustomOptionsResponse>,
     pub spotify: Option<SpotifyConfig>,
 }
 
@@ -393,39 +393,6 @@ impl PlatformCustomOptions {
         }
     }
 
-    /// Short to get number field
-    pub fn get_i32(&self, id: &str) -> Option<i32> {
-        self.options.iter().find(|o| o.id == id).map(|o| match o.value {
-            PlatformCustomOptionValue::Number { value, .. } => Some(value),
-            _ => None
-        }).flatten()
-    }
-
-    /// Short to get string/option field
-    pub fn get_str(&self, id: &str) -> Option<String> {
-        self.options.iter().find(|o| o.id == id).map(|o| match &o.value {
-            PlatformCustomOptionValue::String { value } => Some(value.to_string()),
-            PlatformCustomOptionValue::Option { value, .. } => Some(value.to_string()),
-            _ => None
-        }).flatten()
-    }
-
-    /// Short to get tag value
-    pub fn get_tag(&self, id: &str) -> Option<FrameName> {
-        self.options.iter().find(|o| o.id == id).map(|o| match &o.value {
-            PlatformCustomOptionValue::Tag { value, .. } => Some(value.clone()),
-            _ => None
-        }).flatten()
-    }
-
-    /// Short to get boolean
-    pub fn get_bool(&self, id: &str) -> Option<bool> {
-        self.options.iter().find(|o| o.id == id).map(|o| match o.value {
-            PlatformCustomOptionValue::Boolean { value, .. } => Some(value),
-            _ => None
-        }).flatten()
-    }
-
     /// Add new option
     pub fn add(mut self, id: &str, label: &str, value: PlatformCustomOptionValue) -> PlatformCustomOptions {
         self.options.push(PlatformCustomOption::new(id, label, value));
@@ -436,6 +403,51 @@ impl PlatformCustomOptions {
     pub fn add_tooltip(mut self, id: &str, label: &str, tooltip: &str, value: PlatformCustomOptionValue) -> PlatformCustomOptions {
         self.options.push(PlatformCustomOption::new(id, label, value).tooltip(tooltip));
         self
+    }
+}
+
+
+/// Already filled in custom options. Format: `{ custom_option: value }`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformCustomOptionsResponse(pub HashMap<String, PlatformCustomOptionValue>);
+
+impl PlatformCustomOptionsResponse {
+    /// Create empty response
+    pub fn new() -> PlatformCustomOptionsResponse {
+        PlatformCustomOptionsResponse(HashMap::new())
+    }
+
+    /// Short to get number field
+    pub fn get_i32(&self, id: &str) -> Option<i32> {
+        self.0.get(id).map(|o| match o {
+            PlatformCustomOptionValue::Number { value, .. } => Some(*value),
+            _ => None
+        }).flatten()
+    }
+
+    /// Short to get string/option field
+    pub fn get_str(&self, id: &str) -> Option<String> {
+        self.0.get(id).map(|o| match &o {
+            PlatformCustomOptionValue::String { value } => Some(value.to_string()),
+            PlatformCustomOptionValue::Option { value, .. } => Some(value.to_string()),
+            _ => None
+        }).flatten()
+    }
+
+    /// Short to get tag value
+    pub fn get_tag(&self, id: &str) -> Option<FrameName> {
+        self.0.get(id).map(|o| match &o {
+            PlatformCustomOptionValue::Tag { value, .. } => Some(value.clone()),
+            _ => None
+        }).flatten()
+    }
+
+    /// Short to get boolean
+    pub fn get_bool(&self, id: &str) -> Option<bool> {
+        self.0.get(id).map(|o| match o {
+            PlatformCustomOptionValue::Boolean { value, .. } => Some(*value),
+            _ => None
+        }).flatten()
     }
 }
 
