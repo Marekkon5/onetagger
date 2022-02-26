@@ -85,7 +85,7 @@ impl Default for TaggerConfig {
     // Suffering, but threads has to be 16 by default, strictness >0 etc and Default::default() caused stack overflow
     fn default() -> Self {
         Self {
-            platforms: vec!["beatport".to_string()], threads: 16, strictness: 0.7, path: None,
+            platforms: vec!["beatport".to_string()], threads: 16, strictness: 0.8, path: None,
             title: false, artist: false, album: false, key: false, bpm: false, genre: false,
             style: false, label: false, release_date: false, publish_date: false, album_art: false,
             other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,

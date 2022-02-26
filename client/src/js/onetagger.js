@@ -262,9 +262,6 @@ class OneTagger {
             "skipTagged": false,
             "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
             "custom": {},
-            "beatsource": {
-                "artResolution": 1400
-            },
             "spotify": null
         });
         // Statuses

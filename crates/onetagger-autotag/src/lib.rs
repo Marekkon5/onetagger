@@ -175,7 +175,7 @@ impl AutotaggerPlatform {
         let icon = match AutotaggerPlatform::reencode_image(info.icon) {
             Ok(i) => i,
             Err(e) => {
-                warn!("Failed decoding custom platform {filename} icon: {e}");
+                warn!("Failed decoding custom platform icon of {filename}: {e}");
                 String::new()
             }
         };
@@ -833,6 +833,7 @@ impl Tagger {
         if config.skip_tagged && info.was_tagged {
             info!("Skipping (already tagged): {path}");
             out.status = TaggingState::Skipped;
+            out.message = Some("Already tagged".to_string());
             return out;
         }
 

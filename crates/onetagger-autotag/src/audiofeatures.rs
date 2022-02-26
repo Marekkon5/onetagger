@@ -180,6 +180,7 @@ impl AudioFeatures {
                                 },
                                 Err(e) => {
                                     error!("Audio features failed writing to tag: {}", e);
+                                    status.message = Some(format!("Audio features failed writing to tag: {}", e));
                                     status.status = TaggingState::Error;
                                 }
                             };
@@ -187,6 +188,7 @@ impl AudioFeatures {
                         // Failed searching track
                         Err(e) => {
                             error!("Audio features search track by ISRC error: {}", e);
+                            status.message = Some(format!("Audio features search track by ISRC error: {}", e));
                             status.status = TaggingState::Error;
                         }
                     }
