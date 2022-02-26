@@ -12,6 +12,9 @@ use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat};
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
+/// Version of supported custom platform
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 1;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
@@ -323,13 +326,15 @@ pub struct PlatformInfo {
     pub name: String,
     /// Shown only in UI, can use HTML
     pub description: String,
+    /// Version of this platform (use SemVer)
+    pub version: String,
     /// Image bytes, use 1:1 aspect ratio, PNG for transparency recommended
     #[serde(skip)]
     pub icon: &'static [u8],
     /// Max amounts of threads this tagger can use (use 0 for any user defined amount)
     pub max_threads: u16,
     /// For showing custom options in UI
-    pub custom_options: PlatformCustomOptions
+    pub custom_options: PlatformCustomOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -628,5 +633,21 @@ impl MatchingUtils {
             seconds += parts[2].parse::<u64>()? * 3600;
         }
         Ok(Duration::from_secs(seconds))
+    }
+}
+
+/// Macro for creating custom platform plugins
+/// Huge thanks to: https://michael-f-bryan.github.io/rust-ffi-guide/dynamic_loading.html
+#[macro_export]
+macro_rules! create_plugin {
+    ($plugin_type:ty) => {
+        #[no_mangle]
+        pub static _PLATFORM_COMPATIBILITY: i32 = onetagger_tagger::CUSTOM_PLATFORM_COMPATIBILITY;
+
+        #[no_mangle]
+        pub extern "C" fn _create_plugin() -> *mut dyn onetagger_tagger::AutotaggerSourceBuilder {
+            let boxed: Box<dyn onetagger_tagger::AutotaggerSourceBuilder> = Box::new(<$plugin_type>::new());
+            Box::into_raw(boxed)
+        }
     }
 }

@@ -312,6 +312,7 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
             description: "Requires a free account".to_string(),
             icon: include_bytes!("../assets/spotify.png"),
             max_threads: 1,
+            version: "1.0.0".to_string(),
             custom_options: Default::default()
         }
     }

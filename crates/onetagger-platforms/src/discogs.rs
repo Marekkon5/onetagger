@@ -428,6 +428,7 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
             description: "Slow due rate limits (~25 tracks / min) & requires a free account".to_string(),
             icon: include_bytes!("../assets/discogs.png"),
             max_threads: 1,
+            version: "1.0.0".to_string(),
             custom_options: PlatformCustomOptions::new()
                 // Discogs token
                 .add_tooltip("token", "Token", 

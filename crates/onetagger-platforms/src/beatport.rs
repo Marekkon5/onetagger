@@ -430,6 +430,7 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
             description: "Overall more specialized in Techno".to_string(),
             icon: include_bytes!("../assets/beatport.png"),
             max_threads: 0,
+            version: "1.0.0".to_string(),
             custom_options: PlatformCustomOptions::new()
                 // Album art resolution
                 .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {

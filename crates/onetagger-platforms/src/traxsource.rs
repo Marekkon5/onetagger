@@ -225,6 +225,7 @@ impl AutotaggerSourceBuilder for TraxsourceBuilder {
             description: "Overall more specialized in House".to_string(),
             icon: include_bytes!("../assets/traxsource.png"),
             max_threads: 0,
+            version: "1.0.0".to_string(),
             custom_options: Default::default(),
         }
     }

@@ -13,6 +13,8 @@ use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
 use image::ImageOutputFormat;
+use libloading::Library;
+use libloading::Symbol;
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -40,7 +42,7 @@ lazy_static::lazy_static! {
 
 
 /// For passing platform list into UI
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AutotaggerPlatforms(Vec<AutotaggerPlatform>);
 
 impl AutotaggerPlatforms {
@@ -58,7 +60,13 @@ impl AutotaggerPlatforms {
         AutotaggerPlatform::add_builtin::<spotify::SpotifyBuilder>(&mut output);
         AutotaggerPlatform::add_builtin::<traxsource::TraxsourceBuilder>(&mut output);
 
-        AutotaggerPlatforms(output)
+        // Custom
+        let mut platforms = AutotaggerPlatforms(output);
+        match platforms.load_custom_platforms() {
+            Ok(_) => {},
+            Err(e) => warn!("Failed loading custom platforms: {e}")
+        };
+        platforms
     }
 
     /// Get the source
@@ -78,20 +86,46 @@ impl AutotaggerPlatforms {
             };
             Some(platform)
         } else {
-            //TODO: Custom platforms
-            todo!()
+            Some(platform.library.as_ref()?.get_builder().ok()?)
         }
+    }
+
+    /// Load custom platforms
+    fn load_custom_platforms(&mut self) -> Result<(), Box<dyn Error>> {
+        // Path
+        let folder = Settings::get_folder()?.join("platforms");
+        if !folder.exists() {
+            fs::create_dir(folder)?;
+            return Ok(())
+        }
+        for entry in fs::read_dir(folder)? {
+            let entry = entry?;
+            match AutotaggerPlatform::load_custom_platform(&entry.path()) {
+                Ok(p) => {
+                    info!("Loaded custom platform: {:?}", entry.path());
+                    self.0.push(p);
+                }, 
+                Err(e) => {
+                    error!("Failed loading custom platform from {:?}: {e}", entry.path());
+                    continue;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
 /// For passing platform list into UI
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AutotaggerPlatform {
     pub id: String,
     pub built_in: bool,
     pub platform: PlatformInfo,
     /// Encoded for UI
-    pub icon: String
+    pub icon: String,
+    /// reference to the loaded library, so it doesn't get dropped
+    #[serde(skip)]
+    library: Option<CustomPlatform>
 } 
 
 impl AutotaggerPlatform {
@@ -108,7 +142,8 @@ impl AutotaggerPlatform {
                     String::new()
                 }
             },
-            platform: info
+            platform: info,
+            library: None
         })
     }
 
@@ -118,6 +153,58 @@ impl AutotaggerPlatform {
         let mut buf = vec![];
         img.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png)?;
         Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::encode(buf)))
+    }
+
+    /// Load custom platform library
+    fn load_custom_platform(path: &Path) -> Result<AutotaggerPlatform, Box<dyn Error>> {
+        // load dylib
+        let filename = path.file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename")?.to_string();
+        let platform = unsafe {
+            let lib = Library::new(path)?;
+            let version: Symbol<*const i32> = lib.get(b"_PLATFORM_COMPATIBILITY")?;
+            if **version != onetagger_tagger::CUSTOM_PLATFORM_COMPATIBILITY {
+                warn!("Plugin is incompatible! Plugin version: {}, Supported version: {}", **version, onetagger_tagger::CUSTOM_PLATFORM_COMPATIBILITY);
+                return Err("Plugin is incompatible!".into());
+            }
+            let platform = CustomPlatform::new(lib);
+            platform
+        };
+        // Load metadata
+        let info = platform.get_builder()?.info();
+        let icon = match AutotaggerPlatform::reencode_image(info.icon) {
+            Ok(i) => i,
+            Err(e) => {
+                warn!("Failed decoding custom platform {filename} icon: {e}");
+                String::new()
+            }
+        };
+        Ok(AutotaggerPlatform {
+            id: filename,
+            built_in: false,
+            platform: info,
+            icon: icon,
+            library: Some(platform),
+        })
+    }
+}
+
+/// Wrapper for custom library
+pub struct CustomPlatform {
+    library: Library
+}
+
+impl CustomPlatform {
+    pub fn new(library: Library) -> CustomPlatform {
+        CustomPlatform { library }
+    }
+
+    /// Get AutotaggerSourceBuilder
+    pub fn get_builder(&self) -> Result<Box<dyn AutotaggerSourceBuilder>, Box<dyn Error>> {
+        let platform = unsafe {
+            let constructor: Symbol<unsafe fn() -> *mut dyn AutotaggerSourceBuilder> = self.library.get(b"_create_plugin")?;
+            Box::from_raw(constructor())
+        };
+        Ok(platform)
     }
 }
 
@@ -602,7 +689,7 @@ impl Tagger {
                     info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {}", status.status, status.accuracy, status.path);
                     processed += 1;
                     // Send to UI
-                    tx.send(TaggingStatusWrap::wrap(platform, &status,  platform_index, config.platforms.len(), processed, total)).ok();
+                    tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status,  platform_index, config.platforms.len(), processed, total)).ok();
                     // Fallback
                     if status.status == TaggingState::Ok {
                         files.remove(files.iter().position(|f| f == &status.path).unwrap());

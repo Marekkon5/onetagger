@@ -1,8 +1,11 @@
+// TODO: Use log somewhere
+#[cfg(feature = "tag")]
 #[macro_use] extern crate log;
 
-use std::error::Error;
-use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
+
+#[cfg(feature = "tag")]
+use std::{error::Error, collections::HashMap};
 
 #[cfg(feature = "tag")]
 pub mod id3;

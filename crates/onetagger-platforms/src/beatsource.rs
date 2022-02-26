@@ -235,6 +235,7 @@ impl AutotaggerSourceBuilder for BeatsourceBuilder {
             description: "Overall more specialized in open-format (Hip Hop/Latin/Dancehall)".to_string(),
             icon: include_bytes!("../assets/beatsource.png"),
             max_threads: 0,
+            version: "1.0.0".to_string(),
             custom_options: PlatformCustomOptions::new()
                 .add_tooltip("art_resolution", "Album art resolution", "Select album art resolution", PlatformCustomOptionValue::Number {
                     min: 100, max: 1600, step: 100, value: 500

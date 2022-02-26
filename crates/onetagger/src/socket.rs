@@ -100,7 +100,7 @@ impl SocketContext {
 
 
 /// Reply to init call
-#[derive(Debug, Clone, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct InitData {
     action: &'static str,

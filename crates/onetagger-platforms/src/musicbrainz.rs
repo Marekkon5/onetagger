@@ -282,6 +282,7 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
             description: "Published & unpublished, western & non-western".to_string(),
             icon: include_bytes!("../assets/musicbrainz.png"),
             max_threads: 4,
+            version: "1.0.0".to_string(),
             custom_options: Default::default(),
         }
     }

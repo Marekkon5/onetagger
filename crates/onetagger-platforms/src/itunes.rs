@@ -157,6 +157,7 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
             description: "Slow due rate limits (~20 tracks / min)".to_string(),
             icon: include_bytes!("../assets/itunes.png"),
             max_threads: 1,
+            version: "1.0.0".to_string(),
             custom_options: Default::default(),
         }
     }

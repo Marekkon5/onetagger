@@ -2762,6 +2762,7 @@ dependencies = [
  "execute",
  "image",
  "lazy_static",
+ "libloading",
  "log",
  "onetagger-platforms",
  "onetagger-player",

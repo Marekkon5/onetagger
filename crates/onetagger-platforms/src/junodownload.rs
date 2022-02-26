@@ -194,6 +194,7 @@ impl AutotaggerSourceBuilder for JunoDownloadBuilder {
             description: "Overall a mixed bag with a lot of niche genres".to_string(),
             icon: include_bytes!("../assets/junodownload.png"),
             max_threads: 4,
+            version: "1.0.0".to_string(),
             custom_options: Default::default(),
         }
     }
