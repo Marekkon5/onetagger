@@ -226,6 +226,9 @@ export default {
 </script>
 
 <style>
+.status-list {
+    height: calc(100vh - 248px);
+}
 .list {
     max-width: 80%;
     margin-left: 10%;    

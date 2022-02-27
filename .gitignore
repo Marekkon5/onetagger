@@ -8,3 +8,4 @@ client/dist/
 .spotify*
 dist/
 osxcross/
+.vscode/
