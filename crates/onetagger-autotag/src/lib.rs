@@ -53,13 +53,13 @@ impl AutotaggerPlatforms {
 
         // Built-ins
         AutotaggerPlatform::add_builtin::<beatport::BeatportBuilder>(&mut output);
-        AutotaggerPlatform::add_builtin::<discogs::DiscogsBuilder>(&mut output);
-        AutotaggerPlatform::add_builtin::<beatsource::BeatsourceBuilder>(&mut output);
-        AutotaggerPlatform::add_builtin::<itunes::ITunesBuilder>(&mut output);
-        AutotaggerPlatform::add_builtin::<junodownload::JunoDownloadBuilder>(&mut output);
-        AutotaggerPlatform::add_builtin::<musicbrainz::MusicBrainzBuilder>(&mut output);
-        AutotaggerPlatform::add_builtin::<spotify::SpotifyBuilder>(&mut output);
         AutotaggerPlatform::add_builtin::<traxsource::TraxsourceBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<beatsource::BeatsourceBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<junodownload::JunoDownloadBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<spotify::SpotifyBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<musicbrainz::MusicBrainzBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<discogs::DiscogsBuilder>(&mut output);
+        AutotaggerPlatform::add_builtin::<itunes::ITunesBuilder>(&mut output);
 
         // Custom
         let mut platforms = AutotaggerPlatforms(output);

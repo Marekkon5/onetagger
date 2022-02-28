@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
-use id3::{Version, Tag, Timestamp, Content, TagLike};
+use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder};
 use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText};
 use serde::{Serialize, Deserialize};
 use crate::{TagDate, CoverType, Field, TagImpl};
@@ -186,7 +186,10 @@ impl TagImpl for ID3Tag {
         };
         // MP3
         if self.format == ID3AudioFormat::MP3 {
-            self.tag.write_to_path(path, version)?;
+            Encoder::new()
+                .version(version)
+                .padding(2048)
+                .encode_to_path(&self.tag, path)?;
         }
         // AIFF
         if self.format == ID3AudioFormat::AIFF {

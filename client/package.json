@@ -30,7 +30,7 @@
     "core-js": "^3.11.1",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
-    "node-sass": "^4.13.0",
+    "sass": "^1.49.9",
     "sass-loader": "^8.0.2",
     "vue-cli-plugin-quasar": "~3.0.1",
     "vue-svg-inline-loader": "^2.1.2",
