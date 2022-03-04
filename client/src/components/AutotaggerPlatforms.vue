@@ -52,9 +52,7 @@ export default {
         },
         // Sync platforms order to config
         syncPlatforms() {
-            this.$1t.config.platforms.sort((a, b) => {
-                return this.$1t.info.platforms.findIndex((p) => p.id == a) - this.$1t.info.platforms.findIndex((p) => p.id == b);
-            });
+            this.$1t.config.platforms = this.$1t.info.platforms.map((p) => p.id).filter((p) => this.$1t.config.platforms.includes(p));
         }
     },
     mounted() {
