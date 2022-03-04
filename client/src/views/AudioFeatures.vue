@@ -109,8 +109,18 @@
             <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
         </div>
 
+        <!-- Advanced -->
+        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
+        <div class='text-h5 q-mt-lg text-grey-4 custom-margin'>Advanced</div>
 
-       <!-- Start -->
+        <q-toggle v-model='config.metaTag' label='Write OneTagger meta tag'></q-toggle>
+        <br>
+        <q-toggle v-model='config.skipTagged' label='Skip already tagged tracks'></q-toggle>
+
+        <div class='q-my-md'></div>
+
+
+        <!-- Start -->
         <q-page-sticky position='bottom-right' :offset='[36, 18]'>
             <q-btn 
                 fab push
@@ -146,6 +156,8 @@ export default {
             playlist: {filename: null, data: null, format: null},
             config: {
                 path: null,
+                metaTag: true,
+                skipTagged: false,
                 mainTag: {id3: 'AUDIO_FEATURES', vorbis: 'AUDIO_FEATURES', mp4: 'AUDIO_FEATURES'},
                 separators: {id3: ', ', vorbis: null, mp4: ', '},
                 properties: {

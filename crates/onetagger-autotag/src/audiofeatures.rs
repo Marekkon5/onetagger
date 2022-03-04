@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::thread;
+use chrono::Local;
 use crossbeam_channel::{unbounded, Receiver};
 use serde::{Serialize, Deserialize};
 use onetagger_tagger::{AudioFileInfo, MatchingUtils};
@@ -17,7 +18,9 @@ pub struct AudioFeaturesConfig {
     pub path: Option<String>,
     pub main_tag: FrameName,
     pub separators: TagSeparators,
-    pub properties: AFProperties
+    pub properties: AFProperties,
+    pub meta_tag: bool,
+    pub skip_tagged: bool,
 }
 
 impl Default for AudioFeaturesConfig {
@@ -26,7 +29,9 @@ impl Default for AudioFeaturesConfig {
             path: None,
             main_tag: FrameName::same("AUDIO_FEATURES"),
             separators: Default::default(),
-            properties: Default::default()
+            properties: Default::default(),
+            meta_tag: true,
+            skip_tagged: false,
         }
     }
 }
@@ -170,26 +175,32 @@ impl AudioFeatures {
                 };
                 // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None) {
-                    // Match and get features
-                    match AudioFeatures::find_features(&spotify, &info) {
-                        Ok((features, full_track)) => {
-                            // Write to file
-                            match AudioFeatures::write_to_path(&file, &features, &full_track, &config) {
-                                Ok(_) => {
-                                    status.status = TaggingState::Ok;
-                                },
-                                Err(e) => {
-                                    error!("Audio features failed writing to tag: {}", e);
-                                    status.message = Some(format!("Audio features failed writing to tag: {}", e));
-                                    status.status = TaggingState::Error;
-                                }
-                            };
-                        },
-                        // Failed searching track
-                        Err(e) => {
-                            error!("Audio features search track by ISRC error: {}", e);
-                            status.message = Some(format!("Audio features search track by ISRC error: {}", e));
-                            status.status = TaggingState::Error;
+                    if config.skip_tagged && info.was_tagged {
+                        // Skip tagged
+                        status.status = TaggingState::Skipped;
+                        status.message = Some("Already tagged!".to_string());
+                    } else {
+                        // Match and get features
+                        match AudioFeatures::find_features(&spotify, &info) {
+                            Ok((features, full_track)) => {
+                                // Write to file
+                                match AudioFeatures::write_to_path(&file, &features, &full_track, &config) {
+                                    Ok(_) => {
+                                        status.status = TaggingState::Ok;
+                                    },
+                                    Err(e) => {
+                                        error!("Audio features failed writing to tag: {}", e);
+                                        status.message = Some(format!("Audio features failed writing to tag: {}", e));
+                                        status.status = TaggingState::Error;
+                                    }
+                                };
+                            },
+                            // Failed searching track
+                            Err(e) => {
+                                error!("Audio features search track by ISRC error: {}", e);
+                                status.message = Some(format!("Audio features search track by ISRC error: {}", e));
+                                status.status = TaggingState::Error;
+                            }
                         }
                     }
                 }
@@ -266,6 +277,12 @@ impl AudioFeatures {
         // Set main tag
         if !main_tag.is_empty() {
             tag.set_raw(&config.main_tag.by_format(&format), main_tag, true);
+        }
+
+        // Meta tag
+        if config.meta_tag {
+            let time = Local::now();
+            tag.set_raw("1T_TAGGEDDATE", vec![time.format("%Y-%m-%d %H:%M:%S").to_string()], true);
         }
 
         // Save
