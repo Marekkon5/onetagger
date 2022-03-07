@@ -1,6 +1,6 @@
 use std::error::Error;
 use rspotify::clients::BaseClient;
-use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
+use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality, Market, Country};
 use rspotify::{Credentials, Config, ClientCredsSpotify};
 use rspotify::model::album::FullAlbum;
 use rspotify::model::artist::FullArtist;
@@ -44,7 +44,7 @@ impl Spotify {
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
         // rspotify 0.10 doesn't url encode for some reason
         // let q = urlencoding::encode(query);
-        let results = self.spotify.search(query, &SearchType::Track, None, None, Some(limit), None)?;
+        let results = self.spotify.search(query, &SearchType::Track, Some(&Market::Country(Country::UnitedKingdom)), None, Some(limit), None)?;
         let mut tracks = vec![];
         if let SearchResult::Tracks(tracks_page) = results {
             tracks = tracks_page.items;
