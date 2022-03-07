@@ -40,7 +40,7 @@ fn main() {
     match &action {
         Actions::Autotagger { path, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
-            let files = Tagger::get_file_list(&path);
+            let files = Tagger::get_file_list(&path, config.include_subfolders);
             let rx = Tagger::tag_files(&config, files);
             let start = timestamp!();
             for status in rx {
@@ -48,14 +48,19 @@ fn main() {
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
         },
-        Actions::Audiofeatures { path, config, client_id, client_secret } => {
+        Actions::Audiofeatures { path, config, client_id, client_secret, no_subfolders } => {
             let file = File::open(config).expect("Failed reading config file!");
-            let config = serde_json::from_reader(&file).expect("Failed parsing config file!");
+            let config: AudioFeaturesConfig = serde_json::from_reader(&file).expect("Failed parsing config file!");
+            // Cli subfolders override
+            let mut subfolders = config.include_subfolders;
+            if *no_subfolders {
+                subfolders = false;
+            }
             // Auth spotify
             let spotify = Spotify::try_cached_token(client_id, client_secret)
                 .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
             
-            let files = Tagger::get_file_list(&path);
+            let files = Tagger::get_file_list(&path, subfolders);
             let rx = AudioFeatures::start_tagging(config, spotify, files);
             let start = timestamp!();
             for status in rx {
@@ -184,7 +189,11 @@ enum Actions {
 
         /// Template for parse_filename option. Example: `%track$. %artists% - %title%`
         #[clap(long)]
-        filename_template: Option<String>
+        filename_template: Option<String>,
+
+        /// Don't include subfolders
+        #[clap(long)]
+        no_subfolders: bool,
     },
     /// Start Audio Features in CLI mode
     Audiofeatures {
@@ -202,7 +211,11 @@ enum Actions {
 
         /// Spotify Client Secret
         #[clap(long)]
-        client_secret: String
+        client_secret: String,
+
+        /// Don't include subfolders
+        #[clap(long)]
+        no_subfolders: bool,
     },
     /// Authorize Spotify and cache the token
     AuthorizeSpotify {
@@ -253,7 +266,7 @@ impl Actions {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
                 overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
                 short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
-                skip_tagged, parse_filename, filename_template } => {
+                skip_tagged, parse_filename, filename_template, no_subfolders } => {
 
                 // Load config
                 let mut config = if let Some(config_path) = config {
@@ -294,6 +307,9 @@ impl Actions {
                 }
                 if let Some(template) = filename_template {
                     config.filename_template = Some(template.to_string());
+                }
+                if *no_subfolders {
+                    config.include_subfolders = false;
                 }
                 return Ok(config);
             },

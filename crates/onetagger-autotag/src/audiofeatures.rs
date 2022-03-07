@@ -21,6 +21,7 @@ pub struct AudioFeaturesConfig {
     pub properties: AFProperties,
     pub meta_tag: bool,
     pub skip_tagged: bool,
+    pub include_subfolders: bool,
 }
 
 impl Default for AudioFeaturesConfig {
@@ -32,6 +33,7 @@ impl Default for AudioFeaturesConfig {
             properties: Default::default(),
             meta_tag: true,
             skip_tagged: false,
+            include_subfolders: true,
         }
     }
 }

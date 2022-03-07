@@ -66,6 +66,13 @@
             v-model='$1t.config.skipTagged'
             v-if='!$1t.config.forceShazam'
         ></AdvancedSettingsToggle>
+        
+        <AdvancedSettingsToggle 
+            label='Include subfolders'
+            tooltip='Tag all subfolders as well'
+            v-model='$1t.config.includeSubfolders'
+        ></AdvancedSettingsToggle>
+
 
 
         <!-- Parse meta from filename -->

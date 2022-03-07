@@ -871,15 +871,33 @@ impl Tagger {
     }
 
     // Get list of all files in with supported extensions
-    pub fn get_file_list(path: &str) -> Vec<String> {
+    pub fn get_file_list(path: &str, subfolders: bool) -> Vec<String> {
         if path.is_empty() {
             return vec![];
         }
-        let files: Vec<String> = WalkDir::new(path).into_iter().filter(
-            |e| e.is_ok() && 
-            EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
-        ).map(|e| e.unwrap().path().to_str().unwrap().to_owned()).collect();
-        files
+        if subfolders {
+            let files: Vec<String> = WalkDir::new(path).into_iter().filter(
+                |e| e.is_ok() && 
+                EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
+            ).map(|e| e.unwrap().path().to_str().unwrap().to_owned()).collect();
+            files
+        } else {
+            // No subfolders
+            match std::fs::read_dir(path) {
+                Ok(readdir) => {
+                    readdir
+                        .into_iter()
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.path().to_str().unwrap().to_string())
+                        .filter(|p| EXTENSIONS.iter().any(|i| p.to_lowercase().ends_with(i)))
+                        .collect()
+                },
+                Err(e) => {
+                    warn!("Failed loading folder: {e}");
+                    vec![]
+                }
+            }
+        }
     }
 
     // Tag all files with threads specified in config

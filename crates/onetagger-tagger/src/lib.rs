@@ -74,6 +74,7 @@ pub struct TaggerConfig {
     pub enable_shazam: bool,
     pub force_shazam: bool,
     pub skip_tagged: bool,
+    pub include_subfolders: bool,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
     pub custom: HashMap<String, PlatformCustomOptionsResponse>,
@@ -94,7 +95,7 @@ impl Default for TaggerConfig {
             overwrite: false, merge_genres: false, album_art_file: false, camelot: false, styles_options: StylesOptions::Default,
             parse_filename: false, filename_template: None, short_title: false, match_duration: false,
             max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default,
-            post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(),
+            post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(), include_subfolders: true,
             track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false,
         }
     }

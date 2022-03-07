@@ -261,6 +261,7 @@ class OneTagger {
             "enableShazam": false,
             "forceShazam": false,
             "skipTagged": false,
+            "includeSubfolders": true,
             "stylesCustomTag": {vorbis: 'STYLE', id3: 'STYLE', mp4: 'STYLE'},
             "custom": {},
             "spotify": null

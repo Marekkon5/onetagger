@@ -225,7 +225,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     // Load file list
                     if files.is_empty() {
                         let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or(String::new());
-                        files = Tagger::get_file_list(&path);
+                        files = Tagger::get_file_list(&path, c.include_subfolders);
                         file_count = files.len();
                         folder_path = Some(path);
                     }
@@ -235,7 +235,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 TaggerConfigs::AudioFeatures(c) => {
                     if files.is_empty() {
                         let path = c.path.as_ref().unwrap_or(&String::new()).to_owned();
-                        files = Tagger::get_file_list(&path);
+                        files = Tagger::get_file_list(&path, c.include_subfolders);
                         folder_path = Some(path);
                         file_count = files.len();
                     }

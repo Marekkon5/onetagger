@@ -116,6 +116,8 @@
         <q-toggle v-model='config.metaTag' label='Write OneTagger meta tag'></q-toggle>
         <br>
         <q-toggle v-model='config.skipTagged' label='Skip already tagged tracks'></q-toggle>
+        <br>
+        <q-toggle v-model='config.includeSubfolders' label='Include subfolders'></q-toggle>
 
         <div class='q-my-md'></div>
 
@@ -158,6 +160,7 @@ export default {
                 path: null,
                 metaTag: true,
                 skipTagged: false,
+                includeSubfolders: true,
                 mainTag: {id3: 'AUDIO_FEATURES', vorbis: 'AUDIO_FEATURES', mp4: 'AUDIO_FEATURES'},
                 separators: {id3: ', ', vorbis: null, mp4: ', '},
                 properties: {
