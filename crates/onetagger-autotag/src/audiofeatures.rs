@@ -2,6 +2,7 @@ use std::error::Error;
 use std::thread;
 use chrono::Local;
 use crossbeam_channel::{unbounded, Receiver};
+use onetagger_platforms::spotify::rspotify::model::{TrackId, Id};
 use serde::{Serialize, Deserialize};
 use onetagger_tagger::{AudioFileInfo, MatchingUtils};
 use onetagger_platforms::spotify::{Spotify, rspotify};
@@ -227,7 +228,7 @@ impl AudioFeatures {
         if let Some(isrc) = track.isrc.as_ref() {
             let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
             if let Some(t) = results.first() {
-                track_id = Some(t.id.as_ref().ok_or("Missing track ID")?.to_owned());
+                track_id = Some(t.id.as_ref().ok_or("Missing track ID")?.id().to_owned());
                 full_track = Some(t.clone());
                 info!("[AF] Found track by ISRC. {:?}", track_id);
             }
@@ -243,8 +244,8 @@ impl AudioFeatures {
                 let artists: Vec<String> = t.artists.iter().map(|a| a.name.to_owned()).collect();
                 if title_1 == title_2 && MatchingUtils::match_artist(&artists, &track.artists, 1.0) {
                     if let Some(id) = &t.id {
-                        info!("[AF] Matched by exact title. {}", id);
-                        track_id = Some(id.to_string());
+                        info!("[AF] Matched by exact title. {id}");
+                        track_id = Some(id.id().to_owned());
                         full_track = Some(t.clone());
                         break;
                     }
@@ -253,7 +254,7 @@ impl AudioFeatures {
         }
 
         // Get features
-        let features = spotify.audio_features(&track_id.ok_or("Invalid track / no match")?)?;
+        let features = spotify.audio_features(&TrackId::from_id(&track_id.ok_or("Invalid track / no match")?)?)?;
         Ok((features, full_track.unwrap()))
     }
 

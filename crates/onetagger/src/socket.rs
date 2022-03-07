@@ -347,16 +347,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             }).to_string())).ok();
         }
         Action::SpotifyAuthorize { client_id, client_secret } => {
-            // Authorize cached
-            if let Some(spotify) = Spotify::try_cached_token(&client_id, &client_secret) {
-                context.spotify = Some(spotify);
-            // Authorize new
-            } else {
-                let (auth_url, mut oauth) = Spotify::generate_auth_url(&client_id, &client_secret);
-                webbrowser::open(&auth_url)?;
-                let spotify = Spotify::auth_server(&mut oauth, context.start_context.expose)?;
-                context.spotify = Some(spotify);
-            }
+            let client = Spotify::create_client(&client_id, &client_secret);
+            context.spotify = Some(Spotify::authorize(client)?);
             websocket.write_message(Message::from(json!({
                 "action": "spotifyAuthorized",
                 "value": true
