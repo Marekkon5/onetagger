@@ -98,7 +98,9 @@
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
                 <transition name="fade" v-if='$1t.info.ready'>
-                    <router-view />
+                    <keep-alive :include='["AudioFeatures"]'>
+                        <router-view />
+                    </keep-alive>
                 </transition>
                 <!-- Loading -->
                 <div v-if='!$1t.info.ready' class='row justify-center items-center' style='height: calc(100vh - 64px)'>
