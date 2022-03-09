@@ -1,49 +1,126 @@
 use std::error::Error;
-use rspotify::clients::BaseClient;
+use std::sync::{Arc, Mutex};
+use rspotify::clients::{BaseClient, OAuthClient};
 use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality, Market, Country};
-use rspotify::{Credentials, Config, ClientCredsSpotify};
+use rspotify::{Credentials, Config, AuthCodeSpotify, OAuth, scopes};
 use rspotify::model::album::FullAlbum;
 use rspotify::model::artist::FullArtist;
 use rspotify::model::search::SearchResult;
 use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
+use rouille::{Server, router};
 use onetagger_shared::Settings;
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
 
+static CALLBACK_PORT: u16 = 36914;
+static CALLBACK_HTML: &'static str = "
+<html>
+    <head><script>window.close();</script></head>
+    <body>
+        <h1>Spotify authorized successfully, you can close this window.</h1>
+    </body>
+</html>
+";
 
 static PITCH_CLASS_MAJOR: [&'static str; 12] = ["C", "C#",   "D",  "D#",  "E",  "F",  "F#",  "G",  "G#",  "A",  "A#",  "B" ];
 static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Gm", "Abm", "Am", "Bbm", "Bm"];
 
 #[derive(Clone)]
 pub struct Spotify {
-    pub spotify: ClientCredsSpotify
+    pub spotify: AuthCodeSpotify
 }
 
 impl Spotify {
-    /// Create ClientCredsSpotify with parameters
-    pub fn create_client(client_id: &str, client_secret: &str) -> ClientCredsSpotify {
+    /// Create AuthCodeSpotify with parameters
+    pub fn create_client(client_id: &str, client_secret: &str) -> AuthCodeSpotify {
         let credentials = Credentials::new(client_id, client_secret);
         let mut config = Config::default();
         config.cache_path = Settings::get_folder().unwrap().join("spotify_token_cache.json");
         config.token_cached = true;
-        config.token_refreshing = true;
-        let client = ClientCredsSpotify::with_config(credentials, config);
+        // config.token_refreshing = true;
+        let mut oauth = OAuth::default();
+        oauth.scopes = scopes!("user-read-private");
+        oauth.redirect_uri = format!("http://127.0.0.1:{}/spotify", CALLBACK_PORT);
+        let client = AuthCodeSpotify::with_config(credentials, oauth, config);
         client
     }
 
-    /// Request auth token
-    pub fn authorize(mut client: ClientCredsSpotify) -> Result<Spotify, Box<dyn Error>> {
-        client.request_token()?;
-        Ok(Spotify { spotify: client })
+    /// Generate OAuth authorization URL
+    pub fn generate_auth_url(client_id: &str, client_secret: &str) -> Result<(String, AuthCodeSpotify), Box<dyn Error>> {
+        let client = Self::create_client(client_id, client_secret);
+        Ok((client.get_authorize_url(false)?, client ))
+    }
+
+    /// Try to authorize spotify from cached token
+    pub fn try_cached_token(client_id: &str, client_secret: &str) -> Option<Spotify> {
+        let mut client = Self::create_client(client_id, client_secret);
+        let token = client.read_token_cache(true).ok()??;
+        *client.token.lock().unwrap() = Some(token);
+        client.refresh_token().ok()?;
+        client.auto_reauth().ok()?;
+        Some(Spotify { spotify: client })
+    }
+
+     /// Authentication server for callback from spotify
+     pub fn auth_server(mut spotify: AuthCodeSpotify, expose: bool) -> Result<Spotify, Box<dyn Error>> {
+        // Prepare server
+        let token: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+        let token_clone = token.clone();
+
+        let host = match expose {
+            true => "0.0.0.0",
+            false => "127.0.0.1"
+        };
+        let server = Server::new(&format!("{}:{}", host, CALLBACK_PORT), move |request| {
+            router!(request, 
+                (GET) (/spotify) => {
+                    // Get token
+                    if request.get_param("code").is_some() {
+                        let mut t = token_clone.lock().unwrap();
+                        *t = Some(format!("http://127.0.0.1:{}{}", CALLBACK_PORT, request.raw_url()));
+                    }
+                },
+                _ => {}
+            );
+            // Navigate back
+            rouille::Response::html(CALLBACK_HTML)
+        }).unwrap();
+        // Run server
+        loop {
+            if token.lock().unwrap().is_some() {
+                break;
+            }
+            server.poll();
+        }
+        let token_lock = token.lock().unwrap();
+        let token = token_lock.as_ref().unwrap();
+
+        // Auth
+        let code = spotify.parse_response_code(token.trim()).ok_or("Invalid token url!")?;
+        spotify.request_token(&code)?;
+        spotify.auto_reauth()?;
+        spotify.write_token_cache()?;
+        Ok(Spotify {
+            spotify
+        })
+    }
+
+    /// Authorize from URL
+    pub fn auth_token_code(mut spotify: AuthCodeSpotify, url: &str) -> Result<Spotify, Box<dyn Error>> {
+        let code = spotify.parse_response_code(url).ok_or("Invalid token url!")?;
+        spotify.request_token(&code)?;
+        spotify.auto_reauth()?;
+        spotify.write_token_cache()?;
+        Ok(Spotify {
+            spotify
+        })
     }
 
     /// Search tracks by query
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
-        // rspotify 0.10 doesn't url encode for some reason
-        // let q = urlencoding::encode(query);
         let results = self.spotify.search(query, &SearchType::Track, Some(&Market::Country(Country::UnitedKingdom)), None, Some(limit), None)?;
         let mut tracks = vec![];
         if let SearchResult::Tracks(tracks_page) = results {
@@ -157,8 +234,7 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
         let config = config.spotify.clone().ok_or("Missing Spotify config!")?;
-        let spotify = Spotify::create_client(&config.client_id, &config.client_secret);
-        let spotify = Spotify::authorize(spotify)?;
+        let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or("Spotify not authorized!")?;
         Ok(Box::new(spotify))
     }
 

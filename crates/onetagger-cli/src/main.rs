@@ -57,9 +57,8 @@ fn main() {
                 subfolders = false;
             }
             // Auth spotify
-            let client = Spotify::create_client(&client_id, &client_secret);
-            let spotify = Spotify::authorize(client).expect("Spotify auth failed! Check your client_id and client_secret!");
-            
+            let spotify = Spotify::try_cached_token(client_id, client_secret)
+                .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
             let files = Tagger::get_file_list(&path, subfolders);
             let rx = AudioFeatures::start_tagging(config, spotify, files);
             let start = timestamp!();
@@ -68,6 +67,24 @@ fn main() {
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
         },
+        // Spotify OAuth flow
+        Actions::AuthorizeSpotify { client_id, client_secret, expose, prompt } => {
+            let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret).expect("Failed generating auth URL!");
+            println!("\nPlease go to the following URL and authorize 1T:\n{auth_url}");
+            // should cache the token
+            match prompt {
+                true => {
+                    println!("\nEnter the URL you were redirected to and press enter: ");
+                    let mut url = String::new();
+                    std::io::stdin().read_line(&mut url).expect("Couldn't read from stdin!");
+                    let _spotify = Spotify::auth_token_code(client, url.trim()).expect("Spotify authentication failed!");
+                },
+                false => {
+                    let _spotify = Spotify::auth_server(client, *expose).expect("Spotify authentication failed!");
+                }
+            }
+            info!("Succesfully authorized Spotify!");
+        }
     }
 }
 
@@ -198,6 +215,24 @@ enum Actions {
         #[clap(long)]
         no_subfolders: bool,
     },
+    /// Authorize Spotify and cache the token
+    AuthorizeSpotify {
+        /// Spotify Client ID
+        #[clap(long)]
+        client_id: String,
+
+        /// Spotify Client Secret
+        #[clap(long)]
+        client_secret: String,
+
+        /// Run Spotify authentication callback server on `0.0.0.0`
+        #[clap(long)]
+        expose: bool,
+
+        /// Don't start server, prompt for the redirected URL 
+        #[clap(long)]
+        prompt: bool
+    }
 }
 
 /// For easily generating the tags string to config
