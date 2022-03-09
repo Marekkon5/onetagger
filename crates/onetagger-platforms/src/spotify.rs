@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 use rspotify::clients::{BaseClient, OAuthClient};
-use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality, Market, Country};
+use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
 use rspotify::{Credentials, Config, AuthCodeSpotify, OAuth, scopes};
 use rspotify::model::album::FullAlbum;
 use rspotify::model::artist::FullArtist;
@@ -121,7 +121,7 @@ impl Spotify {
 
     /// Search tracks by query
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
-        let results = self.spotify.search(query, &SearchType::Track, Some(&Market::Country(Country::UnitedKingdom)), None, Some(limit), None)?;
+        let results = self.spotify.search(query, &SearchType::Track, None, None, Some(limit), None)?;
         let mut tracks = vec![];
         if let SearchResult::Tracks(tracks_page) = results {
             tracks = tracks_page.items;
