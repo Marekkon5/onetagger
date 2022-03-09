@@ -40,7 +40,7 @@ impl Spotify {
         let mut config = Config::default();
         config.cache_path = Settings::get_folder().unwrap().join("spotify_token_cache.json");
         config.token_cached = true;
-        // config.token_refreshing = true;
+        config.token_refreshing = true;
         let mut oauth = OAuth::default();
         oauth.scopes = scopes!("user-read-private");
         oauth.redirect_uri = format!("http://127.0.0.1:{}/spotify", CALLBACK_PORT);
