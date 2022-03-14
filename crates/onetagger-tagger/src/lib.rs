@@ -12,8 +12,8 @@ use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat};
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
-/// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 1;
+pub mod custom;
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -320,6 +320,7 @@ pub trait AutotaggerSource: Any + Send + Sync {
 /// Platform info for GUI platform selector
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[repr(C)]
 pub struct PlatformInfo {
     /// Should be unique
     pub id: String,
@@ -341,6 +342,7 @@ pub struct PlatformInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
+#[repr(C)]
 pub enum PlatformCustomOptionValue {
     /// Switch
     Boolean { value: bool },
@@ -356,6 +358,7 @@ pub enum PlatformCustomOptionValue {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[repr(C)]
 pub struct PlatformCustomOption {
     pub id: String,
     pub label: String,
@@ -382,6 +385,7 @@ impl PlatformCustomOption {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[repr(C)]
 pub struct PlatformCustomOptions {
     pub options: Vec<PlatformCustomOption>
 }
@@ -649,18 +653,3 @@ impl MatchingUtils {
     }
 }
 
-/// Macro for creating custom platform plugins
-/// Huge thanks to: https://michael-f-bryan.github.io/rust-ffi-guide/dynamic_loading.html
-#[macro_export]
-macro_rules! create_plugin {
-    ($plugin_type:ty) => {
-        #[no_mangle]
-        pub static _PLATFORM_COMPATIBILITY: i32 = onetagger_tagger::CUSTOM_PLATFORM_COMPATIBILITY;
-
-        #[no_mangle]
-        pub extern "C" fn _create_plugin() -> *mut dyn onetagger_tagger::AutotaggerSourceBuilder {
-            let boxed: Box<dyn onetagger_tagger::AutotaggerSourceBuilder> = Box::new(<$plugin_type>::new());
-            Box::into_raw(boxed)
-        }
-    }
-}

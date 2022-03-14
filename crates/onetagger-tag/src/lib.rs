@@ -158,6 +158,7 @@ impl AudioFileFormat {
 /// Tag fields from UI
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+#[repr(C)]
 pub struct FrameName {
     pub id3: String,
     pub vorbis: String,
