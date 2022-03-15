@@ -3,7 +3,7 @@ use std::error::Error;
 use crate::Track;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 2;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 3;
 
 /// Macro for creating custom platform plugins
 #[macro_export]
@@ -68,7 +68,7 @@ macro_rules! create_plugin {
     }
 }
 
-/// For returning from FFI
+/// Custom result for returning from FFI
 #[derive(Debug, Clone)]
 #[repr(u8)]
 pub enum MatchTrackResult {

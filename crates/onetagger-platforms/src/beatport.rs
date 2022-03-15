@@ -314,7 +314,7 @@ impl AutotaggerSource for Beatport {
         let custom_config = BeatportConfig::parse(config)?;
 
         // Fetch by ID
-        if let Some(id) = info.ids.beatport_track_id {
+        if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
             info!("Fetching by ID: {}", id);
             // TODO: Serialize properly the private API response, rather than double request
             let api_track = self.fetch_track_embed(id)?;

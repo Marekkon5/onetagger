@@ -20,7 +20,7 @@ minify-html = "0.8"
 
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
-rspotify = { git = "https://github.com/Marekkon5/rspotify.git", branch = "label", features = ["client-ureq", "ureq-rustls-tls"], default-features = false }
+rspotify = { version = "0.11.4", features = ["client-ureq", "ureq-rustls-tls"], default-features = false }
 
 onetagger-tag = { path = "../onetagger-tag" }
 onetagger-shared = { path = "../onetagger-shared" }

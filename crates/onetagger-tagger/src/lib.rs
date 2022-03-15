@@ -123,6 +123,7 @@ impl Default for MultipleMatchesSort {
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
+#[repr(C)]
 pub struct Track {
     // Use platform id
     pub platform: String,
@@ -172,6 +173,7 @@ impl Track {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
 pub enum TrackNumber {
     Number(i32),
     /// Custom format (Discogs)
@@ -243,6 +245,7 @@ pub const CAMELOT_NOTES: [(&str, &str); 35] = [
 ];
 
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub struct AudioFileInfo {
     pub title: Option<String>,
     pub artists: Vec<String>,
@@ -251,8 +254,8 @@ pub struct AudioFileInfo {
     pub isrc: Option<String>,
     pub duration: Option<Duration>,
     pub track_number: Option<u16>,
-    pub ids: AudioFileIDs,
-    pub was_tagged: bool,
+    pub tagged: FileTaggedStatus,
+    pub tags: HashMap<String, Vec<String>>
 }
 
 impl AudioFileInfo {
@@ -273,31 +276,32 @@ impl AudioFileInfo {
         }
         Ok(self.artists.first().unwrap().as_str())
     }
-    
 }
 
-/// IDs from various platforms
-#[derive(Debug, Clone, Default)]
-pub struct AudioFileIDs {
-    pub discogs_release_id: Option<i64>,
-    pub beatport_track_id: Option<i64>,
+/// If the file was already tagged with OneTagger
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileTaggedStatus {
+    /// Not tagged with 1T
+    Untagged,
+    /// Tagged using 1T AudioFeatures
+    AudioFeatures,
+    /// Tagged using 1T AutoTagger
+    AutoTagger,
+    /// Tagged using older version of 1T (can be either AT or AF)
+    Tagged
 }
 
-impl AudioFileIDs {
-    /// Clean tag data and parse as int ID
-    pub fn try_parse_int(input: &Vec<String>) -> Option<i64> {
-        if input.is_empty() {
-            return None;
-        }
-        input[0].trim().replace("\0", "").parse().ok()
+impl FileTaggedStatus {
+    /// Was tagged with AutoTagger
+    pub fn at(&self) -> bool {
+        self == &FileTaggedStatus::AutoTagger || self == &FileTaggedStatus::Tagged
     }
 
-    // If all values are missing
-    pub fn is_empty(&self) -> bool {
-        self.discogs_release_id.is_none() && self.beatport_track_id.is_none()
+    /// Was tagged with AudioFeatures
+    pub fn af(&self) -> bool {
+        self == &FileTaggedStatus::AudioFeatures || self == &FileTaggedStatus::Tagged
     }
 }
-
 
 /// For generating `AutotaggerSource`
 pub trait AutotaggerSourceBuilder: Any + Send + Sync {

@@ -178,7 +178,7 @@ impl AudioFeatures {
                 };
                 // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None) {
-                    if config.skip_tagged && info.was_tagged {
+                    if config.skip_tagged && info.tagged.af() {
                         // Skip tagged
                         status.status = TaggingState::Skipped;
                         status.message = Some("Already tagged!".to_string());
@@ -285,7 +285,7 @@ impl AudioFeatures {
         // Meta tag
         if config.meta_tag {
             let time = Local::now();
-            tag.set_raw("1T_TAGGEDDATE", vec![time.format("%Y-%m-%d %H:%M:%S").to_string()], true);
+            tag.set_raw("1T_TAGGEDDATE", vec![format!("{}_AF", time.format("%Y-%m-%d %H:%M:%S"))], true);
         }
 
         // Save

@@ -12,6 +12,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
+use onetagger_tagger::FileTaggedStatus;
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -19,9 +20,9 @@ use chrono::Datelike;
 use serde::{Serialize, Deserialize};
 use crossbeam_channel::{unbounded, Sender, Receiver};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
-use onetagger_shared::{OTError, Settings};
+use onetagger_shared::Settings;
 use onetagger_player::AudioSources;
-use onetagger_tagger::{Track, AudioFileInfo, AudioFileIDs, TaggerConfig, TrackNumber, StylesOptions, PlatformCustomOptionValue,
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, TrackNumber, StylesOptions, PlatformCustomOptionValue,
     AutotaggerSource, AutotaggerSourceBuilder, PlatformCustomOptionsResponse, CAMELOT_NOTES};
 
 use crate::shazam::Shazam;
@@ -248,7 +249,7 @@ impl TrackImpl for Track {
         // Meta tags (date / success)
         if config.meta_tags {
             let time = Local::now();
-            tag.set_raw("1T_TAGGEDDATE", vec![time.format("%Y-%m-%d %H:%M:%S").to_string()], true);
+            tag.set_raw("1T_TAGGEDDATE", vec![format!("{}_AT", time.format("%Y-%m-%d %H:%M:%S"))], true);
         }
 
         // Save
@@ -321,11 +322,19 @@ impl AudioFileInfoImpl for AudioFileInfo {
             }
         }
 
-        // Platform IDs
-        let ids = AudioFileIDs::load(&tag);
-        if (title.is_none() || artists.is_none()) && ids.is_empty() {
-            return Err(OTError::new("Missing track metadata (title/artist or id)").into());
-        }
+        // Get tagging status
+        let tagged = match tag.get_raw("1T_TAGGEDDATE").map(|t| t.first().map(String::from)).flatten() {
+            Some(val) => {
+                if val.ends_with("_AT") {
+                    FileTaggedStatus::AutoTagger
+                } else if val.ends_with("_AF") {
+                    FileTaggedStatus::AudioFeatures
+                } else {
+                    FileTaggedStatus::Tagged
+                }
+            },
+            None => FileTaggedStatus::Untagged,
+        };
 
         // Track number
         let track_number = tag.get_field(Field::TrackNumber).unwrap_or(vec![String::new()])[0].parse().ok();
@@ -337,8 +346,8 @@ impl AudioFileInfoImpl for AudioFileInfo {
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
             track_number,
-            ids,
-            was_tagged: tag.get_raw("1T_TAGGEDDATE").is_some()
+            tagged,
+            tags: tag.all_tags()
         })
     }
 
@@ -408,8 +417,8 @@ impl AudioFileInfoImpl for AudioFileInfo {
                     isrc: Some(shazam_track.isrc),
                     duration: Some(Duration::from_millis(duration as u64)),
                     track_number: None,
-                    ids: Default::default(),
-                    was_tagged: false
+                    tagged: FileTaggedStatus::Untagged,
+                    tags: Default::default(),
                 });
             },
             // Mark as failed
@@ -420,23 +429,6 @@ impl AudioFileInfoImpl for AudioFileInfo {
         }
     }
 }
-
-trait AudioFileIDsImpl {
-    /// Load IDs from File
-    fn load(tag: &Box<&dyn TagImpl>) -> AudioFileIDs;
-}
-
-impl AudioFileIDsImpl for AudioFileIDs {
-    // Load IDs from file
-    fn load(tag: &Box<&dyn TagImpl>) -> AudioFileIDs {
-        AudioFileIDs {
-            discogs_release_id: tag.get_raw("DISCOGS_RELEASE_ID").map(|v| AudioFileIDs::try_parse_int(&v)).flatten(),
-            beatport_track_id: tag.get_raw("BEATPORT_TRACK_ID").map(|v| AudioFileIDs::try_parse_int(&v)).flatten()
-        }
-    }
-}
-
-
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -654,7 +646,7 @@ impl Tagger {
         };
 
         // Skip tagged
-        if config.skip_tagged && info.was_tagged {
+        if config.skip_tagged && info.tagged.at() {
             info!("Skipping (already tagged): {path}");
             out.status = TaggingState::Skipped;
             out.message = Some("Already tagged".to_string());

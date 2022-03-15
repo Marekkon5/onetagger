@@ -203,6 +203,7 @@ impl CustomPlatform {
             }
             source_ptr
         };
+        // Lifetime fix
         let match_fn = unsafe {
             let f: Symbol<unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult> = 
                 self.library.get(b"_1t_match_track")?;

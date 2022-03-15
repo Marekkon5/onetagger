@@ -152,18 +152,20 @@ impl AutotaggerSource for Discogs {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         let discogs_config = DiscogsConfig::parse(config)?;
         // Exact ID match
-        if config.match_by_id && info.ids.discogs_release_id.is_some() {
-            let release = self.full_release(ReleaseType::Release, info.ids.discogs_release_id.unwrap())?;
-            // Exact track number match
-            if let Some(track_number) = info.track_number {
-                return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options, &discogs_config))))
+        if config.match_by_id {
+            if let Some(id) = info.tags.get("DISCOGS_RELEASE_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
+                let release = self.full_release(ReleaseType::Release, id)?;
+                // Exact track number match
+                if let Some(track_number) = info.track_number {
+                    return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options, &discogs_config))))
+                }
+                // Match inside release
+                let mut tracks = vec![];
+                for i in 0..release.tracks.len() {
+                    tracks.push(release.get_track(i, &config.styles_options, &discogs_config));
+                }
+                return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
             }
-            // Match inside release
-            let mut tracks = vec![];
-            for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options, &discogs_config));
-            }
-            return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
         }
         
         // Search
