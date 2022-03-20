@@ -7,6 +7,7 @@ import AutotaggerStatus from '../views/AutotaggerStatus.vue';
 import QuickTag from '../views/QuickTag.vue';
 import AudioFeatures from '../views/AudioFeatures.vue';
 import TagEditor from '../views/TagEditor.vue';
+import Renamer from '../views/Renamer.vue';
 
 Vue.use(VueRouter);
 
@@ -38,6 +39,10 @@ const routes = [
   {
     path: '/tageditor',
     component: TagEditor
+  },
+  {
+    path: '/renamer',
+    component: Renamer
   }
 ]
 

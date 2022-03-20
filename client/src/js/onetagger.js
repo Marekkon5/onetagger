@@ -98,6 +98,9 @@ class OneTagger {
                     // Tag editor
                     if (json.context == 'te')
                         this.onTagEditorEvent(json);
+                    // Renamer
+                    if (json.context == 'rn' || json.context == 'rnOutput')
+                        this.onRenamerEvent(json)
                     break;
                 // Error
                 case 'error':
@@ -173,6 +176,11 @@ class OneTagger {
                     // Tag editor
                     if (json.action.startsWith('tagEditor')) {
                         this.onTagEditorEvent(json);
+                        break;
+                    }
+                    // Renamer
+                    if (json.action.startsWith('renamer')) {
+                        this.onRenamerEvent(json);
                         break;
                     }
 
@@ -310,6 +318,14 @@ class OneTagger {
             volume: 0.05,
             helpButton: true,
             continuePlayback: false,
+            renamer: {
+                path: null,
+                outDir: null,
+                template: null,
+                copy: false,
+                subfolders: true,
+                overwrite: false
+            },
             quickTag: {
                 recursive: false,
                 autosave: false,
@@ -470,6 +486,7 @@ class OneTagger {
     onTagEditorEvent() {}
     onAudioFeaturesEvent() {}
     onSpotifyAuthEvent() {}
+    onRenamerEvent() {}
 
     // Send to socket
     async send(action, params = {}) {

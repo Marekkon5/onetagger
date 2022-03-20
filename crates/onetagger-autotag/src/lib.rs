@@ -292,7 +292,7 @@ pub trait AudioFileInfoImpl {
     /// Load using shazam
     fn shazam(path: &str) -> Result<AudioFileInfo, Box<dyn Error>>;
     /// Get list of all files in with supported extensions
-    fn get_file_list(path: &str, subfolders: bool) -> Vec<String> ;
+    fn get_file_list(path: &str, subfolders: bool) -> Vec<String>;
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {

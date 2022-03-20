@@ -2441,6 +2441,7 @@ dependencies = [
  "onetagger-platforms",
  "onetagger-player",
  "onetagger-playlist",
+ "onetagger-renamer",
  "onetagger-shared",
  "onetagger-tag",
  "onetagger-tagger",

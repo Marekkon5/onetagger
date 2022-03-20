@@ -57,6 +57,14 @@
                                 @click="hideSide"
                                 >Edit Tags</q-route-tab
                             >
+
+                            <q-route-tab
+                                :disable="$1t.lock.locked"
+                                to="/renamer"
+                                class="text-weight-bolder"
+                                @click="hideSide"
+                                >Renamer</q-route-tab>
+                            
                         </q-tabs>
                     </div>
 

@@ -4,6 +4,7 @@ use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::thread;
 use std::path::{Path, PathBuf};
+use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
 use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
@@ -52,7 +53,10 @@ enum Action {
 
     TagEditorFolder { path: Option<String>, subdir: Option<String>, recursive: Option<bool>  },
     TagEditorLoad { path: String },
-    TagEditorSave { changes: TagChanges }
+    TagEditorSave { changes: TagChanges },
+
+    RenamerSyntaxHighlight { template: String },
+    RenamerStart { config: RenamerConfig }
 }
 
 
@@ -395,6 +399,25 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "tagEditorSave"
             }).to_string())).ok();
         },
+        // Syntax highlight for renamer
+        Action::RenamerSyntaxHighlight { template } => {
+            let renamer = Renamer::new(TemplateParser::parse(&template));
+            let html = renamer.generate_html(&template);
+            websocket.write_message(Message::from(json!({
+                "action": "renamerSyntaxHighlight",
+                "html": html
+            }).to_string())).ok();
+        },
+        // Start renamer
+        Action::RenamerStart { config } => {
+            let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
+            renamer.rename(&config)?;
+            websocket.write_message(Message::from(json!({
+                "action": "renamerDone",
+            }).to_string())).ok();
+        },
+        
+        
     }
    
     Ok(())

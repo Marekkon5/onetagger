@@ -55,7 +55,11 @@ impl TemplateParser {
             buffer.push(c);
         }
 
-
+        // Leftover
+        if !buffer.is_empty() {
+            tokens.push(TokenType::Constant(TokenConstant::new(&buffer)));
+            syntax.add(buffer.len(), SyntaxType::Text);
+        }
         TemplateParser { tokens, syntax: syntax.build() }
     }
 }
@@ -230,6 +234,27 @@ impl TokenCommand {
 
                     // End of string
                     if !buffer.is_empty() {
+                        if !string {
+                            // End of variable
+                            if !was_variable {
+                                tokens.push(TokenType::Variable(TokenVariable::new(&buffer)));
+                                syntax.add(buffer.len(), SyntaxType::Variable);
+                                buffer.clear();
+                                string = true;
+                                was_variable = true;
+                                syntax.add(1, SyntaxType::Operator);
+                                continue;
+                            }
+                            // End of property
+                            tokens.push(TokenType::Property(TokenProperty::new(&buffer)));
+                            syntax.add(buffer.len(), SyntaxType::Property);
+                            buffer.clear();
+                            string = true;
+                            syntax.add(1, SyntaxType::Operator);
+                            continue;
+                        }
+
+                        // End of string
                         tokens.push(TokenType::Constant(TokenConstant::new(&buffer)));
                         syntax.add(buffer.len(), SyntaxType::String);
                         buffer.clear();

@@ -38,6 +38,10 @@ impl Renamer {
 
     /// Generate names - output: [(from, to),...]
     pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
+        if !Path::new(&config.path).exists() {
+            return Err("Invalid path!".into());
+        }
+        
         let out_dir = config.out_dir.clone().unwrap_or(config.path.to_string());
         let files = AudioFileInfo::get_file_list(&config.path, config.subfolders);
         let mut output = vec![];
@@ -100,6 +104,25 @@ impl Renamer {
         }
 
         Ok(())
+    }
+
+    /// Generate html from the syntax highlighting
+    pub fn generate_html(&self, input: &str) -> String {
+        let mut output = String::new();
+        for syntax in &self.template.syntax {
+            let text = input.chars().skip(syntax.start).take(syntax.length).collect::<String>();
+            let class = match syntax.syntax {
+                SyntaxType::Text => "syntax_text",
+                SyntaxType::String => "syntax_string",
+                SyntaxType::Number => "syntax_number",
+                SyntaxType::Function => "syntax_function",
+                SyntaxType::Operator => "syntax_operator",
+                SyntaxType::Property => "syntax_property",
+                SyntaxType::Variable => "syntax_variable",
+            };
+            output.push_str(&format!("<span class=\"{class}\">{text}</span>"));
+        }
+        output
     }
 }
 
