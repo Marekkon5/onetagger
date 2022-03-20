@@ -6,6 +6,7 @@ members = [
     "crates/onetagger-shared",
     "crates/onetagger-player",
     "crates/onetagger-tagger",
+    "crates/onetagger-renamer",
     "crates/onetagger-autotag",
     "crates/onetagger-playlist",
     "crates/onetagger-platforms",

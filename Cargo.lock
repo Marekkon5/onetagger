@@ -2496,6 +2496,7 @@ dependencies = [
  "log",
  "onetagger-autotag",
  "onetagger-platforms",
+ "onetagger-renamer",
  "onetagger-shared",
  "onetagger-tagger",
  "serde_json",
@@ -2546,6 +2547,17 @@ dependencies = [
  "base64",
  "onetagger-shared",
  "onetagger-tag",
+ "serde",
+]
+
+[[package]]
+name = "onetagger-renamer"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "onetagger-autotag",
+ "onetagger-tagger",
+ "pad",
  "serde",
 ]
 
@@ -2639,6 +2651,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e22443d1643a904602595ba1cd8f7d896afe56d26712531c5ff73a15b2fbf64"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "pad"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2ad9b889f1b12e0b9ee24db044b5129150d5eada288edc800f789928dc8c0e3"
+dependencies = [
+ "unicode-width",
 ]
 
 [[package]]

@@ -8,8 +8,8 @@ use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::{TagChanges, TagSeparators};
-use onetagger_tagger::TaggerConfig;
-use onetagger_autotag::{Tagger, AutotaggerPlatforms};
+use onetagger_tagger::{TaggerConfig, AudioFileInfo};
+use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -225,7 +225,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     // Load file list
                     if files.is_empty() {
                         let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or(String::new());
-                        files = Tagger::get_file_list(&path, c.include_subfolders);
+                        files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
                         file_count = files.len();
                         folder_path = Some(path);
                     }
@@ -235,7 +235,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 TaggerConfigs::AudioFeatures(c) => {
                     if files.is_empty() {
                         let path = c.path.as_ref().unwrap_or(&String::new()).to_owned();
-                        files = Tagger::get_file_list(&path, c.include_subfolders);
+                        files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
                         folder_path = Some(path);
                         file_count = files.len();
                     }

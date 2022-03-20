@@ -81,6 +81,17 @@ Section "One Tagger" OneTagger
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
 	CreateDirectory "$SMPROGRAMS\OneTagger"
 	CreateShortcut "$SMPROGRAMS\OneTagger\${PRODUCT_NAME}.lnk" "$INSTDIR\onetagger.exe" "" "$INSTDIR\icon.ico"
+	; Registry
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
+		"DisplayName" "${PRODUCT_NAME}"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
+		"UninstallString" "$INSTDIR\Uninstall.exe"
+	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
+		"EstimatedSize" "70656"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
+		"DisplayIcon" "$INSTDIR\icon.ico"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
+		"InstallLocation" "$INSTDIR"
 	; Dependencies
 	ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet'
 	ExecWait '"$INSTDIR\onetagger.exe" --bootstrap-webview2'

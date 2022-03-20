@@ -65,6 +65,7 @@ pub fn setup() {
         .level_for("onetagger_platforms", level)
         .level_for("onetagger_player", level)
         .level_for("onetagger_playlist", level)
+        .level_for("onetagger_renamer", level)
         .level_for("onetagger_tag", level)
         .level_for("onetagger_cli", level)
         .level_for("onetagger_tagger", level)

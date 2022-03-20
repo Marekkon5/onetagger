@@ -155,26 +155,6 @@ impl ID3Tag {
         ).1.clone()
     }
 
-    // Convert Field to tag name
-    fn field(&self, field: Field) -> String {
-        match field {
-            Field::Title => "TIT2".to_string(),
-            Field::Artist => "TPE1".to_string(),
-            Field::AlbumArtist => "TPE2".to_string(),
-            Field::Album => "TALB".to_string(),
-            Field::Key => "TKEY".to_string(),
-            Field::BPM => "TBPM".to_string(),
-            Field::Genre => "TCON".to_string(),
-            Field::Label => "TPUB".to_string(),
-            Field::Style => "STYLE".to_string(),
-            Field::ISRC => "TSRC".to_string(),
-            Field::CatalogNumber => "CATALOGNUMBER".to_string(),
-            Field::Version => "TIT3".to_string(),
-            Field::TrackNumber => "TRCK".to_string(),
-            Field::Duration => "TLEN".to_string(),
-            Field::Remixer => "TPE4".to_string()
-        }
-    }
 }
 
 impl TagImpl for ID3Tag {
@@ -335,16 +315,16 @@ impl TagImpl for ID3Tag {
             value[0] = format!("{}000", value[0]);
         }
 
-        self.set_raw(&self.field(field), value, overwrite);
+        self.set_raw(field.id3(), value, overwrite);
     }
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
         // Track number override (tag value: Track number/Total track)
         if field == Field::TrackNumber {
-            return Some(vec![self.get_raw(&self.field(field))?.first()?
+            return Some(vec![self.get_raw(field.id3())?.first()?
                 .split("/").map(|v| v.to_string()).collect::<Vec<String>>().first()?.to_string()]);
         }
 
-        self.get_raw(&self.field(field))
+        self.get_raw(field.id3())
     }
 
     // Set/Get by tag

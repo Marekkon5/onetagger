@@ -9,3 +9,4 @@ client/dist/
 dist/
 osxcross/
 .vscode/
+test/

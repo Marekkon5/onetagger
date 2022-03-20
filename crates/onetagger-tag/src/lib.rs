@@ -246,7 +246,7 @@ impl TagDate {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Field {
     Title,
     Artist,
@@ -264,6 +264,82 @@ pub enum Field {
     Duration,
     Remixer
 }
+
+impl Field {
+    /// Get tag name by format
+    pub fn by_format(&self, format: &AudioFileFormat) -> &'static str {
+        match format {
+            AudioFileFormat::FLAC => self.vorbis(),
+            AudioFileFormat::AIFF => self.id3(),
+            AudioFileFormat::MP3 => self.id3(),
+            AudioFileFormat::MP4 => self.mp4(),
+        }
+    }
+
+    /// Convert to ID3 frame name
+    pub fn id3(&self) -> &'static str {
+        match self {
+            Field::Title => "TIT2",
+            Field::Artist => "TPE1",
+            Field::AlbumArtist => "TPE2",
+            Field::Album => "TALB",
+            Field::Key => "TKEY",
+            Field::BPM => "TBPM",
+            Field::Genre => "TCON",
+            Field::Label => "TPUB",
+            Field::Style => "STYLE",
+            Field::ISRC => "TSRC",
+            Field::CatalogNumber => "CATALOGNUMBER",
+            Field::Version => "TIT3",
+            Field::TrackNumber => "TRCK",
+            Field::Duration => "TLEN",
+            Field::Remixer => "TPE4"
+        }
+    }
+
+    /// Convert to VORBIS frame name
+    pub fn vorbis(&self) -> &'static str {
+        match self {
+            Field::Title => "TITLE",
+            Field::Artist => "ARTIST",
+            Field::AlbumArtist => "ALBUMARTIST",
+            Field::Album => "ALBUM",
+            Field::Key => "INITIALKEY",
+            Field::BPM => "BPM",
+            Field::Genre => "GENRE",
+            Field::Label => "LABEL",
+            Field::Style => "STYLE",
+            Field::ISRC => "ISRC",
+            Field::CatalogNumber => "CATALOGNUMBER",
+            Field::Version => "SUBTITLE",
+            Field::TrackNumber => "TRACKNUMBER",
+            Field::Duration => "LENGTH",
+            Field::Remixer => "REMIXER"
+        }
+    }
+
+    /// Convert to MP4 frame name
+    pub fn mp4(&self) -> &'static str {
+        match self {
+            Field::Title => "©nam",
+            Field::Artist => "©ART",
+            Field::AlbumArtist => "aART",
+            Field::Album => "©alb",
+            Field::BPM => "tmpo",
+            Field::Genre => "©gen",
+            Field::Label => "com.apple.iTunes:LABEL",
+            Field::ISRC => "com.apple.iTunes:ISRC",
+            Field::CatalogNumber => "com.apple.iTunes:CATALOGNUMBER",
+            Field::Version => "desc",
+            Field::TrackNumber => "trkn",
+            Field::Remixer => "com.apple.iTunes:REMIXER",
+            Field::Key => "com.apple.iTunes:KEY",
+            Field::Style => "com.apple.iTunes:STYLE",
+            Field::Duration => "com.apple.iTunes:LENGTH",
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]

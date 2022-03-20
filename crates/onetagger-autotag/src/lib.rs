@@ -282,14 +282,17 @@ impl TrackImpl for Track {
 
 }
 
-trait AudioFileInfoImpl {
+pub trait AudioFileInfoImpl {
     /// Load audio file info from path
     fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>>;
     /// Load duration from file
     fn load_duration(&mut self);
+    /// Parse the filename template
     fn parse_template(template: &str) -> Option<Regex>;
-    fn parse_artist_tag(input: Vec<&str>) -> Vec<String>;
+    /// Load using shazam
     fn shazam(path: &str) -> Result<AudioFileInfo, Box<dyn Error>>;
+    /// Get list of all files in with supported extensions
+    fn get_file_list(path: &str, subfolders: bool) -> Vec<String> ;
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {
@@ -383,26 +386,6 @@ impl AudioFileInfoImpl for AudioFileInfo {
         Regex::new(&template).ok()
     }
 
-    // Try to split artist string with common separators
-    fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
-        // Already an array
-        if input.len() > 1 {
-            return input.into_iter().map(|v| v.to_owned()).collect();
-        }
-        let src = input.first().unwrap();
-
-        if src.contains(';') {
-            return src.split(';').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
-        }
-        if src.contains(',') {
-            return src.split(',').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
-        }
-        if src.contains('/') {
-            return src.split('/').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
-        }
-        vec![src.to_owned().to_owned()]
-    }
-
     // Recognize on Shazam
     fn shazam(path: &str) -> Result<AudioFileInfo, Box<dyn Error>> {
         info!("Recognizing on Shazam: {}", path);
@@ -425,6 +408,36 @@ impl AudioFileInfoImpl for AudioFileInfo {
             Err(e) => {
                 warn!("Shazam failed: {}", e);
                 return Err(e);
+            }
+        }
+    }
+
+    // Get list of all files in with supported extensions
+    fn get_file_list(path: &str, subfolders: bool) -> Vec<String> {
+        if path.is_empty() {
+            return vec![];
+        }
+        if subfolders {
+            let files: Vec<String> = WalkDir::new(path).into_iter().filter(
+                |e| e.is_ok() && 
+                EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
+            ).map(|e| e.unwrap().path().to_str().unwrap().to_owned()).collect();
+            files
+        } else {
+            // No subfolders
+            match std::fs::read_dir(path) {
+                Ok(readdir) => {
+                    readdir
+                        .into_iter()
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.path().to_str().unwrap().to_string())
+                        .filter(|p| EXTENSIONS.iter().any(|i| p.to_lowercase().ends_with(i)))
+                        .collect()
+                },
+                Err(e) => {
+                    warn!("Failed loading folder: {e}");
+                    vec![]
+                }
             }
         }
     }
@@ -683,36 +696,6 @@ impl Tagger {
         }
 
         out
-    }
-
-    // Get list of all files in with supported extensions
-    pub fn get_file_list(path: &str, subfolders: bool) -> Vec<String> {
-        if path.is_empty() {
-            return vec![];
-        }
-        if subfolders {
-            let files: Vec<String> = WalkDir::new(path).into_iter().filter(
-                |e| e.is_ok() && 
-                EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
-            ).map(|e| e.unwrap().path().to_str().unwrap().to_owned()).collect();
-            files
-        } else {
-            // No subfolders
-            match std::fs::read_dir(path) {
-                Ok(readdir) => {
-                    readdir
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                        .map(|e| e.path().to_str().unwrap().to_string())
-                        .filter(|p| EXTENSIONS.iter().any(|i| p.to_lowercase().ends_with(i)))
-                        .collect()
-                },
-                Err(e) => {
-                    warn!("Failed loading folder: {e}");
-                    vec![]
-                }
-            }
-        }
     }
 
     // Tag all files with threads specified in config

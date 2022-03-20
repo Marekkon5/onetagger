@@ -8,12 +8,13 @@ use std::time::Duration;
 use chrono::NaiveDate;
 use regex::Regex;
 use serde::{Serialize, Deserialize};
-use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat};
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
 pub mod custom;
 
+// Re-export
+pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -275,6 +276,25 @@ impl AudioFileInfo {
             return Err("Missing artist tag!".into());
         }
         Ok(self.artists.first().unwrap().as_str())
+    }
+
+    // Try to split artist string with common separators
+    pub fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
+        // Already an array
+        if input.len() > 1 {
+            return input.into_iter().map(|v| v.to_owned()).collect();
+        }
+        let src = input.first().unwrap();
+        if src.contains(';') {
+            return src.split(';').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
+        }
+        if src.contains(',') {
+            return src.split(',').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
+        }
+        if src.contains('/') {
+            return src.split('/').collect::<Vec<&str>>().into_iter().map(|v| v.to_owned()).collect();
+        }
+        vec![src.to_owned().to_owned()]
     }
 }
 

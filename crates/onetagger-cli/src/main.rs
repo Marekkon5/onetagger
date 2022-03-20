@@ -5,10 +5,11 @@ use std::error::Error;
 use std::fs::File;
 use clap::{Parser, Subcommand};
 use onetagger_platforms::spotify::Spotify;
+use onetagger_renamer::{RenamerConfig, Renamer, TemplateParser};
 use onetagger_shared::{VERSION, COMMIT};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
-use onetagger_autotag::{Tagger, TaggerConfigExt};
-use onetagger_tagger::TaggerConfig;
+use onetagger_autotag::{Tagger, TaggerConfigExt, AudioFileInfoImpl};
+use onetagger_tagger::{TaggerConfig, AudioFileInfo};
 
 
 fn main() {
@@ -40,7 +41,7 @@ fn main() {
     match &action {
         Actions::Autotagger { path, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
-            let files = Tagger::get_file_list(&path, config.include_subfolders);
+            let files = AudioFileInfo::get_file_list(&path, config.include_subfolders);
             let rx = Tagger::tag_files(&config, files);
             let start = timestamp!();
             for status in rx {
@@ -59,7 +60,7 @@ fn main() {
             // Auth spotify
             let spotify = Spotify::try_cached_token(client_id, client_secret)
                 .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
-            let files = Tagger::get_file_list(&path, subfolders);
+            let files = AudioFileInfo::get_file_list(&path, subfolders);
             let rx = AudioFeatures::start_tagging(config, spotify, files);
             let start = timestamp!();
             for status in rx {
@@ -84,7 +85,31 @@ fn main() {
                 }
             }
             info!("Succesfully authorized Spotify!");
-        }
+        },
+        // Renamer
+        Actions::Renamer { path, output, template, copy, no_subfolders, preview, overwrite } => {
+            let config = RenamerConfig {
+                path: path.to_string(),
+                out_dir: output.clone(),
+                template: template.to_string(),
+                copy: *copy,
+                subfolders: !*no_subfolders,
+                overwrite: *overwrite
+            };
+            let mut renamer = Renamer::new(TemplateParser::parse(&template));
+
+            // Only preview
+            if *preview {
+                let names = renamer.generate(&config, 0).expect("Failed generating filenames!");
+                for (i, (from, to)) in names.iter().enumerate() {
+                    println!("{}. {} -> {:?}", i + 1, from, to);
+                }
+                return;
+            }
+
+            renamer.rename(&config).expect("Failed renaming!");
+        },
+        
     }
 }
 
@@ -232,6 +257,35 @@ enum Actions {
         /// Don't start server, prompt for the redirected URL 
         #[clap(long)]
         prompt: bool
+    },
+    Renamer {
+        /// Path to input files
+        #[clap(long, short)]
+        path: String,
+
+        /// Output directory
+        #[clap(long, short)]
+        output: Option<String>,
+
+        /// New filename template
+        #[clap(long, short)]
+        template: String,
+
+        /// Copy files instead of moving
+        #[clap(long)]
+        copy: bool,
+
+        /// Exclude subfolders 
+        #[clap(long)]
+        no_subfolders: bool,
+
+        /// Don't actually affect files, only generate new names
+        #[clap(long)]
+        preview: bool,
+
+        /// Overwrite files
+        #[clap(long)]
+        overwrite: bool
     }
 }
 

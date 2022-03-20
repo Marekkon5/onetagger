@@ -79,27 +79,6 @@ impl FLACTag {
     fn cover_type(&self, picture_type: &PictureType) -> CoverType {
         COVER_TYPES.iter().find(|(p, _)| p == picture_type).unwrap().1.clone()
     }
-
-    // Get field tag name
-    fn field(&self, field: Field) -> String {
-        match field {
-            Field::Title => "TITLE".to_string(),
-            Field::Artist => "ARTIST".to_string(),
-            Field::AlbumArtist => "ALBUMARTIST".to_string(),
-            Field::Album => "ALBUM".to_string(),
-            Field::Key => "INITIALKEY".to_string(),
-            Field::BPM => "BPM".to_string(),
-            Field::Genre => "GENRE".to_string(),
-            Field::Label => "LABEL".to_string(),
-            Field::Style => "STYLE".to_string(),
-            Field::ISRC => "ISRC".to_string(),
-            Field::CatalogNumber => "CATALOGNUMBER".to_string(),
-            Field::Version => "SUBTITLE".to_string(),
-            Field::TrackNumber => "TRACKNUMBER".to_string(),
-            Field::Duration => "LENGTH".to_string(),
-            Field::Remixer => "REMIXER".to_string()
-        }
-    }
 }
 
 impl TagImpl for FLACTag {
@@ -195,10 +174,10 @@ impl TagImpl for FLACTag {
     
     // Set/Get named field
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool) {
-        self.set_raw(&self.field(field), value, overwrite);
+        self.set_raw(field.vorbis(), value, overwrite);
     }
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
-        self.get_raw(&self.field(field))
+        self.get_raw(field.vorbis())
     }
 
     // Set raw tag
