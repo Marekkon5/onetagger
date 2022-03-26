@@ -1,6 +1,8 @@
 use onetagger_tagger::{AudioFileInfo, Field};
 use pad::{PadStr, Alignment};
 
+use crate::RenamerConfig;
+
 
 #[derive(Debug, Clone)]
 pub struct TemplateParser {
@@ -10,11 +12,11 @@ pub struct TemplateParser {
 
 impl TemplateParser {
     /// Apply template
-    pub fn evaluate(&mut self, info: &AudioFileInfo) -> String {
+    pub fn evaluate(&mut self, info: &AudioFileInfo, config: &RenamerConfig) -> String {
         let mut output = String::new();
         for token in &self.tokens {
-            if let Some(data) = token.token().get_value(None, info) {
-                output.push_str(&data.to_string());
+            if let Some(data) = token.token().get_value(None, info, config) {
+                output.push_str(&data.to_string(&config.separator));
             }
         }
         output
@@ -143,10 +145,10 @@ enum Data {
 }
 
 impl Data {
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, separator: &str) -> String {
         match self {
             Data::String(s) => s.to_string(),
-            Data::Array(a) => a.join(", "),
+            Data::Array(a) => a.join(separator),
         }
     }
 }
@@ -154,7 +156,7 @@ impl Data {
 /// Every token type should implement this
 trait Token {
     /// Evaluate the token
-    fn get_value(&self, input: Option<&Data>, info: &AudioFileInfo) -> Option<Data>;
+    fn get_value(&self, input: Option<&Data>, info: &AudioFileInfo, config: &RenamerConfig) -> Option<Data>;
 }
 
 
@@ -305,7 +307,7 @@ impl TokenCommand {
 
 
 impl Token for TokenCommand {
-    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo) -> Option<Data> {
+    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, config: &RenamerConfig) -> Option<Data> {
         let mut output = vec![];
         let mut data = None;
         for t in &self.tokens {
@@ -316,11 +318,11 @@ impl Token for TokenCommand {
                     output.push(data);
                     data = None;
                 }
-                output.push(c.get_value(None, info));
+                output.push(c.get_value(None, info, config));
                 continue;
             }
             // Normal
-            data = t.token().get_value(data.as_ref(), info);
+            data = t.token().get_value(data.as_ref(), info, config);
             if data.is_none() {
                 return None;
             }
@@ -332,7 +334,7 @@ impl Token for TokenCommand {
         // Merge
         let o = output
             .iter()
-            .filter_map(|d| d.as_ref().map(|d| d.to_string()))
+            .filter_map(|d| d.as_ref().map(|d| d.to_string(&config.separator)))
             .collect::<String>();
         Some(Data::String(o))
     }
@@ -353,7 +355,7 @@ impl TokenConstant {
 }
 
 impl Token for TokenConstant {
-    fn get_value(&self, _input: Option<&Data>, _info: &AudioFileInfo) -> Option<Data> {
+    fn get_value(&self, _input: Option<&Data>, _info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
         Some(Data::String(self.string.to_string()))
     }
 }
@@ -370,7 +372,7 @@ impl TokenVariable {
 }
 
 impl Token for TokenVariable {
-    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo) -> Option<Data> {
+    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
         // Parse field name
         let field = match &self.var.to_lowercase()[..] {
             "title" => Some(Field::Title),
@@ -421,7 +423,7 @@ impl TokenProperty {
 }
 
 impl Token for TokenProperty {
-    fn get_value(&self, input: Option<&Data>, _info: &AudioFileInfo) -> Option<Data> {
+    fn get_value(&self, input: Option<&Data>, _info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
         match input? {
             Data::String(_) => None,
             Data::Array(a) => {
@@ -580,17 +582,17 @@ impl TokenFunction {
 }
 
 impl Token for TokenFunction {
-    fn get_value(&self, input: Option<&Data>, _info: &AudioFileInfo) -> Option<Data> {
+    fn get_value(&self, input: Option<&Data>, _info: &AudioFileInfo, config: &RenamerConfig) -> Option<Data> {
         let data = input?;
 
         match &self.name.to_lowercase()[..] {
             // Lowercase
             "lower" | "lowercase" => {
-                return Some(Data::String(data.to_string().to_lowercase()));
+                return Some(Data::String(data.to_string(&config.separator).to_lowercase()));
             },
             // Uppercase
             "upper" | "uppercase" => {
-                return Some(Data::String(data.to_string().to_uppercase()));
+                return Some(Data::String(data.to_string(&config.separator).to_uppercase()));
             },
             // Substring or array range
             "slice" | "range" => {
@@ -622,7 +624,7 @@ impl Token for TokenFunction {
             },
             // Capitalize first letter
             "capitalize" => {
-                let s = data.to_string();
+                let s = data.to_string(&config.separator);
                 let mut c = s.chars();
                 let o = match c.next() {
                     None => String::new(),
@@ -634,7 +636,7 @@ impl Token for TokenFunction {
             "replace" => {
                 let from = self.param_str(0, true)?;
                 let to = self.param_str(1, true)?;
-                Some(Data::String(data.to_string().replace(from, to)))
+                Some(Data::String(data.to_string(&config.separator).replace(from, to)))
             },
             // Padding on beggining
             "pad" => {
@@ -644,13 +646,13 @@ impl Token for TokenFunction {
                     return Some(data.clone());
                 }
                 debug!("pad: {} {}", character, len);
-                Some(Data::String(data.to_string().pad(len as usize, character.chars().next()?, Alignment::Right, false)))
+                Some(Data::String(data.to_string(&config.separator).pad(len as usize, character.chars().next()?, Alignment::Right, false)))
             },
             // Sort array
             "sort" => {
                 if let Data::Array(arr) = data {
                     let mut arr = arr.clone();
-                    arr.sort();
+                    arr.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
                     Some(Data::Array(arr))
                 } else {
                     Some(data.clone())
@@ -662,7 +664,15 @@ impl Token for TokenFunction {
                     Data::String(s) => Some(Data::String(s.chars().rev().collect::<String>())),
                     Data::Array(a) => Some(Data::Array(a.iter().rev().map(String::from).collect::<Vec<_>>())),
                 }
-            }
+            },
+            // Join array
+            "join" => {
+                let c = self.param_str(0, true)?;
+                match data {
+                    Data::String(s) => Some(Data::String(s.to_string())),
+                    Data::Array(a) => Some(Data::String(a.join(c)))
+                }
+            },
             f => {
                 error!("Invalid function: {f}!");
                 None

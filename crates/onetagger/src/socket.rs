@@ -5,6 +5,7 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::{Path, PathBuf};
+use onetagger_renamer::ac::Autocomplete;
 use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
 use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
@@ -57,6 +58,7 @@ enum Action {
     TagEditorSave { changes: TagChanges },
 
     RenamerSyntaxHighlight { template: String },
+    RenamerAutocomplete { template: String },
     RenamerStart { config: RenamerConfig }
 }
 
@@ -409,6 +411,16 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             websocket.write_message(Message::from(json!({
                 "action": "renamerSyntaxHighlight",
                 "html": html
+            }).to_string())).ok();
+        },
+        // Autocomplete data
+        Action::RenamerAutocomplete { template } => {
+            let ac = Autocomplete::parse(&template);
+            let suggestions = ac.suggest_html();
+            websocket.write_message(Message::from(json!({
+                "action": "renamerAutocomplete",
+                "suggestions": suggestions,
+                "offset": ac.suggestion_offset()
             }).to_string())).ok();
         },
         // Start renamer

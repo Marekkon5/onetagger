@@ -88,14 +88,15 @@ fn main() {
             info!("Succesfully authorized Spotify!");
         },
         // Renamer
-        Actions::Renamer { path, output, template, copy, no_subfolders, preview, overwrite } => {
+        Actions::Renamer { path, output, template, copy, no_subfolders, preview, overwrite, separator } => {
             let config = RenamerConfig {
                 path: path.to_string(),
                 out_dir: output.clone(),
                 template: template.to_string(),
                 copy: *copy,
                 subfolders: !*no_subfolders,
-                overwrite: *overwrite
+                overwrite: *overwrite,
+                separator: separator.to_string()
             };
             let mut renamer = Renamer::new(TemplateParser::parse(&template));
 
@@ -286,7 +287,11 @@ enum Actions {
 
         /// Overwrite files
         #[clap(long)]
-        overwrite: bool
+        overwrite: bool,
+
+        /// Multiple values separator
+        #[clap(long, default_value = ", ")]
+        separator: String,
     }
 }
 

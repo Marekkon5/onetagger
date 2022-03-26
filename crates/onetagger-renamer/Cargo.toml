@@ -8,6 +8,9 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 pad = "0.1"
+lazy_static = "1.4"
+pulldown-cmark = "0.9"
+
 serde = { version = "1.0", features = ["derive"] }
 
 onetagger-tagger = { path = "../onetagger-tagger" }

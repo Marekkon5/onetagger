@@ -1,4 +1,5 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate lazy_static;
 
 use std::path::{Path, PathBuf};
 use std::error::Error;
@@ -6,6 +7,8 @@ use onetagger_autotag::AudioFileInfoImpl;
 use onetagger_tagger::AudioFileInfo;
 use serde::{Serialize, Deserialize};
 
+pub mod ac;
+pub mod docs;
 pub mod parser;
 
 // Re-export
@@ -24,8 +27,8 @@ impl Renamer {
     }
 
     /// Generate new filename
-    pub fn generate_name(&mut self, output_dir: impl AsRef<Path>, info: &AudioFileInfo) -> PathBuf {
-        let mut name = self.template.evaluate(info);
+    pub fn generate_name(&mut self, output_dir: impl AsRef<Path>, info: &AudioFileInfo, config: &RenamerConfig) -> PathBuf {
+        let mut name = self.template.evaluate(info, config);
         while name.starts_with("/") {
             name = name[1..].to_string()
         }
@@ -53,7 +56,7 @@ impl Renamer {
                     continue;
                 }
             };
-            let new_name = self.generate_name(&out_dir, &info);
+            let new_name = self.generate_name(&out_dir, &info, config);
             output.push((file.to_string(), new_name));
             if limit != 0 && i >= limit {
                 break
@@ -134,5 +137,6 @@ pub struct RenamerConfig {
     pub template: String,
     pub copy: bool,
     pub subfolders: bool,
-    pub overwrite: bool
+    pub overwrite: bool,
+    pub separator: String,
 }
