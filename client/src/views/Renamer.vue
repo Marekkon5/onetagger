@@ -54,6 +54,11 @@
 
 
 
+    <!-- For cursor calculations -->
+    <div>
+        <span style='visibility: hidden; font-size: 16px;' class='monospace' ref='textWidthRef'>abcdefghijklmnopqrstuvwxyz0123456789</span>
+    </div>
+
 </div>
 </template>
 
@@ -71,7 +76,8 @@ export default {
                 overwrite: false
             },
             highlighted: null,
-            cursor: -99999
+            cursor: -99999,
+            charWidth: 1.0
         }
     },
     methods: {
@@ -102,7 +108,7 @@ export default {
             let selection = document.getSelection();
             if (!selection.anchorNode) return; 
             if (selection.anchorNode.parentElement.classList.contains('template-input')) {
-                this.cursor = 12 + selection.anchorOffset * 9.69;
+                this.cursor = 12 + selection.anchorOffset * this.charWidth;
             }
         },
         /// Start renaming
@@ -155,6 +161,7 @@ export default {
 
         // Pain
         document.addEventListener('selectionchange', this.onSelectionChange);
+        this.charWidth = this.$refs.textWidthRef.offsetWidth / 36.0;
     },
     destroyed() {
         document.removeEventListener('selectionchange', this.onSelectionChange);

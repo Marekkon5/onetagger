@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 use std::env;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::{Path, PathBuf};
 use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
@@ -223,6 +224,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             } else { vec![] };
             let mut file_count = files.len();
             let mut folder_path = None;
+            let tagger_finished = Arc::new(Mutex::new(None));
             // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
@@ -233,7 +235,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                         file_count = files.len();
                         folder_path = Some(path);
                     }
-                    let rx = Tagger::tag_files(&c, files);
+                    let rx = Tagger::tag_files(&c, files, tagger_finished.clone());
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {
@@ -251,13 +253,13 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             };
 
             // Start
+            let start = timestamp!();
             websocket.write_message(Message::from(json!({
                 "action": "startTagging",
                 "files": file_count,
                 "type": tagger_type
             }).to_string())).ok();
             // Tagging
-            let start = timestamp!();
             for status in rx {
                 websocket.write_message(Message::from(json!({
                     "action": "taggingProgress",
@@ -268,7 +270,8 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             // Done
             websocket.write_message(Message::from(json!({
                 "action": "taggingDone",
-                "path": folder_path
+                "path": folder_path,
+                "data": *tagger_finished.lock().unwrap()
             }).to_string())).ok();
         },
         Action::Waveform { path } => {

@@ -117,6 +117,7 @@ class OneTagger {
                     this.taggerStatus.progress = 0.0;
                     this.taggerStatus.total = json.files;
                     this.taggerStatus.type = json.type;
+                    this.taggerStatus.data = null;
                     break;
                 // Status
                 case 'taggingProgress':
@@ -133,6 +134,7 @@ class OneTagger {
                     this.lock.locked = false;
                     this.taggerStatus.done = true;
                     this.taggerStatus.progress = 1.0;
+                    this.taggerStatus.data = json.data;
                     this.onTaggingDone(json.path);
                     break;
                 // Player load track
@@ -281,7 +283,8 @@ class OneTagger {
             progress: 0.0,
             done: false,
             total: 0,
-            type: null
+            type: null,
+            data: null
         });
         // Lock, enable when tagging/loading
         this.lock = Vue.observable({locked: false});

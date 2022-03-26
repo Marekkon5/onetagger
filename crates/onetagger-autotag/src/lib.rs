@@ -3,8 +3,8 @@
 
 use std::collections::HashMap;
 use std::error::Error;
-use std::thread;
-use std::fs;
+use std::sync::{Arc, Mutex};
+use std::{thread, fs};
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::time::Duration;
@@ -483,7 +483,7 @@ pub struct Tagger {}
 impl Tagger {
 
     // Returtns progress receiver, and file count
-    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>) -> Receiver<TaggingStatusWrap> {
+    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
         let original_files = files.clone();
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
@@ -557,11 +557,21 @@ impl Tagger {
                 let success_file = folder.join(format!("success-{}.m3u", time));
                 {
                     let mut file = File::create(&failed_file)?;
-                    file.write_all(files.join("\r\n").as_bytes())?;
+                    file.write_all(files
+                        .iter()
+                        .filter_map(|f| Path::new(f).canonicalize().ok().map(|p| p.to_str().unwrap().to_string()))
+                        .collect::<Vec<_>>()
+                        .join("\r\n")
+                        .as_bytes()
+                    )?;
                 }
                 {
                     let mut file = File::create(&success_file)?;
-                    let files: Vec<String> = original_files.into_iter().filter(|i| !files.contains(i)).collect();
+                    let files: Vec<String> = original_files
+                        .into_iter()
+                        .filter(|i| !files.contains(i))
+                        .filter_map(|f| Path::new(&f).canonicalize().ok().map(|p| p.to_str().unwrap().to_string()))
+                        .collect();
                     file.write_all(files.join("\r\n").as_bytes())?;
                 }
                 
@@ -584,7 +594,12 @@ impl Tagger {
                 Ok((failed_file, success_file))
             };
             match write_result() {
-                Ok((failed, success)) => info!("Written failed songs to: {}, successful to: {}", failed, success),
+                Ok((failed, success)) => {
+                    info!("Written failed songs to: {}, successful to: {}", failed, success);
+                    *finished.lock().unwrap() = Some(TaggerFinishedData {
+                        failed_file: failed, success_file: success
+                    });
+                },
                 Err(e) => warn!("Failed writing failed songs to file! {}", e)
             };
             
@@ -734,4 +749,12 @@ impl Tagger {
         }
         Some(rx)
     }
+}
+
+/// When AT finishes this will contain some extra data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaggerFinishedData {
+    pub failed_file: String,
+    pub success_file: String
 }

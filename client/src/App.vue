@@ -391,7 +391,7 @@
         mounted() {
             this.$q.dark.set(true);
 
-            //Handle resize to apply min height/width
+            // Handle resize to apply min height/width
             window.addEventListener("resize", () => {
                 if (window.innerHeight < 550 || window.innerWidth < 1150) {
                     this.sizeDialog = true;
@@ -400,22 +400,23 @@
                 }
             });
 
-            //Show QT sidebar
+            // Show QT sidebar
             if (this.$router.currentRoute.path.includes('quicktag')) {
                 this.showSide();
             }
 
-            //Wait for app to load
+            // Wait for app to load
             setTimeout(() => this.checkUpdates(), 2000);
         },
         watch: {
-            //Dont show scrollbar while transition
-            $route() {
+            // Dont show scrollbar while transition
+            $route(r) {
                 this.$refs.contentContainer.$el.style.overflowY = "hidden";
+                if (r.path == '/quicktag') this.showSide();
             },
         },
         updated() {
-            //Show again scrollbar after transition
+            // Show again scrollbar after transition
             setTimeout(() => {
                 this.$refs.contentContainer.$el.style.overflowY = "auto";
             }, 250);

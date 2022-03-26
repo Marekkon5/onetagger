@@ -3,6 +3,7 @@
 
 use std::error::Error;
 use std::fs::File;
+use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_renamer::{RenamerConfig, Renamer, TemplateParser};
@@ -42,7 +43,7 @@ fn main() {
         Actions::Autotagger { path, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
             let files = AudioFileInfo::get_file_list(&path, config.include_subfolders);
-            let rx = Tagger::tag_files(&config, files);
+            let rx = Tagger::tag_files(&config, files, Arc::new(Mutex::new(None)));
             let start = timestamp!();
             for status in rx {
                 debug!("{status:?}");

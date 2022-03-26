@@ -2,6 +2,13 @@
 <div class='text-center'>
 
     <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
+
+    <!-- Post tagging actions -->
+    <div v-if='$1t.taggerStatus.done && $1t.taggerStatus.data' class='row justify-center q-my-md'>
+        <q-btn color='primary' class='q-mx-md' @click='goQT(false)'>Open failed in QuickTag</q-btn>
+        <q-btn color='primary' class='q-mx-md' @click='goQT(true)'>Open successful in QuickTag</q-btn>
+    </div>
+
     <!-- Info -->
     <div class='row q-my-sm justify-center'>
         <div class='row justify-between full-width text-subtitle2 q-my-sm list'>
@@ -179,6 +186,12 @@ export default {
                 return;
             }
             this.filter = name;
+        },
+        // Open QT with result files
+        goQT(successful) {
+            if (successful) this.$1t.settings.path = this.$1t.taggerStatus.data.successFile;
+            if (!successful) this.$1t.settings.path = this.$1t.taggerStatus.data.failedFile;
+            this.$router.push('/quicktag');
         }
     },
     computed: {

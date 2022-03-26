@@ -27,17 +27,21 @@ impl TemplateParser {
         let mut command = false;
         let mut tokens = vec![];
         let mut syntax = SyntaxBuilder::new();
+        let mut escape = false;
+        let mut string = false;
 
         for c in input.chars() {
             match c {
                 '%' => {
                     // End of command
                     if command {
-                        tokens.push(TokenType::Command(TokenCommand::parse(&buffer, &mut syntax)));
-                        syntax.add(1, SyntaxType::Operator);
-                        buffer.clear();
-                        command = false;
-                        continue;
+                        if !string {
+                            tokens.push(TokenType::Command(TokenCommand::parse(&buffer, &mut syntax)));
+                            syntax.add(1, SyntaxType::Operator);
+                            buffer.clear();
+                            command = false;
+                            continue;
+                        }
                     // Start command
                     } else {
                         if !buffer.is_empty() {
@@ -49,8 +53,20 @@ impl TemplateParser {
                         command = true;
                         continue;
                     }
+                },
+                '\\' if command => {
+                    escape = true;
+                },
+                '"' if command => {
+                    if escape {
+                        escape = false;
+                    } else {
+                        string = !string;
+                    }
+                },
+                _ => {
+                    escape = false;
                 }
-                _ => {}
             }
             buffer.push(c);
         }
@@ -629,6 +645,23 @@ impl Token for TokenFunction {
                 }
                 debug!("pad: {} {}", character, len);
                 Some(Data::String(data.to_string().pad(len as usize, character.chars().next()?, Alignment::Right, false)))
+            },
+            // Sort array
+            "sort" => {
+                if let Data::Array(arr) = data {
+                    let mut arr = arr.clone();
+                    arr.sort();
+                    Some(Data::Array(arr))
+                } else {
+                    Some(data.clone())
+                }
+            },
+            // Reverse array or string
+            "reverse" => {
+                match data {
+                    Data::String(s) => Some(Data::String(s.chars().rev().collect::<String>())),
+                    Data::Array(a) => Some(Data::Array(a.iter().rev().map(String::from).collect::<Vec<_>>())),
+                }
             }
             f => {
                 error!("Invalid function: {f}!");
