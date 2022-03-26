@@ -59,6 +59,7 @@ enum Action {
 
     RenamerSyntaxHighlight { template: String },
     RenamerAutocomplete { template: String },
+    RenamerPreview { config: RenamerConfig },
     RenamerStart { config: RenamerConfig }
 }
 
@@ -421,6 +422,15 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "renamerAutocomplete",
                 "suggestions": suggestions,
                 "offset": ac.suggestion_offset()
+            }).to_string())).ok();
+        },
+        // Generate new names but don't rename
+        Action::RenamerPreview { config } => {
+            let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
+            let files = renamer.generate(&config, 5)?;
+            websocket.write_message(Message::from(json!({
+                "action": "renamerPreview",
+                "files": files,
             }).to_string())).ok();
         },
         // Start renamer

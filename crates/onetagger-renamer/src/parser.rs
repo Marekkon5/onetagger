@@ -645,7 +645,6 @@ impl Token for TokenFunction {
                 if len == 0 {
                     return Some(data.clone());
                 }
-                debug!("pad: {} {}", character, len);
                 Some(Data::String(data.to_string(&config.separator).pad(len as usize, character.chars().next()?, Alignment::Right, false)))
             },
             // Sort array

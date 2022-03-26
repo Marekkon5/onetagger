@@ -1,111 +1,126 @@
 <template>
 <div class='text-center'>
 
-    <div class='q-py-xl' style='max-width: 800px; margin: auto;' v-if='!$1t.lock.locked'>
-        <!-- Input and output folders -->
-        <div class='text-h4 q-mb-md'>Folders</div>
-
-        <div class='q-my-md'>
-            <q-input filled class='col-10' label='Input folder' v-model='config.path'>
-                <template v-slot:append>
-                    <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
-                </template>
-            </q-input>
-        </div>
-
-        <div class='q-my-md'>
-            <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir'>
-                <template v-slot:append>
-                    <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
-                </template>
-            </q-input>
-        </div>
-
-        <!-- Template -->
-        <div class='text-h4 q-mt-md'>Template</div>
-        <div style='margin-top: -10px;'>
-            <div class='fake-cursor' :style='cursorStyle'>|</div>
-            <div class='template-text'>
-                <span v-if='config.template' v-html='highlighted'></span>
-                <span v-if='!config.template' class='template-input-placeholder'>Filename template</span>
+    <div class='q-py-xl' v-if='!$1t.lock.locked'>
+        <div style='max-width: 800px; margin: auto;'>
+            <!-- Input and output folders -->
+            <div class='text-h4 q-mb-md'>Folders</div>
+    
+            <div class='q-my-md'>
+                <q-input filled class='col-10' label='Input folder' v-model='config.path'>
+                    <template v-slot:append>
+                        <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
+                    </template>
+                </q-input>
             </div>
-            <div 
-                class='template-input monospace' 
-                spellcheck="false"
-                ref='templateInput'
-                @blur='onBlur'  
-                contenteditable="true" 
-                @focus='onSelectionChange'
-                @keydown='onKeyDown'
-                @input='templateInput'>
+    
+            <div class='q-my-md'>
+                <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir'>
+                    <template v-slot:append>
+                        <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
+                    </template>
+                </q-input>
             </div>
-        </div>
-
-        <!-- Autocomplete / suggestions -->
-        <div v-if='suggestions.length > 0'>
-            <div class='suggestions-box' :style='cursorStyle'>
-                <!-- Suggestions -->
-                <div style='width: 40%'>
-                    <div v-for='(suggestion, i) in suggestions' :key="'s'+i" class='q-mr-sm q-pa-xs' :class='{"help-suggestion-selected": i == suggestionIndex}'>
-                        <!-- icon -->
-                        <q-icon name='mdi-variable' class='q-mb-xs' v-if='suggestion.kind == "variable"'></q-icon>
-                        <q-icon name='mdi-information-outline' class='q-mb-xs' v-if='suggestion.kind == "property"'></q-icon>
-                        <q-icon name='mdi-function' class='q-mb-xs' v-if='suggestion.kind == "function"'></q-icon>
-
-                        <!-- name -->
-                        <span class='monospace' :class='{"text-primary": i == suggestionIndex}'>
-                            {{suggestion.name}}
-                        </span>
-
-                        <!-- selected icon -->
-                        <span v-if='i == suggestionIndex' style='float: right;'>
-                            <q-icon name='mdi-chevron-right' class='q-mb-xs' color='primary'></q-icon>
-                        </span>
-                    </div>
+    
+            <!-- Template -->
+            <div class='text-h4 q-mt-md'>Template</div>
+            <div style='margin-top: -10px;'>
+                <div class='fake-cursor' :style='cursorStyle'>|</div>
+                <div class='template-text'>
+                    <span v-if='config.template' v-html='highlighted'></span>
+                    <span v-if='!config.template' class='template-input-placeholder'>Filename template</span>
                 </div>
-                <!-- Help -->
-                <div style='width: 60%'>
-                    <div v-if='suggestions[suggestionIndex]'>
-                        <!-- Function info -->
-                        <div v-if='suggestions[suggestionIndex].kind == "function"' class='q-mb-sm suggestion-help-function'>
-                            <span>
-                                <span class='monospace'>{{suggestions[suggestionIndex].name}}</span>
-                                <span class='monospace'>(</span>
-                                    <span v-for='(param, i) in suggestions[suggestionIndex].parameters' :key='"p"+i'>
-                                        <span 
-                                            class='monospace' 
-                                            :class='{"syntax_string": param.type == "string", "syntax_number": param.type == "number"}'
-                                        >{{param.name}}</span>
-                                        <span class='monospace'>: {{param.type}}</span>
-                                        <span class='monospace' v-if='i != suggestions[suggestionIndex].parameters.length - 1'>, </span>
-                                    </span>
-                                <span class='monospace'>)</span>
+                <div 
+                    class='template-input monospace' 
+                    spellcheck="false"
+                    ref='templateInput'
+                    @blur='onBlur'  
+                    contenteditable="true" 
+                    @focus='onSelectionChange'
+                    @keydown='onKeyDown'
+                    @input='templateInput'>
+                </div>
+            </div>
+    
+            <!-- Autocomplete / suggestions -->
+            <div v-if='suggestions.length > 0'>
+                <div class='suggestions-box' :style='cursorStyle'>
+                    <!-- Suggestions -->
+                    <div style='width: 40%'>
+                        <div v-for='(suggestion, i) in suggestions' :key="'s'+i" class='q-mr-sm q-pa-xs' :class='{"help-suggestion-selected": i == suggestionIndex}'>
+                            <!-- icon -->
+                            <q-icon name='mdi-variable' class='q-mb-xs' v-if='suggestion.kind == "variable"'></q-icon>
+                            <q-icon name='mdi-information-outline' class='q-mb-xs' v-if='suggestion.kind == "property"'></q-icon>
+                            <q-icon name='mdi-function' class='q-mb-xs' v-if='suggestion.kind == "function"'></q-icon>
+    
+                            <!-- name -->
+                            <span class='monospace' :class='{"text-primary": i == suggestionIndex}'>
+                                {{suggestion.name}}
                             </span>
-                            <br>
+    
+                            <!-- selected icon -->
+                            <span v-if='i == suggestionIndex' style='float: right;'>
+                                <q-icon name='mdi-chevron-right' class='q-mb-xs' color='primary'></q-icon>
+                            </span>
                         </div>
-
-                        <!-- Actual suggestion -->
-                        <div v-html='suggestions[suggestionIndex].doc'></div>
+                    </div>
+                    <!-- Help -->
+                    <div style='width: 60%'>
+                        <div v-if='suggestions[suggestionIndex]'>
+                            <!-- Function info -->
+                            <div v-if='suggestions[suggestionIndex].kind == "function"' class='q-mb-sm suggestion-help-function'>
+                                <span>
+                                    <span class='monospace'>{{suggestions[suggestionIndex].name}}</span>
+                                    <span class='monospace'>(</span>
+                                        <span v-for='(param, i) in suggestions[suggestionIndex].parameters' :key='"p"+i'>
+                                            <span 
+                                                class='monospace' 
+                                                :class='{"syntax_string": param.type == "string", "syntax_number": param.type == "number"}'
+                                            >{{param.name}}</span>
+                                            <span class='monospace'>: {{param.type}}</span>
+                                            <span class='monospace' v-if='i != suggestions[suggestionIndex].parameters.length - 1'>, </span>
+                                        </span>
+                                    <span class='monospace'>)</span>
+                                </span>
+                                <br>
+                            </div>
+    
+                            <!-- Actual suggestion -->
+                            <div v-html='suggestions[suggestionIndex].doc'></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Options -->
-        <div class='text-h4 q-my-md'>Options</div>
-        <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
-        <br>
-        <q-toggle v-model='config.subfolders' label='Include subfolders'></q-toggle>
-        <br>
-        <q-toggle v-model='config.overwrite' label='Overwrite existing target files'></q-toggle>
-        <br>
-        <div class='row justify-center q-my-sm'>
-            <q-input
-                v-model='config.separator'
-                label='Separator'
-                filled
-                style='max-width: 200px;'
-            ></q-input>
+        <div class='row q-mt-md q-mx-xl'>
+            <!-- Options -->
+            <div style='width: 50%'>
+                <div class='text-h4 q-my-md'>Options:</div>
+                <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
+                <br>
+                <q-toggle v-model='config.subfolders' label='Include subfolders'></q-toggle>
+                <br>
+                <q-toggle v-model='config.overwrite' label='Overwrite existing target files'></q-toggle>
+                <br>
+                <div class='row justify-center q-my-sm'>
+                    <q-input
+                        v-model='config.separator'
+                        label='Separator'
+                        filled
+                        style='max-width: 200px;'
+                    ></q-input>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div style='width: 50%'>
+                <div class='text-h4 q-my-md'>Preview:</div>
+                <div v-for='(file, i) in preview' :key='"prev"+i'>
+                    <div class='text-body1 monospace'>{{file[1]}}</div>
+                    <br>
+                </div>
+            </div>
         </div>
 
         <!-- Start -->
@@ -143,7 +158,8 @@ export default {
             charWidth: 1.0,
             suggestions: [],
             suggestionIndex: 0,
-            suggestionOffset: 0
+            suggestionOffset: 0,
+            preview: []
         }
     },
     methods: {
@@ -288,6 +304,10 @@ export default {
                     if (this.suggestionIndex > this.suggestions.length)
                         this.suggestionIndex = 0;
                     break;
+                // Preview renamed files
+                case 'renamerPreview':
+                    this.preview = json.files;
+                    break;
                 default:
                     console.error(`Unknown action: ${json}`);
             }
@@ -314,6 +334,16 @@ export default {
         },
         cursorStyle() {
             return `margin-left: ${12 + this.cursor * this.charWidth}px`
+        },
+    },
+    watch: {
+        'config.template'() {
+            // Debounce and render preview
+            let cur = this.config.template;
+            setTimeout(() => {
+                if (cur != this.config.template || !this.config.template || !this.startable) return;
+                this.$1t.send('renamerPreview', { config: this.config });
+            }, 400);
         }
     }
 }
