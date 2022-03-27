@@ -2,17 +2,30 @@
 <div>
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
+        <!-- Search -->
         <q-input
             filled
             v-model='filter'
             :label-slot="true"
-            class='q-px-md q-py-md'
+            class='q-px-md q-pt-md'
         >
             <template v-slot:label>
                 <q-icon name="mdi-magnify" size="sm"></q-icon>
             </template>
         </q-input>
-        
+
+        <!-- Sort -->
+        <div class='row text-grey-6 justify-between q-mx-md q-mt-sm'>
+            <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
+                <div :class='{"text-bold": sortOption == option}'>{{option}}</div>
+                <div v-if='sortOption == option' class='q-pl-xs'>
+                    <q-icon class='q-pb-xs' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
+                    <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tracklist -->
         <div v-for='(item, i) in tracks' :key='i'>
             <q-intersection style='height: 136px;' @click.native='trackClick(item)' once>
                 <QuickTagTile :track='$1t.quickTag.track' v-if='$1t.quickTag.track && item.path == $1t.quickTag.track.path'></QuickTagTile>
@@ -98,7 +111,11 @@ export default {
             saveDialog: false,
             noteDialog: false,
             note: null,
-            filter: null
+            filter: null,
+
+            sortDescending: false,
+            sortOption: 'title',
+            sortOptions: ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key']
         }
     },
     methods: {
@@ -131,18 +148,60 @@ export default {
         // Focus
         onNoteDialogShow() {
             this.$refs.noteDialogInput.focus();
+        },
+        // Sort by option
+        sort(option) {
+            if (this.sortOption != option) {
+                // reset sort direction
+                this.sortDescending = false;
+                this.sortOption = option;
+            } else {
+                this.sortDescending = !this.sortDescending;
+            }
         }
     },
     computed: {
         tracks() {
-            if (!this.filter)
-                return this.$1t.quickTag.tracks;
-            // title, path or artist
-            let filter = this.filter.toLowerCase();
-            return this.$1t.quickTag.tracks.filter((t) => 
-                t.title.toLowerCase().includes(filter) || t.path.toLowerCase().includes(filter) ||
-                t.artists.filter((a) => a.toLowerCase().includes(filter)).length > 0
-            );
+            let tracks = this.$1t.quickTag.tracks;
+            if (this.filter) {
+                let filter = this.filter.toLowerCase();
+                // title, artist or track
+                tracks = this.$1t.quickTag.tracks.filter((t) => 
+                    t.title.toLowerCase().includes(filter) || t.path.toLowerCase().includes(filter) ||
+                    t.artists.filter((a) => a.toLowerCase().includes(filter)).length > 0
+                );
+            }
+            if (!this.sortOption) return tracks;
+            
+            // Sort
+            tracks.sort((a, b) => {
+                let va, vb;
+                switch (this.sortOption) {
+                    // Arrays
+                    case 'artist':
+                    case 'genre':
+                        va = a[`${this.sortOption}s`].join(', ').toLowerCase();
+                        vb = b[`${this.sortOption}s`].join(', ').toLowerCase();
+                        break;
+                    default:
+                        va = a[this.sortOption]??''.toLowerCase();
+                        vb = b[this.sortOption]??''.toLowerCase();
+                        break;
+                }
+                
+
+                // Compare
+                if (va < vb) {
+                    return -1;
+                }
+                if (va > vb) {
+                    return 1;
+                }
+                return 0;
+            });
+            if (this.sortDescending) tracks.reverse();
+
+            return tracks;
         }
     },
     mounted() {

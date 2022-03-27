@@ -77,7 +77,7 @@
                                                 class='monospace' 
                                                 :class='{"syntax_string": param.type == "string", "syntax_number": param.type == "number"}'
                                             >{{param.name}}</span>
-                                            <span class='monospace'>: {{param.type}}</span>
+                                            <span class='monospace'>: {{param.type}}<span class='monospace' v-if='!param.required'>?</span></span>
                                             <span class='monospace' v-if='i != suggestions[suggestionIndex].parameters.length - 1'>, </span>
                                         </span>
                                     <span class='monospace'>)</span>
@@ -129,7 +129,12 @@
         <q-btn round size='xl' color='primary' icon='mdi-play' :disabled='!startable' @click='start'></q-btn>
     </div>
 
-
+    <!-- Loading -->
+    <div v-if='$1t.lock.locked'>
+        <div style='margin-top: 45vh;'>
+            <q-circular-progress indeterminate size='64px' color='primary'></q-circular-progress>
+        </div>
+    </div>
 
     <!-- For cursor calculations -->
     <div>
@@ -172,19 +177,24 @@ export default {
             if (!this.config.template) {
                 if (!e.data) return;
                 this.config.template = e.data;
-            } else {
-                // Autoclose
-                let pos = this.cursor;
-                if (e.data == '(') {
-                    this.injectTemplate(this.cursor + 1, ')');
-                    this.moveCursor(pos + 1);
-                }
-                if (e.data == '"') {
-                    this.injectTemplate(this.cursor, '"');
-                    this.moveCursor(pos + 1);
-                }
-                this.config.template = e.target.innerText;
             }
+            
+            // Autoclose
+            let pos = this.cursor;
+            if (e.data == '(') {
+                this.injectTemplate(this.cursor + 1, ')');
+                this.moveCursor(pos + 1);
+            }
+            if (e.data == '"') {
+                this.injectTemplate(this.cursor, '"');
+                this.moveCursor(pos + 1);
+            }
+            if (e.data == '%') {
+                this.injectTemplate(this.cursor, '%');
+                this.moveCursor(pos + 1);
+            }
+            this.config.template = e.target.innerText;
+            
             this.updateTemplate();
         },
         // Fetch syntax highlighting and ac
@@ -243,6 +253,12 @@ export default {
             }
             if (e.key == '"') {
                 if (this.config.template[this.cursor] == '"') {
+                    e.preventDefault();
+                    this.moveCursor(this.cursor + 1);
+                }
+            }
+            if (e.key == '%') {
+                if (this.config.template[this.cursor] == '%') {
                     e.preventDefault();
                     this.moveCursor(this.cursor + 1);
                 }
