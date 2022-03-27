@@ -113,7 +113,7 @@ impl Renamer {
     pub fn generate_html(&self, input: &str) -> String {
         let mut output = String::new();
         for syntax in &self.template.syntax {
-            let text = input.chars().skip(syntax.start).take(syntax.length).collect::<String>();
+            let text = input.chars().skip(syntax.start).take(syntax.length).collect::<String>().replace(" ", "&nbsp;");
             let class = match syntax.syntax {
                 SyntaxType::Text => "syntax_text",
                 SyntaxType::String => "syntax_string",

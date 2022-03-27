@@ -427,7 +427,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         // Generate new names but don't rename
         Action::RenamerPreview { config } => {
             let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
-            let files = renamer.generate(&config, 5)?;
+            let files = renamer.generate(&config, 3)?;
             websocket.write_message(Message::from(json!({
                 "action": "renamerPreview",
                 "files": files,

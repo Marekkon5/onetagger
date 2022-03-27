@@ -30,21 +30,23 @@
                     <span v-if='config.template' v-html='highlighted'></span>
                     <span v-if='!config.template' class='template-input-placeholder'>Filename template</span>
                 </div>
-                <div 
+                <input
                     class='template-input monospace' 
                     spellcheck="false"
                     ref='templateInput'
-                    @blur='onBlur'  
-                    contenteditable="true" 
+                    @blur='onBlur'
                     @focus='onSelectionChange'
+                    @selectionchange='onSelectionChange'
+                    @keyup='onSelectionChange'
                     @keydown='onKeyDown'
-                    @input='templateInput'>
-                </div>
+                    @input='templateInput'
+                    @click='onSelectionChange'
+                >
             </div>
     
             <!-- Autocomplete / suggestions -->
             <div v-if='suggestions.length > 0'>
-                <div class='suggestions-box' :style='cursorStyle'>
+                <div class='suggestions-box' :style='suggestionsStyle'>
                     <!-- Suggestions -->
                     <div style='width: 40%'>
                         <div v-for='(suggestion, i) in suggestions' :key="'s'+i" class='q-mr-sm q-pa-xs' :class='{"help-suggestion-selected": i == suggestionIndex}'>
@@ -193,8 +195,8 @@ export default {
                 this.injectTemplate(this.cursor, '%');
                 this.moveCursor(pos + 1);
             }
-            this.config.template = e.target.innerText;
-            
+
+            this.config.template = e.target.value;
             this.updateTemplate();
         },
         // Fetch syntax highlighting and ac
@@ -208,11 +210,7 @@ export default {
         },
         // Handle global selection change to update fake cursor (yes, pain)
         onSelectionChange() {
-            let selection = document.getSelection();
-            if (!selection.anchorNode) return; 
-            if (selection.anchorNode.parentElement.classList.contains('template-input')) {
-                this.cursor = selection.anchorOffset;
-            }
+            this.cursor = this.$refs.templateInput.selectionStart;
         },
         /// Template blur
         onBlur() {
@@ -237,46 +235,47 @@ export default {
                 if (this.suggestions[this.suggestionIndex]) {
                     // Fill suggestion
                     let text = this.suggestions[this.suggestionIndex].name.substring(this.suggestionOffset);
+                    let pos = this.cursor;
                     this.injectTemplate(this.cursor, text);
                     this.updateTemplate();
-                    this.moveCursor(this.cursor + text.length);
+                    this.moveCursor(pos + text.length);
                 }
                 e.preventDefault();
                 return;
             }
             // Don't close again
-            if (e.key == ')') {
-                if (this.config.template[this.cursor] == ')') {
-                    e.preventDefault();
-                    this.moveCursor(this.cursor + 1);
+            if (this.$refs.templateInput.selectionStart == this.$refs.templateInput.selectionEnd) {
+                if (e.key == ')') {
+                    if (this.config.template[this.cursor] == ')') {
+                        e.preventDefault();
+                        this.moveCursor(this.cursor + 1);
+                    }
+                }
+                if (e.key == '"') {
+                    if (this.config.template[this.cursor] == '"') {
+                        e.preventDefault();
+                        this.moveCursor(this.cursor + 1);
+                    }
+                }
+                if (e.key == '%') {
+                    if (this.config.template[this.cursor] == '%') {
+                        e.preventDefault();
+                        this.moveCursor(this.cursor + 1);
+                    }
                 }
             }
-            if (e.key == '"') {
-                if (this.config.template[this.cursor] == '"') {
-                    e.preventDefault();
-                    this.moveCursor(this.cursor + 1);
-                }
-            }
-            if (e.key == '%') {
-                if (this.config.template[this.cursor] == '%') {
-                    e.preventDefault();
-                    this.moveCursor(this.cursor + 1);
-                }
-            }
+            
+
+            return true;
         },
         /// Move cursor in template field
         moveCursor(pos) {
-            let selection = document.getSelection()
-            selection.removeAllRanges()
-            let range = document.createRange();
-            range.setStart(this.$refs.templateInput.childNodes[0], pos);
-            range.collapse();
-            selection.addRange(range);
+            this.$refs.templateInput.setSelectionRange(pos, pos);
         },
         /// Add text to template
         injectTemplate(index, text) {
-            this.$refs.templateInput.innerText = this.$refs.templateInput.innerText.substring(0, index) + text + this.$refs.templateInput.innerText.substring(index);
-            this.config.template = this.$refs.templateInput.innerText;
+            this.$refs.templateInput.value = this.$refs.templateInput.value.substring(0, index) + text + this.$refs.templateInput.value.substring(index);
+            this.config.template = this.$refs.templateInput.value;
         },
         /// Start renaming
         start() {
@@ -333,16 +332,12 @@ export default {
             this.config = Object.assign({}, this.config, this.$1t.settings.renamer);
             if (this.config.template) {
                 this.$1t.send('renamerSyntaxHighlight', { template: this.config.template });
-                document.getElementsByClassName('template-input')[0].innerText = this.config.template;
+                document.getElementsByClassName('template-input')[0].value = this.config.template;
             }
         }
 
         // Pain
-        document.addEventListener('selectionchange', this.onSelectionChange);
         this.charWidth = this.$refs.textWidthRef.offsetWidth / 36.0;
-    },
-    destroyed() {
-        document.removeEventListener('selectionchange', this.onSelectionChange);
     },
     computed: {
         startable() {
@@ -351,6 +346,13 @@ export default {
         cursorStyle() {
             return `margin-left: ${12 + this.cursor * this.charWidth}px`
         },
+        // Autocomplete suggestions style
+        suggestionsStyle() {
+            if ((this.cursor * this.charWidth) > 500) {
+                return `margin-left: ${12 + this.cursor * this.charWidth - 500}px`;
+            }
+            return `margin-left: ${12 + this.cursor * this.charWidth}px`
+        }
     },
     watch: {
         'config.template'() {
@@ -376,6 +378,8 @@ export default {
     outline: none !important;
     border-radius: 4px;
     font-size: 16px;
+    width: 800px;
+    border: none;
     color: #ffffff00;
 }
 
@@ -423,10 +427,12 @@ export default {
 .suggestions-box {
     background-color: #101211;
     max-width: 500px;
+    width: 500px;
     font-size: 16px;
     text-align: left;
     padding: 8px;
     display: flex;
+    position: absolute;
 }
 
 .suggestion-help-function {
