@@ -63,7 +63,7 @@
                                 to="/renamer"
                                 class="text-weight-bolder"
                                 @click="hideSide"
-                                >Renamer</q-route-tab>
+                                >Auto Rename</q-route-tab>
                             
                         </q-tabs>
                     </div>

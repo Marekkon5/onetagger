@@ -121,9 +121,8 @@
 
         <div class='q-my-md'></div>
 
-
         <!-- Start -->
-        <q-page-sticky position='bottom-right' :offset='[36, 18]'>
+        <q-page-sticky position='bottom-right' :offset='[36, 24]'>
             <q-btn 
                 fab push
                 icon='mdi-play' 

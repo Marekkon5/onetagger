@@ -128,7 +128,7 @@
         <!-- Start -->
         <br>
         <div class='q-mt-lg'></div>
-        <q-btn round size='xl' color='primary' icon='mdi-play' :disabled='!startable' @click='start'></q-btn>
+        <q-btn round size='xl' color='primary' icon='mdi-play' :disabled='!startable' @click='start(false)'></q-btn>
     </div>
 
     <!-- Loading -->
@@ -166,6 +166,7 @@ export default {
             suggestions: [],
             suggestionIndex: 0,
             suggestionOffset: 0,
+            suggestionsTop: 0,
             preview: []
         }
     },
@@ -278,12 +279,37 @@ export default {
             this.config.template = this.$refs.templateInput.value;
         },
         /// Start renaming
-        start() {
+        start(force = false) {
+            // Dialog
+            if (!force) {
+                this.$q.dialog({
+                    title: 'Warning',
+                    message: 'Renaming files might cause some DJ apps to loose informations about given files, because they depend on the original filename.',
+                    html: true,
+                    ok: {
+                        color: 'primary',
+                        label: 'Start'
+                    },
+                    cancel: {
+                        color: 'primary',
+                        flat: true
+                    }
+                })
+                .onOk(() => {
+                    this.start(true);
+                });
+                return;
+            }
+
             // Prevent reference
             this.$1t.settings.renamer = JSON.parse(JSON.stringify(this.config));
             this.$1t.saveSettings(true);
             this.$1t.lock.locked = true;
             this.$1t.send('renamerStart', { config: this.config });
+        },
+        /// Move suggestions box
+        onScroll(e) {
+            this.suggestionsTop = e.target.scrollTop;
         }
     },
     mounted() {
@@ -306,10 +332,17 @@ export default {
                     this.$q.dialog({
                         title: 'Done',
                         message: 'Renaming finished!',
+                        html: true,
                         ok: {
                             color: 'primary',
-                            label: 'OK'
+                            label: 'Open Folder'
                         },
+                        cancel: {
+                            color: 'primary',
+                            flat: true
+                        }
+                    }).onOk(() => {
+                        this.$1t.send('openFolder', { path: this.config.outDir??this.config.path });
                     });
                     break;
                 // Suggestions
@@ -336,8 +369,15 @@ export default {
             }
         }
 
-        // Pain
+        // Pain (character width)
         this.charWidth = this.$refs.textWidthRef.offsetWidth / 36.0;
+
+        // Fix scroll suggestions box
+        document.addEventListener('scroll', this.onScroll, true);
+    },
+    unmounted() {
+        // Remove event
+        document.removeEventListener('scroll', this.onScroll, true);
     },
     computed: {
         startable() {
@@ -348,10 +388,11 @@ export default {
         },
         // Autocomplete suggestions style
         suggestionsStyle() {
+            let top = `margin-top: -${this.suggestionsTop}px;`
             if ((this.cursor * this.charWidth) > 500) {
-                return `margin-left: ${12 + this.cursor * this.charWidth - 500}px`;
+                return `${top} margin-left: ${12 + this.cursor * this.charWidth - 500}px`;
             }
-            return `margin-left: ${12 + this.cursor * this.charWidth}px`
+            return `${top} margin-left: ${12 + this.cursor * this.charWidth}px`
         }
     },
     watch: {
@@ -362,7 +403,7 @@ export default {
                 if (cur != this.config.template || !this.config.template || !this.startable) return;
                 this.$1t.send('renamerPreview', { config: this.config });
             }, 400);
-        }
+        },
     }
 }
 </script>
@@ -433,6 +474,7 @@ export default {
     padding: 8px;
     display: flex;
     position: absolute;
+    z-index: 10;
 }
 
 .suggestion-help-function {
