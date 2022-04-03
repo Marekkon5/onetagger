@@ -37,7 +37,8 @@ class OneTagger {
             version: '0.0.0', 
             os: null, 
             ready: false,
-            platforms: []
+            platforms: [],
+            renamerDocs: null
         });
 
         // WS Message handler
@@ -57,6 +58,7 @@ class OneTagger {
                         this.config.path = json.startContext.startPath;
                     }
                     this.info.platforms = json.platforms;
+                    this.info.renamerDocs = json.renamerDocs;
 
                     // restore custom platform fields
                     for (const [key, value] of Object.entries(this.config.custom)) {

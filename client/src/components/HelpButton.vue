@@ -573,6 +573,59 @@
                 </q-card-section>
             </div>
 
+
+            <!-- Renamer -->
+            <div v-if='route == "renamer"'>
+                <q-card-section class='q-pa-xl'>
+                    
+                    <div class='row'>
+                        
+                        <!-- List of all things -->
+                        <div class='col-3' style='overflow-y: scroll;'>
+                            <div style='height: 500px;'>
+                                <div class='text-h6 q-py-sm'>Variables</div>
+                                <div v-for='(v, i) in $1t.info.renamerDocs.variables' :key='"RDV"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
+                                    <RenamerTokenName :token='v'></RenamerTokenName>
+                                </div>
+        
+                                <div class='q-my-md'></div>
+        
+                                <div class='text-h6 q-py-sm'>Properties</div>
+                                <div v-for='(v, i) in $1t.info.renamerDocs.properties' :key='"RDP"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
+                                    <RenamerTokenName :token='v'></RenamerTokenName>
+                                </div>
+        
+                                <div class='q-my-md'></div>
+        
+                                <div class='text-h6 q-py-sm'>Functions</div>
+                                <div v-for='(v, i) in $1t.info.renamerDocs.functions' :key='"RDF"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
+                                    <RenamerTokenName :token='v' :type='false'></RenamerTokenName>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Docs -->
+                        <div class='col-9 q-pl-xl'>
+                            <!-- Not selected -->
+                            <div v-if='!renamerDoc' class='text-center'>
+                                <div class='text-h5'>Select a token on left to show the documentation</div>
+                            </div>
+                            <!-- Selected -->
+                            <div v-if='renamerDoc'>
+                                <RenamerTokenName :token='renamerDoc' class='text-h5'></RenamerTokenName>
+                                <br>
+                                <div class='text-caption q-mt-sm q-mb-md'>{{renamerDoc.kind.toUpperCase()}}</div>
+                                <div style='font-size: 150%;'>
+                                    <div v-html='renamerDoc.doc'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </q-card-section>
+            </div>
+
         </q-card>
     </q-dialog>
 
@@ -580,18 +633,20 @@
 </template>
 
 <script>
-import DJAppIcons from './DJAppIcons';
+import DJAppIcons from './DJAppIcons.vue';
+import RenamerTokenName from './RenamerTokenName.vue';
 
 export default {
     name: 'HelpButton',
-    components: { DJAppIcons },
+    components: { DJAppIcons, RenamerTokenName },
     data() {
         return {
             show: false,
             page: 0,
             metadataMatrix: 'https://docs.google.com/spreadsheets/d/1zhIJPOtYIueV72Gd81aVnbSa6dIA-azq9fnGC2rHUzo/edit?usp=sharing',
             moodOverview: 'https://docs.google.com/spreadsheets/d/1wYokScjoS5Xb1IvqFMXbSbknrXJ7bySLLihTucOS4qY/edit?usp=sharing',
-            isrcWiki: 'https://en.wikipedia.org/wiki/International_Standard_Recording_Code'
+            isrcWiki: 'https://en.wikipedia.org/wiki/International_Standard_Recording_Code',
+            renamerDoc: null
         }
     },
     methods: {
@@ -608,7 +663,7 @@ export default {
             return this.$route.path.substring(1).split("/")[0];
         },
         pages() {
-            if (this.route == 'tageditor') return 1;
+            if (this.route == 'tageditor' || this.route == 'renamer') return 1;
             return 2;
         },
         // Show/Hide button
@@ -679,4 +734,11 @@ export default {
     color: #f0f0f0;    
 }
 
+.renamer-doc-token {
+    cursor: pointer
+}
+
+.renamer-doc-token:hover {
+    font-weight: bold;
+}
 </style>

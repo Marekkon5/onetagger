@@ -102,3 +102,27 @@ input {
 .dotted-underline:hover { 
     border-bottom: 1px dotted white;    
 }
+
+
+/* Renamer syntax higlighting colors */
+.__renamer_syntax_text {
+    color: #9e9e9e;
+}
+.__renamer_syntax_operator {
+    color: #78909c;
+}
+.__renamer_syntax_string {
+    color: #4caf50;
+}
+.__renamer_syntax_number {
+    color: #ff5722;
+}
+.__renamer_syntax_function {
+    color: #2196f3;
+}
+.__renamer_syntax_property {
+    color: #cfd8dc;
+}
+.__renamer_syntax_variable {
+    color: #cfd8dc;
+}

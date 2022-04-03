@@ -395,6 +395,14 @@ impl Token for TokenVariable {
         if let Some(field) = field {
             let tag = field.by_format(&info.format);
             if let Some(v) = info.tags.get(tag) {
+                // Artist/Album artist override
+                if self.var.to_lowercase() == "artists" || self.var.to_lowercase() == "albumartists" {
+                    if v.is_empty() {
+                        return None;
+                    }
+                    return Some(Data::String(v.first().unwrap().to_string()));
+                }
+
                 return Some(Data::Array(v.clone()));
             }
         }

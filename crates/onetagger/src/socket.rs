@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::{Path, PathBuf};
 use onetagger_renamer::ac::Autocomplete;
+use onetagger_renamer::docs::FullDocs;
 use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
 use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
@@ -115,7 +116,8 @@ struct InitData {
     version: &'static str,
     os: &'static str,
     start_context: StartContext,
-    platforms: &'static AutotaggerPlatforms
+    platforms: &'static AutotaggerPlatforms,
+    renamer_docs: FullDocs
 }
 
 impl InitData {
@@ -127,6 +129,7 @@ impl InitData {
             os: env::consts::OS,
             start_context,
             platforms: &onetagger_autotag::AUTOTAGGER_PLATFORMS,
+            renamer_docs: FullDocs::get().html()
         }
     }
 }

@@ -114,12 +114,7 @@ impl Autocomplete {
     /// Generate suggestions and convert to html
     pub fn suggest_html(&self) -> Vec<SymbolDoc> {
         let mut suggestions = self.suggest();
-        for s in &mut suggestions {
-            let parser = Parser::new_ext(&s.doc, Options::empty());
-            let mut output = String::new();
-            pulldown_cmark::html::push_html(&mut output, parser);
-            s.doc = output;
-        }
+        suggestions.iter_mut().for_each(|s| s.html());
         suggestions
     }
 
@@ -148,6 +143,14 @@ pub struct SymbolDoc {
 }
 
 impl SymbolDoc {
+    /// Convert self to HTML
+    pub fn html(&mut self) {
+        let parser = Parser::new_ext(&self.doc, Options::empty());
+        let mut output = String::new();
+        pulldown_cmark::html::push_html(&mut output, parser);
+        self.doc = output;
+    }
+
     /// Short for creating new variable doc 
     pub(crate) fn var(name: &str, doc: &str) -> SymbolDoc {
         SymbolDoc {

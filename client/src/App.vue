@@ -81,7 +81,7 @@
                 </q-toolbar>
             </q-header>
 
-            <HelpButton></HelpButton>
+            <HelpButton v-if='$1t.info.ready'></HelpButton>
 
             <!-- Drawers -->
             <div v-if='$1t.info.ready'>

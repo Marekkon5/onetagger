@@ -111,6 +111,9 @@ impl Renamer {
 
     /// Generate html from the syntax highlighting
     pub fn generate_html(&self, input: &str) -> String {
+        // class prefix
+        let prefix = "__renamer_";
+        
         let mut output = String::new();
         for syntax in &self.template.syntax {
             let text = input.chars().skip(syntax.start).take(syntax.length).collect::<String>().replace(" ", "&nbsp;");
@@ -123,7 +126,7 @@ impl Renamer {
                 SyntaxType::Property => "syntax_property",
                 SyntaxType::Variable => "syntax_variable",
             };
-            output.push_str(&format!("<span class=\"{class}\">{text}</span>"));
+            output.push_str(&format!("<span class=\"{prefix}{class}\">{text}</span>"));
         }
         output
     }

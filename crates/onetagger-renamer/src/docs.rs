@@ -1,24 +1,26 @@
+use serde::Serialize;
+
 use crate::ac::{SymbolDoc, DocParameter};
 
 lazy_static! {
     pub static ref VARIABLES: [SymbolDoc; 17] = [
         SymbolDoc::var("title", "Get the Title frame from tag.\n\n  Used tags:<br> **MP3**: `TIT2`<br> **FLAC**: `TITLE`<br> **MP4**: `©nam`"),
-        SymbolDoc::var("artist", "Get the Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
+        SymbolDoc::var("artist", "Get the first Artist from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
         SymbolDoc::var("artists", "Get the Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
-        SymbolDoc::var("album", "Get the Album Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE2`<br> **FLAC**: `ALBUMARTIST`<br> **MP4**: `aART`"),
-        SymbolDoc::var("albumartist", "Get the Album frame from tag.\n\n  Used tags:<br> **MP3**: `TALB`<br> **FLAC**: `ALBUM`<br> **MP4**: `©alb`"),
-        SymbolDoc::var("albumartists", "Get the Album frame from tag.\n\n  Used tags:<br> **MP3**: `TALB`<br> **FLAC**: `ALBUM`<br> **MP4**: `©alb`"),
-        SymbolDoc::var("key", "Get the Key frame from tag.\n\n  Used tags:<br> **MP3**: `TKEY`<br> **FLAC**: `INITIALKEY`<br> **MP4**: `tmpo`"),
-        SymbolDoc::var("bpm", "Get the BPM frame from tag.\n\n  Used tags:<br> **MP3**: `TBPM`<br> **FLAC**: `BPM`<br> **MP4**: `©gen`"),
-        SymbolDoc::var("genre", "Get the Genre frame from tag.\n\n  Used tags:<br> **MP3**: `TCON`<br> **FLAC**: `GENRE`<br> **MP4**: `com.apple.iTunes:LABEL`"),
-        SymbolDoc::var("label", "Get the Label frame from tag.\n\n  Used tags:<br> **MP3**: `TPUB`<br> **FLAC**: `LABEL`<br> **MP4**: `com.apple.iTunes:ISRC`"),
-        SymbolDoc::var("style", "Get the Style frame from tag.\n\n  Used tags:<br> **MP3**: `STYLE`<br> **FLAC**: `STYLE`<br> **MP4**: `com.apple.iTunes:CATALOGNUMBER`"),
-        SymbolDoc::var("isrc", "Get the ISRC frame from tag.\n\n  Used tags:<br> **MP3**: `TSRC`<br> **FLAC**: `ISRC`<br> **MP4**: `desc`"),
-        SymbolDoc::var("catalognumber", "Get the Catalog Number frame from tag.\n\n  Used tags:<br> **MP3**: `CATALOGNUMBER`<br> **FLAC**: `CATALOGNUMBER`<br> **MP4**: `trkn`"),
-        SymbolDoc::var("version", "Get the Version frame from tag.\n\n  Used tags:<br> **MP3**: `TIT3`<br> **FLAC**: `SUBTITLE`<br> **MP4**: `com.apple.iTunes:REMIXER`"),
-        SymbolDoc::var("tracknumber", "Get the Track Number frame from tag.\n\n  Used tags:<br> **MP3**: `TRCK`<br> **FLAC**: `TRACKNUMBER`<br> **MP4**: `com.apple.iTunes:KEY`"),
-        SymbolDoc::var("duration", "Get the Duration frame from tag.\n\n  Used tags:<br> **MP3**: `TLEN`<br> **FLAC**: `LENGTH`<br> **MP4**: `com.apple.iTunes:STYLE`"),
-        SymbolDoc::var("remixer", "Get the Remixer frame from tag.\n\n  Used tags:<br> **MP3**: `TPE4`<br> **FLAC**: `REMIXE`<br> **MP4**: `com.apple.iTunes:LENGTH`"),
+        SymbolDoc::var("album", "Get the Album frame from tag.\n\n  Used tags:<br> **MP3**: `TALB`<br> **FLAC**: `ALBUM`<br> **MP4**: `©alb`"),
+        SymbolDoc::var("albumartist", "Get the first Album Artist from tag.\n\n  Used tags:<br> **MP3**: `TPE2`<br> **FLAC**: `ALBUMARTIST`<br> **MP4**: `aART`"),
+        SymbolDoc::var("albumartists", "Get the Album Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE2`<br> **FLAC**: `ALBUMARTIST`<br> **MP4**: `aART`"),
+        SymbolDoc::var("key", "Get the Key frame from tag.\n\n  Used tags:<br> **MP3**: `TKEY`<br> **FLAC**: `INITIALKEY`<br> **MP4**: `com.apple.iTunes:initialkey`"),
+        SymbolDoc::var("bpm", "Get the BPM frame from tag.\n\n  Used tags:<br> **MP3**: `TBPM`<br> **FLAC**: `BPM`<br> **MP4**: `tmpo`"),
+        SymbolDoc::var("genre", "Get the Genre frame from tag.\n\n  Used tags:<br> **MP3**: `TCON`<br> **FLAC**: `GENRE`<br> **MP4**: `©gen`"),
+        SymbolDoc::var("label", "Get the Label frame from tag.\n\n  Used tags:<br> **MP3**: `TPUB`<br> **FLAC**: `LABEL`<br> **MP4**: `com.apple.iTunes:LABEL`"),
+        SymbolDoc::var("style", "Get the Style frame from tag.\n\n  Used tags:<br> **MP3**: `STYLE`<br> **FLAC**: `STYLE`<br> **MP4**: `com.apple.iTunes:STYLE`"),
+        SymbolDoc::var("isrc", "Get the ISRC frame from tag.\n\n  Used tags:<br> **MP3**: `TSRC`<br> **FLAC**: `ISRC`<br> **MP4**: `com.apple.iTunes:ISRC`"),
+        SymbolDoc::var("catalognumber", "Get the Catalog Number frame from tag.\n\n  Used tags:<br> **MP3**: `CATALOGNUMBER`<br> **FLAC**: `CATALOGNUMBER`<br> **MP4**: `com.apple.iTunes:CATALOGNUMBER`"),
+        SymbolDoc::var("version", "Get the Version frame from tag.\n\n  Used tags:<br> **MP3**: `TIT3`<br> **FLAC**: `SUBTITLE`<br> **MP4**: `com.apple.iTunes:SUBTITLE`"),
+        SymbolDoc::var("tracknumber", "Get the Track Number frame from tag.\n\n  Used tags:<br> **MP3**: `TRCK`<br> **FLAC**: `TRACKNUMBER`<br> **MP4**: `trkn`"),
+        SymbolDoc::var("duration", "Get the Duration frame from tag.\n\n  Used tags:<br> **MP3**: `TLEN`<br> **FLAC**: `LENGTH`<br> **MP4**: `com.apple.iTunes:LENGTH`"),
+        SymbolDoc::var("remixer", "Get the Remixer frame from tag.\n\n  Used tags:<br> **MP3**: `TPE4`<br> **FLAC**: `REMIXER`<br> **MP4**: `com.apple.iTunes:REMIXER`"),
     ];
 
     pub static ref PROPERTIES: [SymbolDoc; 2] = [
@@ -42,3 +44,25 @@ lazy_static! {
     ];
 }
 
+/// Holds all of the docs for sending into UI
+#[derive(Debug, Serialize)]
+pub struct FullDocs {
+    pub variables: Vec<SymbolDoc>,
+    pub properties: Vec<SymbolDoc>,
+    pub functions: Vec<SymbolDoc>
+}
+
+impl FullDocs {
+    /// Get all of the docs
+    pub fn get() -> FullDocs {
+        FullDocs { variables: VARIABLES.to_vec(), properties: PROPERTIES.to_vec(), functions: FUNCTIONS.to_vec() }
+    }
+
+    /// Convert to html
+    pub fn html(mut self) -> Self {
+        self.variables.iter_mut().for_each(|i| i.html());
+        self.properties.iter_mut().for_each(|i| i.html());
+        self.functions.iter_mut().for_each(|i| i.html());
+        self
+    }
+}

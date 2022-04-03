@@ -1,11 +1,12 @@
 <template>
 <div class='text-center'>
 
-    <div class='q-py-xl' v-if='!$1t.lock.locked'>
+    <div class='q-py-lg' v-if='!$1t.lock.locked'>
         <div style='max-width: 800px; margin: auto;'>
             <!-- Input and output folders -->
-            <div class='text-h4 q-mb-md'>Folders</div>
-    
+            <div class='text-h5 text-grey-4'>Select input / output</div>
+            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
+        
             <div class='q-my-md'>
                 <q-input filled class='col-10' label='Input folder' v-model='config.path'>
                     <template v-slot:append>
@@ -23,8 +24,11 @@
             </div>
     
             <!-- Template -->
-            <div class='text-h4 q-mt-md'>Template</div>
-            <div style='margin-top: -10px;'>
+            <q-separator class='q-mx-auto q-mt-xl q-mb-lg custom-separator' inset color="dark" />
+            <div class='text-h5 text-grey-4 custom-margin'>Template</div>
+                <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info? Click <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right</div>
+            
+            <div style='margin-top: -30px;'>
                 <div class='fake-cursor' :style='cursorStyle'>|</div>
                 <div class='template-text'>
                     <span v-if='config.template' v-html='highlighted'></span>
@@ -56,8 +60,8 @@
                             <q-icon name='mdi-function' class='q-mb-xs' v-if='suggestion.kind == "function"'></q-icon>
     
                             <!-- name -->
-                            <span class='monospace' :class='{"text-primary": i == suggestionIndex}'>
-                                {{suggestion.name}}
+                            <span class='q-ml-sm' :class='{"text-primary": i == suggestionIndex}'>
+                                <RenamerTokenName :token='suggestion' :params='false'></RenamerTokenName>
                             </span>
     
                             <!-- selected icon -->
@@ -71,19 +75,7 @@
                         <div v-if='suggestions[suggestionIndex]'>
                             <!-- Function info -->
                             <div v-if='suggestions[suggestionIndex].kind == "function"' class='q-mb-sm suggestion-help-function'>
-                                <span>
-                                    <span class='monospace'>{{suggestions[suggestionIndex].name}}</span>
-                                    <span class='monospace'>(</span>
-                                        <span v-for='(param, i) in suggestions[suggestionIndex].parameters' :key='"p"+i'>
-                                            <span 
-                                                class='monospace' 
-                                                :class='{"syntax_string": param.type == "string", "syntax_number": param.type == "number"}'
-                                            >{{param.name}}</span>
-                                            <span class='monospace'>: {{param.type}}<span class='monospace' v-if='!param.required'>?</span></span>
-                                            <span class='monospace' v-if='i != suggestions[suggestionIndex].parameters.length - 1'>, </span>
-                                        </span>
-                                    <span class='monospace'>)</span>
-                                </span>
+                                <RenamerTokenName :token='suggestions[suggestionIndex]'></RenamerTokenName>
                                 <br>
                             </div>
     
@@ -95,41 +87,60 @@
             </div>
         </div>
 
-        <div class='row q-mt-md q-mx-xl'>
-            <!-- Options -->
-            <div style='width: 50%'>
-                <div class='text-h4 q-my-md'>Options:</div>
-                <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
-                <br>
-                <q-toggle v-model='config.subfolders' label='Include subfolders'></q-toggle>
-                <br>
-                <q-toggle v-model='config.overwrite' label='Overwrite existing target files'></q-toggle>
-                <br>
-                <div class='row justify-center q-my-sm'>
-                    <q-input
-                        v-model='config.separator'
-                        label='Separator'
-                        filled
-                        style='max-width: 200px;'
-                    ></q-input>
-                </div>
-            </div>
+        
 
-            <!-- Preview -->
-            <div style='width: 50%'>
-                <div class='text-h4 q-my-md'>Preview:</div>
-                <div v-for='(file, i) in preview' :key='"prev"+i'>
-                    <div class='text-body1 monospace'>{{file[1]}}</div>
-                    <br>
-                </div>
+        <!-- Preview -->              
+        <div class='full-width'>
+            <div class='q-mt-md q-mb-sm text-h6 text-grey-4 custom-margin'>Preview</div>
+            <div v-for='(file, i) in preview' :key='"prev"+i'>
+                <div class='text-caption monospace text-grey-5'>{{file[1]}}</div>
+                <br>
+            </div>
+        </div>
+        
+
+        
+        <!-- Options -->
+        <div class='full-width'>
+            <q-separator class='q-mx-auto q-mb-lg custom-separator' inset color="dark" />
+            <div class='q-mb-sm text-h5 text-grey-4 custom-margin'>Options</div>
+
+            <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
+            <br>
+            <q-toggle v-model='config.subfolders' label='Include subfolders'></q-toggle>
+            <br>
+            <q-toggle v-model='config.overwrite' label='Overwrite existing target files'></q-toggle>
+            <br>
+
+            <div class='row justify-center q-my-sm'>
+                <q-input
+                    v-model='config.separator'
+                    label='Separator'
+                    filled
+                    style='max-width: 200px;'
+                ></q-input>
             </div>
         </div>
 
-        <!-- Start -->
-        <br>
-        <div class='q-mt-lg'></div>
-        <q-btn round size='xl' color='primary' icon='mdi-play' :disabled='!startable' @click='start(false)'></q-btn>
+
+
     </div>
+
+    <!-- Start FAB -->
+    <q-page-sticky position='bottom-right' :offset='[36, 24]'>
+        <q-btn 
+            fab 
+            push
+            icon='mdi-play' 
+            color='primary'
+            :disabled='!startable'
+            @click='start(false)'>
+
+            <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                <span class='text-weight-bold'>START</span>
+            </q-tooltip>
+        </q-btn>
+    </q-page-sticky>
 
     <!-- Loading -->
     <div v-if='$1t.lock.locked'>
@@ -147,8 +158,11 @@
 </template>
 
 <script>
+import RenamerTokenName from '../components/RenamerTokenName.vue';
+
 export default { 
     name: 'Renamer',
+    components: { RenamerTokenName },
     data() {
         return {
             config: {
@@ -284,7 +298,7 @@ export default {
             if (!force) {
                 this.$q.dialog({
                     title: 'Warning',
-                    message: 'Renaming files might cause some DJ apps to loose informations about given files, because they depend on the original filename.',
+                    message: 'Many DJ apps store cue points and other metadata based on the original file name. When renamed, this information will be lost and you will have to reimport these files.',
                     html: true,
                     ok: {
                         color: 'primary',
@@ -485,26 +499,7 @@ export default {
     background-color: #070707;
 }
 
-/* Syntax colors */
-.syntax_text {
-    color: #9e9e9e;
-}
-.syntax_operator {
-    color: #78909c;
-}
-.syntax_string {
-    color: #4caf50;
-}
-.syntax_number {
-    color: #ff5722;
-}
-.syntax_function {
-    color: #2196f3;
-}
-.syntax_property {
-    color: #cfd8dc;
-}
-.syntax_variable {
-    color: #cfd8dc;
+.custom-margin {
+    margin-top: 35px !important;
 }
 </style>
