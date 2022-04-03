@@ -36,7 +36,7 @@ lazy_static! {
         SymbolDoc::f("slice", "Take a range out of array or substring", vec![DocParameter::n("start", true), DocParameter::n("end", false)]),
         SymbolDoc::f("range", "Take a range out of array or substring", vec![DocParameter::n("start", true), DocParameter::n("end", false)]),
         SymbolDoc::f("capitalize", "Convert first letter to uppercase", vec![]),
-        SymbolDoc::f("replace", "Replace text", vec![DocParameter::s("from", true), DocParameter::s("to", true)]),
+        SymbolDoc::f("replace", "Replace text. `from` parameter accepts regex expressions.", vec![DocParameter::s("from", true), DocParameter::s("to", true)]),
         SymbolDoc::f("pad", "Pad on the left side with given character to reach given length", vec![DocParameter::s("char", true), DocParameter::n("length", true)]),
         SymbolDoc::f("sort", "Sort the array alphabetically", vec![]),
         SymbolDoc::f("reverse", "Reverse the array", vec![]),

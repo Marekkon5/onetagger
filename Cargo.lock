@@ -2561,6 +2561,7 @@ dependencies = [
  "onetagger-tagger",
  "pad",
  "pulldown-cmark",
+ "regex",
  "serde",
 ]
 

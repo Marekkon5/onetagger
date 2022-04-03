@@ -1,5 +1,6 @@
 use onetagger_tagger::{AudioFileInfo, Field};
 use pad::{PadStr, Alignment};
+use regex::Regex;
 
 use crate::RenamerConfig;
 
@@ -202,7 +203,7 @@ impl TokenCommand {
 
         for c in input.chars() {
             match c {
-                '.' if !string => {
+                '.' if !string && !function => {
                     if buffer.is_empty() {
                         syntax.add(1, SyntaxType::Operator);
                         continue;
@@ -509,7 +510,8 @@ impl TokenFunction {
                         state = FunctionParseState::Params;
                         params.push(FunctionParameter::String(param.clone()));
                         syntax.add(1, SyntaxType::Operator);
-                        syntax.add(param.len(), SyntaxType::String);
+                        // add escape char length coz it's double in shown, but only single in buffer
+                        syntax.add(param.len() + param.chars().filter(|c| c == &'\\').count(), SyntaxType::String);
                         syntax.add(1, SyntaxType::Operator);
                         param.clear();
                     }
@@ -530,7 +532,14 @@ impl TokenFunction {
                     }
                     syntax.add(1, SyntaxType::Operator);
                 },
-                '\\' => escape = true,
+                '\\' => {
+                    if escape {
+                        param.push('\\');
+                        escape = false;
+                    } else {
+                        escape = true;
+                    }
+                },
                 // Number
                 c if c.is_digit(10) => {
                     if state == FunctionParseState::Params {
@@ -547,6 +556,7 @@ impl TokenFunction {
                         }
                         _ => {},
                     }
+                    escape = false;
                 }
             }
         };
@@ -644,7 +654,16 @@ impl Token for TokenFunction {
             "replace" => {
                 let from = self.param_str(0, true)?;
                 let to = self.param_str(1, true)?;
-                Some(Data::String(data.to_string(&config.separator).replace(from, to)))
+                let re = match Regex::new(from) {
+                    Ok(re) => re,
+                    Err(e) => {
+                        error!("Invalid regex: {from}: {e}");
+                        return None;
+                    }
+                };
+                let text = data.to_string(&config.separator);
+                let text = re.replace_all(&text, to);
+                Some(Data::String(text.to_string()))
             },
             // Padding on beggining
             "pad" => {

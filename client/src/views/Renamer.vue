@@ -10,7 +10,7 @@
             <div class='q-my-md'>
                 <q-input filled class='col-10' label='Input folder' v-model='config.path'>
                     <template v-slot:append>
-                        <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
+                        <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(false)'></q-btn>
                     </template>
                 </q-input>
             </div>
