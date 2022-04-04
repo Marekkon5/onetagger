@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::ac::{SymbolDoc, DocParameter};
 
 lazy_static! {
-    pub static ref VARIABLES: [SymbolDoc; 17] = [
+    pub static ref VARIABLES: [SymbolDoc; 20] = [
         SymbolDoc::var("title", "Get the Title frame from tag.\n\n  Used tags:<br> **MP3**: `TIT2`<br> **FLAC**: `TITLE`<br> **MP4**: `©nam`"),
         SymbolDoc::var("artist", "Get the first Artist from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
         SymbolDoc::var("artists", "Get the Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
@@ -21,6 +21,9 @@ lazy_static! {
         SymbolDoc::var("tracknumber", "Get the Track Number frame from tag.\n\n  Used tags:<br> **MP3**: `TRCK`<br> **FLAC**: `TRACKNUMBER`<br> **MP4**: `trkn`"),
         SymbolDoc::var("duration", "Get the Duration frame from tag.\n\n  Used tags:<br> **MP3**: `TLEN`<br> **FLAC**: `LENGTH`<br> **MP4**: `com.apple.iTunes:LENGTH`"),
         SymbolDoc::var("remixer", "Get the Remixer frame from tag.\n\n  Used tags:<br> **MP3**: `TPE4`<br> **FLAC**: `REMIXER`<br> **MP4**: `com.apple.iTunes:REMIXER`"),
+        SymbolDoc::var("year", "Get the release year from tag.\n\n  Used tags:<br> **MP3**: `TYER` or `TDRC`<br> **FLAC**: `DATE`<br> **MP4**: `©day`"),
+        SymbolDoc::var("month", "Get the release month from tag.\n\n  Used tags:<br> **MP3**: `TYER` or `TDRC`<br> **FLAC**: `DATE`<br> **MP4**: `©day`"),
+        SymbolDoc::var("day", "Get the release day from tag.\n\n  Used tags:<br> **MP3**: `TYER` or `TDRC`<br> **FLAC**: `DATE`<br> **MP4**: `©day`"),
     ];
 
     pub static ref PROPERTIES: [SymbolDoc; 2] = [

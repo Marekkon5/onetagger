@@ -583,33 +583,82 @@
                         <!-- List of all things -->
                         <div class='col-3' style='overflow-y: scroll;'>
                             <div style='height: 500px;'>
+                                <div class='text-h6 q-py-sm clickable' @click='renamerDoc = null' :class='{"text-primary": renamerDoc == null}'>Info</div>
+
                                 <div class='text-h6 q-py-sm'>Variables</div>
                                 <div v-for='(v, i) in $1t.info.renamerDocs.variables' :key='"RDV"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
-                                    <RenamerTokenName :token='v'></RenamerTokenName>
+                                    <RenamerTokenName :token='v' :class='{"text-primary": renamerDoc == v}'></RenamerTokenName>
                                 </div>
         
                                 <div class='q-my-md'></div>
         
                                 <div class='text-h6 q-py-sm'>Properties</div>
                                 <div v-for='(v, i) in $1t.info.renamerDocs.properties' :key='"RDP"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
-                                    <RenamerTokenName :token='v'></RenamerTokenName>
+                                    <RenamerTokenName :token='v' :class='{"text-primary": renamerDoc == v}'></RenamerTokenName>
                                 </div>
         
                                 <div class='q-my-md'></div>
         
                                 <div class='text-h6 q-py-sm'>Functions</div>
                                 <div v-for='(v, i) in $1t.info.renamerDocs.functions' :key='"RDF"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
-                                    <RenamerTokenName :token='v' :type='false'></RenamerTokenName>
+                                    <RenamerTokenName :token='v' :type='false' :class='{"text-primary": renamerDoc == v}'></RenamerTokenName>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Docs -->
                         <div class='col-9 q-pl-xl'>
+                            
                             <!-- Not selected -->
                             <div v-if='!renamerDoc' class='text-center'>
-                                <div class='text-h5'>Select a token on left to show the documentation</div>
+                            
+                                <div class='text-h5'>GETTING STARTED WITH AUTO RENAMER</div>
+
+                                <p>Automatically rename your files using Auto Renamer.</p>
+
+                                <p>
+                                    You can rename files based on tags.
+                                    The template string defines the format scheme of the new filename.
+                                    All dynamic content in this template string will be replaced with the information from the file when executing.
+                                </p>
+
+                                <div>
+                                    <div class='text-h6'>Dynamic content</div>
+                                    <div class='q-my-sm'>
+                                        The template string describes the filename scheme for the rename operation based on the tag information.
+                                        For example, you can use the following variables:
+                                    </div>
+    
+                                    <div style='width: 240px; margin: auto;'>
+                                        <div class='row'><div class='col-6 monospace'>%album%</div>        <div class='col-6'>Album</div></div>
+                                        <div class='row'><div class='col-6 monospace'>%artist%</div>       <div class='col-6'>Artist</div></div>
+                                        <div class='row'><div class='col-6 monospace'>%genre%</div>        <div class='col-6'>Genre</div></div>
+                                        <div class='row'><div class='col-6 monospace'>%title%</div>        <div class='col-6'>Title</div></div>
+                                        <div class='row'><div class='col-6 monospace'>%tracknumber%</div>  <div class='col-6'>Track Number</div></div>
+                                    </div>
+                                </div>
+
+                                <div class='q-my-sm'>
+                                    Any other variable that is not listed here, you can look up at the left section for a full overview.
+                                    Also shows you some typical functions that can be used based on so called regex expressions.
+                                </div>    
+
+                                <div class='q-my-sm'>
+                                    <div class='text-h6'>Static content</div>
+                                    <div>
+                                        Any you would like to add to your filenames basically.
+                                        Just add it outside the %variable%.
+                                    </div>
+                                </div>
+
+                               
+                                <div>
+                                    <div class='text-h6 q-mb-sm'>Examples</div>
+                                    <HelpRenamerExamples></HelpRenamerExamples>
+                                </div>
+                                
                             </div>
+
                             <!-- Selected -->
                             <div v-if='renamerDoc'>
                                 <RenamerTokenName :token='renamerDoc' class='text-h5'></RenamerTokenName>
@@ -635,10 +684,11 @@
 <script>
 import DJAppIcons from './DJAppIcons.vue';
 import RenamerTokenName from './RenamerTokenName.vue';
+import HelpRenamerExamples from './HelpRenamerExamples.vue';
 
 export default {
     name: 'HelpButton',
-    components: { DJAppIcons, RenamerTokenName },
+    components: { DJAppIcons, RenamerTokenName, HelpRenamerExamples },
     data() {
         return {
             show: false,

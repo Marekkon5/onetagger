@@ -2558,6 +2558,7 @@ dependencies = [
  "lazy_static",
  "log",
  "onetagger-autotag",
+ "onetagger-tag",
  "onetagger-tagger",
  "pad",
  "pulldown-cmark",

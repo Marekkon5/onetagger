@@ -1,3 +1,4 @@
+use onetagger_tag::Tag;
 use onetagger_tagger::{AudioFileInfo, Field};
 use pad::{PadStr, Alignment};
 use regex::Regex;
@@ -375,7 +376,8 @@ impl TokenVariable {
 impl Token for TokenVariable {
     fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
         // Parse field name
-        let field = match &self.var.to_lowercase()[..] {
+        let lower = self.var.to_lowercase();
+        let field = match &lower[..] {
             "title" => Some(Field::Title),
             "artist" | "artists" => Some(Field::Artist),
             "album" => Some(Field::Album),
@@ -407,6 +409,21 @@ impl Token for TokenVariable {
                 return Some(Data::Array(v.clone()));
             }
         }
+
+        // Date
+        if lower == "year" || lower == "month" || lower == "day" {
+            let tag = Tag::load_file(&info.path, false).ok()?;
+            if let Some(date) = tag.tag().get_date() {
+                let val = match &lower[..] {
+                    "year" => Some(date.year),
+                    "month" => date.month.map(|m| m as i32),
+                    "day" => date.day.map(|d| d as i32),
+                    _ => None
+                }?;
+                return Some(Data::String(val.to_string()));
+            }
+        }
+
         // Try to get tag directly
         if let Some(v) = info.tags.get(&self.var) {
             return Some(Data::Array(v.clone()));

@@ -143,3 +143,20 @@ pub struct RenamerConfig {
     pub overwrite: bool,
     pub separator: String,
 }
+
+/// HTML generation test
+#[test]
+fn generate_html() {
+    let items = [
+        "%artist% - %title%",
+        "%tracknumber%. %artist% - %title%",
+        "%artist% - %title% - %bpm% - %key%",
+        "%artist% - %album%/%tracknumber% - %title%",
+        "%year% - %album%/%track% - %artist% - %title%"
+    ];
+    for i in items {
+        let renamer = Renamer::new(TemplateParser::parse(i));
+        let output = renamer.generate_html(i);
+        println!("{output}")
+    }
+}
