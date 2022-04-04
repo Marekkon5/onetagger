@@ -4,7 +4,8 @@
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
         <!-- Search -->
         <q-input
-            filled
+            filled 
+            dense
             v-model='filter'
             :label-slot="true"
             class='q-px-md q-pt-md'
@@ -15,7 +16,7 @@
         </q-input>
 
         <!-- Sort -->
-        <div class='row text-grey-6 justify-between q-mx-md q-mt-sm'>
+        <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm'>
             <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
                 <div :class='{"text-bold": sortOption == option}'>{{option}}</div>
                 <div v-if='sortOption == option' class='q-pl-xs'>
@@ -35,7 +36,7 @@
 
         <!-- No results -->
         <div v-if='tracks.length == 0'>
-            <div class='text-center text-h4 text-grey-6 q-my-sm'>No results!</div>
+            <div class='text-center text-h4 text-grey-6 q-my-lg'>No results!</div>
         </div>
     </div>
 

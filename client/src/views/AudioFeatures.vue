@@ -127,7 +127,7 @@
                 fab push
                 icon='mdi-play' 
                 color='primary'
-                :disable='!config.path && !playlist'
+                :disable='!config.path && !playlist.data'
                 @click='start'                
             >
             <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
@@ -154,7 +154,7 @@ export default {
     components: {TagFields, PlaylistDropZone, Separators, SpotifyLogin},
     data() {
         return {
-            playlist: {filename: null, data: null, format: null},
+            playlist: { filename: null, data: null, format: null },
             config: {
                 path: null,
                 metaTag: true,

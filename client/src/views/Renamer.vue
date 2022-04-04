@@ -7,7 +7,7 @@
             <div class='text-h5 text-grey-4'>Select input / output</div>
             <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         
-            <div class='q-my-md'>
+            <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
                 <q-input filled class='col-10' label='Input folder' v-model='config.path'>
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(false)'></q-btn>
@@ -15,7 +15,7 @@
                 </q-input>
             </div>
     
-            <div class='q-my-md'>
+            <div class='q-pt-lg row justify-center input' style='max-width: 725px; margin: auto;'>
                 <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir'>
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
@@ -102,7 +102,7 @@
         
         <!-- Options -->
         <div class='full-width'>
-            <q-separator class='q-mx-auto q-mb-lg custom-separator' inset color="dark" />
+            <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' inset color="dark" />
             <div class='q-mb-sm text-h5 text-grey-4 custom-margin'>Options</div>
 
             <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>

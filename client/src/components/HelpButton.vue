@@ -51,11 +51,11 @@
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>How does it work?</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             It reads the <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> & <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag from your local MP3, AIFF, FLAC & M4A files (or filename or playlist), <br>feeds it into the search engine of the selected platforms, fetches the tags & writes it to your files.<p></p>
-                            When no tags or proper filename is present, you can enable <span @click='$1t.url("https://shazam.com")' class='clickable doc-link'>Shazam <q-icon name='mdi-open-in-new'></q-icon></span> to identify the track & still fetch tags.<br>
+                            When no tags or proper filename is present, you can enable <span @click='$1t.url("https://shazam.com")' class='clickable doc-link'>Shazam </span> to identify the track & still fetch tags.<br>
                                            
-                            <span @click='$1t.url("https://beatport.com")' class='clickable doc-link'>Beatport <q-icon name='mdi-open-in-new'></q-icon></span> , <span @click='$1t.url("https://junodownload.com")' class='clickable doc-link'>Juno Download <q-icon name='mdi-open-in-new'></q-icon></span> & <span @click='$1t.url("https://traxsource.com")' class='clickable doc-link'>Traxsource <q-icon name='mdi-open-in-new'></q-icon></span> are based on a method called scraping. <br>
-                            <span @click='$1t.url("https://beatsource.com")' class='clickable doc-link'>Beatsource <q-icon name='mdi-open-in-new'></q-icon></span> , <span @click='$1t.url("https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/index.html")' class='clickable doc-link'>iTunes <q-icon name='mdi-open-in-new'></q-icon></span> & <span @click='$1t.url("https://musicbrainz.org")' class='clickable doc-link'>MusicBrainz <q-icon name='mdi-open-in-new'></q-icon></span> are based on their API.
-                            <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs <q-icon name='mdi-open-in-new'></q-icon></span> & <span @click='$1t.url("https://spotify.com")' class='clickable doc-link'>Spotify <q-icon name='mdi-open-in-new'></q-icon></span> too, but need a free account.
+                            <span @click='$1t.url("https://beatport.com")' class='clickable doc-link'>Beatport </span> , <span @click='$1t.url("https://junodownload.com")' class='clickable doc-link'>Juno Download </span> & <span @click='$1t.url("https://traxsource.com")' class='clickable doc-link'>Traxsource </span> are based on a method called scraping. <br>
+                            <span @click='$1t.url("https://beatsource.com")' class='clickable doc-link'>Beatsource </span> , <span @click='$1t.url("https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/index.html")' class='clickable doc-link'>iTunes </span> & <span @click='$1t.url("https://musicbrainz.org")' class='clickable doc-link'>MusicBrainz </span> are based on their API.
+                            <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs </span> & <span @click='$1t.url("https://spotify.com")' class='clickable doc-link'>Spotify </span> too, but need a free account.
                         
                         </div>
                         </div>
@@ -155,8 +155,8 @@
                         <div class='row' style='width: 90%; margin-left:15%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Discogs</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
-                            <span class='text-number text-bold text-grey-6'>7. </span><span class='q-pl-sm'>Enter token - To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs <q-icon name='mdi-open-in-new'></q-icon></span></span> <br>
-                            <span class='text-number text-bold text-grey-10'>_</span><span class='q-pl-md'>Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='clickable doc-link'>discogs.com/settings/developers <q-icon name='mdi-open-in-new'></q-icon></span> & click 'Generate token'</span> <br>
+                            <span class='text-number text-bold text-grey-6'>7. </span><span class='q-pl-sm'>Enter token - To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs </span></span> <br>
+                            <span class='text-number text-bold text-grey-10'>_</span><span class='q-pl-md'>Go to <span @click='$1t.url("https://www.discogs.com/settings/developers")' class='clickable doc-link'>discogs.com/settings/developers </span> & click 'Generate token'</span> <br>
                             <span class='text-number text-bold text-grey-10'>_</span><span class='q-pl-md'>Select it & copy/paste the current token <span @click='$1t.url("https://youtu.be/IvAiMkfdLCw")' class='clickable doc-link'>see video demo <q-icon name='mdi-youtube' class='q-mb-xs q-pr-xs'></q-icon></span></span><p></p>
                             <span class='text-number text-bold text-grey-6'>8. </span><span class='q-pl-sm'>Select <q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Style/Subgenre</span></q-badge> tag to fetch both, if it should merge them, or write elsewhere</span> <br>
                             <span class='text-number text-bold text-grey-6'>9. </span><span class='q-pl-sm'>Drag slider to set amount of album search results to check. Click <q-badge color='primary' class='text-dark'>Next</q-badge></span><br>
@@ -199,7 +199,7 @@
                             Follow the setup described on the <span class='text-subtitle3 text-bold'>AUDIO FEATURES</span> entrance &nbsp;<span @click='$1t.url("https://youtu.be/i0q5qWQSH9Y")' class='clickable doc-link'>see video demo <q-icon name='mdi-youtube' class='q-pr-xs'></q-icon></span>
                         <div class='col-10 text-subtitle2 text-grey-4' style='line-height: 24px'>
                             Select a folder with tracks you want to get their audio features fetched for - or drag & drop playlist.<br>
-                            Based on the <span class='clickable doc-link' @click='$1t.url(isrcWiki)'>ISRC <q-icon name='mdi-open-in-new'></q-icon></span> inside the metadata it will search up the track in Spotify's API & return these values. <br>
+                            Based on the <span class='clickable doc-link' @click='$1t.url(isrcWiki)'>ISRC </span> inside the metadata it will search up the track in Spotify's API & return these values. <br>
                             If no <q-badge outline color='primary'><span class='text-white'>ISRC</span></q-badge> tag exists, it will search on <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> & <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag by exact match.<br>
                             Prominent tag translates the raw values from <q-badge color='grey-8'><span class='textnumber text-grey-2'>0-100</span></q-badge> to a meaningful  &nbsp;#description.
                         </div>
@@ -216,15 +216,15 @@
                             <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Instrumentalness</span></q-badge></div> <div class='text-right text-grey-3 col-8'>#vocal-low <span class='text-grey-6'>&nbsp;·&nbsp;</span> #vocal-med <span class='text-grey-6'>&nbsp;·&nbsp;</span> #vocal-high</div> 
                             <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Liveness</span></q-badge></div>         <div class='text-right text-grey-3 col-8'>#live <span class='text-grey-6'>&nbsp;·&nbsp;</span> #recording</div> 
                             <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Speechiness</span></q-badge></div>      <div class='text-right text-grey-3 col-8'>#speech <span class='text-grey-6'>&nbsp;·&nbsp;</span> #music</div> 
-                            <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Valence</span></q-badge></div>          <div class='text-right text-grey-3 col-8'>#positive <span class='text-grey-5'>(happy)</span> <span class='text-grey-6'>&nbsp;·&nbsp;</span> #neutral <span class='text-grey-6'>&nbsp;·&nbsp;</span> #negative <span class='text-grey-5'>(sad, angry)</span></div>
+                            <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Valence</span></q-badge></div>          <div class='text-right text-grey-3 col-8'>#positive <span class='text-grey-5'>(happy)</span> <span class='text-grey-6'>&nbsp;·&nbsp;</span> #balanced <span class='text-grey-6'>&nbsp;·&nbsp;</span> #negative <span class='text-grey-5'>(sad, angry)</span></div>
                             <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Popularity</span></q-badge></div>       <div class='text-right text-grey-3 col-8'>#unpopular <span class='text-grey-6'>&nbsp;·&nbsp;</span> #popular</div> 
                         </div>
                         </div>
                         </div>
                         <div class='bg-grey-10 text-subtitle2 text-grey-5 q-mt-md q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
-                            For a more in-depth description, check out <span class='clickable doc-link' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#/operations/get-several-audio-features")'>Spotify’s official Audio Features <q-icon name='mdi-open-in-new'></q-icon></span> documentation<br>
+                            For a more in-depth description, check out <span class='clickable doc-link' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#/operations/get-several-audio-features")'>Spotify’s official Audio Features </span> documentation<br>
                             <div class='bg-grey-10 text-subtitle2 text-grey-5 text-center q-pt-xs' style='line-height: 24px'>
-                            To look up audio features online for other tracks, check out <span class='clickable doc-link' @click='$1t.url("https://songdata.io")'>SongData.io <q-icon name='mdi-open-in-new'></q-icon></span> - Ignore the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify <q-icon name='mdi-open-in-new'></q-icon></span> though
+                            To look up audio features online for other tracks, check out <span class='clickable doc-link' @click='$1t.url("https://songdata.io")'>SongData.io </span> - Ignore the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify </span> though
                             </div>
                         </div>
                     </div>
@@ -383,7 +383,7 @@
                                 <div class='q-pl-xs text-grey-5'>Threshold default</div>
                                     <span class='text-subtitle2 text-grey-4'>
                                     <span class='text-grey-10'>-</span>#negative <br>
-                                    <span class='text-grey-10'>-</span>#neutral <br>
+                                    <span class='text-grey-10'>-</span>#balanced <br>
                                     <span class='text-grey-10'>-</span>#positive
                                     </span>                                
                             </div>
@@ -467,7 +467,7 @@
                         </div>
                         </div>
                         <div class='bg-grey-10 text-subtitle2 text-grey-5 q-py-lg q-my-lg text-center' style='line-height: 12px'>
-                            For inspiration, check out the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love <q-icon name='mdi-open-in-new'></q-icon></span> tagging system by u/nonomomomo
+                            For inspiration, check out the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span> tagging system by u/nonomomomo
                         </div> 
                         
                     </div>
@@ -487,7 +487,7 @@
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg' style='line-height: 24px'>Mood</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             Predefine your moods & additionally color code them. Use key bindings for quick access. <br>
-                            For inspiration what moods you could use, see this <span class='clickable doc-link' @click='$1t.url(moodOverview)'>Moods & other characteristics overview <q-icon name='mdi-open-in-new'></q-icon></span> <br>
+                            For inspiration what moods you could use, see this <span class='clickable doc-link' @click='$1t.url(moodOverview)'>Moods & other characteristics overview </span> <br>
                             Since the native <q-badge outline color='primary'><span class='text-white'>Mood</span></q-badge> tag isn’t read by any DJ software, we need to write it elsewhere. <br>                            
                         </div>
                         </div>
