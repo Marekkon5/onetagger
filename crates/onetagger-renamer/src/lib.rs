@@ -149,9 +149,9 @@ pub struct RenamerConfig {
 fn generate_html() {
     let items = [
         "%artist% - %title%",
-        "%tracknumber%. %artist% - %title%",
+        "%track%. %artist% - %title%",
         "%artist% - %title% - %bpm% - %key%",
-        "%artist% - %album%/%tracknumber% - %title%",
+        "%artist% - %album%/%track% - %title%",
         "%year% - %album%/%track% - %artist% - %title%"
     ];
     for i in items {

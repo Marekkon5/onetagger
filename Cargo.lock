@@ -2428,7 +2428,7 @@ checksum = "da32515d9f6e6e489d7bc9d84c71b060db7247dc035bbe44eac88cf87486d8d5"
 
 [[package]]
 name = "onetagger"
-version = "1.3.0"
+version = "1.4.0"
 dependencies = [
  "base64",
  "clap",
@@ -2491,7 +2491,7 @@ dependencies = [
 
 [[package]]
 name = "onetagger-cli"
-version = "1.3.0"
+version = "1.4.0"
 dependencies = [
  "clap",
  "log",

@@ -390,7 +390,7 @@ impl Token for TokenVariable {
             "isrc" => Some(Field::ISRC),
             "catalognumber" => Some(Field::CatalogNumber),
             "version" => Some(Field::Version),
-            "tracknumber" => Some(Field::TrackNumber),
+            "track" | "tracknumber" => Some(Field::TrackNumber),
             "duration" => Some(Field::Duration),
             "remixer" => Some(Field::Remixer),
             _ => None

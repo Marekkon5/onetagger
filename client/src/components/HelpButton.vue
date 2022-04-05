@@ -583,23 +583,23 @@
                         <!-- List of all things -->
                         <div class='col-3' style='overflow-y: scroll;'>
                             <div style='height: 500px;'>
-                                <div class='text-h6 q-py-sm clickable' @click='renamerDoc = null' :class='{"text-primary": renamerDoc == null}'>Info</div>
+                                <div class='text-h6 q-py-sm clickable' @click='renamerDoc = null' :class='{"text-primary": !renamerDoc, "text-grey-4": renamerDoc}'>Auto Rename</div>
 
-                                <div class='text-h6 q-py-sm'>Variables</div>
+                                <div class='text-h6 text-grey-4 q-py-sm'>Variables</div>
                                 <div v-for='(v, i) in $1t.info.renamerDocs.variables' :key='"RDV"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
                                     <RenamerTokenName :token='v' :class='{"text-primary": renamerDoc == v}'></RenamerTokenName>
                                 </div>
         
                                 <div class='q-my-md'></div>
         
-                                <div class='text-h6 q-py-sm'>Properties</div>
+                                <div class='text-h6 text-grey-4 q-py-sm'>Properties</div>
                                 <div v-for='(v, i) in $1t.info.renamerDocs.properties' :key='"RDP"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
                                     <RenamerTokenName :token='v' :class='{"text-primary": renamerDoc == v}'></RenamerTokenName>
                                 </div>
         
                                 <div class='q-my-md'></div>
         
-                                <div class='text-h6 q-py-sm'>Functions</div>
+                                <div class='text-h6 text-grey-4 q-py-sm'>Functions</div>
                                 <div v-for='(v, i) in $1t.info.renamerDocs.functions' :key='"RDF"+i' class='renamer-doc-token'  @click='renamerDoc = v'>
                                     <RenamerTokenName :token='v' :type='false' :class='{"text-primary": renamerDoc == v}'></RenamerTokenName>
                                 </div>
@@ -612,49 +612,65 @@
                             <!-- Not selected -->
                             <div v-if='!renamerDoc' class='text-center'>
                             
-                                <div class='text-h5'>GETTING STARTED WITH AUTO RENAMER</div>
+                                <div class='text-subtitle1 text-center text-primary text-bold text-uppercase'>Getting started with Auto Rename</div>
+                                <div class='q-mt-xs text-center'>
+                                    <q-badge color='primary'>
+                                        <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
+                                    </q-badge>
+                                </div>      
 
-                                <p>Automatically rename your files using Auto Renamer.</p>
-
-                                <p>
-                                    You can rename files based on tags.
-                                    The template string defines the format scheme of the new filename.
-                                    All dynamic content in this template string will be replaced with the information from the file when executing.
-                                </p>
+                                
+                                <div class='text-subtitle2 text-grey-4 q-mt-md text-center' style='line-height: 24px'></div>
+                                <div class='q-my-sm text-grey-4'>
+                                    Automatically rename your files based on tags.<br>
+                                    The template string defines the format scheme of the new filename.                                    
+                                </div>
 
                                 <div>
-                                    <div class='text-h6'>Dynamic content</div>
-                                    <div class='q-my-sm'>
-                                        The template string describes the filename scheme for the rename operation based on the tag information.
+                                    <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md'>Dynamic content</div>
+                                    <div class='text-grey-4'>
+                                        The template string describes the filename scheme for the rename operation based on the tag information.<br>
                                         For example, you can use the following variables:
                                     </div>
     
-                                    <div style='width: 240px; margin: auto;'>
-                                        <div class='row'><div class='col-6 monospace'>%album%</div>        <div class='col-6'>Album</div></div>
-                                        <div class='row'><div class='col-6 monospace'>%artist%</div>       <div class='col-6'>Artist</div></div>
-                                        <div class='row'><div class='col-6 monospace'>%genre%</div>        <div class='col-6'>Genre</div></div>
-                                        <div class='row'><div class='col-6 monospace'>%title%</div>        <div class='col-6'>Title</div></div>
-                                        <div class='row'><div class='col-6 monospace'>%tracknumber%</div>  <div class='col-6'>Track Number</div></div>
+                                    <div class='q-mt-sm' style="padding-left: 64px;">
+                                        <div style='width: 240px; margin: auto;' class='row'>
+                                            <div class='col-6 text-left'>
+                                                <span class='monospace'>%album%</span><br>
+                                                <span class='monospace'>%artist%</span><br>
+                                                <span class='monospace'>%title%</span><br>
+                                                <span class='monospace'>%track%</span><br>
+                                            </div>
+                                            <div class='col-6 text-left'>
+                                                <span>Album</span><br>
+                                                <span>Artist</span><br>
+                                                <span>Title</span><br>
+                                                <span>Track</span><br>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class='q-my-sm'>
+                                <div class='q-my-sm text-grey-4'>
                                     Any other variable that is not listed here, you can look up at the left section for a full overview.
                                     Also shows you some typical functions that can be used based on so called regex expressions.
                                 </div>    
 
                                 <div class='q-my-sm'>
-                                    <div class='text-h6'>Static content</div>
-                                    <div>
+                                    <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md'>Static content</div>
+                                    <div class='text-grey-4'>
                                         Any you would like to add to your filenames basically.
-                                        Just add it outside the %variable%.
+                                        Just add it outside the <span class='monospace'>%variable%</span>
                                     </div>
                                 </div>
 
-                               
                                 <div>
-                                    <div class='text-h6 q-mb-sm'>Examples</div>
+                                    <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md'>Examples</div>
                                     <HelpRenamerExamples></HelpRenamerExamples>
+                                </div>
+
+                                <div class='bg-grey-10 text-subtitle2 text-grey-5 q-px-md q-py-sm q-my-md text-center' style='line-height: 24px'>
+                                    Use &nbsp;<q-badge outline color='grey-5'><span class='text-grey-4'>/</span></q-badge>&nbsp; to define a folder (on Windows too).
                                 </div>
                                 
                             </div>

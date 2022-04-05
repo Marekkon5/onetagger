@@ -458,4 +458,9 @@
     .spin {
         animation: rotation 2s infinite linear;
     }
+
+    /* Hide tabs arrow */
+    .q-tabs__arrow { 
+        opacity: 0 !important;
+    }
 </style>
