@@ -7,7 +7,7 @@
     <!-- Welcome -->
     <div class='flex flex-center column'>
        
-        <img svg-inline src="../assets/logo.svg" height='160px' style='margin-top: 6%;'>
+        <img svg-inline src="../assets/logo.svg" height='150px' style='margin-top: 5%;'>
         
         <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
@@ -66,6 +66,21 @@
                         </q-card-section>            
                     </q-card>                    
                 </div>
+
+                <div class="text-subtitle1" style="overflow: auto;">
+                    <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
+                        <q-card-section>
+                            <div class='col-3 text-primary text-bold'>AUTO RENAME</div>
+                            <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
+                                Automatically rename your files based on tags. 
+                                The template string defines the format scheme of the new filename.<br>
+                                Regex compatible.<br>
+                                <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("renamer")'>Read more</q-btn>
+                            </div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                
             </div>
 
         </div>
