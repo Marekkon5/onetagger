@@ -214,6 +214,9 @@ class OneTagger {
                             this.settings.path = json.path;
                             this.loadQuickTag(null);
                             break;
+                        case 'renamer':
+                            this.onRenamerEvent(json);
+                            break;
                         default:
                             this.settings.path = json.path;
                             break;
