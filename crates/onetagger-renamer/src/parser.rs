@@ -5,6 +5,8 @@ use regex::Regex;
 
 use crate::RenamerConfig;
 
+/// Illegal filename characters
+static ILLEGAL_FILENAME: &'static str = "<>:\"/\\|?*";
 
 #[derive(Debug, Clone)]
 pub struct TemplateParser {
@@ -147,10 +149,27 @@ enum Data {
 }
 
 impl Data {
+    /// Convert any to string
     pub fn to_string(&self, separator: &str) -> String {
         match self {
             Data::String(s) => s.to_string(),
             Data::Array(a) => a.join(separator),
+        }
+    }
+
+    /// Sanitize illegal filename characters
+    pub fn sanitize(self) -> Self {
+        // Sanitize string
+        let sanitize = |mut s: String| {
+            for c in ILLEGAL_FILENAME.chars() {
+                s = s.replace(c, "");
+            }
+            s
+        };
+
+        match self {
+            Data::String(s) => Data::String(sanitize(s)),
+            Data::Array(a) => Data::Array(a.into_iter().map(|s| sanitize(s)).collect()),
         }
     }
 }
@@ -371,10 +390,9 @@ impl TokenVariable {
     pub fn new(name: &str) -> TokenVariable {
         TokenVariable { var: name.to_string() }
     }
-}
 
-impl Token for TokenVariable {
-    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
+    /// Get raw value
+    pub fn get_raw_value(&self, info: &AudioFileInfo) -> Option<Data> {
         // Parse field name
         let lower = self.var.to_lowercase();
         let field = match &lower[..] {
@@ -432,7 +450,13 @@ impl Token for TokenVariable {
         match &self.var.to_lowercase()[..] {
             _ => None
         }
+    }
+}
 
+impl Token for TokenVariable {
+    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
+        // Get sanitized value
+        Some(self.get_raw_value(info)?.sanitize())
     }
 }
 
