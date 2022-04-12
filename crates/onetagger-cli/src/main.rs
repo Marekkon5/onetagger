@@ -42,6 +42,7 @@ fn main() {
     match &action {
         Actions::Autotagger { path, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
+            debug!("{:?}", config);
             let files = AudioFileInfo::get_file_list(&path, config.include_subfolders);
             let rx = Tagger::tag_files(&config, files, Arc::new(Mutex::new(None)));
             let start = timestamp!();
@@ -297,11 +298,11 @@ enum Actions {
 
 /// For easily generating the tags string to config
 macro_rules! contains_tag_config {
-    ($target:expr, $source:expr, $t:tt) => {
-        $target.$t = $source.contains(&stringify!($t))
+    ($override:expr, $target:expr, $source:expr, $t:tt) => {
+        $target.$t = $override || $source.contains(&stringify!($t))
     };
-    ($target:expr, $source:expr, $($t:tt),+) => {
-        $(contains_tag_config!($target, $source, $t);)+
+    ($override:expr, $target:expr, $source:expr, $($t:tt),+) => {
+        $(contains_tag_config!($override, $target, $source, $t);)+
     }
 }
 
@@ -342,7 +343,8 @@ impl Actions {
                 // Tags
                 if let Some(tags) = tags {
                     let tags: Vec<_> = tags.split(",").collect();
-                    contains_tag_config!(config, tags, title, artist, album, key, bpm, genre, style, label, release_date, 
+                    // first arg = all tags true
+                    contains_tag_config!(tags.contains(&"all"), config, tags, title, artist, album, key, bpm, genre, style, label, release_date, 
                         publish_date, album_art, other_tags, catalog_number, url, track_id, release_id, version, duration, 
                         album_artist, remixer, track_number, isrc, meta_tags);
                 }
