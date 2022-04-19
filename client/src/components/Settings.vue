@@ -157,7 +157,7 @@
                                     dense
                                     class='col-10'
                                     placeholder='Use , as separator'
-                                    @input='$1t.settings.quickTag.genres[i].subgenres = ($event||"").split(",")'
+                                    @input='onSubgenreInput($event, i)'
                                     :value='($1t.settings.quickTag.genres[i].subgenres||[]).join(",")'
                                 ></q-input>
                             </div>
@@ -381,6 +381,14 @@ export default {
             if (this.$1t.settings.quickTag.genres.find((g) => g.genre.toLowerCase() == this.newGenre.toLowerCase())) return;
             this.$1t.settings.quickTag.genres.push({genre: this.newGenre, keybind: null});
             this.newGenre = null;
+        },
+        // On subgenres changed
+        onSubgenreInput(e, i) {
+            if (!e) {
+                this.$1t.settings.quickTag.genres[i].subgenres = [];
+                return;
+            }
+            this.$1t.settings.quickTag.genres[i].subgenres = e.split(",");
         },
         // Mood keybind
         setMoodKeybind(i, key) {
