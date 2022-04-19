@@ -8,7 +8,16 @@
                             <q-checkbox :value='isEnabled(platform.id)' class='cb' @input='update(platform.id)'></q-checkbox>
                             <div class='text-h6 q-mt-xs'>{{platform.platform.name}}</div>
                         </div>
-                        <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6' v-html='platform.platform.description'></div>
+                        <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6'>
+                            <!-- Speed icon -->
+                            <span class='q-pr-xs'>
+                                <q-icon v-if='platform.platform.maxThreads == 1' name='mdi-speedometer-slow' color='red' size='xs' class='q-pb-xs'></q-icon>
+                                <q-icon v-if='platform.platform.maxThreads > 1' name='mdi-speedometer-medium' color='yellow' size='xs' class='q-pb-xs'></q-icon>
+                                <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' color='green' size='xs' class='q-pb-xs'></q-icon>
+                            </span>
+
+                            <span v-html='platform.platform.description'></span>
+                        </div>
                         <div v-if='!platform.builtIn' class='text-grey-8 q-pl-sm text-bold monospace text-left' style='font-size: 10px;'>
                             [{{platform.id}}@{{platform.platform.version}}]
                         </div>
