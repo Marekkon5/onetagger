@@ -6,16 +6,25 @@
                     <q-card-section>
                         <div class='row'>
                             <q-checkbox :value='isEnabled(platform.id)' class='cb' @input='update(platform.id)'></q-checkbox>
-                            <div class='text-h6 q-mt-xs'>{{platform.platform.name}}</div>
+                            <div class='text-h6 q-mt-xs'>
+                                {{platform.platform.name}}
+                                
+                                <!-- Speed icon -->
+                                <span>
+                                    <span class='q-pl-xs text-grey-8'>
+                                        <q-icon v-if='platform.platform.maxThreads == 1' name='mdi-speedometer-slow' size='xs' class='q-pb-xs'></q-icon>
+                                        <q-icon v-if='platform.platform.maxThreads > 1' name='mdi-speedometer-medium' size='xs' class='q-pb-xs'></q-icon>
+                                        <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
+                                    </span>
+                                    <q-tooltip content-style="font-size: 13px">
+                                        <span v-if='platform.platform.maxThreads'>This platform allows up to {{platform.platform.maxThreads}} concurrent searches</span>
+                                        <span v-else>This platform allows unlimited concurrent searches</span>
+                                    </q-tooltip>
+                                </span>
+
+                            </div>
                         </div>
                         <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6'>
-                            <!-- Speed icon -->
-                            <span class='q-pr-xs'>
-                                <q-icon v-if='platform.platform.maxThreads == 1' name='mdi-speedometer-slow' color='red' size='xs' class='q-pb-xs'></q-icon>
-                                <q-icon v-if='platform.platform.maxThreads > 1' name='mdi-speedometer-medium' color='yellow' size='xs' class='q-pb-xs'></q-icon>
-                                <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' color='green' size='xs' class='q-pb-xs'></q-icon>
-                            </span>
-
                             <span v-html='platform.platform.description'></span>
                         </div>
                         <div v-if='!platform.builtIn' class='text-grey-8 q-pl-sm text-bold monospace text-left' style='font-size: 10px;'>

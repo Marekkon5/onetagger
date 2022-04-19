@@ -157,7 +157,7 @@
                                     dense
                                     class='col-10'
                                     placeholder='Use , as separator'
-                                    @input='$1t.settings.quickTag.genres[i].subgenres = $event.split(",")'
+                                    @input='$1t.settings.quickTag.genres[i].subgenres = ($event||"").split(",")'
                                     :value='($1t.settings.quickTag.genres[i].subgenres||[]).join(",")'
                                 ></q-input>
                             </div>
