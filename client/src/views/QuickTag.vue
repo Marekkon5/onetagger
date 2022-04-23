@@ -104,6 +104,9 @@
 <script>
 import QuickTagTile from '../components/QuickTagTile';
 
+import { scroll } from 'quasar';
+const { setVerticalScrollPosition } = scroll;
+
 export default {
     name: 'QuickTag',
     components: {QuickTagTile},
@@ -162,7 +165,8 @@ export default {
         },
         // Scroll to track index
         scrollToIndex(index) {
-            this.$refs.tracklist.scrollTop = index * 140 - 140;
+            setVerticalScrollPosition(this.$refs.tracklist, index * 140 - 140);
+            // this.$refs.tracklist.scrollTop = index * 140 - 140;
         }
     },
     computed: {
