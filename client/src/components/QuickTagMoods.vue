@@ -33,7 +33,7 @@ export default {
         moodSelect(mood) {
             if (!this.$1t.quickTag.track) return;
             // toggle
-            if (this.$1t.quickTag.track.mood) this.$1t.quickTag.track.mood = null;
+            if (this.$1t.quickTag.track.mood == mood.mood) this.$1t.quickTag.track.mood = null;
             else this.$1t.quickTag.track.mood = mood.mood;
         }
     },
