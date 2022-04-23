@@ -121,102 +121,13 @@
             <!-- Footer -->
             <q-footer reveal class="bg-darker text-white" v-if="footer">
                 
-                <QuickTagMoods v-if="$1t.quickTag.track"></QuickTagMoods>
-                <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
-
-                <div class="row q-mx-md">
-                    <div class="row q-mr-md" style="width: 264px">
-                        <div
-                            class="column q-mt-sm q-pt-xs"
-                            style="width: 200px"
-                        >
-                            <div
-                                class="text-caption text-weight-bold full-width"
-                            >
-                                <div
-                                    v-if="$1t.quickTag.track"
-                                    class="text-no-wrap overflow-hidden"
-                                    style="text-overflow: ellipsis"
-                                >
-                                    {{ $1t.quickTag.track.title }}
-                                </div>
-                            </div>
-                            <div class="text-caption full-width text-grey-5">
-                                <div
-                                    v-if="$1t.quickTag.track"
-                                    class="text-no-wrap overflow-hidden"
-                                    style="text-overflow: ellipsis"
-                                >
-                                    {{ $1t.quickTag.track.artists.join(", ") }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col q-mt-sm" style="margin-left: 16px">
-                            <!-- Play button -->
-                            <q-btn
-                                round
-                                flat
-                                icon="mdi-play"
-                                class="q-mr-sm"
-                                :ripple="false"
-                                v-if="!$1t.player.playing"
-                                @click="$1t.play()"
-                                ref='playButton'
-                            ></q-btn>
-                            <!-- Pause -->
-                            <q-btn
-                                round
-                                flat
-                                icon="mdi-pause"
-                                class="q-mr-sm"
-                                :ripple="false"
-                                v-if="$1t.player.playing"
-                                @click="$1t.pause()"
-                                ref='playButton'
-                            ></q-btn>
-                        </div>
-                    </div>
-
-                    <div class="col">
-                        <Waveform></Waveform>
-                    </div>
-
-                    <!-- Browse button -->
-                    <div class="q-mt-sm q-pr-sm">
-                        <q-btn
-                            round
-                            icon="mdi-open-in-app"
-                            @click="browseQuickTag"
-                        >
-                            <q-tooltip content-style="font-size: 13px;">
-                                Click here to browse for new path
-                            </q-tooltip>
-                        </q-btn>
-                    </div>
-
-                    <!-- Playlist -->
-                    <PlaylistDropZone
-                        tiny
-                        v-model="qtPlaylist"
-                        @input="loadQTPlaylist(); quickTagUnfocus()"
-                        @click.native='quickTagUnfocus'
-                        class="q-mt-sm q-mr-sm"
-                    ></PlaylistDropZone>
-
-                    <!-- Volume -->
-                    <div class="q-pt-sm" style="width: 90px">
-                        <q-slider
-                            v-model="$1t.player.volume"
-                            :min="0.0"
-                            :max="1.0"
-                            :step="0.01"
-                            @input="$1t.setVolume($event)"
-                            @change="$1t.saveSettings(false)"
-                            style="margin-top: 6px"
-                        ></q-slider>
-                    </div>
+                <div v-if='isRoute("quicktag")'>
+                    <QuickTagMoods v-if="$1t.quickTag.track"></QuickTagMoods>
+                    <QuickTagGenreBar v-if="$1t.quickTag.track"></QuickTagGenreBar>
                 </div>
+
+                <PlayerBar v-if='($1t.settings.tagEditorPlayer && isRoute("tageditor")) || isRoute("quicktag")'></PlayerBar>
+                
             </q-footer>
         </q-layout>
 
@@ -269,29 +180,26 @@
 </template>
 
 <script>
-    import Waveform from "./components/Waveform.vue";
+    import PlayerBar from "./components/PlayerBar.vue";
     import QuickTagFileBrowser from './components/QuickTagFileBrowser.vue';
     import Settings from "./components/Settings";
     import QuickTagGenreBar from "./components/QuickTagGenreBar";
     import QuickTagMoods from './components/QuickTagMoods.vue';
     import QuickTagRight from "./components/QuickTagRight";
     import HelpButton from "./components/HelpButton";
-    import PlaylistDropZone from "./components/PlaylistDropZone.vue";
-
     import axios from "axios";
     import compareVersions from "compare-versions";
 
     export default {
         name: "App",
         components: {
-            Waveform,
             Settings,
             QuickTagGenreBar,
             QuickTagRight,
             HelpButton,
-            PlaylistDropZone,
             QuickTagFileBrowser,
-            QuickTagMoods
+            QuickTagMoods,
+            PlayerBar
         },
         data() {
             return {
@@ -302,11 +210,10 @@
                 sizeDialog: false,
                 update: null,
                 updateDialog: false,
-                qtPlaylist: {},
             };
         },
         methods: {
-            // Hide/Show footer and drawer
+            /// Hide/Show footer and drawer
             hideSide() {
                 this.left = false;
                 this.right = false;
@@ -317,27 +224,23 @@
                 this.right = true;
                 this.footer = true;
             },
-            // Navigate to homepage
+            /// Navigate to homepage
             home() {
                 if (!this.$1t.lock.locked) {
                     this.hideSide();
                     this.$router.push("/");
                 }
             },
-            // Navigate to audio features
+            /// Navigate to audio features
             audioFeatures() {
                 if (!this.$1t.lock.locked) {
                     this.hideSide();
                     this.$router.push("/audiofeatures");
                 }
             },
-            // Load quicktag playlist
-            loadQTPlaylist() {
-                if (!this.qtPlaylist || !this.qtPlaylist.data) {
-                    this.$1t.loadQuickTag();
-                    return;
-                }
-                this.$1t.loadQuickTag(this.qtPlaylist);
+            /// Check if is on route
+            isRoute(route) {
+                return this.$router.currentRoute.path.includes(route);
             },
             async checkUpdates() {
                 // Fetch latest version info
@@ -369,24 +272,10 @@
                     });
                 }
             },
-            // Unfocus from current element to make shortcuts work
-            quickTagUnfocus() {
-                if (this.$router.currentRoute.path.includes('quicktag')) {
-                    this.$refs.playButton.$el.focus();
-                    this.$refs.playButton.$el.blur();
-                }
-            },
             settingsClosed() {
                 this.settings = false;
-                this.quickTagUnfocus();
+                this.$1t.quickTagUnfocus();
             },
-            browseQuickTag() {
-                this.$1t.send('browse', {
-                    context: 'qt',
-                    path: this.$1t.settings.path,
-                });
-                this.quickTagUnfocus();
-            }
         },
         mounted() {
             this.$q.dark.set(true);
@@ -401,18 +290,23 @@
             });
 
             // Show QT sidebar
-            if (this.$router.currentRoute.path.includes('quicktag')) {
+            if (this.isRoute('quicktag')) {
                 this.showSide();
+            }
+            // Player
+            if (this.isRoute('tageditor')) {
+                this.footer = true;
             }
 
             // Wait for app to load
-            setTimeout(() => this.checkUpdates(), 2000);
+            setTimeout(() => this.checkUpdates(), 2500);
         },
         watch: {
             // Dont show scrollbar while transition
             $route(r) {
                 this.$refs.contentContainer.$el.style.overflowY = "hidden";
                 if (r.path == '/quicktag') this.showSide();
+                if (r.path == '/tageditor') this.footer = true;
             },
         },
         updated() {

@@ -302,6 +302,12 @@
                     label='Autosave changes when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.tagEditorPlayer'
+                    label='Show player in tag editor'
+                    class='checkbox'
+                ></q-checkbox><br>
+
                 <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Display</div>
                 <q-checkbox
                     v-model='$1t.settings.helpButton'

@@ -356,6 +356,7 @@ export default {
             this.changes = [];
             // Will be joined in backend
             this.$1t.send('tagEditorLoad', {path});
+            this.$1t.loadTrack(path);
         },
         // If file is currently open
         isSelected(path) {

@@ -144,6 +144,8 @@ class OneTagger {
                     this.player.duration = json.duration;
                     this.player.position = 0;
                     this.player.playing = false;
+                    this.player.title = json.title;
+                    this.player.artists = json.artists;
                     break;
                 case 'playerSync':
                     this.player.playing = json.playing;
@@ -302,7 +304,9 @@ class OneTagger {
             position: 0,
             duration: 1,
             volume: 0.5,
-            wasPlaying: false
+            wasPlaying: false,
+            title: null,
+            artists: []
         });
         this.generateDefaultWaveform();
         // Player position updater
@@ -458,7 +462,8 @@ class OneTagger {
             },
             tagEditorDouble: false,
             tagEditorCustom: [],
-            tagEditorAutosave: false
+            tagEditorAutosave: false,
+            tagEditorPlayer: false,
         });
 
         // Managing spotify login
@@ -491,6 +496,7 @@ class OneTagger {
     }
 
     // SHOULD BE OVERWRITTEN
+    quickTagUnfocus() {}
     onError(msg) {console.error(msg);}
     onTaggingDone() {}
     onQuickTagEvent() {}

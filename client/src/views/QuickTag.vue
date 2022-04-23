@@ -143,7 +143,7 @@ export default {
             this.$1t.loadQTTrack(null, true);
             this.saveDialog = false;
             // focus on custom tags fix
-            setTimeout(() => {this.$parent.$parent.$parent.quickTagUnfocus();}, 50);
+            setTimeout(() => { this.$1t.quickTagUnfocus(); }, 50);
         },
         // Select folder and load tracks
         selectFolder() {
@@ -165,7 +165,7 @@ export default {
         },
         // Scroll to track index
         scrollToIndex(index) {
-            setVerticalScrollPosition(this.$refs.tracklist, index * 140 - 140);
+            setVerticalScrollPosition(this.$refs.tracklist, index * 140 - 140, 250);
             // this.$refs.tracklist.scrollTop = index * 140 - 140;
         }
     },

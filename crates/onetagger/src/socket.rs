@@ -11,7 +11,7 @@ use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
 use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
-use onetagger_tag::{TagChanges, TagSeparators};
+use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo};
 use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
@@ -303,9 +303,15 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         // Load player file
         Action::PlayerLoad { path } => {
             let source = AudioSources::from_path(&path)?;
+            // Meta
+            let tag = Tag::load_file(&path, false)?;
+            let title = tag.tag().get_field(Field::Title).map(|i| i.first().map(String::from)).flatten();
+            let artists = tag.tag().get_field(Field::Artist).unwrap_or(vec![]);
             // Send to UI
             websocket.write_message(Message::from(json!({
                 "action": "playerLoad",
+                "title": title,
+                "artists": artists,
                 "duration": source.duration() as u64
             }).to_string())).ok();
             // Load
