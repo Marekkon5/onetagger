@@ -32,7 +32,9 @@ export default {
         //Set mood
         moodSelect(mood) {
             if (!this.$1t.quickTag.track) return;
-            this.$1t.quickTag.track.mood = mood.mood;
+            // toggle
+            if (this.$1t.quickTag.track.mood) this.$1t.quickTag.track.mood = null;
+            else this.$1t.quickTag.track.mood = mood.mood;
         }
     },
 }

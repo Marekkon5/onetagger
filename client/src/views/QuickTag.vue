@@ -28,7 +28,7 @@
 
         <!-- Tracklist -->
         <div v-for='(item, i) in tracks' :key='i'>
-            <q-intersection style='height: 136px;' @click.native='trackClick(item)' once>
+            <q-intersection style='height: 140px;' @click.native='trackClick(item)' once>
                 <QuickTagTile :track='$1t.quickTag.track' v-if='$1t.quickTag.track && item.path == $1t.quickTag.track.path'></QuickTagTile>
                 <QuickTagTile :track='item' v-if='!$1t.quickTag.track || item.path != $1t.quickTag.track.path'></QuickTagTile>
             </q-intersection>
@@ -116,7 +116,7 @@ export default {
 
             sortDescending: false,
             sortOption: 'title',
-            sortOptions: ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key']
+            sortOptions: ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key'],
         }
     },
     methods: {
@@ -159,6 +159,10 @@ export default {
             } else {
                 this.sortDescending = !this.sortDescending;
             }
+        },
+        // Scroll to track index
+        scrollToIndex(index) {
+            this.$refs.tracklist.scrollTop = index * 140 - 140;
         }
     },
     computed: {
@@ -235,20 +239,45 @@ export default {
                     break;
                 case 'focusSearch':
                     break
+                case 'quickTagLoad':
+                    if (this.$1t.settings.quickTag.trackIndex == -1 || this.$1t.quickTag.tracks.length == 0 || this.$1t.lock.locked) return;
+                    // Reload last opened track track
+                    setTimeout(() => {
+                        this.$1t.loadQTTrack(this.$1t.quickTag.tracks[this.$1t.settings.quickTag.trackIndex]);
+                        this.$1t.settings.quickTag.trackIndex = -1;
+                    }, 50);
+
+                    break;
                 default:
                     console.log(`Unknown QT Event: ${action} ${data}`);
                     break;
             }
         }
 
+        // Restore sort state
+        this.sortOption = this.$1t.settings.quickTag.sortOption||'title';
+        this.sortDescending = this.$1t.settings.quickTag.sortDescending === true;
+
         // Load tracks if path available
         this.$1t.loadQuickTag();
+    },
+    destroyed() {
+        // Save track index
+        if (this.$1t.quickTag.track)
+            this.$1t.settings.quickTag.trackIndex = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
+        else
+            this.$1t.settings.quickTag.trackIndex = -1;
+        // Save sorting
+        this.$1t.settings.quickTag.sortOption = this.sortOption;
+        this.$1t.settings.quickTag.sortDescending = this.sortDescending;
+
+        this.$1t.saveSettings(false);
     },
     watch: {
         '$1t.quickTag.track'() {
             let index = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
-            this.$refs.tracklist.scrollTop = index * 144 - 140;
-        }
+            this.scrollToIndex(index);
+        },
     }
 }
 </script>

@@ -152,6 +152,7 @@ class OneTagger {
                 case 'quickTagLoad':
                     this.lock.locked = false;
                     this.quickTag.tracks = json.data.map(t => new QTTrack(t, this.settings.quickTag));
+                    this.onQuickTagEvent('quickTagLoad');
                     break;
                 /*eslint-disable no-case-declarations*/
                 case 'quickTagSaved':
@@ -337,6 +338,9 @@ class OneTagger {
             quickTag: {
                 recursive: false,
                 autosave: false,
+                sortDescending: false,
+                sortOption: 'title',
+                trackIndex: -1,
                 separators: {id3: ', ', vorbis: null, mp4: ', '},
                 noteTag: {
                     tag: {

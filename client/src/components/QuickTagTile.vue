@@ -1,6 +1,6 @@
 <template>
 <div @mouseleave='mouseOver = false' @mouseenter="mouseOver = true">
-    <q-card flat class='q-mx-md q-my-sm qt-tile' :class='{"bg-darker": selected || mouseOver}'>
+    <q-card flat class='q-mx-md qt-tile' :class='{"bg-darker": selected || mouseOver}'>
         <div class='row qt-tile'>
             <div class='selected-bar bg-primary' v-if='selected'></div>
             <div class='row q-pt-md q-pl-md full-width full-height'>

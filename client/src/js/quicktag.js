@@ -150,7 +150,7 @@ class QTTrack {
             changes.push({
                 type: 'raw',
                 tag: this.settings.moodTag[this.getTagField()],
-                value: [this.mood]
+                value: this.mood ? [this.mood] : []
             });
         }
         // Energy change
