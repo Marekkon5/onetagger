@@ -16,7 +16,7 @@
         </q-input>
 
         <!-- Sort -->
-        <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm'>
+        <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm q-mb-xs'>
             <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
                 <div :class='{"text-bold": sortOption == option}'>{{option}}</div>
                 <div v-if='sortOption == option' class='q-pl-xs'>
@@ -24,6 +24,11 @@
                     <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
                 </div>
             </div>
+        </div>
+
+        <!-- Stats -->
+        <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
+            Loaded files: <span class='text-bold'>{{$1t.quickTag.tracks.length}}</span> | Filtered: <span class='text-bold'>{{tracks.length}}</span> | Failed to load: <span class='text-bold'>{{$1t.quickTag.failed}}</span>
         </div>
 
         <!-- Tracklist -->
@@ -165,7 +170,7 @@ export default {
         },
         // Scroll to track index
         scrollToIndex(index) {
-            setVerticalScrollPosition(this.$refs.tracklist, index * 140 - 140, 250);
+            setVerticalScrollPosition(this.$refs.tracklist, index * 140 - 154, 250);
             // this.$refs.tracklist.scrollTop = index * 140 - 140;
         }
     },

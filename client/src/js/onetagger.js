@@ -153,7 +153,8 @@ class OneTagger {
                 // Quicktag
                 case 'quickTagLoad':
                     this.lock.locked = false;
-                    this.quickTag.tracks = json.data.map(t => new QTTrack(t, this.settings.quickTag));
+                    this.quickTag.tracks = json.data.files.map(t => new QTTrack(t, this.settings.quickTag));
+                    this.quickTag.failed = json.data.failed;
                     this.onQuickTagEvent('quickTagLoad');
                     break;
                 /*eslint-disable no-case-declarations*/
@@ -319,6 +320,7 @@ class OneTagger {
         this.quickTag = Vue.observable({
             tracks: [],
             track: null,
+            failed: 0
         });
 
         // Settings for UI

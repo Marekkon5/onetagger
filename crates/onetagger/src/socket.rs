@@ -21,7 +21,7 @@ use onetagger_shared::Settings;
 use onetagger_playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
 
 use crate::StartContext;
-use crate::quicktag::{QuickTag, QuickTagFile};
+use crate::quicktag::{QuickTag, QuickTagFile, QuickTagData};
 use crate::tageditor::TagEditor;
 use crate::browser::FileBrowser;
 
@@ -329,22 +329,22 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::PlayerVolume { volume } => context.player.volume(volume),
         // Load quicktag files or playlist
         Action::QuickTagLoad { path, playlist, recursive, separators } => {
-            let mut files = vec![];
+            let mut data = QuickTagData::default();
             // Playlist
             if let Some(playlist) = playlist {
-                files = QuickTag::load_files_playlist(&playlist, &separators)?;
+                data = QuickTag::load_files_playlist(&playlist, &separators)?;
             }
             // Path
             if let Some(path) = path {
                 if PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
-                    files = QuickTag::load_files(get_files_from_playlist_file(&path)?, &separators)?;
+                    data = QuickTag::load_files(get_files_from_playlist_file(&path)?, &separators)?;
                 } else {
-                    files = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
+                    data = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
                 }
             }
             websocket.write_message(Message::from(json!({
                 "action": "quickTagLoad",
-                "data": files
+                "data": data
             }).to_string())).ok();
         },
         // Save quicktag changes
