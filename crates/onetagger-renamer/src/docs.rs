@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::ac::{SymbolDoc, DocParameter};
 
 lazy_static! {
-    pub static ref VARIABLES: [SymbolDoc; 21] = [
+    pub static ref VARIABLES: [SymbolDoc; 22] = [
         SymbolDoc::var("title", "Get the Title frame from tag.\n\n  Used tags:<br> **MP3**: `TIT2`<br> **FLAC**: `TITLE`<br> **MP4**: `©nam`"),
         SymbolDoc::var("artist", "Get the first Artist from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
         SymbolDoc::var("artists", "Get the Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
@@ -25,6 +25,7 @@ lazy_static! {
         SymbolDoc::var("year", "Get the release year from tag.\n\n  Used tags:<br> **MP3**: `TYER` or `TDRC`<br> **FLAC**: `DATE`<br> **MP4**: `©day`"),
         SymbolDoc::var("month", "Get the release month from tag.\n\n  Used tags:<br> **MP3**: `TYER` or `TDRC`<br> **FLAC**: `DATE`<br> **MP4**: `©day`"),
         SymbolDoc::var("day", "Get the release day from tag.\n\n  Used tags:<br> **MP3**: `TYER` or `TDRC`<br> **FLAC**: `DATE`<br> **MP4**: `©day`"),
+        SymbolDoc::var("filename", "Original name of the file.\n\n **NOTE:** Without extension, extension is always automatically added at end."),
     ];
 
     pub static ref PROPERTIES: [SymbolDoc; 2] = [

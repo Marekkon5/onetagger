@@ -1,3 +1,4 @@
+use std::path::Path;
 use onetagger_tag::Tag;
 use onetagger_tagger::{AudioFileInfo, Field};
 use pad::{PadStr, Alignment};
@@ -448,6 +449,7 @@ impl TokenVariable {
         }
         // Built-ins
         match &self.var.to_lowercase()[..] {
+            "filename" => Some(Data::String(Path::new(&info.path).file_stem().unwrap().to_string_lossy().to_string())),
             _ => None
         }
     }
