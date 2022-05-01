@@ -232,7 +232,13 @@
                         <div v-for='(value, j) in tag.values' :key='value.value+j.toString()'>
                             <div class='row'>
                                 <q-btn class='col-1 q-mt-sm' round flat icon='mdi-close' @click='$1t.settings.quickTag.custom[i].values.splice(j, 1)'></q-btn>
-                                <q-input class='col-9 q-px-sm q-pt-sm' dense filled v-model='$1t.settings.quickTag.custom[i].values[j].val'></q-input>
+                                <q-input 
+                                    class='col-9 q-px-sm q-pt-sm' 
+                                    dense 
+                                    filled 
+                                    v-model='$1t.settings.quickTag.custom[i].values[j].val'
+                                    :ref='"qtval_"+i+"_"+j'
+                                ></q-input>
                                 <Keybind
                                     class='col-2 text-center q-pt-sm'
                                     @set='$1t.settings.quickTag.custom[i].values[j].keybind = $event'
@@ -248,7 +254,7 @@
                         class='q-mt-sm q-mb-sm' 
                         style='margin-bottom: 11px;'
                         icon='mdi-plus'
-                        @click='$1t.settings.quickTag.custom[i].values.push({val: "New", keybind: null})'
+                        @click='addNewQTValue(i)'
                     >Add new value</q-btn>
                 </div>
                 <!-- Add new tag -->
@@ -426,6 +432,15 @@ export default {
         },
         editCustomQT(i) {
             Vue.set(this.customQTEdit, i, !this.customQTEdit[i]);
+        },
+        addNewQTValue(i) {
+            this.$1t.settings.quickTag.custom[i].values.push({val: "New", keybind: null});
+            // focus new value
+            setTimeout(() => {
+                let e = this.$refs[`qtval_${i}_${this.$1t.settings.quickTag.custom[i].values.length - 1}`][0].$el;
+                e.focus();
+                e.querySelector('input').select();
+            }, 25);
         },
 
         // Load quicktag playlist

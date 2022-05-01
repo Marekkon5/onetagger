@@ -28,9 +28,9 @@
             </div>
 
             <!-- Add new -->
-            <q-input dense @keypress.enter="addNewTag" v-if='newTag == i' v-model='newTagValue'></q-input>
+            <q-input ref='addNewTag' dense @keypress.enter="addNewTag" v-if='newTag == i' v-model='newTagValue'></q-input>
 
-            <q-btn round flat color='primary' class='add-custom-btn' v-if='newTag == -1' @click='newTag = i'>
+            <q-btn round flat color='primary' class='add-custom-btn' v-if='newTag == -1' @click='showNewTag(i)'>
                 <q-icon name='mdi-plus'></q-icon>
             </q-btn>
 
@@ -71,6 +71,13 @@ export default {
             for (let i=0; i<this.$1t.quickTag.track.custom.length; i++) {
                 this.$1t.quickTag.track.sortCustom(i);
             }
+        },
+        // Show add new tag input
+        showNewTag(i) {
+            this.newTag = i;
+            setTimeout(() => {
+                this.$refs.addNewTag[0].$el.focus();
+            }, 25);
         },
         // Adding new tag
         addNewTag() {
