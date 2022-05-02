@@ -3,8 +3,8 @@
 
     <div class="row q-mx-md">
         <!-- Meta -->
-        <div class="row q-mr-md" style="width: 264px">
-            <div class="column q-mt-sm q-pt-xs" style="width: 200px">
+        <div class="row q-mr-md" style="min-width: 18%;">
+            <div class="column q-mt-sm q-pt-xs" style="width: calc(100% - 50px);">
                 <div class="text-caption text-weight-bold full-width">
                     <div v-if="$1t.player.title" class="text-no-wrap overflow-hidden" style="text-overflow: ellipsis">
                         {{ $1t.player.title }}
@@ -70,7 +70,7 @@
         </div>
 
         <!-- Volume -->
-        <div class="q-pt-sm" style="width: 90px">
+        <div class="q-pt-sm" style="width: 95px">
             <q-slider
                 v-model="$1t.player.volume"
                 :min="0.0"

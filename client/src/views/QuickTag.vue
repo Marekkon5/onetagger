@@ -179,10 +179,13 @@ export default {
             let tracks = this.$1t.quickTag.tracks;
             if (this.filter) {
                 let filter = this.filter.toLowerCase();
-                // title, artist or track
+                // title, artist or track or tags
                 tracks = this.$1t.quickTag.tracks.filter((t) => 
                     t.title.toLowerCase().includes(filter) || t.path.toLowerCase().includes(filter) ||
-                    t.artists.filter((a) => a.toLowerCase().includes(filter)).length > 0
+                    t.artists.filter((a) => a.toLowerCase().includes(filter)).length > 0 ||
+                    (t.mood??'').toLowerCase().includes(filter) ||
+                    t.getAllCustom().some((i) => i.toLowerCase().includes(filter)) ||
+                    (t.genres??[]).some((i) => i.toLowerCase().includes(filter)) 
                 );
             }
             if (!this.sortOption) return tracks;

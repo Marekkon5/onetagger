@@ -222,7 +222,12 @@
                                 @click='editCustomQT(i)'
                             ></q-btn>
                             
+                            <!-- Reoredering -->
+                            <q-btn size='sm' class='q-mr-sm' flat round icon='mdi-chevron-up' color='primary' @click='reorderCustomQT(i, -1)' v-if='i > 0'></q-btn>
+                            <q-btn size='sm' class='q-mr-sm' flat round icon='mdi-chevron-down' color='primary' @click='reorderCustomQT(i, 1)' v-if='i != $1t.settings.quickTag.custom.length - 1'></q-btn>
+                            <!-- Delete -->
                             <q-btn size='sm' flat round icon='mdi-delete' color='red' @click='deleteCustomQT(i)'></q-btn>
+
                         </div>
                     </div>
                     
@@ -441,6 +446,12 @@ export default {
                 e.focus();
                 e.querySelector('input').select();
             }, 25);
+        },
+        // Move QT tag
+        reorderCustomQT(now, offset) {
+            let item = this.$1t.settings.quickTag.custom.splice(now, 1);
+            this.$1t.settings.quickTag.custom.splice(now + offset, 0, item[0]);
+            
         },
 
         // Load quicktag playlist
