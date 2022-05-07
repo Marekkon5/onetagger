@@ -5,8 +5,8 @@
 
     <!-- Post tagging actions -->
     <div v-if='$1t.taggerStatus.done && $1t.taggerStatus.data' class='row justify-center q-my-md'>
-        <q-btn color='primary' class='q-mx-md' @click='goQT(false)'>Open failed in QuickTag</q-btn>
-        <q-btn color='primary' class='q-mx-md' @click='goQT(true)'>Open successful in QuickTag</q-btn>
+        <q-btn color='primary' class='q-mx-md text-black' @click='goQT(false)'>Open failed in QuickTag</q-btn>
+        <q-btn color='primary' class='q-mx-md text-black' @click='goQT(true)'>Open successful in QuickTag</q-btn>
     </div>
 
     <!-- Info -->

@@ -56,7 +56,7 @@ export default {
         convEntry(entry) {
             if (entry.children)
                 entry.children = entry.children.map((e) => {
-                    let parts = e.path.replace("\\", "/").split('/');
+                    let parts = e.path.replace(/\\/g, "/").split('/');
                     // Recurse
                     if (e.children) {
                         e = this.convEntry(e);
@@ -83,7 +83,7 @@ export default {
         },
         // Split path to parts
         pathParts(path) {
-            let parts = path.replace("\\", "/").split("/");
+            let parts = path.replace(/\\/g, "/").split("/");
             if (parts.length == 0) return [];
             if (parts[0] == '') {
                 parts.splice(0, 1);

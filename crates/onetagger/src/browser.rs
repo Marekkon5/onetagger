@@ -132,6 +132,21 @@ pub struct FolderBrowser;
 impl FolderBrowser {
     /// List all subfolders in a directory
     pub fn list_dir(path: impl AsRef<Path>) -> Result<DirectoryEntry, Box<dyn Error>> {
+        // Windows root dir override
+        #[cfg(target_os = "windows")]
+        if path.as_ref().to_string_lossy() == "/" {
+            use sysinfo::{System, SystemExt, DiskExt};
+            let sys = System::new_all();
+            let disks = sys.disks().iter().map(|d| DirectoryEntry { 
+                path: d.mount_point().to_string_lossy().replace(":\\", ":"), children: None 
+            }).collect::<Vec<_>>();
+            return Ok(DirectoryEntry {
+                children: Some(disks),
+                path: "/".to_string()
+            });
+        }
+
+        // List dir
         let mut folders = std::fs::read_dir(&path)?.into_iter().filter_map(|e| match e {
             Ok(e) => {
                 let path = e.path();
@@ -198,3 +213,4 @@ pub struct DirectoryEntry {
     pub children: Option<Vec<DirectoryEntry>>,
     pub path: String,
 }
+

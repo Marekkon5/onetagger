@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::canonicalize;
 use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::sync::{Arc, Mutex};
@@ -12,6 +11,7 @@ use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
 use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
+use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo};
 use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl};
@@ -455,7 +455,17 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         },
         // File browser list dir
         Action::FolderBrowser { path, child , base } => {
-            let path = canonicalize(PathBuf::from(path).join(child))?;
+            // Windows root dir override
+            let path = if cfg!(windows) && path == "/" {
+                if child.is_empty() {
+                    PathBuf::from("/".to_string())
+                } else {
+                    PathBuf::from(format!("{}\\", child))
+                }
+            } else {
+                canonicalize(PathBuf::from(path).join(child))?
+            };
+
             let e = match base {
                 true => FolderBrowser::generate_base(&path)?,
                 false => FolderBrowser::list_dir(&path)?

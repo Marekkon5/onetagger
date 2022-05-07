@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate onetagger_shared;
@@ -26,6 +26,7 @@ fn main() {
             ui::bootstrap_webview2_wrap();
             return;
         }
+        #[cfg(not(target_os = "windows"))]
         panic!("Windows only install option!");
     }
 
