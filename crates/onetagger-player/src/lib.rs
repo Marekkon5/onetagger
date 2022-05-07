@@ -1,6 +1,8 @@
 use std::error::Error;
+use std::io::Cursor;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
+use hound::{WavSpec, SampleFormat, WavWriter};
 use rodio::{Sink, Source};
 use onetagger_shared::OTError;
 
@@ -190,5 +192,27 @@ pub trait AudioSource {
 
         // tx1 = for canceling
         Ok((rx, tx1))
+    }
+
+    /// Generate wav for streaming in browser
+    fn generate_wav(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+        let source = self.get_source()?;
+        let spec = WavSpec {
+            channels: source.channels(),
+            sample_rate: source.sample_rate(),
+            bits_per_sample: 16,
+            sample_format: SampleFormat::Int
+        };
+        // Generate wav
+        let mut buf = vec![];
+        {
+            let mut cursor = Cursor::new(&mut buf);
+            let mut writer = WavWriter::new(&mut cursor, spec)?;
+            for s in source {
+                writer.write_sample(s)?;
+            }
+            writer.finalize()?;
+        }
+        Ok(buf)
     }
 }

@@ -187,7 +187,7 @@ export default {
     methods: {
         // Browse folder
         browse() {
-            this.$1t.send('browse', {context: 'af', path: this.config.path});
+            this.$1t.browse('af', this.config.path);
         },
         // Start tagging
         start() {

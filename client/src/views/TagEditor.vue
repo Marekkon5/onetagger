@@ -345,7 +345,7 @@ export default {
             this.$1t.send('tagEditorFolder', {path: this.path, subdir: f});
         },
         browse() {
-            this.$1t.send('browse', {context: 'te', path: this.path});
+            this.$1t.browse('te', this.path);
         },
         loadFile(path) {
             // Autosave

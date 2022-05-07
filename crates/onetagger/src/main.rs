@@ -35,7 +35,7 @@ fn main() {
     let context = StartContext {
         start_path: cli.path, 
         server_mode: cli.server, 
-        expose: cli.expose
+        expose: cli.expose,
     };
     ui::start_all(context);
 }

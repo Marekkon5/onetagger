@@ -55,7 +55,7 @@ export default {
             this.$1t.send('quickTagFolder', {path: this.path, subdir: f});
         },
         browse() {
-            this.$1t.send('browse', {context: 'qt', path: this.path});
+            this.$1t.browse('qt', this.path);
         },
         applyFilter() {
             if (!this.filter || this.filter.trim().length == 0) {

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs::canonicalize;
 use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::sync::{Arc, Mutex};
@@ -23,7 +24,7 @@ use onetagger_playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlis
 use crate::StartContext;
 use crate::quicktag::{QuickTag, QuickTagFile, QuickTagData};
 use crate::tageditor::TagEditor;
-use crate::browser::FileBrowser;
+use crate::browser::{FileBrowser, FolderBrowser};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,7 +62,9 @@ enum Action {
     RenamerSyntaxHighlight { template: String },
     RenamerAutocomplete { template: String },
     RenamerPreview { config: RenamerConfig },
-    RenamerStart { config: RenamerConfig }
+    RenamerStart { config: RenamerConfig },
+
+    FolderBrowser { path: String, child: String, base: bool }
 }
 
 
@@ -448,6 +451,21 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             renamer.rename(&config)?;
             websocket.write_message(Message::from(json!({
                 "action": "renamerDone",
+            }).to_string())).ok();
+        },
+        // File browser list dir
+        Action::FolderBrowser { path, child , base } => {
+            let path = canonicalize(PathBuf::from(path).join(child))?;
+            let e = match base {
+                true => FolderBrowser::generate_base(&path)?,
+                false => FolderBrowser::list_dir(&path)?
+            };
+
+            websocket.write_message(Message::from(json!({
+                "action": "folderBrowser",
+                "entry": e,
+                "base": base,
+                "path": path
             }).to_string())).ok();
         },
         

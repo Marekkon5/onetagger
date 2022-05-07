@@ -152,7 +152,7 @@ export default {
         },
         // Select folder and load tracks
         selectFolder() {
-            this.$1t.send('browse', {context: 'qt'});
+            this.$1t.browse('qt', null);
         },
         // Focus
         onNoteDialogShow() {

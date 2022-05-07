@@ -158,7 +158,7 @@ export default {
     components: {PlaylistDropZone},
     methods: {
         browse() {
-            this.$1t.send('browse', {context: 'at', path: this.$1t.config.path});
+            this.$1t.browse('at', this.$1t.config.path);
         },
         // Check if tag is supported on selected platforms
         isSupported(tag) {

@@ -3,7 +3,7 @@
 
     <div class="row q-mx-md">
         <!-- Meta -->
-        <div class="row q-mr-md" style="min-width: 18%;">
+        <div class="row q-mr-md" style="width: 17vw; max-width: 17vw;">
             <div class="column q-mt-sm q-pt-xs" style="width: calc(100% - 50px);">
                 <div class="text-caption text-weight-bold full-width">
                     <div v-if="$1t.player.title" class="text-no-wrap overflow-hidden" style="text-overflow: ellipsis">
@@ -103,10 +103,7 @@ export default {
     methods: {
         // Open QuickTag file browser
         browseQuickTag() {
-            this.$1t.send('browse', {
-                context: 'qt',
-                path: this.$1t.settings.path,
-            });
+            this.$1t.browse('qt', this.$1t.settings.path);
             this.$1t.quickTagUnfocus();
         },
         // Load quicktag playlist

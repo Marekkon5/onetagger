@@ -302,6 +302,7 @@
                     label='Continue playback when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
+
                 <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Edit Tags</div>
                 <q-checkbox
                     v-model='$1t.settings.tagEditorDouble'
@@ -324,7 +325,20 @@
                     v-model='$1t.settings.helpButton'
                     label='Show help button'
                     class='checkbox'
-                ></q-checkbox>                
+                ></q-checkbox>     
+                
+                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Advanced</div>
+                <q-checkbox
+                    v-model='$1t.settings.clientSidePlayer'
+                    label='Client side player (for server mode)'
+                    class='checkbox'
+                ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.nonNativeBrowser'
+                    label='Client side folder browser'
+                    class='checkbox'
+                ></q-checkbox>    
+                       
                 <!-- Color picker -->
                 <div class='q-pt-xs q-my-sm text-subtitle2 text-bold text-grey-4'>Primary color</div>
                 <q-color 
@@ -416,7 +430,7 @@ export default {
             this.$1t.settings.quickTag.energyKeys[i] = key;
         },
         browseQuickTag() {
-            this.$1t.send('browse', {context: 'qt', path: this.$1t.settings.path});
+            this.$1t.browse('qt', this.$1t.settings.path);
         },
         // Add new custom quicktag
         addCustomQT() {

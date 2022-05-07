@@ -85,24 +85,7 @@ class OneTagger {
                     break;
                 // Path selected
                 case 'browse':
-                    // Autotagger path
-                    if (json.context == 'at')
-                        this.config.path = json.path;
-                    // Quicktag path
-                    if (json.context == 'qt') {
-                        Vue.set(this.settings, 'path', json.path);
-                        this.onQuickTagBrowserEvent({action: 'pathUpdate'});
-                        this.loadQuickTag();
-                    }
-                    // Audio features path
-                    if (json.context == 'af')
-                        this.onAudioFeaturesEvent(json);
-                    // Tag editor
-                    if (json.context == 'te')
-                        this.onTagEditorEvent(json);
-                    // Renamer
-                    if (json.context == 'rn' || json.context == 'rnOutput')
-                        this.onRenamerEvent(json)
+                    this.onBrowse(json);
                     break;
                 // Error
                 case 'error':
@@ -178,6 +161,10 @@ class OneTagger {
                 // Spotify
                 case 'spotifyAuthorized':
                     this.onSpotifyAuthEvent(json);
+                    break;
+                // Folder browser
+                case 'folderBrowser':
+                    this.onFolderBrowserEvent(json);
                     break;
                 // Debug
                 default:
@@ -307,7 +294,8 @@ class OneTagger {
             volume: 0.5,
             wasPlaying: false,
             title: null,
-            artists: []
+            artists: [],
+            audio: new Audio(),
         });
         this.generateDefaultWaveform();
         // Player position updater
@@ -333,6 +321,8 @@ class OneTagger {
             volume: 0.05,
             helpButton: true,
             continuePlayback: false,
+            clientSidePlayer: false,
+            nonNativeBrowser: false,
             renamer: {
                 path: null,
                 outDir: null,
@@ -495,6 +485,9 @@ class OneTagger {
 
         // Because the config is global and playlist is passed in wrapper element
         this.autoTaggerPlaylist = Vue.observable({filename: null, data: null, format: null});
+
+        // Open and close folder browser
+        this.folderBrowser = Vue.observable({open: false, basePath: '/', context: null});
     }
 
     // SHOULD BE OVERWRITTEN
@@ -507,6 +500,7 @@ class OneTagger {
     onAudioFeaturesEvent() {}
     onSpotifyAuthEvent() {}
     onRenamerEvent() {}
+    onFolderBrowserEvent() {}
 
     // Send to socket
     async send(action, params = {}) {
@@ -524,6 +518,39 @@ class OneTagger {
     // Open URL in external browser
     url(url) {
         this.send("browser", {url});
+    }
+
+    // Open native folder browser
+    browse(context, path) {
+        if (this.settings.nonNativeBrowser) {
+            this.folderBrowser.context = context;
+            this.folderBrowser.basePath = path;
+            this.folderBrowser.open = true;
+            return;
+        }
+        this.send('browse', { context, path });        
+    }
+
+    // onBrowse event
+    onBrowse(json) {
+        // Autotagger path
+        if (json.context == 'at')
+            this.config.path = json.path;
+        // Quicktag path
+        if (json.context == 'qt') {
+            Vue.set(this.settings, 'path', json.path);
+            this.onQuickTagBrowserEvent({action: 'pathUpdate'});
+            this.loadQuickTag();
+        }
+        // Audio features path
+        if (json.context == 'af')
+            this.onAudioFeaturesEvent(json);
+        // Tag editor
+        if (json.context == 'te')
+            this.onTagEditorEvent(json);
+        // Renamer
+        if (json.context == 'rn' || json.context == 'rnOutput')
+            this.onRenamerEvent(json)
     }
 
     // Save settings to file
@@ -555,6 +582,7 @@ class OneTagger {
  
         // Restore specific
         this.player.volume = this.settings.volume??0.5;
+        this.player.audio.volume = this.player.volume;
         this.setVolume(this.player.volume);
         colors.setBrand('primary', this.settings.primaryColor??'#00D2BF');
         if (!this.settings.tagEditorCustom) this.settings.tagEditorCustom = [];
@@ -663,26 +691,51 @@ class OneTagger {
 
     // Player controls
     loadTrack(path) {
-        this.send("playerLoad", {path});
+        // Setup client-side audio player
+        if (this.settings.clientSidePlayer) {
+            this.player.audio.pause();
+            this.player.playing = false;
+            this.player.audio = new Audio(`http://${window.location.hostname}:36913/audio?path=${encodeURIComponent(path)}`);
+            this.player.audio.volume = this.player.volume;
+            const cb = () => {
+                this.player.playing = !this.player.audio.paused;
+                this.player.position = Math.round(this.player.audio.currentTime * 1000);
+            }
+            // this.player.audio.addEventListener('play', cb);
+            this.player.audio.addEventListener('playing', cb);
+        }
+
+        // Server side
+        this.send("playerLoad", { path });
         this.generateWaveform(path);
-        // console.log(path);
     }
     play() {
-        this.send("playerPlay");
-        this.player.playing = true;
+        if (this.settings.clientSidePlayer) {
+            this.player.playing = false;
+            this.player.audio.play();
+        } else {
+            this.send("playerPlay");
+            this.player.playing = true;
+        }        
     }
     pause() {
-        this.send("playerPause");
+        this.settings.clientSidePlayer ? this.player.audio.pause() : this.send("playerPause");
         this.player.playing = false;
         this.player.wasPlaying = false;
     }
     seek(pos) {
-        this.send("playerSeek", {pos})
         this.player.playing = false;
+
+        if (this.settings.clientSidePlayer) {
+            this.player.audio.currentTime = pos / 1000.0;
+        } else {
+            this.send("playerSeek", {pos})
+        }
         this.player.position = pos;
     }
     setVolume(volume) {
         if (!volume) return;
+        this.player.audio.volume = volume;
         this.send("playerVolume", {volume});
     }
 

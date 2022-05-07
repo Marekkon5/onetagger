@@ -176,6 +176,11 @@
                 </q-card-section>
             </q-card>
         </q-dialog>
+
+        <!-- Folder browser dialog -->
+        <q-dialog v-model='$1t.folderBrowser.open'>
+            <FolderBrowser v-if='$1t.folderBrowser.open' :base='$1t.folderBrowser.basePath'></FolderBrowser>
+        </q-dialog>
     </div>
 </template>
 
@@ -187,6 +192,7 @@
     import QuickTagMoods from './components/QuickTagMoods.vue';
     import QuickTagRight from "./components/QuickTagRight";
     import HelpButton from "./components/HelpButton";
+    import FolderBrowser from './components/FolderBrowser.vue';
     import axios from "axios";
     import compareVersions from "compare-versions";
 
@@ -199,7 +205,8 @@
             HelpButton,
             QuickTagFileBrowser,
             QuickTagMoods,
-            PlayerBar
+            PlayerBar,
+            FolderBrowser
         },
         data() {
             return {
@@ -210,6 +217,7 @@
                 sizeDialog: false,
                 update: null,
                 updateDialog: false,
+                folderBrowser: true
             };
         },
         methods: {

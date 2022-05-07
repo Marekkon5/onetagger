@@ -6,10 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mp4 = "0.9"
+mp4 = "0.10"
 alac = "0.5"
-rodio = "0.14"
-redlux = "0.4"
+hound = "3.4"
+rodio = "0.15"
+redlux = "0.5"
 ndarray = "0.13"
 mp3-duration = "0.1"
 

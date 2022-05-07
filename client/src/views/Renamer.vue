@@ -187,7 +187,7 @@ export default {
     methods: {
         // Browse folder
         browse(output = false) {
-            this.$1t.send('browse', { context: output ? 'rnOutput' : 'rn', path: this.config.path });
+            this.$1t.browse(output ? 'rnOutput' : 'rn', this.config.path);
         },
         // Handle typing into the template box
         templateInput(e) {

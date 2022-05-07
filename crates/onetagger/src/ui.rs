@@ -1,3 +1,4 @@
+use onetagger_player::AudioSources;
 use rouille::{router, Response};
 use serde::{Serialize, Deserialize};
 
@@ -15,7 +16,7 @@ static FAVICON_PNG: &'static [u8] = include_bytes!("../../../client/dist/favicon
 pub struct StartContext {
     pub server_mode: bool,
     pub start_path: Option<String>,
-    pub expose: bool
+    pub expose: bool,
 }
 
 // Start webview window
@@ -70,6 +71,27 @@ pub fn start_webserver_thread(context: &StartContext) {
                                 Ok(art) => Response::from_data("image/jpeg", art),
                                 Err(e) => {
                                     warn!("Error loading album art: {} File: {}", e, path);
+                                    Response::empty_404()
+                                }
+                            }
+                        },
+                        None => Response::empty_404()
+                    }
+                },
+                // Audio stream
+                (GET) ["/audio"] => {
+                    match request.get_param("path") {
+                        Some(path) => {
+                            match AudioSources::from_path(&path).map(|s| s.generate_wav()) {
+                                Ok(Ok(wav)) => {
+                                    Response::from_data("audio/wav", wav)
+                                },
+                                Ok(Err(e)) => {
+                                    warn!("Failed generating wav: {e}");
+                                    Response::empty_404()
+                                },
+                                Err(e) => {
+                                    warn!("Failed opening audio file {path}: {e}");
                                     Response::empty_404()
                                 }
                             }
