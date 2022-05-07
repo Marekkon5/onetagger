@@ -1,4 +1,4 @@
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate onetagger_shared;
