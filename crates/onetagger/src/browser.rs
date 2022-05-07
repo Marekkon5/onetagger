@@ -127,9 +127,7 @@ pub struct FolderEntry {
     pub playlist: bool
 }
 
-pub struct FolderBrowser {
-    
-}
+pub struct FolderBrowser;
 
 impl FolderBrowser {
     /// List all subfolders in a directory

@@ -217,7 +217,6 @@
                 sizeDialog: false,
                 update: null,
                 updateDialog: false,
-                folderBrowser: true
             };
         },
         methods: {
