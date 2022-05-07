@@ -133,6 +133,7 @@ export default {
                         this.onResolve = null;
                     } else {
                         this.folders = folders;
+                        this.baseLoaded = true;
                     }
 
                     this.path = json.path;
@@ -141,7 +142,11 @@ export default {
         }
 
         // Load base
-        this.$1t.send('folderBrowser', { path: this.base, child: '', base: true });
+        if (this.base) {
+            this.$1t.send('folderBrowser', { path: this.base, child: '', base: true });
+        } else {
+            this.$1t.send('folderBrowser', { path: this.path, child: '', base: false });
+        }
     }
 }
 </script>
