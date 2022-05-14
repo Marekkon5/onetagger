@@ -18,7 +18,7 @@ impl FileBrowser {
     /// returns new path because it can change
     pub fn list_dir_or_default(path: Option<PathBuf>, subdir: Option<String>, playlists: bool, files: bool, recursive: bool) -> Result<(PathBuf, Vec<FolderEntry>), Box<dyn Error>> {
         let user_dirs = UserDirs::new().ok_or("Invalid home dir!")?;
-        let path = path.unwrap_or(user_dirs.audio_dir().ok_or("Missing path!")?.to_owned());
+        let path = path.unwrap_or(user_dirs.audio_dir().map(|p| p.to_owned()).unwrap_or(user_dirs.home_dir().to_owned()));
         let subdir = subdir.unwrap_or(String::new());
         // Override for playlists
         let path = if !path.is_dir() {
