@@ -435,7 +435,7 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
                 // Discogs token
                 .add_tooltip("token", "Token", 
                 "To obtain token, create a free account on Discogs. More info? Click <q-icon style='padding-bottom: 4px;' name='mdi-help-circle-outline'></q-icon> HELP on the right", 
-                PlatformCustomOptionValue::String { value: String::new() })
+                PlatformCustomOptionValue::String { value: String::new(), hidden: Some(false) })
                 // How many max albums to check
                 .add_tooltip("max_albums", "Max albums to check", 
                 "How many albums in search results to check. Due to rate limiting this increases tagging time by a lot", 

@@ -147,7 +147,8 @@ const SUPPORTED_TAGS = {
     junodownload: ['bpm'],
     beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
     musicbrainz: ['isrc'],
-    spotify: ['isrc', 'key']
+    spotify: ['isrc', 'key'],
+    bpmsupreme: ['key', 'other', 'trackId']
 }
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 

@@ -2,7 +2,7 @@ use std::{error::Error, ffi::c_void};
 use std::path::PathBuf;
 use std::io::Cursor;
 use libloading::{Library, Symbol};
-use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource};
+use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme};
 use image::{io::Reader as ImageReader, ImageOutputFormat};
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
@@ -32,6 +32,7 @@ impl AutotaggerPlatforms {
         AutotaggerPlatforms::add_builtin::<musicbrainz::MusicBrainzBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<discogs::DiscogsBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<itunes::ITunesBuilder>(&mut output);
+        AutotaggerPlatforms::add_builtin::<bpmsupreme::BPMSupremeBuilder>(&mut output);
 
         // Custom
         let mut platforms = AutotaggerPlatforms(output);
@@ -55,6 +56,7 @@ impl AutotaggerPlatforms {
                 "musicbrainz" => Box::new(musicbrainz::MusicBrainzBuilder::new()),
                 "spotify" => Box::new(spotify::SpotifyBuilder::new()),
                 "traxsource" => Box::new(traxsource::TraxsourceBuilder::new()),
+                "bpmsupreme" => Box::new(bpmsupreme::BPMSupremeBuilder::new()),
                 _ => unreachable!()
             };
             Some(platform)

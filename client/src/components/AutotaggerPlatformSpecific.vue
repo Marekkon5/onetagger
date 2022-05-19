@@ -59,6 +59,7 @@
                     v-model='option.value.value'
                     class='input' 
                     :label='option.label'
+                    :type='option.value.hidden ? "password" : "text"'
                 ></q-input>
             </div>
 

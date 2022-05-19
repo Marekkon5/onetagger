@@ -373,7 +373,7 @@ pub enum PlatformCustomOptionValue {
     /// Slider
     Number { min: i32, max: i32, step: i32, value: i32 },
     /// Input field
-    String { value: String},
+    String { value: String, hidden: Option<bool> },
     /// Custom tag picker
     Tag { value: FrameName },
     /// Select / dropdown
@@ -457,7 +457,7 @@ impl PlatformCustomOptionsResponse {
     /// Short to get string/option field
     pub fn get_str(&self, id: &str) -> Option<String> {
         self.0.get(id).map(|o| match &o {
-            PlatformCustomOptionValue::String { value } => Some(value.to_string()),
+            PlatformCustomOptionValue::String { value, .. } => Some(value.to_string()),
             PlatformCustomOptionValue::Option { value, .. } => Some(value.to_string()),
             _ => None
         }).flatten()

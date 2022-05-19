@@ -194,7 +194,7 @@ impl TrackImpl for Track {
             let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite);
         }
-        if config.release_id {
+        if config.release_id && !self.release_id.is_empty() {
             let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.release_id.to_string()], config.overwrite);
         }

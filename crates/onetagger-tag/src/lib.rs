@@ -175,6 +175,11 @@ impl FrameName {
         }
     }
 
+    /// Shorthand for creating
+    pub fn new(id3: &str, vorbis: &str, mp4: &str) -> FrameName {
+        FrameName { id3: id3.to_string(), vorbis: vorbis.to_string(), mp4: mp4.to_string() }
+    }
+
     /// Get raw value by format
     pub fn by_format(&self, format: &AudioFileFormat) -> String {
         match format.to_owned() {
