@@ -267,7 +267,8 @@ pub enum Field {
     Version,
     TrackNumber,
     Duration,
-    Remixer
+    Remixer,
+    Mood
 }
 
 impl Field {
@@ -298,7 +299,8 @@ impl Field {
             Field::Version => "TIT3",
             Field::TrackNumber => "TRCK",
             Field::Duration => "TLEN",
-            Field::Remixer => "TPE4"
+            Field::Remixer => "TPE4",
+            Field::Mood => "TMOO"
         }
     }
 
@@ -319,7 +321,8 @@ impl Field {
             Field::Version => "SUBTITLE",
             Field::TrackNumber => "TRACKNUMBER",
             Field::Duration => "LENGTH",
-            Field::Remixer => "REMIXER"
+            Field::Remixer => "REMIXER",
+            Field::Mood => "MOOD"
         }
     }
 
@@ -341,6 +344,7 @@ impl Field {
             Field::Key => "com.apple.iTunes:KEY",
             Field::Style => "com.apple.iTunes:STYLE",
             Field::Duration => "com.apple.iTunes:LENGTH",
+            Field::Mood => "com.apple.iTunes:MOOD"
         }
     }
 }

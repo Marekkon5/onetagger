@@ -1,9 +1,11 @@
 use std::error::Error;
+use std::time::Duration;
 use chrono::{DateTime, Utc};
-use onetagger_tag::FrameName;
 use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils};
+use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
+use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 
@@ -50,17 +52,33 @@ impl BPMSupreme {
         Ok(res.data.session_token)
     }
 
+    /// Wrapper for GET request with rate limit
+    fn get<T: DeserializeOwned>(&self, url: &str, query: &[(&str, &str)]) -> Result<T, Box<dyn Error>> {
+        let res = self.client.get(url)
+            .query(query)
+            .send()?;
+
+        // Rate limit
+        if res.status() == StatusCode::TOO_MANY_REQUESTS {
+            let delay = res.headers().get("retry-after").map(|h| h.to_str().unwrap().parse().ok()).flatten().unwrap_or(5);
+            warn!("BPM Supreme rate limited, waiting for: {delay}s");
+            std::thread::sleep(Duration::from_secs(delay));
+            return self.get(url, query);
+        }
+
+        Ok(res.error_for_status()?.json()?)
+    }
+
     /// Search for tracks
     pub fn search(&self, query: &str) -> Result<Vec<BPMSupremeTrack>, Box<dyn Error>> {
-        let res: BPMSupremeResponse<Vec<BPMSupremeTrack>> = self.client.get("https://api.bpmsupreme.com/v1.2/search/audio")
-            .query(&[
+        let res: BPMSupremeResponse<Vec<BPMSupremeTrack>> = self.get(
+            "https://api.bpmsupreme.com/v1.2/search/audio",
+            &[
                 ("keywords", query),
                 ("limit", "100"),
                 ("skip", "0"),
-            ])
-            .send()?
-            .error_for_status()?
-            .json()?;
+            ]
+        )?;
         Ok(res.data)
     }
 }
@@ -101,13 +119,6 @@ struct BPMSupremeTrack {
 
 impl Into<Track> for BPMSupremeTrack {
     fn into(self) -> Track {
-        //TODO: Maybe mood field in `Track`
-        // Mood
-        let mut other = vec![];
-        if let Some(da) = self.depth_analysis {
-            other.push((FrameName::new("TMOO", "MOOD", "com.apple.iTunes:MOOD"), da.mood));
-        }
-
         Track {
             platform: "bpmsupreme".to_string(),
             artists: vec![self.artist],
@@ -119,7 +130,7 @@ impl Into<Track> for BPMSupremeTrack {
             label: Some(self.label),
             release_date: Some(self.created_at.naive_utc().date()),
             track_id: Some(self.id.to_string()),
-            other,
+            mood: self.depth_analysis.map(|da| da.mood),
             ..Default::default()
         }
     }
@@ -173,12 +184,9 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
         PlatformInfo {
             id: "bpmsupreme".to_string(),
             name: "BPM Supreme".to_string(),
-            //TODO: Add description
-            description: "//todo".to_string(),
+            description: "Specialized in chart & open-format. Requires a free account".to_string(),
             version: "1.0.0".to_string(),
-            //TODO: Icon
-            icon: &[0u8],
-            //TODO: test if more doable
+            icon: include_bytes!("../assets/bpmsupreme.png"),
             max_threads: 1,
             custom_options: PlatformCustomOptions::new()
                 .add("email", "Email", PlatformCustomOptionValue::String { 

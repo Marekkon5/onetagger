@@ -124,6 +124,11 @@
                     <q-tooltip content-style="font-size: 13px">Available from Beatport, Beatsource, MusicBrainz & Spotify</q-tooltip>
                 </q-icon>
             </q-checkbox>
+            <q-checkbox :disabled='!isSupported("mood")' class='tag checkbox text-grey-4' label='Mood' v-model='$1t.config.mood'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                    <q-tooltip content-style="font-size: 13px">Available from BPM Supreme</q-tooltip>
+                </q-icon>
+            </q-checkbox>
      
         </div>
     </div>
@@ -148,11 +153,11 @@ const SUPPORTED_TAGS = {
     beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
     musicbrainz: ['isrc'],
     spotify: ['isrc', 'key'],
-    bpmsupreme: ['key', 'other', 'trackId']
+    bpmsupreme: ['key', 'other', 'trackId', 'mood']
 }
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
-    'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber', 'isrc'];
+    'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber', 'isrc', 'mood'];
 
 export default {
     name: 'AutotaggerTags',

@@ -214,6 +214,10 @@ impl TrackImpl for Track {
         if config.isrc && self.isrc.is_some() {
             tag.set_field(Field::ISRC, vec![self.isrc.clone().unwrap()], config.overwrite);
         }
+        // Mood
+        if config.mood && self.mood.is_some() {
+            tag.set_field(Field::Mood, vec![self.mood.clone().unwrap()], config.overwrite);
+        }
         // Track number
         if config.track_number && self.track_number.is_some() {
             match self.track_number.as_ref().unwrap() {

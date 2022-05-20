@@ -208,7 +208,8 @@ impl BeatportTrack {
             duration: self.duration.to_duration(),
             remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect(),
             track_number: None,
-            isrc: None
+            isrc: None,
+            mood: None
         };
 
         // Exclusive beatport tag

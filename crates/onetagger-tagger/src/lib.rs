@@ -46,6 +46,7 @@ pub struct TaggerConfig {
     pub remixer: bool,
     pub track_number: bool,
     pub isrc: bool,
+    pub mood: bool,
     // 1T meta tags
     pub meta_tags: bool,
 
@@ -88,7 +89,7 @@ impl Default for TaggerConfig {
     fn default() -> Self {
         Self {
             platforms: vec!["beatport".to_string()], threads: 16, strictness: 0.8, path: None,
-            title: false, artist: false, album: false, key: false, bpm: false, genre: false,
+            title: false, artist: false, album: false, key: false, bpm: false, genre: false, mood: false,
             style: false, label: false, release_date: false, publish_date: false, album_art: false,
             other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,
             version: false, duration: false, album_artist: false, remixer: false, track_number: false,
@@ -150,6 +151,7 @@ pub struct Track {
     pub remixers: Vec<String>,
     pub track_number: Option<TrackNumber>,
     pub isrc: Option<String>,
+    pub mood: Option<String>,
     
     // Only year OR date should be available
     pub release_year: Option<i64>,
@@ -499,7 +501,9 @@ impl MatchingUtils {
         // Remove attributes
         let step5 = step4
             .replace("(intro)", "")
-            .replace("(clean)", "");
+            .replace("(clean)", "")
+            .replace("(intro clean)", "")
+            .replace("(dirty)", "");
         // Remove - and trim
         let step6 = step5.replace("-", "").replace("  ", " ");
         // Remove feat.
