@@ -13,6 +13,8 @@ use unidecode::unidecode;
 
 pub mod custom;
 
+const ATTRIBUTES_TO_REMOVE: [&'static str; 6] = ["(intro)", "(clean)", "(intro clean)", "(dirty)", "(intro dirty)", "(clean extended)"];
+
 // Re-export
 pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field};
 
@@ -499,11 +501,10 @@ impl MatchingUtils {
         re = Regex::new(r"^((a|an|the) )").unwrap();
         let step4 = re.replace(&step3, "");
         // Remove attributes
-        let step5 = step4
-            .replace("(intro)", "")
-            .replace("(clean)", "")
-            .replace("(intro clean)", "")
-            .replace("(dirty)", "");
+        let mut step5 = step4.to_string();
+        for t in &ATTRIBUTES_TO_REMOVE {
+            step5 = step5.replace(t, "");
+        }
         // Remove - and trim
         let step6 = step5.replace("-", "").replace("  ", " ");
         // Remove feat.

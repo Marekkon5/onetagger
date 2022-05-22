@@ -2,6 +2,7 @@ use std::error::Error;
 use std::time::Duration;
 use chrono::{DateTime, Utc};
 use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils};
+use regex::Regex;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
@@ -70,8 +71,8 @@ impl BPMSupreme {
     }
 
     /// Search for tracks
-    pub fn search(&self, query: &str) -> Result<Vec<BPMSupremeTrack>, Box<dyn Error>> {
-        let res: BPMSupremeResponse<Vec<BPMSupremeTrack>> = self.get(
+    pub fn search(&self, query: &str) -> Result<Vec<BPMSupremeSong>, Box<dyn Error>> {
+        let res: BPMSupremeResponse<Vec<BPMSupremeSong>> = self.get(
             "https://api.bpmsupreme.com/v1.2/search/audio",
             &[
                 ("keywords", query),
@@ -86,8 +87,11 @@ impl BPMSupreme {
 impl AutotaggerSource for BPMSupreme {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Search and match
-        let query = format!("{} {}", MatchingUtils::clean_title(info.title()?), info.artist()?);
-        let tracks = self.search(&query)?.into_iter().map(|t| t.into()).collect::<Vec<Track>>();
+        let re = Regex::new(" \\(.*\\)$").unwrap();
+        let title = MatchingUtils::clean_title(info.title()?);
+        let title = re.replace(&title, "");
+        let query = format!("{title} {}", info.artist()?);
+        let tracks = self.search(&query)?.into_iter().map(|t| t.into_tracks()).flatten().collect::<Vec<Track>>();
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
 }
@@ -103,7 +107,7 @@ struct BPMSupremeUser {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct BPMSupremeTrack {
+struct BPMSupremeSong {
     pub artist: String,
     pub bpm_count: i64,
     pub category: BPMSupremeCategory,
@@ -114,12 +118,14 @@ struct BPMSupremeTrack {
     pub label: String,
     pub song_name: String,
     pub created_at: DateTime<Utc>,
-    pub id: i64
+    pub id: i64,
+    pub tracks: Vec<BPMSupremeTrack>
 }
 
-impl Into<Track> for BPMSupremeTrack {
-    fn into(self) -> Track {
-        Track {
+impl BPMSupremeSong {
+    /// Convert self and all the versions into tracks
+    pub fn into_tracks(self) -> Vec<Track> {
+        let base = Track {
             platform: "bpmsupreme".to_string(),
             artists: vec![self.artist],
             title: self.song_name,
@@ -132,9 +138,13 @@ impl Into<Track> for BPMSupremeTrack {
             track_id: Some(self.id.to_string()),
             mood: self.depth_analysis.map(|da| da.mood),
             ..Default::default()
-        }
+        };
+        let mut output = self.tracks.into_iter().map(|t| t.extend_track(base.clone())).collect::<Vec<_>>();
+        output.push(base);
+        output
     }
 }
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BPMSupremeCategory {
@@ -151,6 +161,24 @@ struct BPMSupremeGenre {
     pub name: String
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BPMSupremeTrack {
+    pub created_at: DateTime<Utc>,
+    pub key: String,
+    pub tag_name: String,
+    pub id: i64
+}
+
+impl BPMSupremeTrack {
+    /// Add own data to Track
+    pub fn extend_track(self, mut track: Track) -> Track {
+        track.release_date = Some(self.created_at.naive_utc().date());
+        track.key = Some(self.key);
+        track.track_id = Some(self.id.to_string());
+        track.version = Some(self.tag_name);
+        track
+    }
+}
 
 pub struct BPMSupremeBuilder {
     token: Option<String>
