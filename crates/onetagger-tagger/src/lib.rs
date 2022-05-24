@@ -13,7 +13,9 @@ use unidecode::unidecode;
 
 pub mod custom;
 
-const ATTRIBUTES_TO_REMOVE: [&'static str; 6] = ["(intro)", "(clean)", "(intro clean)", "(dirty)", "(intro dirty)", "(clean extended)"];
+const ATTRIBUTES_TO_REMOVE: [&'static str; 23] = ["(intro)", "(clean)", "(intro clean)", "(dirty)", "(intro dirty)", "(clean extended)",
+    "(intro outro)", "(extended)", "(instrumental)", "(quick hit)", "(club version)", "(radio version)", "(club)", "(radio)", "(main)", 
+    "(radio edit)", "(ck cut)", "(super cut)", "(mega cutz)", "(snip hitz)", "(jd live cut)", "(djcity intro)", "(vdj jd edit)"];
 
 // Re-export
 pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field};
