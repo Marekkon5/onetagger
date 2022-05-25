@@ -117,7 +117,7 @@ struct BPMSupremeSong {
     pub key: Option<String>,
     pub label: String,
     pub song_name: String,
-    pub created_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
     pub id: i64,
     pub tracks: Vec<BPMSupremeTrack>
 }
@@ -134,7 +134,7 @@ impl BPMSupremeSong {
             genres: vec![self.genre.name],
             key: self.key,
             label: Some(self.label),
-            release_date: Some(self.created_at.naive_utc().date()),
+            release_date: self.created_at.map(|c| c.naive_utc().date()),
             track_id: Some(self.id.to_string()),
             mood: self.depth_analysis.map(|da| da.mood),
             ..Default::default()
@@ -163,7 +163,7 @@ struct BPMSupremeGenre {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BPMSupremeTrack {
-    pub created_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
     pub key: String,
     pub tag_name: String,
     pub id: i64
@@ -172,7 +172,7 @@ struct BPMSupremeTrack {
 impl BPMSupremeTrack {
     /// Add own data to Track
     pub fn extend_track(self, mut track: Track) -> Track {
-        track.release_date = Some(self.created_at.naive_utc().date());
+        track.release_date = self.created_at.map(|c| c.naive_utc().date());
         track.key = Some(self.key);
         track.track_id = Some(self.id.to_string());
         track.version = Some(self.tag_name);
