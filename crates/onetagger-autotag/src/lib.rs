@@ -273,14 +273,7 @@ impl TrackImpl for Track {
                 return Ok(None);
             }
         }
-        // Content-type needs image
-        let headers = response.headers();
-        if let Some(ct) = headers.get("content-type") {
-            if !ct.to_str()?.contains("image") {
-                return Ok(None);
-            }
-        }
-        
+       
         Ok(Some(response.bytes()?.to_vec()))
     }
 
