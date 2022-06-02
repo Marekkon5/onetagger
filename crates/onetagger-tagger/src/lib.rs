@@ -81,6 +81,7 @@ pub struct TaggerConfig {
     pub force_shazam: bool,
     pub skip_tagged: bool,
     pub include_subfolders: bool,
+    pub only_year: bool,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
     pub custom: HashMap<String, PlatformCustomOptionsResponse>,
@@ -97,7 +98,7 @@ impl Default for TaggerConfig {
             style: false, label: false, release_date: false, publish_date: false, album_art: false,
             other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,
             version: false, duration: false, album_artist: false, remixer: false, track_number: false,
-            isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false,
+            isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false, only_year: false,
             overwrite: false, merge_genres: false, album_art_file: false, camelot: false, styles_options: StylesOptions::Default,
             parse_filename: false, filename_template: None, short_title: false, match_duration: false,
             max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default,

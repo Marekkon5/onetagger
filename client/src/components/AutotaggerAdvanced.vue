@@ -73,7 +73,11 @@
             v-model='$1t.config.includeSubfolders'
         ></AdvancedSettingsToggle>
 
-
+        <AdvancedSettingsToggle 
+            label='Only write year'
+            tooltip='Write just the year instead of full date'
+            v-model='$1t.config.onlyYear'
+        ></AdvancedSettingsToggle>
 
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 

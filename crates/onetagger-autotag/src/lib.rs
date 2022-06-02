@@ -152,8 +152,14 @@ impl TrackImpl for Track {
             if let Some(date) = self.release_date {
                 tag.set_date(&TagDate {
                     year: date.year() as i32,
-                    month: Some(date.month() as u8),
-                    day: Some(date.day() as u8)
+                    month: match config.only_year {
+                        true => None,
+                        false => Some(date.month() as u8)
+                    },
+                    day: match config.only_year {
+                        true => None,
+                        false => Some(date.day() as u8)
+                    }
                 }, config.overwrite);
             } else if let Some(year) = self.release_year {
                 tag.set_date(&TagDate {
@@ -168,8 +174,14 @@ impl TrackImpl for Track {
             if let Some(date) = self.publish_date {
                 tag.set_publish_date(&TagDate {
                     year: date.year() as i32,
-                    month: Some(date.month() as u8),
-                    day: Some(date.day() as u8)
+                    month: match config.only_year {
+                        true => None,
+                        false => Some(date.month() as u8)
+                    },
+                    day: match config.only_year {
+                        true => None,
+                        false => Some(date.day() as u8)
+                    }
                 }, config.overwrite);
             } else if let Some(year) = self.publish_year {
                 tag.set_publish_date(&TagDate {

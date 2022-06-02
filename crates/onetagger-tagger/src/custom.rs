@@ -3,7 +3,7 @@ use std::error::Error;
 use crate::Track;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 5;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 6;
 
 /// Macro for creating custom platform plugins
 #[macro_export]

@@ -220,6 +220,10 @@ enum Actions {
         /// Don't include subfolders
         #[clap(long)]
         no_subfolders: bool,
+
+        /// Write only year instead of full date
+        #[clap(long)]
+        only_year: bool,
     },
     /// Start Audio Features in CLI mode
     Audiofeatures {
@@ -325,7 +329,7 @@ impl Actions {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
                 overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
                 short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
-                skip_tagged, parse_filename, filename_template, no_subfolders } => {
+                skip_tagged, parse_filename, filename_template, no_subfolders, only_year } => {
 
                 // Load config
                 let mut config = if let Some(config_path) = config {
@@ -350,7 +354,7 @@ impl Actions {
                 }
                 // Boolean options
                 config_option!(config, id3v24, overwrite, album_art_file, merge_genres, camelot, short_title, match_duration,
-                    match_by_id, enable_shazam, force_shazam, skip_tagged, parse_filename);
+                    match_by_id, enable_shazam, force_shazam, skip_tagged, parse_filename, only_year);
                 // Remaining options
                 if let Some(threads) = threads {
                     config.threads = *threads;
