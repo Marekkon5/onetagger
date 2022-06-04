@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
 use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder};
 use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText};
 use serde::{Serialize, Deserialize};
@@ -43,10 +45,12 @@ pub struct ID3Tag {
 
 impl ID3Tag {
     // Read from file
-    pub fn load_file(path: &str) -> Result<ID3Tag, Box<dyn Error>> {        
+    pub fn load_file(path: &str) -> Result<ID3Tag, Box<dyn Error>> {
+        let mut reader = BufReader::with_capacity(1024 * 1024, File::open(path)?);
+
         // MP3
         if path.to_lowercase().ends_with(".mp3") {
-            let tag = Tag::read_from_path(path)?;
+            let tag = Tag::read_from(&mut reader)?;
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
@@ -60,7 +64,7 @@ impl ID3Tag {
         }
         // AIFF
         if path.to_lowercase().ends_with(".aif") || path.to_lowercase().ends_with(".aiff") {
-            let tag = Tag::read_from_aiff_path(path)?;
+            let tag = Tag::read_from_aiff(&mut reader)?;
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
