@@ -1,6 +1,6 @@
 #[macro_use] extern crate log;
 
-use std::io::Write;
+use std::io::{Write, BufReader, BufWriter};
 use std::error::Error;
 use std::path::PathBuf;
 use std::fs::File;
@@ -135,7 +135,7 @@ impl Settings {
     /// Load settings from file
     pub fn load() -> Result<Settings, Box<dyn Error>> {
         let path = Settings::get_path()?;
-        let settings: Settings = serde_json::from_reader(File::open(&path)?)?;
+        let settings: Settings = serde_json::from_reader(BufReader::new(File::open(&path)?))?;
 
         // v1.0 are not compatible with 1.1, create backup
         if settings.version.unwrap_or(1) == 1 {
@@ -152,7 +152,7 @@ impl Settings {
     /// Save settings to file
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         let path = Settings::get_path()?;
-        let mut file = File::create(path)?;
+        let mut file = BufWriter::new(File::create(path)?);
         file.write_all(serde_json::to_string_pretty(self)?.as_bytes())?;
         Ok(())
     }
