@@ -129,7 +129,8 @@
                     <q-tooltip content-style="font-size: 13px">Available from BPM Supreme</q-tooltip>
                 </q-icon>
             </q-checkbox>
-     
+            <q-checkbox :disabled='!isSupported("trackTotal") || !$1t.config.trackNumber' class='tag checkbox text-grey-4' label='Track Total' v-model='$1t.config.trackTotal'></q-checkbox>
+
         </div>
     </div>
 
@@ -146,14 +147,15 @@
 import PlaylistDropZone from './PlaylistDropZone.vue';
 
 const SUPPORTED_TAGS = {
-    beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other', 'isrc'],
-    discogs: ['style'],
-    traxsource: ['trackId', 'version', 'bpm', 'key'],
-    junodownload: ['bpm'],
+    beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other', 'isrc', 'trackTotal'],
+    discogs: ['style', 'trackTotal'],
+    traxsource: ['trackId', 'version', 'bpm', 'key', 'trackTotal'],
+    junodownload: ['bpm', 'trackTotal'],
     beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
     musicbrainz: ['isrc'],
     spotify: ['isrc', 'key'],
-    bpmsupreme: ['key', 'other', 'trackId', 'mood']
+    bpmsupreme: ['key', 'other', 'trackId', 'mood'],
+    itunes: ['trackTotal']
 }
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 

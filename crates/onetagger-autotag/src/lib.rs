@@ -236,6 +236,10 @@ impl TrackImpl for Track {
                 TrackNumber::Number(n) => tag.set_field(Field::TrackNumber, vec![format!("{:0width$}", n, width = config.track_number_leading_zeroes)], config.overwrite),
                 TrackNumber::Custom(n) => tag.set_field(Field::TrackNumber, vec![n.to_string()], config.overwrite),
             }
+            // Track total (!!!MUST BE AFTER TRACK NUMBER!!!)
+            if config.track_total && self.track_total.is_some() {
+                tag.set_field(Field::TrackTotal, vec![self.track_total.as_ref().unwrap().to_string()], config.overwrite);
+            }
         }
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {

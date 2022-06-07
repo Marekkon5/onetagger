@@ -397,6 +397,7 @@ impl ReleaseMaster {
                 true => TrackNumber::Number((track_index + 1) as i32),
                 false => TrackNumber::Custom(self.tracks[track_index].position.to_string())
             }),
+            track_total: Some(self.tracks.len() as u16),
             ..Default::default()
         }
     }

@@ -177,6 +177,10 @@ impl Traxsource {
             track.track_number = Some(TrackNumber::Number(tn));
         }
 
+        // Track total
+        selector = Selector::parse("div.trk-row.play-trk").unwrap();
+        track.track_total = Some(document.select(&selector).count() as u16);
+
         // Album art
         selector = Selector::parse("div.t-image img").unwrap();
         let img_element = document.select(&selector).next().unwrap();
@@ -195,8 +199,8 @@ impl AutotaggerSource for Traxsource {
         // Match
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
-            if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist || config.track_number {
-                match self.extend_track(&mut track, config.catalog_number || config.track_number || config.album_art) {
+            if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist || config.track_number || config.track_total {
+                match self.extend_track(&mut track, config.catalog_number || config.track_number || config.album_art || config.track_total) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
                 }

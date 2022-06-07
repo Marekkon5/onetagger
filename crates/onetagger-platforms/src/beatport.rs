@@ -70,7 +70,11 @@ impl Beatport {
         // Parse
         let json = self.get_playables(&response)?;
         let results: BeatportSearchResults = serde_json::from_str(&json)?;
-        Ok(results.releases.first().ok_or("Missing release!")?.to_owned())
+        let mut release = results.releases.first().ok_or("Missing release!")?.to_owned();
+        // Find track count
+        let track_total = results.tracks.iter().filter(|t| t.release.id == release.id).count();
+        release.track_total = Some(track_total as u16);
+        Ok(release)
     }
 
     /// Get full track details
@@ -209,7 +213,8 @@ impl BeatportTrack {
             remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect(),
             track_number: None,
             isrc: None,
-            mood: None
+            mood: None,
+            track_total: None,
         };
 
         // Exclusive beatport tag
@@ -260,7 +265,10 @@ pub struct BeatportRelease {
     pub id: i64,
     pub slug: String,
     pub catalog: Option<String>,
-    pub artists: Vec<BeatportSmall>
+    pub artists: Vec<BeatportSmall>,
+    // Injected in fetch_release
+    #[serde(skip)]
+    pub track_total: Option<u16>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -337,12 +345,13 @@ impl AutotaggerSource for Beatport {
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
                         let i = tracks.iter().position(|t| t == &track).unwrap();
                         // Data from release
-                        if config.catalog_number || config.album_artist {
+                        if config.catalog_number || config.album_artist || config.track_total {
                             info!("Fetching full release for extra metadata.");
                             match self.fetch_release(&res.tracks[i].release.slug, res.tracks[i].release.id) {
                                 Ok(r) => {
                                     track.catalog_number = r.catalog;
                                     track.album_artists = r.artists.into_iter().map(|a| a.name).collect();
+                                    track.track_total = r.track_total;
                                 },
                                 Err(e) => warn!("Beatport failed fetching release for catalog number! {}", e)
                             }

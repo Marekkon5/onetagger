@@ -103,6 +103,7 @@ impl JunoDownload {
 
         // Tracks
         let track_selector = Selector::parse("div.jd-listing-tracklist div.col").unwrap();
+        let track_total = elem.select(&track_selector).count() as u16;
         for (track_index, track_elem) in elem.select(&track_selector).enumerate() {
             let text = track_elem.text().collect::<Vec<_>>();
             let full = text[0].replace("\u{a0}", " ");
@@ -155,6 +156,7 @@ impl JunoDownload {
                 release_id: release_id.clone(),
                 duration,
                 track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
+                track_total: Some(track_total),
                 ..Default::default()
             });
         }

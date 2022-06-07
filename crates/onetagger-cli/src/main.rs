@@ -350,7 +350,7 @@ impl Actions {
                     // first arg = all tags true
                     contains_tag_config!(tags.contains(&"all"), config, tags, title, artist, album, key, bpm, genre, style, label, release_date, 
                         publish_date, album_art, other_tags, catalog_number, url, track_id, release_id, version, duration, 
-                        album_artist, remixer, track_number, isrc, meta_tags);
+                        album_artist, remixer, track_number, isrc, meta_tags, track_total);
                 }
                 // Boolean options
                 config_option!(config, id3v24, overwrite, album_art_file, merge_genres, camelot, short_title, match_duration,

@@ -79,6 +79,7 @@ impl MP4Tag {
             Field::Style => DataIdent::freeform("com.apple.iTunes", "STYLE"),
             Field::Duration => DataIdent::freeform("com.apple.iTunes", "LENGTH"),
             Field::Mood => DataIdent::freeform("com.apple.iTunes", "MOOD"),
+            Field::TrackTotal => DataIdent::fourcc(*b"trkn"),
         }
     }
 
@@ -254,6 +255,12 @@ impl TagImpl for MP4Tag {
                 }
                 return;
             }
+            if field == Field::TrackTotal {
+                if let Some(tt) = value.first().map(|v| v.parse().ok()).flatten() {
+                    self.tag.set_track(self.tag.track_number().unwrap_or(0), tt)
+                }
+                return;
+            }
             
             // Add each data separately
             for v in value {
@@ -263,9 +270,12 @@ impl TagImpl for MP4Tag {
     }
 
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
-        // Override for track number because of custom format
+        // Override for track number and total because of custom format
         if field == Field::TrackNumber {
             return self.tag.track_number().map(|t| vec![t.to_string()]);
+        }
+        if field == Field::TrackTotal {
+            return self.tag.track().1.map(|t| vec![t.to_string()]);
         }
         self.raw_by_ident(&MP4Tag::field_to_ident(field))
     }
