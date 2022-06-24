@@ -235,4 +235,13 @@ impl TagImpl for FLACTag {
         None
     }
 
+    fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool) {
+        self.set_field(Field::TrackNumber, vec![track_number.to_string()], overwrite);
+        if let Some(total) = track_total {
+            self.set_field(Field::TrackTotal, vec![total.to_string()], overwrite);
+        }
+    }
+
+    
+
 }

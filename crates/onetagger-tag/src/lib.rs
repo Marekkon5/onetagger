@@ -85,38 +85,43 @@ impl Tag {
 
 #[cfg(feature = "tag")]
 pub trait TagImpl {
+    /// Write file to path
     fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>>;
 
-    // Since all formats right now support separators
+    /// Since all formats right now support separators
     fn set_separator(&mut self, separator: &str);
 
-    // Get all string tags
+    /// Get all string tags
     fn all_tags(&self) -> HashMap<String, Vec<String>>;
 
-    // Set/Get dates
+    /// Set/Get dates
     fn get_date(&self) -> Option<TagDate>;
     fn set_date(&mut self, date: &TagDate, overwrite: bool);
     fn set_publish_date(&mut self, date: &TagDate, overwrite: bool);
 
-    // Get/Set rating as 1 - 5 stars value
+    /// Get/Set rating as 1 - 5 stars value
     fn get_rating(&self) -> Option<u8>;
     fn set_rating(&mut self, rating: u8, overwrite: bool);
 
-    // Set/Get album art
+    /// Set/Get album art
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>);
-    // To not load all album arts
+    /// To not load all album arts
     fn has_art(&self) -> bool;
     fn get_art(&self) -> Vec<Picture>;
     fn remove_art(&mut self, kind: CoverType);
 
-    // Set/Get named field
+    /// Set/Get named field
     fn set_field(&mut self, field: Field, value: Vec<String>, overwrite: bool);
     fn get_field(&self, field: Field) -> Option<Vec<String>>;
 
-    // Set/Get by tag field name
+    /// Set/Get by tag field name
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool);
     fn get_raw(&self, tag: &str) -> Option<Vec<String>>;
     fn remove_raw(&mut self, tag: &str);
+
+    /// Set track number (because formats like MP3 and M4A use custom format)
+    /// Track number is string because of platforms like discogs
+    fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

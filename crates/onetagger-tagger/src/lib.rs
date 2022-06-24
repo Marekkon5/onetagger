@@ -196,6 +196,15 @@ impl From<i32> for TrackNumber {
     }
 }
 
+impl ToString for TrackNumber {
+    fn to_string(&self) -> String {
+        match self {
+            TrackNumber::Number(n) => n.to_string(),
+            TrackNumber::Custom(c) => c.to_string(),
+        }
+    }
+}
+
 /// For Discogs & Beatport
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

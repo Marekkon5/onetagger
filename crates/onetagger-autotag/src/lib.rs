@@ -22,7 +22,7 @@ use crossbeam_channel::{unbounded, Sender, Receiver};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 use onetagger_shared::Settings;
 use onetagger_player::AudioSources;
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, TrackNumber, StylesOptions, PlatformCustomOptionValue,
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, StylesOptions, PlatformCustomOptionValue,
     AutotaggerSource, AutotaggerSourceBuilder, PlatformCustomOptionsResponse, CAMELOT_NOTES};
 
 use crate::shazam::Shazam;
@@ -232,13 +232,9 @@ impl TrackImpl for Track {
         }
         // Track number
         if config.track_number && self.track_number.is_some() {
-            match self.track_number.as_ref().unwrap() {
-                TrackNumber::Number(n) => tag.set_field(Field::TrackNumber, vec![format!("{:0width$}", n, width = config.track_number_leading_zeroes)], config.overwrite),
-                TrackNumber::Custom(n) => tag.set_field(Field::TrackNumber, vec![n.to_string()], config.overwrite),
-            }
-            // Track total (!!!MUST BE AFTER TRACK NUMBER!!!)
-            if config.track_total && self.track_total.is_some() {
-                tag.set_field(Field::TrackTotal, vec![self.track_total.as_ref().unwrap().to_string()], config.overwrite);
+            match config.track_total {
+                true => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string(), self.track_total.clone(), config.overwrite),
+                false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string(), None, config.overwrite),
             }
         }
         // Album art

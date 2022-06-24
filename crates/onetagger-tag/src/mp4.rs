@@ -242,26 +242,15 @@ impl TagImpl for MP4Tag {
         let ident = MP4Tag::field_to_ident(field.clone());
         if self.tag.data_of(&ident).next().is_none() || overwrite {
             self.tag.remove_data_of(&ident);
-            // Overrides, because of custom formats
-            if field == Field::TrackNumber {
-                if let Some(tn) = value.first().map(|v| v.parse().ok()).flatten() {
-                    self.tag.set_track_number(tn);
-                }
-                return;
-            }
+
+            // Overrides
             if field == Field::BPM {
                 if let Some(bpm) = value.first().map(|v| v.parse().ok()).flatten() {
                     self.tag.set_bpm(bpm);
                 }
                 return;
             }
-            if field == Field::TrackTotal {
-                if let Some(tt) = value.first().map(|v| v.parse().ok()).flatten() {
-                    self.tag.set_track(self.tag.track_number().unwrap_or(0), tt)
-                }
-                return;
-            }
-            
+
             // Add each data separately
             for v in value {
                 self.tag.add_data(ident.clone(), Data::Utf8(v));
@@ -270,13 +259,6 @@ impl TagImpl for MP4Tag {
     }
 
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
-        // Override for track number and total because of custom format
-        if field == Field::TrackNumber {
-            return self.tag.track_number().map(|t| vec![t.to_string()]);
-        }
-        if field == Field::TrackTotal {
-            return self.tag.track().1.map(|t| vec![t.to_string()]);
-        }
         self.raw_by_ident(&MP4Tag::field_to_ident(field))
     }
 
@@ -317,5 +299,24 @@ impl TagImpl for MP4Tag {
         })
     }
 
+    fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool) {
+        let track_number = match track_number.parse() {
+            Ok(tn) => tn,
+            Err(e) => {
+                error!("Failed parsing track number, it won't be written: {e}");
+                return;
+            }
+        };
+
+        if overwrite || self.tag.track().0.is_none() {
+            if let Some(total) = track_total {
+                self.tag.set_track(track_number, total);
+            } else {
+                self.tag.set_track_number(track_number);
+            }
+        }
+    }
+
+    
     
 }

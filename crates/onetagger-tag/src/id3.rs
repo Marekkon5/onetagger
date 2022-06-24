@@ -314,25 +314,9 @@ impl TagImpl for ID3Tag {
         if field == Field::Duration {
             value[0] = format!("{}000", value[0]);
         }
-        // TrackNumber/TrackTotal
-        if field == Field::TrackTotal {
-            let tn = self.get_field(Field::TrackNumber).map(|i| i.first().map(String::from)).flatten().unwrap_or(String::new());
-            value[0] = format!("{tn}/{}", value[0]);
-        }
-
         self.set_raw(field.id3(), value, overwrite);
     }
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
-        // Track number override (tag value: Track number/Total track)
-        if field == Field::TrackNumber {
-            return Some(vec![self.get_raw(field.id3())?.first()?
-                .split("/").map(|v| v.to_string()).next()?.to_string()]);
-        }
-        if field == Field::TrackTotal {
-            return Some(vec![self.get_raw(field.id3())?.first()?
-                .split("/").map(|v| v.to_string()).skip(1).next()?.to_string()]);
-        }
-
         self.get_raw(field.id3())
     }
 
@@ -466,6 +450,15 @@ impl TagImpl for ID3Tag {
         None
     }
 
+    fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool) {
+        let mut value = format!("{track_number}");
+        if let Some(total) = track_total {
+            value = format!("{value}/{total}");
+        }
+        self.set_raw("TRCK", vec![value], overwrite);
+    }
+
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

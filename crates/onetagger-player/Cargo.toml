@@ -6,13 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mp4 = "0.10"
+mp4 = "0.11"
 alac = "0.5"
 hound = "3.4"
-rodio = "0.15"
+rodio = "0.15" 
 redlux = "0.5"
-ndarray = "0.13"
 mp3-duration = "0.1"
 
-sndfile = { version = "0.0.4", features = ["ndarray_features"] }
+# Outdated ndarray for sndfile
+ndarray = "0.13"
+
+sndfile = { version = "0.1.1", features = ["ndarray_features"] }
 onetagger-shared = { path = "../onetagger-shared" }
