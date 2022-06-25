@@ -80,6 +80,7 @@ impl MP4Tag {
             Field::Duration => DataIdent::freeform("com.apple.iTunes", "LENGTH"),
             Field::Mood => DataIdent::freeform("com.apple.iTunes", "MOOD"),
             Field::TrackTotal => DataIdent::fourcc(*b"trkn"),
+            Field::DiscNumber => DataIdent::fourcc(*b"disk"),
         }
     }
 

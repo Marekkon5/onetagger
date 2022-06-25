@@ -230,6 +230,10 @@ impl TrackImpl for Track {
         if config.mood && self.mood.is_some() {
             tag.set_field(Field::Mood, vec![self.mood.clone().unwrap()], config.overwrite);
         }
+        // Disc number
+        if config.disc_number && self.disc_number.is_some() {
+            tag.set_field(Field::DiscNumber, vec![self.disc_number.clone().unwrap().to_string()], config.overwrite);
+        }
         // Track number
         if config.track_number && self.track_number.is_some() {
             match config.track_total {
