@@ -361,6 +361,19 @@ impl ReleaseMaster {
             }
         }
 
+        // Parse track number
+        let mut track_number = TrackNumber::Number((track_index + 1) as i32);
+        let mut disc_number = None;
+
+        let position = self.tracks[track_index].position.to_string();
+        let re = Regex::new("(\\d+)(\\.|-)(\\d+)").unwrap();
+        if let Some(captures) = re.captures(&position) {
+            disc_number = Some(captures.get(1).unwrap().as_str().parse::<u16>().ok()).flatten();
+            track_number = TrackNumber::Number(captures.get(3).unwrap().as_str().parse().unwrap());
+        } else if discogs_config.track_number_int {
+            track_number = TrackNumber::Custom(position);
+        }
+
         // Generate track
         Track {
             platform: "discogs".to_string(),
@@ -393,10 +406,8 @@ impl ReleaseMaster {
             track_id: None,
             release_id: self.id.to_string(),
             duration: MatchingUtils::parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
-            track_number: Some(match discogs_config.track_number_int {
-                true => TrackNumber::Number((track_index + 1) as i32),
-                false => TrackNumber::Custom(self.tracks[track_index].position.to_string())
-            }),
+            track_number: Some(track_number),
+            disc_number,
             track_total: Some(self.tracks.len() as u16),
             ..Default::default()
         }

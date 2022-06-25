@@ -130,7 +130,8 @@
                 </q-icon>
             </q-checkbox>
             <q-checkbox :disabled='!isSupported("trackTotal") || !$1t.config.trackNumber' class='tag checkbox text-grey-4' label='Track Total' v-model='$1t.config.trackTotal'></q-checkbox>
-
+            <q-checkbox :disabled='!isSupported("discNumber")' class='tag checkbox text-grey-4' label='Disc Number' v-model='$1t.config.discNumber'></q-checkbox>
+            
         </div>
     </div>
 
@@ -148,7 +149,7 @@ import PlaylistDropZone from './PlaylistDropZone.vue';
 
 const SUPPORTED_TAGS = {
     beatport: ['style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other', 'isrc', 'trackTotal'],
-    discogs: ['style', 'trackTotal'],
+    discogs: ['style', 'trackTotal', 'discNumber'],
     traxsource: ['trackId', 'version', 'bpm', 'key', 'trackTotal'],
     junodownload: ['bpm', 'trackTotal'],
     beatsource: ['remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],

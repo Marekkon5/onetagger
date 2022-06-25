@@ -244,6 +244,7 @@ class OneTagger {
             "remixer": false,
             "trackNumber": false,
             "trackTotal": false,
+            "discNumber": false,
             "catalogNumber": false,
             "isrc": false,
             "mood": false,

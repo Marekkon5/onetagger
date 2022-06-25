@@ -50,6 +50,7 @@ pub struct TaggerConfig {
     pub remixer: bool,
     pub track_number: bool,
     pub track_total: bool,
+    pub disc_number: bool,
     pub isrc: bool,
     pub mood: bool,
     // 1T meta tags
@@ -96,7 +97,7 @@ impl Default for TaggerConfig {
         Self {
             platforms: vec!["beatport".to_string()], threads: 16, strictness: 0.8, path: None, track_total: false,
             title: false, artist: false, album: false, key: false, bpm: false, genre: false, mood: false,
-            style: false, label: false, release_date: false, publish_date: false, album_art: false,
+            style: false, label: false, release_date: false, publish_date: false, album_art: false, disc_number: false,
             other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,
             version: false, duration: false, album_artist: false, remixer: false, track_number: false,
             isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false, only_year: false,
@@ -157,6 +158,7 @@ pub struct Track {
     pub remixers: Vec<String>,
     pub track_number: Option<TrackNumber>,
     pub track_total: Option<u16>,
+    pub disc_number: Option<u16>,
     pub isrc: Option<String>,
     pub mood: Option<String>,
     
