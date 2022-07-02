@@ -1,8 +1,9 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use rspotify::clients::{BaseClient, OAuthClient};
 use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
-use rspotify::{Credentials, Config, AuthCodeSpotify, OAuth, scopes};
+use rspotify::{Credentials, Config, AuthCodeSpotify, OAuth, scopes, ClientError, ClientResult};
 use rspotify::model::album::FullAlbum;
 use rspotify::model::artist::FullArtist;
 use rspotify::model::search::SearchResult;
@@ -119,9 +120,35 @@ impl Spotify {
         })
     }
 
+    /// Wrapper for rate limit 
+    fn rate_limit_wrap<F, R>(&self, f: F) -> Result<R, Box<dyn Error>>
+    where
+        F: Fn(&Spotify) -> ClientResult<R>
+    {
+        match f(self) {
+            Ok(r) => Ok(r),
+            Err(ClientError::Http(http)) => {
+                match *http {
+                    rspotify::http::HttpError::StatusCode(r) => {
+                        // Rate limit
+                        if r.status() == 429 {
+                            let delay = r.header("Retry-After").map(|v| v.parse().ok()).flatten().unwrap_or(3);
+                            warn!("Spotify rate limit hit, sleeping for: {delay}s...");
+                            std::thread::sleep(Duration::from_secs(delay));
+                            return self.rate_limit_wrap(f);
+                        }
+                        return Err(format!("Unknown Spotify status code: {}", r.status()).into());
+                    },
+                    e => return Err(e.into())
+                }
+            },
+            Err(e) => Err(e.into()),
+        }
+    }
+
     /// Search tracks by query
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
-        let results = self.spotify.search(query, &SearchType::Track, None, None, Some(limit), None)?;
+        let results = self.rate_limit_wrap(|s| s.spotify.search(query, &SearchType::Track, None, None, Some(limit), None))?;
         let mut tracks = vec![];
         if let SearchResult::Tracks(tracks_page) = results {
             tracks = tracks_page.items;
@@ -131,17 +158,17 @@ impl Spotify {
 
     /// Fetch audio features for track id
     pub fn audio_features(&self, id: &TrackId) -> Result<AudioFeatures, Box<dyn Error>> {
-        Ok(self.spotify.track_features(id)?)
+        self.rate_limit_wrap(|s| s.spotify.track_features(id))
     }
 
     /// Fetch full album
     pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Box<dyn Error>> {
-        Ok(self.spotify.album(id)?)
+        self.rate_limit_wrap(|s| s.spotify.album(id))
     }
 
     /// Fetch full artist
     pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Box<dyn Error>> {
-        Ok(self.spotify.artist(id)?)
+        self.rate_limit_wrap(|s| s.spotify.artist(id))
     }
 }
 
