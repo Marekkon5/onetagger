@@ -336,6 +336,7 @@ class OneTagger {
                 overwrite: false
             },
             quickTag: {
+                id3v24: false,
                 recursive: false,
                 autosave: false,
                 sortDescending: false,

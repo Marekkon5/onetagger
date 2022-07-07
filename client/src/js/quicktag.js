@@ -223,7 +223,8 @@ class QTTrack {
         return {
             changes, 
             path: this.path,
-            separators: this.settings.separators
+            separators: this.settings.separators,
+            id3v24: this.settings.id3v24,
         };
     }
 

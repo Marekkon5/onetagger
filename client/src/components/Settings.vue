@@ -302,6 +302,11 @@
                     label='Continue playback when switching to a different track'
                     class='checkbox'
                 ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.quickTag.id3v24'
+                    label='Use ID3v2.4 for MP3 and AIFF'
+                    class='checkbox'
+                ></q-checkbox><br>
 
                 <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Edit Tags</div>
                 <q-checkbox

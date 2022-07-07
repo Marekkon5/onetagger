@@ -394,7 +394,8 @@ pub enum TagChange {
 pub struct TagChanges {
     changes: Vec<TagChange>,
     pub path: String,
-    separators: TagSeparators
+    separators: TagSeparators,
+    id3v24: bool
 }
 
 #[cfg(feature = "tag")]
@@ -406,6 +407,7 @@ impl TagChanges {
 
         // Format specific changes
         if let Tag::ID3(id3) = &mut tag_wrap {
+            id3.set_id3v24(self.id3v24);
             for change in self.changes.clone() {
                 match change {
                     TagChange::ID3Comments {comments} => id3.set_comments(&comments),
