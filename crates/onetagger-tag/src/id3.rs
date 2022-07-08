@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
-use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder};
+use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder, Frame, Encoding};
 use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText};
 use serde::{Serialize, Deserialize};
 use crate::{TagDate, CoverType, Field, TagImpl};
@@ -164,6 +164,16 @@ impl TagImpl for ID3Tag {
             true => Version::Id3v24,
             false => Version::Id3v23
         };
+
+        // Fix art for serato
+        if !self.id3v24 {
+            let pictures = self.tag.pictures().map(|p| p.clone()).collect::<Vec<_>>();
+            self.tag.remove_all_pictures();
+            for picture in pictures {
+                self.tag.add_frame(Frame::with_content("APIC", Content::Picture(picture)).set_encoding(Some(Encoding::Latin1)));
+            }
+        }
+
         // MP3
         if self.format == ID3AudioFormat::MP3 {
             Encoder::new()
