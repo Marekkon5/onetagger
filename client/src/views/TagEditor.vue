@@ -240,7 +240,7 @@
                     </div>
 
                     <!-- Popularimeter -->
-                    <div class='q-mb-xl'>
+                    <div>
                         <div class='text-subtitle1 text-grey-3'>
                             <span class='text-weight-bold'>Popularimeter</span> (POPM)
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
@@ -283,6 +283,14 @@
                                 </q-btn>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- ID3v2.4 -->
+                    <div class='q-mb-xl q-mt-sm'>
+                         <div class='text-subtitle1 text-grey-3'>
+                            <span class='text-weight-bold'>Options</span>
+                        </div>
+                        <q-toggle label='Use ID3v2.4' class='q-mt-md' v-model='id3v24'></q-toggle>
                     </div>
 
                 </div>
@@ -337,7 +345,8 @@ export default {
             showAlbumArt: false,
             addAlbumArtDialog: false,
             customList: this.$1t.settings.tagEditorCustom,
-            abstractions: ABSTRACTIONS
+            abstractions: ABSTRACTIONS,
+            id3v24: false
         } 
     },
     methods: {
@@ -605,6 +614,7 @@ export default {
                     path: this.file.path, 
                     changes: this.changes,
                     separators: {id3: ', ', vorbis: null, mp4: ', '},
+                    id3v24: this.id3v24
                 }
             });
             this.changes = [];
