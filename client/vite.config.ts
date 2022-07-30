@@ -12,5 +12,8 @@ export default defineConfig({
         quasar({
             sassVariables: 'src/style/quasar.scss'
         })
-    ]
+    ],
+    server: {
+        port: 8080
+    }
 });
