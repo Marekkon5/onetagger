@@ -146,7 +146,7 @@ class OneTagger {
                     if (i != -1) {
                         Vue.set(this.quickTag.tracks, i, new QTTrack(json.file, this.settings.quickTag));
                     } else {
-                        this.onError('quickTagSaved: Invalid track');
+                        // this.onError('quickTagSaved: Invalid track');
                     }
                     // Force reload current track
                     if (this.quickTag.track && json.path == this.quickTag.track.path) {
