@@ -67,8 +67,8 @@ jobs:
     - name: Build
       run: |
         cd client
-        npm i
-        npm run build
+        pnpm i
+        pnpm run build
         cd ..
         copy assets\sndfile.lib .
         cargo build --release

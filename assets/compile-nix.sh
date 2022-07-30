@@ -4,8 +4,8 @@
 # sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 # Compile UI
 cd client
-npm i
-npm run build
+pnpm i
+pnpm run build
 cd ..
 # Compile for linux
 cargo build --release
