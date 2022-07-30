@@ -43,9 +43,7 @@ sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libss
 **Compile UI**
 ```
 cd client
-npm i
-npm run build
-cd ..
+// TODO: UPDATE FOR VUE3
 ```
 
 **Compile Linux only**
@@ -67,9 +65,7 @@ You need to install dependencies: [rustup](https://rustup.rs), [nodejs](https://
 **Compile UI:**
 ```
 cd client
-npm i
-npm run build
-cd ..
+// TODO: UPDATE FOR VUE3
 ```
 
 **Compile OneTagger:**
