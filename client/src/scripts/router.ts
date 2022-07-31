@@ -1,4 +1,4 @@
-import VueRouter from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 import Index from '../views/Index.vue';
 // import Autotagger from '../views/Autotagger.vue';
@@ -44,8 +44,8 @@ const routes = [
     // }
 ];
 
-const router = VueRouter.createRouter({
-    history: VueRouter.createWebHashHistory(),
+const router = createRouter({
+    history: createWebHashHistory(),
     routes
 });
 

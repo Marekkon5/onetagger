@@ -1,4 +1,3 @@
-import mergeOptions from 'merge-options';
 import { Dialog, Notify } from 'quasar';
 import { ref, Ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -354,7 +353,7 @@ class OneTagger {
         Object.assign(this.settings.value, data);
         
         // AT config (nested)
-        let config = mergeOptions({}, this.config, this.settings.value.autoTaggerConfig??{});
+        let config = Object.assign({}, this.config.value, this.settings.value.autoTaggerConfig);
         Object.assign(this.config.value, config);
  
         // Restore specific

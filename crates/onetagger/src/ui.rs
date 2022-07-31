@@ -4,10 +4,10 @@ use serde::{Serialize, Deserialize};
 
 use crate::quicktag::QuickTagFile;
 
-// UI
-static BG_PNG: &'static [u8] = include_bytes!("../../../client/dist/bg.png");
-static INDEX_HTML: &'static str = include_str!("../../../client/dist/dist.html");
-static FAVICON_PNG: &'static [u8] = include_bytes!("../../../client/dist/favicon.png");
+// TODO: Load full folder
+// static BG_PNG: &'static [u8] = include_bytes!("../../../client/dist/bg.png");
+// static INDEX_HTML: &'static str = include_str!("../../../client/dist/dist.html");
+// static FAVICON_PNG: &'static [u8] = include_bytes!("../../../client/dist/favicon.png");
 
 
 // Should have data from arguments and other flags (eg. port / host in future)
@@ -54,15 +54,16 @@ pub fn start_webserver_thread(context: &StartContext) {
     std::thread::spawn(move || {
         rouille::start_server(host, move |request| {
             router!(request, 
-                (GET) ["/"] => {
-                    Response::html(INDEX_HTML)
-                },
-                (GET) ["/bg.png"] => {
-                    Response::from_data("image/png", BG_PNG)
-                },
-                (GET) ["/favicon.png"] => {
-                    Response::from_data("image/png", FAVICON_PNG)
-                },
+                //TODO: Serve static
+                // (GET) ["/"] => {
+                //     Response::html(INDEX_HTML)
+                // },
+                // (GET) ["/bg.png"] => {
+                //     Response::from_data("image/png", BG_PNG)
+                // },
+                // (GET) ["/favicon.png"] => {
+                //     Response::from_data("image/png", FAVICON_PNG)
+                // },
                 // Get thumbnail of image from tag by path
                 (GET) ["/thumb"] => {
                     match request.get_param("path") {
