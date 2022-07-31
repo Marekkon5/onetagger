@@ -1,9 +1,10 @@
 import mergeOptions from 'merge-options';
-import { Notify } from 'quasar';
+import { Dialog, Notify } from 'quasar';
 import { ref, Ref } from 'vue';
-import { AutotaggerConfig, AutotaggerPlatform } from './autotagger';
+import { useRouter } from 'vue-router';
+import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger';
 import { Player } from './player';
-import { QuickTag } from './quicktag';
+import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
 import { Spotify, wsUrl } from './utils';
 
@@ -20,11 +21,15 @@ class OneTagger {
     spotify: Ref<Spotify> = ref(new Spotify());
     helpDialog: Ref<{ open: boolean, route?: string }> = ref({ open: false });
     folderBrowser: Ref<FolderBrowser> = ref(new FolderBrowser());
+    taggerStatus: Ref<TaggerStatus> = ref(new TaggerStatus());
 
     // Websocket
     private ws!: WebSocket;
     private wsPromiseResolve?: (_: any) => void;
     private wsPromise?;
+
+    // Quicktag track loading
+    private nextQTTrack?: QTTrack;
 
     constructor() {
         // Singleton
@@ -61,12 +66,23 @@ class OneTagger {
             this.incomingEvent(json);
         });
 
+        // Keybinds
+        document.addEventListener('keydown', (e) => {
+            // Can be safely error ignored
+            // @ts-ignore
+            if (e.target && e.target.nodeName == "INPUT") return true;
+
+            if (this.handleKeyDown(e)) {
+                e.preventDefault();
+                return false;
+            }
+        });
     }
 
     // SHOULD BE OVERWRITTEN
     quickTagUnfocus() {}
-    onTaggingDone() {}
-    onQuickTagEvent(_: any) {}
+    onTaggingDone(_: any) {}
+    onQuickTagEvent(_: any, __?: any) {}
     onQuickTagBrowserEvent(_: any) {}
     onTagEditorEvent(_: any) {}
     onAudioFeaturesEvent(_: any) {}
@@ -75,7 +91,17 @@ class OneTagger {
     onFolderBrowserEvent(_: any) {}
     // =======================
 
+    // Display error to the user
     onError(msg: any) {
+        // Show error dialog
+        Dialog.create({
+            title: 'Error',
+            message: `${msg}`,
+            ok: {
+                color: 'primary'
+            }
+        });
+
         console.error(msg);
     }
 
@@ -94,14 +120,174 @@ class OneTagger {
     // Process incoming event
     private async incomingEvent(json: any) {
         switch (json.action) {
+            // Initial info
             case 'init':
                 // Fill AppInfo
                 this.info.value.version = json.version;
                 this.info.value.os = json.os;
                 this.info.value.platforms = json.platforms;
                 this.info.value.renamerDocs = json.renamerDocs;
+                // Path from args
+                if (json.startContext.startPath) {
+                    this.settings.value.path = json.startContext.startPath;
+                    this.config.value.path = json.startContext.startPath;
+                }
 
+                //TODO: REFACTOR THIS MESS AND FIND BETTER WAY TO SAVE JUST VALUES
+                // restore custom platform fields
+                for (const [key, value] of Object.entries(this.config.value.custom)) {
+                    for (let platform of this.info.value.platforms) {
+                        if (platform.platform.id == key) {
+                            // restore keys
+                            // @ts-ignore
+                            for (const [id, newValue] of Object.entries(value)) {
+                                for (let i in platform.platform.customOptions.options) {
+                                    if (platform.platform.customOptions.options[i].id == id) {
+                                        // @ts-ignore
+                                        platform.platform.customOptions.options[i].value.value = newValue.value;
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                }
                 this.info.value.ready = true;
+                break;
+            
+            // Settings loaded
+            case 'loadSettings':
+                this.loadSettings(json.settings);
+                break;
+            // Path selected
+            case 'browse':
+                this.onBrowse(json);
+                break;
+            // Error
+            case 'error':
+                // Unlock, callback
+                this.lock.value.locked = false;
+                this.onError(json.message);
+                break;
+            case 'startTagging':
+                this.lock.value.locked = true;
+                this.taggerStatus.value.reset();
+                this.taggerStatus.value.total = json.files;
+                this.taggerStatus.value.type = json.type;
+                break;
+            // Status
+            case 'taggingProgress':
+                this.taggerStatus.value.progress = json.status.progress;
+                // De duplicate failed
+                this.taggerStatus.value.statuses = this.taggerStatus.value.statuses.filter((s) => {
+                    return s.status.path != json.status.status.path;
+                });
+                this.taggerStatus.value.statuses.unshift(json.status);
+                
+                break;
+            // Tagging done
+            case 'taggingDone':
+                this.lock.value.locked = false;
+                this.taggerStatus.value.done = true;
+                this.taggerStatus.value.progress = 1.0;
+                this.taggerStatus.value.data = json.data;
+                this.onTaggingDone(json.path);
+                break;
+            // Player load track
+            case 'playerLoad':
+                this.player.value.duration = json.duration;
+                this.player.value.position = 0;
+                this.player.value.playing = false;
+                this.player.value.title = json.title;
+                this.player.value.artists = json.artists;
+                break;
+            case 'playerSync':
+                this.player.value.playing = json.playing;
+                break;
+            // Quicktag
+            case 'quickTagLoad':
+                this.lock.value.locked = false;
+                this.quickTag.value.tracks = json.data.files.map((t: QuickTagFile) => new QTTrack(t, this.settings.value.quickTag));
+                this.quickTag.value.failed = json.data.failed;
+                this.onQuickTagEvent('quickTagLoad');
+                break;
+            /*eslint-disable no-case-declarations*/
+            case 'quickTagSaved':
+                let i = this.quickTag.value.tracks.findIndex((t) => t.path == json.path);
+                if (i != -1) {
+                    this.quickTag.value.tracks[i] = new QTTrack(json.file, this.settings.value.quickTag)
+                } else {
+                    // this.onError('quickTagSaved: Invalid track');
+                }
+                // Force reload current track
+                if (this.quickTag.value.track && json.path == this.quickTag.value.track.path) {
+                    this.onQuickTagEvent('changeTrack', { offset: 0, force: true });
+                }
+
+                break;
+            // Browser folder
+            case 'quickTagFolder':
+                this.onQuickTagBrowserEvent(json);
+                break;
+            // Spotify
+            case 'spotifyAuthorized':
+                this.onSpotifyAuthEvent(json);
+                break;
+            // Folder browser
+            case 'folderBrowser':
+                this.onFolderBrowserEvent(json);
+                break;
+            // Debug
+            default:
+                // Tag editor
+                if (json.action.startsWith('tagEditor')) {
+                    this.onTagEditorEvent(json);
+                    break;
+                }
+                // Renamer
+                if (json.action.startsWith('renamer')) {
+                    this.onRenamerEvent(json);
+                    break;
+                }
+
+                console.log(`Unknown action: ${json.action}`);
+                console.log(json);
+                break;
+        }
+    }
+
+    // Handle message from Webview/OS
+    onOSMessage(json: any) {
+        switch (json.action) {
+            // Drag and drop path
+            case 'browse':
+                // Callback by route
+                let route = useRouter().currentRoute.value.path.substring(1).split('/')[0];
+                switch (route) {
+                    case 'autotagger':
+                        this.config.value.path = json.path;
+                        break;
+                    case 'audiofeatures':
+                        this.onAudioFeaturesEvent(json);
+                        break;
+                    case 'tageditor':
+                        this.onTagEditorEvent(json);
+                        break;
+                    case 'quicktag':
+                        this.settings.value.path = json.path;
+                        this.loadQuickTag(null);
+                        break;
+                    case 'renamer':
+                        this.onRenamerEvent(json);
+                        break;
+                    default:
+                        this.settings.value.path = json.path;
+                        break;
+                }
+                break;
+            default:
+                console.log(`Unknown OS action: ${json}`);
+                break;
         }
     }
 
@@ -121,8 +307,8 @@ class OneTagger {
         this.send('browse', { context, path });        
     }
 
-     // onBrowse event
-     onBrowse(json: BrowseEvent) {
+    // onBrowse event
+    onBrowse(json: BrowseEvent) {
         // Autotagger path
         if (json.context == 'at')
             this.config.value.path = json.path;
@@ -189,9 +375,158 @@ class OneTagger {
         }
     }
 
+    // Load quicktag track
+    loadQTTrack(track?: QTTrack, force = false) {
+        // Check for unsaved changes
+        if (!this.quickTag.value.track || force || !this.quickTag.value.track.isChanged()) {
+            if (!track)
+                track = this.nextQTTrack;
+            // For autoplay
+            if (this.player.value.playing)
+                this.player.value.wasPlaying = true;
+            this.quickTag.value.track = new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag);
+            this.player.value.loadTrack(track!.path);
+            this.nextQTTrack = undefined;
+            return;
+        }
+        // Prompt for unsaved changes
+        this.nextQTTrack = track;
+        this.onQuickTagEvent('onUnsavedChanges');
+    }
+
+    // Save quickTagTrack
+    async saveQTTrack() {
+        if (this.quickTag.value.track) {
+            let changes = this.quickTag.value.track.getOutput();
+            this.send('quickTagSave', {changes});
+        }
+    }
+
+
     // Quicktag
     loadQuickTag(playlist = null) { 
-        alert('//TODO: Unfinished loadQuickTag');
+        // Loading
+        if (playlist || this.settings.value.path) {
+            this.lock.value.locked = true;
+            this.quickTag.value.tracks = [];
+        }
+
+        // Load playlist
+        if (playlist) {
+            this.send('quickTagLoad', { playlist, separators: this.settings.value.quickTag.separators });
+            return;
+        }
+
+        // Load by path
+        if (this.settings.value.path) {
+            this.lock.value.locked = true;
+            this.send('quickTagLoad', {
+                path: this.settings.value.path,
+                recursive: this.settings.value.quickTag.recursive,
+                separators: this.settings.value.quickTag.separators
+            });
+            this.saveSettings(false);
+        }
+    }
+
+    // Handle keydown event for keyboard bindings
+    handleKeyDown(event: KeyboardEvent) {
+        // QT Keybinds
+        if (this.quickTag.value.track) {
+            // Arrow keys
+            if (event.key.startsWith('Arrow')) {
+                // Seek audio
+                if (event.key == 'ArrowLeft') {
+                    let pos = this.player.value.position - 10000;
+                    if (pos < 0)
+                        this.player.value.seek(0);
+                    else
+                        this.player.value.seek(pos)
+                }
+                // Seek forward
+                if (event.key == 'ArrowRight') {
+                    let pos = this.player.value.position + 30000;
+                    if (pos > this.player.value.duration)
+                        this.player.value.seek(this.player.value.duration);
+                    else
+                        this.player.value.seek(pos);
+                }
+                // Get track index
+                let i = this.quickTag.value.tracks.findIndex((t) => t.path == this.quickTag.value.track.path);
+                // Skip tracks using arrow keys
+                if (event.key == 'ArrowUp' && i > 0) {
+                    this.onQuickTagEvent('changeTrack', {offset: -1});
+                }
+                if (event.key == 'ArrowDown' && i >= 0 && i < this.quickTag.value.tracks.length - 1) {
+                    this.onQuickTagEvent('changeTrack', {offset: 1});
+                }
+                return true;
+            }
+            // Play pause
+            if (event.code == "Space") {
+                if (this.player.value.playing)
+                    this.player.value.pause();
+                else 
+                    this.player.value.play();
+                return true;
+            }
+
+            // Save
+            if (event.code == "KeyS" && (event.ctrlKey || event.metaKey)) {
+                this.saveQTTrack().then(() => {
+                    Notify.create({
+                        message: "Track saved!",
+                        timeout: 3000,
+                    });
+                });
+                return true;
+            }
+
+            // Note tag
+            if (this.settings.value.quickTag.noteTag.keybind?.check(event)) {
+                this.onQuickTagEvent('onNoteTag');
+            }
+
+            // Moods
+            this.settings.value.quickTag.moods.forEach((mood) => {
+                if (mood.keybind?.check(event)) {
+                    this.quickTag.value.track.mood = mood.mood;
+                }
+            });
+            // Genres
+            this.settings.value.quickTag.genres.forEach((genre) => {
+                if (genre.keybind?.check(event)) {
+                    this.quickTag.value.track.toggleGenre(genre.genre);
+                }
+            });
+
+            // Energy
+            for (let i=0; i<5; i++) {
+                if (this.settings.value.quickTag.energyKeys[i]?.check(event)) {
+                    this.quickTag.value.track.energy = i+1;
+                    return true;
+                }
+            }
+
+            // Custom values
+            this.settings.value.quickTag.custom.forEach((tag, tagIndex) => {
+                for (let i=0; i<tag.values.length; i++) {
+                    if (tag.values[i].keybind?.check(event)) {
+                        this.quickTag.value.track.toggleCustom(tagIndex, tag.values[i].val);
+                    }
+                }
+            });
+
+            return true;
+        }
+
+        // Tag editor save
+        if (event.code == "KeyS" && (event.ctrlKey || event.metaKey) && this.onTagEditorEvent) {
+            this.onTagEditorEvent({action: '_tagEditorSave'});
+            return true;
+        }
+
+        return false;
     }
     
 }

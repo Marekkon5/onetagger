@@ -8,8 +8,28 @@ interface AutotaggerPlatform {
 }
 
 interface PlatformInfo {
-
+    id: string;
+    name: string;
+    description: string;
+    version: string;
+    maxThreads: number;
+    customOptions: { options: CustomPlatformOption[] }
 }
+
+interface CustomPlatformOption {
+    id: string;
+    label: string;
+    tooltip?: string;
+    value: CustomPlatformValue
+}
+
+// boolean, number, string, tag, option
+type CustomPlatformValue = 
+    { value: boolean } | 
+    { min: number, max: number, step: number, value: number } |
+    { value: string, hidden?: boolean } |
+    { value: FrameName } |
+    { values: string[], value: string }
 
 class AutotaggerConfig {
     platforms: string[] = ['beatport'];
@@ -97,7 +117,7 @@ class TaggerStatus {
 }
 
 interface TaggingStatusWrap {
-    status: TaggerStatus;
+    status: TaggingStatus;
     platform: string;
     progress: number;
 }
@@ -113,4 +133,4 @@ interface TaggingStatus {
 
 
 export type { AutotaggerPlatform, PlatformInfo };
-export { AutotaggerConfig };
+export { AutotaggerConfig, TaggerStatus };

@@ -1,5 +1,5 @@
 import { get1t } from "./onetagger";
-import { wsUrl } from "./utils";
+import { httpUrl, wsUrl } from "./utils";
 
 const WAVES = 180;
 
@@ -133,6 +133,29 @@ class Player {
         if (!volume) return;
         this.audio.volume = volume;
         get1t().send("playerVolume", {volume});
+    }
+
+    // Load track to play
+    loadTrack(path: string) {
+        const $1t = get1t();
+
+        // Setup client-side audio player
+        if ($1t.settings.value.clientSidePlayer) {
+            this.audio.pause();
+            this.playing = false;
+            this.audio = new Audio(`${httpUrl()}/audio?path=${encodeURIComponent(path)}`);
+            this.audio.volume = this.volume;
+            const cb = () => {
+                this.playing = !this.audio.paused;
+                this.position = Math.round(this.audio.currentTime * 1000);
+            }
+            // this.player.audio.addEventListener('play', cb);
+            this.audio.addEventListener('playing', cb);
+        }
+
+        // Server side
+        $1t.send("playerLoad", { path });
+        this.generateWaveform(path);
     }
 }
 
