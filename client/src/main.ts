@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { Quasar, Dialog, Notify } from 'quasar';
 import { get1t } from './scripts/onetagger';
+import router from './scripts/router';
 import iconSet from 'quasar/icon-set/mdi-v6';
 
 // Style
@@ -22,6 +23,7 @@ if (window.chrome && window.chrome.webview) {
 
 
 createApp(App)
+    .use(router)
     .use(Quasar, {
         plugins: {
             Dialog, Notify
