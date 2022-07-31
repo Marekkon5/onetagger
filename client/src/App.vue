@@ -29,6 +29,7 @@
                 </q-toolbar>
             </q-header>
 
+            <!-- Help button -->
             <HelpButton v-if='$1t.info.value.ready'></HelpButton>
 
             <!-- Drawers -->
@@ -43,11 +44,13 @@
 
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
-                <transition name="fade" v-if='$1t.info.value.ready'>
-                    <keep-alive :include='["AudioFeatures"]'>
-                        <router-view />
-                    </keep-alive>
-                </transition>
+                <router-view v-slot='{ Component }'>
+                    <transition name="fade" v-if='$1t.info.value.ready'>
+                        <keep-alive :include='["AudioFeatures"]'>
+                            <component :is='Component'></component>
+                        </keep-alive>
+                    </transition>
+                </router-view>
                 <!-- Loading -->
                 <div v-if='!$1t.info.value.ready' class='row justify-center items-center' style='height: calc(100vh - 64px)'>
                     <q-circular-progress indeterminate color='primary' size='64px'></q-circular-progress>
@@ -120,6 +123,8 @@ import { useQuasar } from 'quasar';
 import { onMounted, onUpdated, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { get1t } from "./scripts/onetagger.js";
+
+import HelpButton from './components/HelpButton.vue';
 
 const $1t = get1t();
 const $q = useQuasar();
