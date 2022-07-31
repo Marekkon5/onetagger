@@ -749,7 +749,7 @@ watch($1t.helpDialog, () => {
 <style>
 .help-button-container {
     position: fixed;
-    right: -36px;
+    right: -18px;
     top: 50%;
     /* Drawers */
     z-index: 1002;

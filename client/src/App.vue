@@ -256,7 +256,7 @@ onUpdated(() => {
 
 <style lang='scss'>
 .content {
-    overflow-y: auto;
+    overflow-y: auto !important;
     height: calc(100vh);
     min-height: 100vh;
 }

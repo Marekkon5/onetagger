@@ -296,10 +296,11 @@ class OneTagger {
     }
 
     // Open native folder browser
-    browse(context: string, path: string) {
+    browse(context: string, path?: string) {
         if (this.settings.value.nonNativeBrowser) {
             this.folderBrowser.value.context = context;
-            this.folderBrowser.value.basePath = path;
+            if (path)
+                this.folderBrowser.value.basePath = path;
             this.folderBrowser.value.open = true;
             return;
         }

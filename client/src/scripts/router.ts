@@ -6,7 +6,7 @@ import Index from '../views/Index.vue';
 // import QuickTag from '../views/QuickTag.vue';
 // import AudioFeatures from '../views/AudioFeatures.vue';
 // import TagEditor from '../views/TagEditor.vue';
-// import Renamer from '../views/Renamer.vue';
+import Renamer from '../views/Renamer.vue';
 
 
 const routes = [
@@ -38,10 +38,10 @@ const routes = [
     //     path: '/tageditor',
     //     component: TagEditor
     // },
-    // {
-    //     path: '/renamer',
-    //     component: Renamer
-    // }
+    {
+        path: '/renamer',
+        component: Renamer
+    }
 ];
 
 const router = createRouter({
