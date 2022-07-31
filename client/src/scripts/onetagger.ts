@@ -3,7 +3,7 @@ import { ref, Ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger';
 import { Player } from './player';
-import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
+import { QTTrack, QuickTag, QuickTagFile, QuickTagSettings } from './quicktag';
 import { Settings } from './settings';
 import { Spotify, wsUrl } from './utils';
 
@@ -332,10 +332,10 @@ class OneTagger {
     // Save settings to file
     saveSettings(notif = true) {
         // Very dirty way to clone a dict, but eh
-        this.settings.value.autoTaggerConfig = JSON.parse(JSON.stringify(this.config));
+        this.settings.value.autoTaggerConfig = JSON.parse(JSON.stringify(this.config.value));
         this.settings.value.volume = this.player.value.volume;
         // Save
-        this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings))});
+        this.send("saveSettings", {settings: JSON.parse(JSON.stringify(this.settings.value))});
         // Notification
         if (notif)
             Notify.create({
@@ -349,13 +349,13 @@ class OneTagger {
     // Load settings from JSON
     loadSettings(data: any) {
         // Load depper dicts separately
-        this.settings.value.quickTag = data.quickTag;
+        this.settings.value.quickTag = Object.assign(new QuickTagSettings(), data.quickTag);
         delete data.quickTag;
         Object.assign(this.settings.value, data);
         
         // AT config (nested)
-        let config = Object.assign({}, this.config.value, this.settings.value.autoTaggerConfig);
-        Object.assign(this.config.value, config);
+        let config = Object.assign(new AutotaggerConfig(), this.config.value, this.settings.value.autoTaggerConfig);
+        this.config.value = config;
  
         // Restore specific
         this.player.value.volume = this.settings.value.volume??0.5;

@@ -5,7 +5,7 @@ import Index from '../views/Index.vue';
 // import AutotaggerStatus from '../views/AutotaggerStatus.vue';
 // import QuickTag from '../views/QuickTag.vue';
 // import AudioFeatures from '../views/AudioFeatures.vue';
-// import TagEditor from '../views/TagEditor.vue';
+import TagEditor from '../views/TagEditor.vue';
 import Renamer from '../views/Renamer.vue';
 
 
@@ -34,10 +34,10 @@ const routes = [
     //     path: '/audiofeatures/status',
     //     component: AutotaggerStatus
     // },
-    // {
-    //     path: '/tageditor',
-    //     component: TagEditor
-    // },
+    {
+        path: '/tageditor',
+        component: TagEditor
+    },
     {
         path: '/renamer',
         component: Renamer

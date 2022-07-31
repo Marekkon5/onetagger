@@ -1,4 +1,4 @@
-const ABSTRACTIONS = {
+const ABSTRACTIONS: Record<string, string> = {
     "TIT2": "Title",
     "TCON": "Genre",
     "TALB": "Album",
