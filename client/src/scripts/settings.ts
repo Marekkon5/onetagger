@@ -155,7 +155,7 @@ class QuickTagSettings {
         qt.noteTag = NoteTagSettings.fromJson(data.noteTag);
         qt.moodTag = FrameName.fromJson(data.moodTag);
         qt.energyTag = EnergyTag.fromJson(data.energyTag);
-        qt.energyKeys = data.energyKeys.map((d: any) => d || Keybind.fromJson(d));
+        qt.energyKeys = data.energyKeys.map((d: any) => Keybind.fromJson(d));
         qt.genres = qt.genres.map((g) => {
             if (g.keybind) {
                 g.keybind = Keybind.fromJson(g.keybind);
