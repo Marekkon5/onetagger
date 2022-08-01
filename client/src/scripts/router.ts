@@ -3,7 +3,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import Index from '../views/Index.vue';
 // import Autotagger from '../views/Autotagger.vue';
 // import AutotaggerStatus from '../views/AutotaggerStatus.vue';
-// import QuickTag from '../views/QuickTag.vue';
+import QuickTag from '../views/QuickTag.vue';
 // import AudioFeatures from '../views/AudioFeatures.vue';
 import TagEditor from '../views/TagEditor.vue';
 import Renamer from '../views/Renamer.vue';
@@ -22,10 +22,10 @@ const routes = [
     //     path: '/autotagger/status',
     //     component: AutotaggerStatus
     // },
-    // {
-    //     path: '/quicktag',
-    //     component: QuickTag
-    // },
+    {
+        path: '/quicktag',
+        component: QuickTag
+    },
     // {
     //     path: '/audiofeatures',
     //     component: AudioFeatures

@@ -155,7 +155,7 @@
                                         dense
                                         class='col-10'
                                         placeholder='Use , as separator'
-                                        @input='(e) => onSubgenreInput((e as InputEvent).data, i)'
+                                        @update:model-value='(e) => onSubgenreInput(e as string, i)'
                                         :model-value='($1t.settings.value.quickTag.genres[i].subgenres||[]).join(",")'
                                     ></q-input>
                                 </div>

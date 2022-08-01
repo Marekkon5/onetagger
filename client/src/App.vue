@@ -126,6 +126,10 @@ import { get1t } from "./scripts/onetagger.js";
 
 import HelpButton from './components/HelpButton.vue';
 import Settings from './components/Settings.vue';
+import QuickTagRight from './components/QuickTagRight.vue';
+import QuickTagGenreBar from './components/QuickTagGenreBar.vue';
+import QuickTagMoods from './components/QuickTagMoods.vue';
+import QuickTagFileBrowser from './components/QuickTagFileBrowser.vue';
 
 const $1t = get1t();
 const $q = useQuasar();

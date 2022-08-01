@@ -2,8 +2,8 @@ import { QuickTagSettings } from "./settings";
 import { FrameName, Keybind, Separators } from "./utils";
 
 class QuickTag {
-    tracks: any[] = [];
-    track?: any;
+    tracks: QTTrack[] = [];
+    track?: QTTrack;
     failed: number = 0;
 }
 
@@ -11,6 +11,7 @@ interface QuickTagMood {
     mood: string;
     color: string,
     keybind?: Keybind
+    outline?: boolean;
 }
 
 class EnergyTag {
@@ -121,6 +122,7 @@ class QTTrack implements QuickTagFile {
 
     // Update note field
     setNote(note: string) {
+        console.log('setnote');
         this.note = note;
     }
 
@@ -153,6 +155,16 @@ class QTTrack implements QuickTagFile {
             return val.split(this.settings.energyTag.symbol).length - 1;
         }
         return 0;
+    }
+
+    // Add or remove genre
+    toggleGenre(genre: string) {
+        let i = this.genres.indexOf(genre);
+        if (i == -1) {
+            this.genres.push(genre);
+        } else {
+            this.genres.splice(i, 1);
+        }
     }
 
     // Enable or disable custom value
