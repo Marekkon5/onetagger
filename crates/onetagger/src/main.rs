@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate include_dir;
 #[macro_use] extern crate onetagger_shared;
 
 use clap::Parser;
