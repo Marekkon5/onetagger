@@ -5,19 +5,24 @@ function wsUrl(): string {
 
 // Returns the HTTP server URL
 function httpUrl(): string {
-    return `http://${window.location.hostname}:36913`
+    return `http://${window.location.hostname}:36913`;
+}
+
+// Returns the Spotify redirect URL
+function spotifyUrl(): string {
+    return `http://${window.location.hostname}:36914/spotify`;
 }
 
 // Tag value separators
 class Separators {
-    id3?: string = ', ';
+    id3: string = ', ';
     vorbis?: string;
-    mp4?: string = ', ';
+    mp4: string = ', ';
 
     constructor(id3?: string, vorbis?: string, mp4?: string) {
-        this.id3 = id3;
+        this.id3 = id3??', ';
         this.vorbis = vorbis;
-        this.mp4 = mp4;
+        this.mp4 = mp4??', ';
     }
 }
 
@@ -102,4 +107,4 @@ interface Playlist {
 }
 
 export type { Playlist };
-export { wsUrl, httpUrl, Separators, FrameName, Keybind, Spotify };
+export { wsUrl, httpUrl, spotifyUrl, Separators, FrameName, Keybind, Spotify };

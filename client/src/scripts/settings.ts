@@ -25,7 +25,7 @@ class Settings {
     static fromJson(data: any): Settings {
         let settings: Settings = Object.assign(new Settings(), data);
         settings.renamer = Object.assign(new RenamerSettings(), data.renamer);
-        settings.audioFeatures = Object.assign(new AudioFeaturesSettings(), data.audioFeatures);
+        settings.audioFeatures = AudioFeaturesSettings.fromJson(data.audioFeatures);
         settings.quickTag = QuickTagSettings.fromJson(data.quickTag);
         return settings;
     }
@@ -43,7 +43,14 @@ class RenamerSettings {
 class AudioFeaturesSettings {
     spotifyClientId?: string;
     spotifyClientSecret?: string;
-    config?: any;
+    config?: AudioFeaturesConfig;
+
+    static fromJson(data: any): AudioFeaturesSettings {
+        let a: AudioFeaturesSettings = Object.assign(new AudioFeaturesSettings(), data);
+        if (data.config)
+            a.config = AudioFeaturesConfig.fromJson(data.config);
+        return a;
+    }
 }
 
 
@@ -181,4 +188,52 @@ class NoteTagSettings {
     }
 }
 
-export { Settings, QuickTagSettings };
+class AudioFeaturesConfig {
+    path?: string;
+    metaTag = true;
+    skipTagged = false;
+    includeSubfolders = true;
+    mainTag = FrameName.same('AUDIO_FEATURES');
+    separators = new Separators();
+    properties: Record<string, AudioFeaturesProperty> = {
+        acousticness: new AudioFeaturesProperty(0, 90, '1T_ACOUSTICNESS'),
+        danceability: new AudioFeaturesProperty(20, 80, '1T_DANCEABILITY'),
+        energy: new AudioFeaturesProperty(20, 90, '1T_ENERGY'),
+        instrumentalness: new AudioFeaturesProperty(50, 90, '1T_INSTRUMENTALNESS'),
+        liveness: new AudioFeaturesProperty(0, 80, '1T_LIVENESS'), 
+        speechiness: new AudioFeaturesProperty(0, 70, '1T_SPEECHINESS'),
+        valence: new AudioFeaturesProperty(15, 85, '1T_VALENCE'), 
+        popularity: new AudioFeaturesProperty(0, 80, '1T_POPULARITY'), 
+    }
+    type?: string;
+
+    static fromJson(data: any): AudioFeaturesConfig {
+        let c: AudioFeaturesConfig = Object.assign(new AudioFeaturesConfig(), data);
+        c.mainTag = FrameName.fromJson(data.mainTag);
+        for (const [k, v] of Object.entries(data.properties)) {
+            c.properties[k] = AudioFeaturesProperty.fromJson(v);
+        }
+        return c;
+    }
+}
+
+class AudioFeaturesProperty {
+    tag: FrameName;
+    enabled: boolean;
+    range: { min: number, max: number }
+
+    constructor(min: number, max: number, frameName: string) {
+        this.tag = FrameName.same(frameName);
+        this.range = { min, max };
+        this.enabled = true;
+    }
+
+    static fromJson(data: any): AudioFeaturesProperty {
+        let p = new AudioFeaturesProperty(data.range.min, data.range.max, '');
+        p.enabled = data.enabled;
+        p.tag = FrameName.fromJson(data.tag);
+        return p;
+    }
+}
+
+export { Settings, QuickTagSettings, AudioFeaturesConfig, AudioFeaturesProperty };

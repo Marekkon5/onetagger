@@ -85,7 +85,6 @@ class OneTagger {
     onQuickTagBrowserEvent(_: any) {}
     onTagEditorEvent(_: any) {}
     onAudioFeaturesEvent(_: any) {}
-    onSpotifyAuthEvent(_: any) {}
     onRenamerEvent(_: any) {}
     onFolderBrowserEvent(_: any) {}
     // =======================
@@ -230,7 +229,7 @@ class OneTagger {
                 break;
             // Spotify
             case 'spotifyAuthorized':
-                this.onSpotifyAuthEvent(json);
+                this.spotify.value.authorized = json.value;
                 break;
             // Folder browser
             case 'folderBrowser':
@@ -449,7 +448,7 @@ class OneTagger {
                         this.player.value.seek(pos);
                 }
                 // Get track index
-                let i = this.quickTag.value.tracks.findIndex((t) => t.path == this.quickTag.value.track.path);
+                let i = this.quickTag.value.tracks.findIndex((t) => t.path == this.quickTag.value.track?.path);
                 // Skip tracks using arrow keys
                 if (event.key == 'ArrowUp' && i > 0) {
                     this.onQuickTagEvent('changeTrack', {offset: -1});
@@ -487,13 +486,13 @@ class OneTagger {
             // Moods
             this.settings.value.quickTag.moods.forEach((mood) => {
                 if (mood.keybind?.check(event)) {
-                    this.quickTag.value.track.mood = mood.mood;
+                    this.quickTag.value.track!.mood = mood.mood;
                 }
             });
             // Genres
             this.settings.value.quickTag.genres.forEach((genre) => {
                 if (genre.keybind?.check(event)) {
-                    this.quickTag.value.track.toggleGenre(genre.genre);
+                    this.quickTag.value.track!.toggleGenre(genre.genre);
                 }
             });
 
@@ -509,7 +508,7 @@ class OneTagger {
             this.settings.value.quickTag.custom.forEach((tag, tagIndex) => {
                 for (let i=0; i<tag.values.length; i++) {
                     if (tag.values[i].keybind?.check(event)) {
-                        this.quickTag.value.track.toggleCustom(tagIndex, tag.values[i].val);
+                        this.quickTag.value.track!.toggleCustom(tagIndex, tag.values[i].val);
                     }
                 }
             });
