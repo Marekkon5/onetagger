@@ -300,6 +300,11 @@
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
+                    v-model='$1t.settings.value.playOnSeek'
+                    label='Start/continue playback after seeking'
+                    class='checkbox'
+                ></q-checkbox><br>
+                <q-checkbox
                     v-model='$1t.settings.value.quickTag.id3v24'
                     label='Use ID3v2.4 for MP3 and AIFF'
                     class='checkbox'

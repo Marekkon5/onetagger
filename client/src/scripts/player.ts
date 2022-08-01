@@ -123,7 +123,7 @@ class Player {
         if ($1t.settings.value.clientSidePlayer) {
             this.audio.currentTime = pos / 1000.0;
         } else {
-            $1t.send("playerSeek", {pos})
+            $1t.send("playerSeek", { pos })
         }
         this.position = pos;
     }

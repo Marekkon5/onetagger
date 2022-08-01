@@ -202,6 +202,9 @@ class OneTagger {
                 break;
             case 'playerSync':
                 this.player.value.playing = json.playing;
+                // Play after seeking
+                if (this.settings.value.playOnSeek && !json.playing)
+                    this.player.value.play();
                 break;
             // Quicktag
             case 'quickTagLoad':

@@ -11,6 +11,7 @@ class Settings {
     continuePlayback: boolean = false;
     clientSidePlayer: boolean = false;
     nonNativeBrowser: boolean = false;
+    playOnSeek: boolean = false;
     
     renamer: RenamerSettings = new RenamerSettings();
     quickTag: QuickTagSettings = new QuickTagSettings();
