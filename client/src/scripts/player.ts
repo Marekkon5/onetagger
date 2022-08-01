@@ -129,7 +129,7 @@ class Player {
     }
 
     // Set volume
-    setVolume(volume?: number) {
+    setVolume(volume: number | undefined | null) {
         if (!volume) return;
         this.audio.volume = volume;
         get1t().send("playerVolume", {volume});
@@ -159,4 +159,4 @@ class Player {
     }
 }
 
-export { Player };
+export { Player, WAVES };
