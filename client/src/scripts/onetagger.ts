@@ -21,6 +21,7 @@ class OneTagger {
     helpDialog: Ref<{ open: boolean, route?: string }> = ref({ open: false });
     folderBrowser: Ref<FolderBrowser> = ref(new FolderBrowser());
     taggerStatus: Ref<TaggerStatus> = ref(new TaggerStatus());
+    autoTaggerPlaylist: Ref<Playlist> = ref({});
 
     // Websocket
     private ws!: WebSocket;

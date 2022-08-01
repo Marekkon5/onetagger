@@ -1,3 +1,6 @@
+#!/bin/bash
+set -e
+
 # Intended for Github Actions
 # Requires Ubuntu, rustup and nodejs, npm installed
 # sudo apt update

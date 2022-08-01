@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import Index from '../views/Index.vue';
-// import Autotagger from '../views/Autotagger.vue';
+import Autotagger from '../views/Autotagger.vue';
 import AutotaggerStatus from '../views/AutotaggerStatus.vue';
 import QuickTag from '../views/QuickTag.vue';
 import AudioFeatures from '../views/AudioFeatures.vue';
@@ -14,10 +14,10 @@ const routes = [
         path: '/',
         component: Index
     },
-    // {
-    //     path: '/autotagger',
-    //     component: Autotagger
-    // },
+    {
+        path: '/autotagger',
+        component: Autotagger
+    },
     {
         path: '/autotagger/status',
         component: AutotaggerStatus

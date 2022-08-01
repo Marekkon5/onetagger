@@ -25,11 +25,12 @@ interface CustomPlatformOption {
 
 // boolean, number, string, tag, option
 type CustomPlatformValue = 
-    { value: boolean } | 
-    { min: number, max: number, step: number, value: number } |
-    { value: string, hidden?: boolean } |
-    { value: FrameName } |
-    { values: string[], value: string }
+    | { type: "boolean", value: boolean }
+    | { type: "number", min: number, max: number, step: number, value: number }
+    | { type: "string", value: string, hidden?: boolean }
+    | { type: "tag", value: FrameName }
+    | { type: "option", values: string[], value: string }
+
 
 class AutotaggerConfig {
     platforms: string[] = ['beatport'];
@@ -87,6 +88,9 @@ class AutotaggerConfig {
     // TODO: annotate type
     custom: any = {};
     spotify?: SpotifyConfig;
+
+    // autotagger or audiofeatures, not actually serialized, dynamically changed
+    type?: string;
 }
 
 interface SpotifyConfig {
