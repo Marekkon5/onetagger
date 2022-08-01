@@ -372,6 +372,7 @@ import KeybindVue from './Keybind.vue';
 import PlaylistDropZone from './PlaylistDropZone.vue';
 import Separators from './Separators.vue';
 import TagFields from './TagFields.vue';
+import { setCssVar } from 'quasar';
 
 const props = defineProps({
     modelValue: { type: Boolean, required: true }
@@ -391,8 +392,7 @@ const emit = defineEmits(['close']);
 
 // Primary color change
 function colorChange() {
-    //TODO: Color changing
-    // colors.setBrand('primary', $1t.settings.value.primaryColor);
+    setCssVar('primary', $1t.settings.value.primaryColor);
 }
 
 // Adds new quicktag mood

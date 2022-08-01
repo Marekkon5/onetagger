@@ -149,7 +149,7 @@ pub struct BeatportTrack {
     pub exclusive: Option<bool>
 }
 
-// TODO: Track from private API has different data!
+// Track from private API has different data!
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportAPITrack {
     pub slug: String,
