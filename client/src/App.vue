@@ -131,6 +131,7 @@ import QuickTagGenreBar from './components/QuickTagGenreBar.vue';
 import QuickTagMoods from './components/QuickTagMoods.vue';
 import QuickTagFileBrowser from './components/QuickTagFileBrowser.vue';
 import PlayerBar from './components/PlayerBar.vue';
+import FolderBrowser from './components/FolderBrowser.vue';
 
 const $1t = get1t();
 const $q = useQuasar();

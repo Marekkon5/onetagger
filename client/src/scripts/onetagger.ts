@@ -544,7 +544,8 @@ class FolderBrowser {
 
 interface BrowseEvent {
     path: string;
-    context: string;
+    context?: string;
+    action?: string;
 }
 
 
