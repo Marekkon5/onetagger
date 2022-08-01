@@ -2,7 +2,7 @@
 <div class='index-container'>
 
     <!-- Background -->
-    <img src='../assets/bg.png' class='bg-image' ref='bgImage'>
+    <img src='../assets/bg.jpg' class='bg-image' ref='bgImage'>
 
     <!-- Welcome -->
     <div class='flex flex-center column'>
