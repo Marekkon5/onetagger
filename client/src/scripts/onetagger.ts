@@ -5,7 +5,7 @@ import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger
 import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile, QuickTagSettings } from './quicktag';
 import { Settings } from './settings';
-import { Spotify, wsUrl } from './utils';
+import { Playlist, Spotify, wsUrl } from './utils';
 
 class OneTagger {
     // Singleton
@@ -274,7 +274,7 @@ class OneTagger {
                         break;
                     case 'quicktag':
                         this.settings.value.path = json.path;
-                        this.loadQuickTag(null);
+                        this.loadQuickTag();
                         break;
                     case 'renamer':
                         this.onRenamerEvent(json);
@@ -348,10 +348,7 @@ class OneTagger {
 
     // Load settings from JSON
     loadSettings(data: any) {
-        // Load depper dicts separately
-        this.settings.value.quickTag = Object.assign(new QuickTagSettings(), data.quickTag);
-        delete data.quickTag;
-        Object.assign(this.settings.value, data);
+        this.settings.value = Settings.fromJson(data);
         
         // AT config (nested)
         let config = Object.assign(new AutotaggerConfig(), this.config.value, this.settings.value.autoTaggerConfig);
@@ -404,7 +401,7 @@ class OneTagger {
 
 
     // Quicktag
-    loadQuickTag(playlist = null) { 
+    loadQuickTag(playlist?: Playlist) { 
         // Loading
         if (playlist || this.settings.value.path) {
             this.lock.value.locked = true;

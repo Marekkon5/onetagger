@@ -125,6 +125,7 @@ import { useRoute, useRouter } from "vue-router";
 import { get1t } from "./scripts/onetagger.js";
 
 import HelpButton from './components/HelpButton.vue';
+import Settings from './components/Settings.vue';
 
 const $1t = get1t();
 const $q = useQuasar();

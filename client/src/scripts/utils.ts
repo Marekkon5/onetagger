@@ -13,6 +13,12 @@ class Separators {
     id3?: string = ', ';
     vorbis?: string;
     mp4?: string = ', ';
+
+    constructor(id3?: string, vorbis?: string, mp4?: string) {
+        this.id3 = id3;
+        this.vorbis = vorbis;
+        this.mp4 = mp4;
+    }
 }
 
 // Frame name in different formats
@@ -22,6 +28,11 @@ class FrameName {
     // Create new FrameName where the name is same for all formats
     public static same(name: string): FrameName {
         return new FrameName(name, name, name);
+    }
+
+    // Create class from JSON
+    public static fromJson(json: any): FrameName {
+        return Object.assign(FrameName.same(''), json);
     }
 
     // Get value by audio or tag format
@@ -51,6 +62,11 @@ class Keybind {
     alt: boolean = false;
     shift: boolean = false;
 
+    // Create class from JSON
+    public static fromJson(json: any): Keybind {
+        return Object.assign(new Keybind(), json);
+    }
+
     // Check if keybind pressed
     check(e: KeyboardEvent) {
         if (e.code.match(/F\d{1,2}/) || e.code.startsWith('Key') || e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {
@@ -61,6 +77,14 @@ class Keybind {
                 (e.ctrlKey || e.metaKey) == this.ctrl);
         }
     }
+
+    // Clear the keybind
+    clear() {
+        this.ctrl = false;
+        this.alt = false;
+        this.shift = false;
+        this.key = undefined;
+    }
 }
 
 // Spotify auth data
@@ -70,4 +94,12 @@ class Spotify {
     authorized: boolean = false;
 }
 
+// Playlist data
+interface Playlist {
+    data?: string;
+    format?: string;
+    filename?: string;
+}
+
+export type { Playlist };
 export { wsUrl, httpUrl, Separators, FrameName, Keybind, Spotify };

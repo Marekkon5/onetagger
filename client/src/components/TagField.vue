@@ -2,7 +2,7 @@
 <div>
 
     <q-select
-        v-model='value'
+        :model-value='value'
         use-input
         fill-input
         hide-selected
@@ -47,7 +47,7 @@ const bannedTagEditor: BannedTags = {
 
 const { format, initial, dense, tageditor } = defineProps({
     format: { type: String, required: true },
-    initial: { type: String },
+    initial: { type: String, required: false },
     dense: { default: false, type: Boolean },
     tageditor: { default: false, type: Boolean }
 });
