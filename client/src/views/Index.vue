@@ -148,7 +148,7 @@ function help(route: string) {
     animation: anim 30s infinite;
 }
 .doc-link {
-    color: var(--q-color-primary);
+    color: var(--q-primary);
 }
 .doc-link:hover {
     color: #f0f0f0;

@@ -52,7 +52,7 @@
         <!-- Browse button -->
         <div class="q-mt-sm q-pr-sm">
             <q-btn round icon="mdi-open-in-app" @click="browseQuickTag">
-                <q-tooltip content-style="font-size: 13px;">
+                <q-tooltip>
                     Click here to browse for new path
                 </q-tooltip>
             </q-btn>

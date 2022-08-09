@@ -4,7 +4,7 @@
             <q-item-label>
                 {{label}}
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm' v-if='tooltip'>
-                    <q-tooltip content-style="font-size: 13px">
+                    <q-tooltip>
                         {{tooltip}}
                     </q-tooltip>
                 </q-icon>

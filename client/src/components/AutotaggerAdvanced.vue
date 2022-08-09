@@ -123,7 +123,7 @@
         >
         </q-slider>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-pt-md q-mx-sm slider-tooltip'>
-            <q-tooltip content-style="font-size: 13px">
+            <q-tooltip>
                 The higher, the more accurate results, but less potential matches
             </q-tooltip>
         </q-icon>
@@ -143,7 +143,7 @@
             :label-value='"Search Threads: " + $1t.config.value.threads'
         ></q-slider>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-pt-md q-mx-sm slider-tooltip'>
-            <q-tooltip content-style="font-size: 13px">The higher, the faster, but uses more bandwidth, and not supported by all platforms</q-tooltip>
+            <q-tooltip>The higher, the faster, but uses more bandwidth, and not supported by all platforms</q-tooltip>
         </q-icon>
     </div>
 
@@ -199,7 +199,7 @@
     <div class='text-center text-body1 text-grey-4 q-mt-lg'>
         Execute command when tagging is finished
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
-            <q-tooltip content-style="font-size: 13px">
+            <q-tooltip>
                 $success and $failed will be substituted with paths to files containing paths of affected tracks
             </q-tooltip>
         </q-icon>

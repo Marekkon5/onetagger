@@ -76,7 +76,7 @@ class QuickTagSettings {
         {mood: 'Powerful', color: 'light-blue'},
         {mood: 'Sexy', color: 'purple'}
     ];
-    moodTag: FrameName = new FrameName('MOOD', 'TMOO', 'iTunes:MOOD');
+    moodTag: FrameName = new FrameName('TMOO', 'MOOD', 'iTunes:MOOD');
 
     energyTag: EnergyTag = new EnergyTag();
     energyKeys: (Keybind | undefined)[] = [undefined, undefined, undefined, undefined, undefined];

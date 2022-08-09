@@ -32,7 +32,7 @@
             :color='(drag || filename) ? "primary" : undefined'
             @click='filename ? remove() : true'
         >
-            <q-tooltip content-style="font-size: 13px">
+            <q-tooltip>
                 Drag & drop playlist here / click to remove it
             </q-tooltip>
         </q-btn>

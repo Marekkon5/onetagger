@@ -17,7 +17,7 @@
                                             <q-icon v-if='platform.platform.maxThreads > 1' name='mdi-speedometer-medium' size='xs' class='q-pb-xs'></q-icon>
                                             <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
-                                        <q-tooltip content-style="font-size: 13px">
+                                        <q-tooltip>
                                             <span v-if='platform.platform.maxThreads'>This platform allows up to {{platform.platform.maxThreads}} concurrent searches</span>
                                             <span v-else>This platform allows unlimited concurrent searches</span>
                                         </q-tooltip>

@@ -27,7 +27,7 @@
 
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='path-tooltip q-mx-sm q-pt-md q-mt-xs'>
-                    <q-tooltip content-style="font-size: 13px">Subfolders are included</q-tooltip>
+                    <q-tooltip>Subfolders are included</q-tooltip>
                 </q-icon>
             </div>
         </div>
@@ -43,7 +43,7 @@
                     
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='playlist-tooltip q-mx-sm q-mt-xl q-pt-sm'>
-                    <q-tooltip content-style="font-size: 13px">.m3u and .m3u8 extensions are supported</q-tooltip>
+                    <q-tooltip>.m3u and .m3u8 extensions are supported</q-tooltip>
                 </q-icon>
             </div>
         </div>
@@ -64,7 +64,7 @@
             <div class='row text-subtitle2 q-mb-md text-grey-6'>
                 <div class='col-1'>Include
                     <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
-                        <q-tooltip content-style="font-size: 13px">
+                        <q-tooltip>
                             Include the audio feature in Prominent tag
                         </q-tooltip>
                     </q-icon>

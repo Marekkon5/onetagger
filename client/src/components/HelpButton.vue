@@ -67,17 +67,17 @@
                         <div class='row text-subtitle2 text-grey-4 q-pt-sm' style='width: 100%; margin-left: 16.8%; line-height: 24px'>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Album Art / Cover</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Resolution is platform dependent</q-tooltip>
+                                    <q-tooltip>Resolution is platform dependent</q-tooltip>
                                 </q-icon>                            
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Version</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Available from Beatport, Beatsource & Traxsource</q-tooltip>
+                                    <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>ISRC</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Available from Beatport, Beatsource, MusicBrainz & Spotify</q-tooltip>
+                                    <q-tooltip>Available from Beatport, Beatsource, MusicBrainz & Spotify</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Catalog No.</span></q-badge></div>
@@ -85,12 +85,12 @@
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Album</span></q-badge></div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>BPM</span></q-badge>
                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Available from Beatport, Beatsource, Juno Download & Traxsource</q-tooltip>
+                                    <q-tooltip>Available from Beatport, Beatsource, Juno Download & Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Style / Subgenre</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Style is available from Discogs only, Subgenre from Beatport only</q-tooltip>
+                                    <q-tooltip>Style is available from Discogs only, Subgenre from Beatport only</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Track No.</span></q-badge></div>
@@ -98,7 +98,7 @@
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Album Artist</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge></div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Key</span></q-badge>
                             <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Available from Beatport, Beatsource & Traxsource</q-tooltip>
+                                    <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                              
@@ -107,22 +107,22 @@
                             
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Remixers</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Available from Beatport & Beatsource</q-tooltip>
+                                    <q-tooltip>Available from Beatport & Beatsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Publish Date</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Publish Date is available from Beatport only</q-tooltip>
+                                    <q-tooltip>Publish Date is available from Beatport only</q-tooltip>
                                 </q-icon><q-badge outline color='primary'><span class='text-white'>Release Date</span></q-badge></div>
                             
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Release ID</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Track ID</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Available from Beatport, Beatsource & Traxsource</q-tooltip>
+                                    <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>URLs</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Other</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip content-style="font-size: 13px">Adds UNIQUEFILEID tag when Beatport is selected</q-tooltip>
+                                    <q-tooltip>Adds UNIQUEFILEID tag when Beatport is selected</q-tooltip>
                                 </q-icon>
                             </div>
                          </div>
@@ -706,6 +706,7 @@ import { get1t } from '../scripts/onetagger';
 import { useRoute } from 'vue-router';
 
 const $1t = get1t();
+const $route = useRoute();
 const show = ref(false);
 const page = ref(0);
 const renamerDoc = ref<any | undefined>(undefined);
@@ -732,14 +733,15 @@ const pages = computed(() => {
 });
 
 // Show/Hide help button
+
 const showButton = computed(() => {
-    if ($1t.helpDialog.value.open || !route || 
-            useRoute().path.includes('/status') || !$1t.settings.value.helpButton) return false;
+    if ($1t.helpDialog.value.open || !route.value || 
+            $route.path.includes('/status') || !$1t.settings.value.helpButton) return false;
     return true;
 });
 
 // Open/close globally
-watch($1t.helpDialog, () => {
+watch(() => $1t.helpDialog.value.open, () => {
     if ($1t.helpDialog.value.open) {
         show.value = true;
     }

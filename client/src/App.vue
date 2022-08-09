@@ -302,4 +302,8 @@ onUpdated(() => {
 .q-tabs__arrow { 
     opacity: 0 !important;
 }
+.q-tab__indicator {
+    background-color: var(--q-primary) !important;
+    color: var(--q-primary) !important;
+}
 </style>

@@ -17,7 +17,7 @@
             <div class='q-mt-sm'>
 
                 <!-- Filter -->
-                <q-input dense filled label='Filter' class='q-mb-sm' @input='applyFilter' v-model='filter'></q-input>
+                <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='(v) => applyFilter(v as string)' v-model='filter'></q-input>
 
                 <!-- Parent -->
                 <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
@@ -384,7 +384,8 @@ function isSelected(path: string) {
     return file.value.path == path;
 }
 
-function applyFilter() {
+function applyFilter(v: string) {
+    filter.value = v;
     if (!filter.value || filter.value.trim().length == 0) {
         files.value = originalFiles.value;
         return;
@@ -670,7 +671,7 @@ function wsCallback(e: any) {
                     if (b.dir && !a.dir) return 1;
                     return a.filename.toLowerCase().localeCompare(b.filename.toLowerCase());
                 });
-                applyFilter();
+                applyFilter(filter.value);
             }
             saveSettings();
             break;

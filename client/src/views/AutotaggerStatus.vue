@@ -17,7 +17,7 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-check' round :color='filter == "ok" ? "primary" : "green"' class='text-black' @click='toggleFilter("ok")'>
-                                <q-tooltip content-style="font-size: 13px">
+                                <q-tooltip>
                                     Total amount found
                                 </q-tooltip>
                             </q-btn>
@@ -35,7 +35,7 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-alert-circle-outline' round :color='filter == "error" ? "primary" : "red"' class='text-black' @click='toggleFilter("error")'>
-                                <q-tooltip content-style="font-size: 13px">
+                                <q-tooltip>
                                     Total amount not found
                                 </q-tooltip>
                             </q-btn>
@@ -53,7 +53,7 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-debug-step-over' round :color='filter == "skipped" ? "primary" : "yellow"' class='text-black' @click='toggleFilter("skipped")'>
-                                <q-tooltip content-style="font-size: 13px">
+                                <q-tooltip>
                                     Total amount skipped due missing tags, corruption, or Shazam not being able to identify
                                 </q-tooltip>
                             </q-btn>
@@ -71,7 +71,7 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-music-box-multiple-outline' round color='grey-6' class='text-black'>
-                                <q-tooltip content-style="font-size: 13px">
+                                <q-tooltip>
                                     Total amount of files to process
                                 </q-tooltip>
                             </q-btn>
@@ -89,7 +89,7 @@
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-timelapse' round color='teal' class='text-black'>
-                                <q-tooltip content-style="font-size: 13px">
+                                <q-tooltip>
                                     Total amount of elapsed time
                                 </q-tooltip>
                             </q-btn>
@@ -115,7 +115,7 @@
                                 <span v-if='$1t.taggerStatus.value.type == "audioFeatures"' class='selectable text-white'>AUDIO FEATURES</span>
                                 <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='item.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'>
-                                    <q-tooltip v-if='item.status.message' content-style="font-size: 13px">
+                                    <q-tooltip v-if='item.status.message'>
                                        {{item.status.message}}
                                     </q-tooltip>
                                 </q-icon>

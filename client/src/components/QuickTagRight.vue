@@ -108,7 +108,7 @@ function addNewTag() {
 }
 .add-custom-btn {
     position: absolute;
-    top: -32px;
+    bottom: -10px;
     left: 128px;
 }
 .hide-expand-icon {

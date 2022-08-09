@@ -4,7 +4,7 @@
     <div class='row justify-around'>
         <div v-for='(icon, i) in icons' :key='i' class='col'>
             <img 
-                :src='`/src/assets/apps/${icon}`' 
+                :src='icon.toString()' 
                 class='dj-icon clickable' 
                 @click='$1t.url(urls[i])'
             />
@@ -17,10 +17,19 @@
 <script lang='ts' setup>
 import { get1t } from '../scripts/onetagger.js';
 
+
 const $1t = get1t();
 const icons = [
-    'rekordbox.png', 'serato.png', 'traktor.png', 'virtualdj.png', 'djaypro.png',
-    'djuced.png', 'engineprime.png', 'crossdj.png', 'mixxx.png', 'dex.png'
+    new URL('../assets/apps/rekordbox.png', import.meta.url),
+    new URL('../assets/apps/serato.png', import.meta.url),
+    new URL('../assets/apps/traktor.png', import.meta.url),
+    new URL('../assets/apps/virtualdj.png', import.meta.url),
+    new URL('../assets/apps/djaypro.png', import.meta.url),
+    new URL('../assets/apps/djuced.png', import.meta.url),
+    new URL('../assets/apps/engineprime.png', import.meta.url),
+    new URL('../assets/apps/crossdj.png', import.meta.url),
+    new URL('../assets/apps/mixxx.png', import.meta.url),
+    new URL('../assets/apps/dex.png', import.meta.url),
 ];
 const urls = [
     'https://docs.google.com/spreadsheets/d/1ALyk1WRTR_-FLq7kntdX2e4jM9ZARvieJAHz9-pjRQ8/edit?usp=sharing',

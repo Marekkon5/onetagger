@@ -204,6 +204,6 @@ const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlayli
     position: absolute;
     height: 64px;
     bottom: 0%;
-    background-color: var(--q-color-accent);
+    background-color: var(--q-accent);
 }
 </style>

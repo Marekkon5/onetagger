@@ -12,7 +12,7 @@
             <div v-if='option.value.type == "number"'>
                 <q-chip text-color='black' color='primary'>
                     {{option.label}}: {{option.value.value}}
-                    <q-tooltip v-if='option.tooltip' content-style="font-size: 13px">
+                    <q-tooltip v-if='option.tooltip'>
                         {{option.tooltip}}
                     </q-tooltip>
                 </q-chip>
