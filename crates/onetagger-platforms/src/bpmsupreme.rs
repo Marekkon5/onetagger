@@ -90,7 +90,8 @@ impl AutotaggerSource for BPMSupreme {
         let re = Regex::new(" \\(.*\\)$").unwrap();
         let title = MatchingUtils::clean_title(info.title()?);
         let title = re.replace(&title, "");
-        let query = format!("{title} {}", info.artist()?);
+        let query = format!("{title} {}", MatchingUtils::clean_title(info.artist()?));
+        debug!("{query}");
         let tracks = self.search(&query)?.into_iter().map(|t| t.into_tracks()).flatten().collect::<Vec<Track>>();
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
