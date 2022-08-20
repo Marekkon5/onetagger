@@ -82,7 +82,7 @@
                     <div class="text-h6">Warning</div>
                 </q-card-section>
                 <q-card-section>
-                    One Tagger requires atleast 1150x550 window size. Please
+                    One Tagger requires atleast 1200x550 window size. Please
                     resize to continue.
                 </q-card-section>
             </q-card>
@@ -222,7 +222,7 @@ onMounted(() => {
 
     // Handle resize to apply min height/width
     window.addEventListener("resize", () => {
-        if (window.innerHeight < 550 || window.innerWidth < 1150) {
+        if (window.innerHeight < 550 || window.innerWidth < 1200) {
             sizeDialog.value = true;
         } else {
             sizeDialog.value = false;

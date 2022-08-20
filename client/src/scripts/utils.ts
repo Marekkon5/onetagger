@@ -73,13 +73,14 @@ class Keybind {
     }
 
     // Check if keybind pressed
-    check(e: KeyboardEvent) {
+    public static check(e: KeyboardEvent, keybind?: Keybind) {
+        if (!keybind) return false;
         if (e.code.match(/F\d{1,2}/) || e.code.startsWith('Key') || e.code.startsWith("Digit") || e.code.startsWith("Numpad")) {
             let key = e.code.toLowerCase().replace("key", "").replace("digit", "").replace("numpad", "");
-            return (key == this.key && 
-                e.altKey == this.alt && 
-                e.shiftKey == this.shift && 
-                (e.ctrlKey || e.metaKey) == this.ctrl);
+            return (key == keybind.key && 
+                e.altKey == keybind.alt && 
+                e.shiftKey == keybind.shift && 
+                (e.ctrlKey || e.metaKey) == keybind.ctrl);
         }
     }
 

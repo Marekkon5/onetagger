@@ -5,7 +5,7 @@ import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger
 import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile, QuickTagSettings } from './quicktag';
 import { Settings } from './settings';
-import { Playlist, Spotify, wsUrl } from './utils';
+import { Keybind, Playlist, Spotify, wsUrl } from './utils';
 
 class OneTagger {
     // Singleton
@@ -482,26 +482,26 @@ class OneTagger {
             }
 
             // Note tag
-            if (this.settings.value.quickTag.noteTag.keybind?.check(event)) {
+            if (Keybind.check(event, this.settings.value.quickTag.noteTag.keybind)) {
                 this.onQuickTagEvent('onNoteTag');
             }
 
             // Moods
             this.settings.value.quickTag.moods.forEach((mood) => {
-                if (mood.keybind?.check(event)) {
+                if (Keybind.check(event, mood.keybind)) {
                     this.quickTag.value.track!.mood = mood.mood;
                 }
             });
             // Genres
             this.settings.value.quickTag.genres.forEach((genre) => {
-                if (genre.keybind?.check(event)) {
+                if (Keybind.check(event, genre.keybind)) {
                     this.quickTag.value.track!.toggleGenre(genre.genre);
                 }
             });
 
             // Energy
             for (let i=0; i<5; i++) {
-                if (this.settings.value.quickTag.energyKeys[i]?.check(event)) {
+                if (Keybind.check(event, this.settings.value.quickTag.energyKeys[i])) {
                     this.quickTag.value.track.energy = i+1;
                     return true;
                 }
@@ -510,7 +510,7 @@ class OneTagger {
             // Custom values
             this.settings.value.quickTag.custom.forEach((tag, tagIndex) => {
                 for (let i=0; i<tag.values.length; i++) {
-                    if (tag.values[i].keybind?.check(event)) {
+                    if (Keybind.check(event, tag.values[i].keybind)) {
                         this.quickTag.value.track!.toggleCustom(tagIndex, tag.values[i].val);
                     }
                 }
