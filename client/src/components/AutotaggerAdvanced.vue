@@ -98,10 +98,11 @@
 
     <!-- Multiple matches ordering -->
     <q-separator class='q-mx-auto q-mb-xl custom-separator' inset color="dark"/>
+    
     <q-select 
         dark
         standout='text-grey-4 bg-dark'
-        class='row select q-ma-auto'
+        class='row select q-ma-auto q-mt-xl'
         v-model='$1t.config.value.multipleMatches' 
         :options='multipleMatches'
         label='Multiple matches ordering'

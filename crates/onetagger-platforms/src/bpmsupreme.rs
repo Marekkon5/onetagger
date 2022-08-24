@@ -61,7 +61,7 @@ impl BPMSupreme {
 
         // Rate limit
         if res.status() == StatusCode::TOO_MANY_REQUESTS {
-            let delay = res.headers().get("retry-after").map(|h| h.to_str().unwrap().parse().ok()).flatten().unwrap_or(5);
+            let delay = res.headers().get("retry-after").map(|h| h.to_str().unwrap().parse().ok()).flatten().unwrap_or(3);
             warn!("BPM Supreme rate limited, waiting for: {delay}s");
             std::thread::sleep(Duration::from_secs(delay));
             return self.get(url, query);
@@ -131,13 +131,15 @@ impl BPMSupremeSong {
             artists: vec![self.artist],
             title: self.song_name,
             bpm: Some(self.bpm_count),
-            art: Some(self.cover),
+            art: if self.cover.contains("default_cover.png") { None } else { Some(self.cover) },
             genres: vec![self.genre.name],
             key: self.key,
             label: Some(self.label),
             release_date: self.created_at.map(|c| c.naive_utc().date()),
             track_id: Some(self.id.to_string()),
             mood: self.depth_analysis.map(|da| da.mood),
+            url: format!("https://app.bpmsupreme.com/share/{}", self.id),
+            catalog_number: Some(self.id.to_string()),
             ..Default::default()
         };
         let mut output = self.tracks.into_iter().map(|t| t.extend_track(base.clone())).collect::<Vec<_>>();
