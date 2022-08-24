@@ -33,7 +33,7 @@ impl Renamer {
             name = name[1..].to_string()
         }
         if cfg!(windows) {
-            name = name.split("/").collect::<Vec<_>>().join("\\");
+            name = name.replace("/", "\\");
         }
         let ext = info.path.split(".").last().unwrap_or("");
         output_dir.as_ref().join(format!("{name}.{ext}"))
