@@ -45,6 +45,7 @@
                     @keydown='onKeyDown'
                     @input='(e) => templateInput(e as InputEvent)'
                     @click='onSelectionChange'
+                    @paste='onPaste'
                 >
             </div>
     
@@ -229,6 +230,17 @@ function updateTemplate() {
     // Update cursor
     onSelectionChange();
 };
+
+// Handle paste event
+function onPaste(e: ClipboardEvent) {
+    setTimeout(() => {
+        const value = (e as any).target.value;
+        if (value) {
+            config.value.template = value;
+            updateTemplate();
+        }
+    }, 25);
+}
 
 // Handle global selection change to update fake cursor (yes, pain)
 function onSelectionChange() {
