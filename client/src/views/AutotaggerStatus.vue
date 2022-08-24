@@ -105,7 +105,7 @@
     </div>
     <!-- Statuses -->
     <q-list class='list text-left bg-dark q-py-sm'>
-        <q-virtual-scroll :items='statuses' class='status-list'>
+        <q-virtual-scroll :items='statuses' :class='{"status-list": !$1t.taggerStatus.value.done, "status-list-done": $1t.taggerStatus.value.done}'>
             <template v-slot="{item, index: i}">
                 <q-item :key='i'>
                     <q-item-section>
@@ -251,6 +251,11 @@ onMounted(() => {
 .status-list {
     height: calc(100vh - 248px);
 }
+
+.status-list-done {
+    height: calc(100vh - 308px);
+}
+
 .list {
     max-width: 80%;
     margin-left: 10%;    

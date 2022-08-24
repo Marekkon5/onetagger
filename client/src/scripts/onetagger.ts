@@ -1,11 +1,11 @@
 import { Dialog, Notify, setCssVar } from 'quasar';
 import { ref, Ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger';
 import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile, QuickTagSettings } from './quicktag';
 import { Settings } from './settings';
 import { Keybind, Playlist, Spotify, wsUrl } from './utils';
+import router from './router';
 
 class OneTagger {
     // Singleton
@@ -264,7 +264,7 @@ class OneTagger {
             // Drag and drop path
             case 'browse':
                 // Callback by route
-                let route = useRouter().currentRoute.value.path.substring(1).split('/')[0];
+                let route = router.currentRoute.value.path.substring(1).split('/')[0];
                 switch (route) {
                     case 'autotagger':
                         this.config.value.path = json.path;
