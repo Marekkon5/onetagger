@@ -22,6 +22,9 @@ class Player {
         // Setup
         this.generateDefaultWaveform();
         setInterval(() => {
+            if (this.position > this.duration)
+                this.pause();
+
             if (this.playing)
                 this.position += 150;
         }, 150);

@@ -3,16 +3,17 @@
     <div class='row items-center'>
         <span class='q-pr-sm monospace q-pb-xs'>{{time}}</span>
 
-        <div ref='waveform' class='row container' @mouseover='onHover' @mouseleave="hover = false" @click='seek'>
-            <div v-for='(wave, i) in $1t.player.value.waveform' :key='i'>
-                <Wave 
-                    height='50px' 
-                    width='0.2vw' 
-                    :value='wave + 0.05' 
-                    class='wave'
-                    :filled='filled(i)'
-                ></Wave>
-            </div>
+        <div 
+            ref='waveform' 
+            @mouseover='onHover' 
+            @mouseleave="hover = false" 
+            @click='seek'
+            :style='`background-image: linear-gradient(to right, var(--q-primary) ${pos*100}%, #3a3c3c ${pos*100}%, #3a3c3c);`'
+            class='waveform' 
+        >
+            <span v-for='(wave, i) in $1t.player.value.waveform' class='wavefont' :key='wave + i'>
+                {{waveChar(wave)}}
+            </span>
         </div>
 
         <span class='q-pl-sm monospace q-pb-xs'>{{duration($1t.player.value.duration)}}</span>
@@ -22,41 +23,32 @@
 </template>
 
 <script lang='ts' setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
-import { WAVES } from '../scripts/player';
-import Wave from './Wave.vue';
 
 const $1t = get1t();
 const hover = ref(false);
 const pos = ref(0);
 const waveform = ref<any>();
 
-
-// If wave filled
-function filled(i: number) {
-    if (i < Math.floor(pos.value)) 
-        return 1;
-    
-    if (Math.floor(pos.value) == i) 
-        return pos.value % 1;
-    
-    return 0;
+// Generate wave character
+function waveChar(wave: number) {
+    return String.fromCharCode(0x100 + Math.min(Math.round((wave + 0.05) * 100), 100));
 }
 
-function waveOffset(cx: number) {
-    return (cx - waveform.value.offsetLeft) / waveform.value.clientWidth;
+function waveOffset(e: MouseEvent) {
+    return (e.pageX - waveform.value.offsetLeft) / waveform.value.clientWidth;
 }
 
 // Mouse hover fill
 function onHover(e: MouseEvent) {
     hover.value = true;
-    pos.value = waveOffset(e.clientX) * WAVES;
+    pos.value = waveOffset(e);
 }
 
 // On click seek
 function seek(e: MouseEvent) {
-    let pos = waveOffset(e.clientX) * $1t.player.value.duration;
+    let pos = waveOffset(e) * $1t.player.value.duration;
     $1t.player.value.seek(Math.round(pos));
 }
 
@@ -71,26 +63,45 @@ let interval: any = undefined;
 onMounted(() => {
     interval = setInterval(() => {
         if (hover.value) return;
-        pos.value = ($1t.player.value.position / $1t.player.value.duration) * WAVES;
+        pos.value = ($1t.player.value.position / $1t.player.value.duration);
     }, 300);
 });
 onUnmounted(() => {
     clearInterval(interval);
 });
 
-const time = computed(() => duration((pos.value / WAVES) * $1t.player.value.duration));
+const time = computed(() => duration(pos.value * $1t.player.value.duration));
+
 </script>
 
 <style>
-.container {
-    height: 60px;
-    max-height: 60px;
-    min-height: 60px;
-    align-items: center;
-    /* WAVES * 0.3 */
-    width: 54vw;
+
+@keyframes wave-anim {
+    0% {
+        transform: scale(1, 0.1);        
+    }
+
+    100% {
+        transform: scale(1, 1.0);
+    }
 }
-.wave {
-    margin-left: 0.1vw;
+
+.waveform {
+    /* background: linear-gradient(to right, var(--q-primary) var(--waveform-filled), #3a3c3c var(--waveform-filled), #3a3c3c); */
+    background-clip: text;
+    color: transparent;
+    -webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
 }
+
+.wavefont {
+    font-family: wavefont, blank !important;
+    font-variation-settings: 'wdth' 50, 'algn' 0.5, 'radi' 30;
+    font-size: 40px;
+    margin: 1px;
+    display: inline-block;
+    animation-name: wave-anim;
+    animation-duration: 200ms;
+}
+
 </style>
