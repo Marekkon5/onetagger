@@ -8,7 +8,7 @@
         animated 
         alternative-labels
         flat 
-        class='bg-dark-page'
+        class='bg-darker'
         v-if='!$1t.settings.value.autoTaggerSinglePage'>
 
         <!-- Platforms -->

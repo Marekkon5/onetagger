@@ -4,7 +4,7 @@
     @dragleave.prevent='drag = false'
     @drop.prevent='drop'
 >
-    <q-card class='inset-shadow-down' :class='{"bg-darker": (drag && !dark) || (!drag && dark)}' v-if='!tiny'>
+    <q-card class='inset-shadow-down' :class='{"bg-highlight": (drag && !dark) || (!drag && dark)}' v-if='!tiny'>
         <q-card-section>
             <div 
                 style='width: 100%; height: 50px;'
@@ -42,7 +42,7 @@
 
 <script lang='ts' setup>
 import { ref } from 'vue';
-import { Playlist } from '../scripts/utils.js';
+import { Playlist } from '../scripts/utils';
 
 const { value, tiny, dark } = defineProps({
     value: { type: Object },

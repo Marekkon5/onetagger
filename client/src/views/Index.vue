@@ -6,7 +6,6 @@
 
     <!-- Welcome -->
     <div class='flex flex-center column'>
-       
         <img src="../assets/logo.svg" height='150' style='margin-top: 5%;'>
         
         
@@ -20,15 +19,13 @@
 
         <div class="getting-started-cards flex flex-center column" style="min-height: 50px; width: 100%;">
             <div class="fit row no-wrap row justify-center content-center" style="overflow: hidden;">
-   
                 <div class="text-subtitle1">
                     <q-card class='col-3 rounded-borders' style="max-width: 400px; margin-left: 25px; margin-right: 25px;">
                         <q-card-section>
                             <div class='col-3 text-primary text-bold'>AUTO TAG</div>
                             <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
                                 Automatically tag your local audio files, from several online platforms,
-                                based on <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> and <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag, filename or playlist. <br> Or identify tracks based on audio using <b>Shazam</b>.<br>
-                                
+                                based on <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> and <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag, filename or playlist. <br> Or identify audio using <b>Shazam</b>.<br>
                                 <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("autotagger")'>Read more</q-btn>
                                 
                             </div>
@@ -155,14 +152,14 @@ function help(route: string) {
 }
 
 @keyframes anim {
-  0% {
+    0% {
     transform: scale(1,1);
-  }
-  50% {
+    }
+    50% {
     transform: scale(1.05,1.05);
-  }
-  100% {
+    }
+    100% {
     transform: scale(1,1);
-  }
+    }
 }
 </style>

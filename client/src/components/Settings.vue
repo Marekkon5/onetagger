@@ -345,7 +345,7 @@
                     label='Client side folder browser'
                     class='checkbox'
                 ></q-checkbox>    
-                       
+                        
                 <!-- Color picker -->
                 <div class='q-pt-xs q-my-sm text-subtitle2 text-bold text-grey-4'>Primary color</div>
                 <q-color 
