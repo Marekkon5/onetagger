@@ -1,6 +1,6 @@
 <template>
 <div>
-    <div class='row items-center'>
+    <div class='row items-center justify-between'>
         <span class='q-pr-sm monospace q-pb-xs'>{{time}}</span>
 
         <div 
@@ -96,7 +96,7 @@ const time = computed(() => duration(pos.value * $1t.player.value.duration));
 
 .wavefont {
     font-family: wavefont, blank !important;
-    font-variation-settings: 'wdth' 50, 'algn' 0.5, 'radi' 30;
+    font-variation-settings: 'wdth' var(--waveform-wave), 'algn' 0.5, 'radi' 30;
     font-size: 40px;
     margin: 1px;
     display: inline-block;

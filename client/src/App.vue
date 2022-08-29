@@ -216,12 +216,20 @@ function settingsClosed() {
     $1t.quickTagUnfocus();
 }
 
+function setWaveformWidth() {
+    document.documentElement.style.setProperty('--waveform-wave', Math.round(40 + ((window.innerWidth - 1200) / 10)).toString());
+}
+
 // Setup
 onMounted(() => {
     $q.dark.set(true);
 
     // Handle resize to apply min height/width
+    setWaveformWidth();
     window.addEventListener("resize", () => {
+        // Fix waveform
+        setWaveformWidth();
+        
         if (window.innerHeight < 550 || window.innerWidth < 1200) {
             sizeDialog.value = true;
         } else {
