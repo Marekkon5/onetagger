@@ -13,8 +13,8 @@
         <div class='q-pt-md text-center text-h6 text-grey-4 text-weight-medium'>The ultimate cross-platform music tagger for DJs</div>
         
         <div class='q-pt-lg text-subtitle1 text-bold text-grey-4'>Version {{$1t.info.value.version}}</div>
-        <span a class='doc-link text-subtitle1 clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.github.io</span>
-        <div class='q-pt-sm text-subtitle2 text-grey-4'>
+        <span a class='doc-link text-subtitle1 clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.GitHub.io</span>
+        <div class='q-pt-xs text-subtitle2 text-grey-4'>
             Developed by Marekkon5 & UI design by Bas Curtiz
         </div>
 
@@ -27,7 +27,7 @@
                             <div class='col-3 text-primary text-bold'>AUTO TAG</div>
                             <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
                                 Automatically tag your local audio files, from several online platforms,
-                                based on <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> & <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag, filename or playlist. <br> Or identify tracks with <b>Shazam</b>.<br>
+                                based on <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> and <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag, filename or playlist. <br> Or identify tracks based on audio using <b>Shazam</b>.<br>
                                 
                                 <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("autotagger")'>Read more</q-btn>
                                 
@@ -42,7 +42,7 @@
                             <div class='col-3 text-primary text-bold'>AUDIO FEATURES</div>
                             <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
                                 Automatically tag your local audio files, with so called audio features by <b>Spotify</b>, based on <q-badge outline color='primary'><span class='text-white'>ISRC</span></q-badge> tag or exact match.<br>
-                                (free) account required.<br>
+                                Free account required.<br>
                                 <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("audiofeatures")'>Read more</q-btn>
                             </div>
                         </q-card-section>
@@ -59,7 +59,7 @@
                                     <q-badge outline color='primary'><span class='text-white'>Energy</span></q-badge> , 
                                     <q-badge outline color='primary'><span class='text-white'>Mood</span></q-badge> , 
                                     <q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge>
-                                     & other characteristics
+                                and other characteristics
                                 you defined. <br> Key bind compatible for quick access.<br>
                                 
                                 <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("quicktag")'>Read more</q-btn>
@@ -75,7 +75,7 @@
                             <div class ='col-3 text-grey-4 text-subtitle2 q-pt-sm' style='line-height: 24px'>
                                 Automatically rename your files based on tags. 
                                 The template string defines the format scheme of the new filename.<br>
-                                Regex compatible.<br>
+                                Including functions to batch process.<br>
                                 <q-btn dense push color='primary' class='rounded-borders q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='help("renamer")'>Read more</q-btn>
                             </div>
                         </q-card-section>
@@ -92,17 +92,17 @@
             </div>
             <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
                 Found a bug or have a request? Post it on 
-                <span class='tiny-logo text-primary clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>
-                    <img src="../assets/github.svg" width='64' style='margin-bottom: -2px;'>
+                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>
+                    GitHub
                 </span>
             </div>
             <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
                 Like the app? Donate through 
-                <span class='tiny-logo text-primary clickable' @click='$1t.url("https://paypal.me/marekkon5")'>
-                    <img src="../assets/paypal.svg" width='64' style='margin-bottom: -2px;'>
+                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://paypal.me/marekkon5")'>
+                    PayPal
                 </span> or 
-                <span class='tiny-logo text-primary clickable' @click='$1t.url("https://patreon.com/onetagger")'>
-                    <img src="../assets/patreon.svg" width='75' style='margin-bottom: -2px;'>
+                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://patreon.com/onetagger")'>
+                    Patreon
                 </span>
             </div>
         </div>

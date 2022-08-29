@@ -57,15 +57,19 @@
 }
 
 .bg-darker {
-    background: #171918;
+    background: #181818;
 }
 
 .bg-dark-page {
-    background: #1a1c1b;
+    background: #181818;
 }
 
 .q-tab__indicator {
     color: var(--q-color-primary);
+}
+
+.q-field__control {
+    background-color: #202020 !important;
 }
 
 // Checkbox fix

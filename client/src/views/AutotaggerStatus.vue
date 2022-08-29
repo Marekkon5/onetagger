@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-h5 q-mt-md text-grey-4'>Tagging status</div>
+    <div class='text-subtitle2 text-bold text-primary q-mt-md'>TAGGING STATUS</div>
 
     <!-- Post tagging actions -->
     <div v-if='$1t.taggerStatus.value.done && $1t.taggerStatus.value.data' class='row justify-center q-my-md'>

@@ -2,11 +2,11 @@
 <div class='text-center'>
 
     <!-- Platforms -->
-    <div v-for='(platform, i) in platforms' :key='"p"+i' class='q-mt-md'>
-        <div class='text-h6 text-grey-4 q-mb-md' style='margin-top: 1px;'>{{platform.name}}</div>
+    <div v-for='(platform, i) in platforms' :key='"p"+i' class='q-mb-xl'>
+        <div class='text-subtitle2 text-bold text-uppercase text-grey-4' style='margin-top: 1px;'>{{platform.name}}</div>
 
         <!-- Custom options -->
-        <div v-for='(option, j) in platform.customOptions.options' :key='i+"o"+j' class='q-mb-md'>
+        <div v-for='(option, j) in platform.customOptions.options' :key='i+"o"+j' class='q-mt-lg'>
 
             <!-- Slider -->
             <div v-if='option.value.type == "number"'>
@@ -88,8 +88,8 @@
     </div>
 
     <!-- Spotify -->
-    <div v-if='spotify'>
-        <div class='text-h6 q-mt-lg text-grey-4 custom-margin-1'>Spotify</div>
+    <div v-if='spotify'>        
+        <div class='text-subtitle2 text-bold text-uppercase text-grey-4' style='margin-top: 54px;'>Spotify</div>
         <div class='justify-center' style='max-width: 836px; margin: auto;'>
             <SpotifyLogin v-if='!$1t.spotify.value.authorized'></SpotifyLogin>
         </div>
@@ -118,10 +118,6 @@ const platforms = computed(() => $1t.info.value.platforms
 
 <style>
 .custom-separator {
-    max-width: 550px;
-    margin: auto;
-}
-.custom-margin-1 {
-    margin-top: 34px !important;
+    width: 150px;    
 }
 </style>

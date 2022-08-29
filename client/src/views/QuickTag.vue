@@ -53,7 +53,7 @@
 
         <!-- No path selected -->
         <div @click='selectFolder' v-if='!$1t.lock.value.locked'>
-            <div class='text-center text-h4 text-grey-6 q-my-sm'>No folder selected!</div>
+            <div class='text-center text-subtitle2 text-bold text-primary q-my-sm'>NO FOLDER SELECTED</div>
             <div class='text-center text-subtitle1 text-grey-6'>Click here to select folder</div>
             <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
                 Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>

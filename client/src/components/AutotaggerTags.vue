@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
     <!-- Path -->
-    <div class='text-h5 text-grey-4'>Select input</div>
+    <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT</div>
     <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the browse <span><q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span></div>
     <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
         <div class='col-1'></div>
@@ -35,8 +35,8 @@
     </div>
     
     <!-- Tags -->
-    <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
-    <div class='text-h5 q-mt-lg text-grey-4' style='margin-top: 35px;'>Select tags</div>
+    <q-separator class='q-mx-auto custom-separator' style='margin-top: 16px;' inset color="dark"/>
+    <div class='text-subtitle2  q-mt-lg text-primary text-bold' style='margin-top: 35px;'>SELECT TAGS</div>
     <div class='text-subtitle2 q-mb-sm text-grey-6'>Check the box to fetch stated tag</div>
     
     <div class='q-pt-xs q-mb-md' style='max-width: 550px; margin:auto;'>

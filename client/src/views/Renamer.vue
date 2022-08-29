@@ -4,7 +4,7 @@
     <div class='q-py-lg' v-if='!$1t.lock.value.locked'>
         <div style='max-width: 800px; margin: auto;'>
             <!-- Input and output folders -->
-            <div class='text-h5 text-grey-4'>Select input / output</div>
+            <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
             <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
@@ -20,12 +20,12 @@
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
                     </template>
-                </q-input>
+                </q-input>                
             </div>
+            <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 21px;' inset color="dark" />           
     
-            <!-- Template -->
-            <q-separator class='q-mx-auto q-mt-xl q-mb-lg custom-separator' inset color="dark" />
-            <div class='text-h5 text-grey-4 custom-margin'>Template</div>
+            <!-- Template -->            
+            <div class='text-subtitle2 text-bold text-primary custom-margin'>TEMPLATE</div>            
                 <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info? Click <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right</div>
             
             <div style='margin-top: -30px;'>
@@ -91,20 +91,19 @@
         
 
         <!-- Preview -->              
-        <div class='full-width'>
-            <div class='q-mt-md q-mb-sm text-h6 text-grey-4 custom-margin'>Preview</div>
+        <div class='full-width'>            
+            <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>PREVIEW</div>
             <div v-for='(file, i) in preview' :key='"prev"+i'>
                 <div class='text-caption monospace text-grey-5'>{{file[1]}}</div>
                 <br>
             </div>
         </div>
         
-
         
         <!-- Options -->
-        <div class='full-width'>
-            <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' inset color="dark" />
-            <div class='q-mb-sm text-h5 text-grey-4 custom-margin'>Options</div>
+        <div class='full-width'>    
+            <p></p><q-separator class='q-mb-lg custom-separator' inset color="dark" />
+            <div class='q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>OPTIONS</div>
 
             <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
             <br>
@@ -449,7 +448,7 @@ watch(() => config.value.template, () => {
 <style lang='scss'>
 .template-input {
     text-align: left;
-    background-color: #ffffff12;
+    background-color: #202020;
     padding-left: 12px;
     padding-right: 12px;
     padding-top: 20px;
@@ -525,5 +524,9 @@ watch(() => config.value.template, () => {
 
 .custom-margin {
     margin-top: 35px !important;
+}
+
+.custom-separator {
+    width: 150px;
 }
 </style>
