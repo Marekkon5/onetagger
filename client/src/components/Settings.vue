@@ -42,7 +42,10 @@
                 
                 <!-- Energy keybinds --> 
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm' style='margin-top: 28px;'>Energy<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
+                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm row justify-between' style='margin-top: 28px;'>
+                    <span>Energy</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                </div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
@@ -59,7 +62,10 @@
                 </div>
                 
                 <!-- Energy settings -->                
-                <div class='q-mb-sm text-bold text-grey-4'>Energy tag<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; &nbsp;  &nbsp;  &nbsp;  &nbsp;  Save to</span></div>
+                <div class='q-mb-sm row justify-between text-bold text-grey-4'>
+                    <span>Energy tag</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
+                </div>
                 <q-select
                     v-model='$1t.settings.value.quickTag.energyTag.type'
                     dense
@@ -81,11 +87,17 @@
                 
                 <!-- Mood tag -->
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm' style='margin-top: 28px;'>Mood tag<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp; &nbsp;  &nbsp;  &nbsp;  &nbsp; Save to</span></div>
+                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm row justify-between' style='margin-top: 28px;'>
+                    <span>Mood tag</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
+                </div>
                 <TagFields class='q-mb-sm' v-model='$1t.settings.value.quickTag.moodTag'></TagFields>
 
                 <!-- Moods -->
-                <div class='q-mb-sm text-bold text-grey-4'>Moods<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Key binds</span></div>
+                <div class='q-mb-sm text-bold text-grey-4 row justify-between'>
+                    <span>Moods</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                </div>
                 <div class='q-mb-md'>
                     <draggable v-model='$1t.settings.value.quickTag.moods' :item-key='(e: any) => `mood`'>
                         <template #item='{ element: mood, index: i }'>
@@ -128,7 +140,10 @@
                 
                 <!-- Genres -->
                 <q-separator class='custom-separator' inset color="darker"/>                
-                <div class='q-mb-sm q-mt- text-bold text-grey-4' style='margin-top:31px;'>Genres<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
+                <div class='q-mb-sm row justify-between text-bold text-grey-4' style='margin-top:31px;'>
+                    <span>Genres</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                </div>
                 <div>
                     <draggable v-model='$1t.settings.value.quickTag.genres' :item-key='(e: any) => `genre`'>
                         <template #item='{ element, index: i }'>
