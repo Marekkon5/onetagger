@@ -4,7 +4,7 @@
     @dragleave.prevent='drag = false'
     @drop.prevent='drop'
 >
-    <q-card class='inset-shadow-down' :class='{"bg-highlight": (drag && !dark) || (!drag && dark)}' v-if='!tiny'>
+    <q-card class='inset-shadow-down' :class='{"bg-highlight": drag, "playlist-drop-zone": !drag}' v-if='!tiny'>
         <q-card-section>
             <div 
                 style='width: 100%; height: 50px;'
@@ -44,10 +44,9 @@
 import { ref } from 'vue';
 import { Playlist } from '../scripts/utils';
 
-const { value, tiny, dark } = defineProps({
+const { value, tiny } = defineProps({
     value: { type: Object },
     tiny: { default: false, type: Boolean },
-    dark: { default: false, type: Boolean }
 });
 const drag = ref(false);
 const filename = ref(value?.filename);
@@ -94,3 +93,9 @@ function remove() {
 }
 
 </script>
+
+<style lang='scss'>
+.playlist-drop-zone {
+    background-color: #252525;
+}
+</style>
