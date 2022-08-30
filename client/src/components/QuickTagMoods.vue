@@ -31,7 +31,6 @@ function moodSelected(mood: QuickTagMood) {
 
 // Set mood
 function moodSelect(mood: QuickTagMood) {
-    console.log('a');
     if (!$1t.quickTag.value.track) return;
     // toggle
     if ($1t.quickTag.value.track.mood == mood.mood) $1t.quickTag.value.track.mood = undefined;

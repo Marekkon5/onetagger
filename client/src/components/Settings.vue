@@ -87,7 +87,7 @@
                 <!-- Moods -->
                 <div class='q-mb-sm text-bold text-grey-4'>Moods<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  Key binds</span></div>
                 <div class='q-mb-md'>
-                    <draggable v-model='$1t.settings.value.quickTag.moods' :item-key='(e: any) => `mood-${e.mood}`'>
+                    <draggable v-model='$1t.settings.value.quickTag.moods' :item-key='(e: any) => `mood`'>
                         <template #item='{ element: mood, index: i }'>
                             <div class='row justify-around'>
                                 <q-input 
@@ -130,7 +130,7 @@
                 <q-separator class='custom-separator' inset color="darker"/>                
                 <div class='q-mb-sm q-mt- text-bold text-grey-4' style='margin-top:31px;'>Genres<span class='text-grey-5 text-uppercase text-caption'> &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;   &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;  &nbsp;Key binds</span></div>
                 <div>
-                    <draggable v-model='$1t.settings.value.quickTag.genres' :item-key='(e: any) => `genre-${e.genre}`'>
+                    <draggable v-model='$1t.settings.value.quickTag.genres' :item-key='(e: any) => `genre`'>
                         <template #item='{ element, index: i }'>
                             <div>
                                 <div class='row q-my-sm'>
@@ -139,7 +139,7 @@
                                         filled 
                                         dense 
                                         class='col-10' 
-                                        v-model='$1t.settings.value.quickTag.genres[i].genre'
+                                        v-model="$1t.settings.value.quickTag.genres[i].genre"
                                         @clear='$1t.settings.value.quickTag.genres.splice(i, 1)'
                                     ></q-input>
                                     <KeybindVue
@@ -232,7 +232,7 @@
                     
                     <TagFields class='q-pt-sm' v-model='$1t.settings.value.quickTag.custom[i].tag'></TagFields>
                     <!-- Values -->
-                    <draggable v-model='tag.values' :item-key='(e: any) => `qtc-${i}-${e.val}`'>
+                    <draggable v-model='tag.values' :item-key='(e: any) => `qtc-${i}`'>
                         <template #item='{ element, index: j }'>
                             <div class='row'>
                                 <q-btn class='col-1 q-mt-sm' round flat icon='mdi-close' @click='$1t.settings.value.quickTag.custom[i].values.splice(j, 1)'></q-btn>

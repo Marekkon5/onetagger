@@ -1,6 +1,6 @@
 <template>
 <div>
-    <div class='row items-center justify-between'>
+    <div class='row items-center justify-between q-pr-lg'>
         <span class='q-pr-sm monospace q-pb-xs'>{{time}}</span>
 
         <div 
