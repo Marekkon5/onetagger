@@ -42,9 +42,9 @@
                 
                 <!-- Energy keybinds --> 
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm row justify-between' style='margin-top: 28px;'>
+                <div class='text-subtitle1 text-uppercase text-primary q-mt-lg q-mb-md row justify-between' style='margin-top: 28px;'>
                     <span>Energy</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                    <span class='text-grey-5 text-uppercase text-caption' style='margin-top: 6px;'>Key binds</span>
                 </div>
                 <div class='row q-mb-md'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
@@ -62,8 +62,8 @@
                 </div>
                 
                 <!-- Energy settings -->                
-                <div class='q-mb-sm row justify-between text-bold text-grey-4'>
-                    <span>Energy tag</span>
+                <div class='q-mb-md row justify-between text-grey-5 text-uppercase text-caption'>
+                    <span>Tag</span>
                     <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
                 </div>
                 <q-select
@@ -87,15 +87,16 @@
                 
                 <!-- Mood tag -->
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='text-subtitle1 text-bold text-grey-4 q-mt-lg q-mb-sm row justify-between' style='margin-top: 28px;'>
-                    <span>Mood tag</span>
+                <div class='text-uppercase text-primary text-subtitle1 q-mt-lg' style='margin-top: 28px;'>Mood</div>
+                <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
+                    <span>Tag</span>
                     <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
                 </div>
                 <TagFields class='q-mb-sm' v-model='$1t.settings.value.quickTag.moodTag'></TagFields>
 
                 <!-- Moods -->
-                <div class='q-mb-sm text-bold text-grey-4 row justify-between'>
-                    <span>Moods</span>
+                <div class='q-mb-sm q-mt-md text-grey-5 text-uppercase text-caption row justify-between'>
+                    <span>Values</span>
                     <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
                 </div>
                 <div class='q-mb-md'>
@@ -140,9 +141,9 @@
                 
                 <!-- Genres -->
                 <q-separator class='custom-separator' inset color="darker"/>                
-                <div class='q-mb-sm row justify-between text-bold text-grey-4' style='margin-top:31px;'>
-                    <span>Genres</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                <div class='q-mb-sm q-mt-lg row justify-between text-primary text-subtitle1 text-uppercase' style='margin-top:31px;'>
+                    <span>Genre</span>
+                    <span class='text-grey-5 text-uppercase text-caption' style='margin-top: 6px;'>Key binds</span>
                 </div>
                 <div>
                     <draggable v-model='$1t.settings.value.quickTag.genres' :item-key='(e: any) => `genre`'>
@@ -193,7 +194,7 @@
             <div v-if='tab == "quicktag-custom"'>
 
                 <!-- Separators -->
-                <div class='text-center text-body1 text-grey-4 q-mb-sm'>Separators</div>
+                <div class='text-subtitle2 text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>  
                 <div class='text-center' style='margin-bottom: 40px;'>
                     <Separators
                         :initial="$1t.settings.value.quickTag.separators"
@@ -203,11 +204,11 @@
                 <q-separator class='custom-separator q-my-lg' inset color="darker"/>
 
                 <!-- Note tag -->
-                <div class='text-primary text-bold q-mb-md row' style='margin-top: 35px'>
+                <div class='text-subtitle2 text-primary q-mb-md row' style='margin-top: 35px'>
                     CUSTOM NOTE
-                    <span class='text-grey-5 text-uppercase text-caption' style='padding-left: 300px;'>
+                    <span class='text-grey-5 text-uppercase text-caption' style='padding-left: 300px; margin-top: 2px;'>
                         <span>Save to</span>
-                        <span style='padding-left: 26px;'>Key binds</span>
+                        <span style='padding-left: 26px; margin-top: 2px;'>Key bind</span>
                     </span>
                 </div>
                 <div class='row'>
@@ -361,7 +362,7 @@
                 ></q-checkbox>    
                         
                 <!-- Color picker -->
-                <div class='q-pt-xs q-my-sm text-subtitle2 text-bold text-grey-4'>Primary color</div>
+                <div class='q-pt-md q-my-sm text-subtitle2 text-uppercase text-bold text-grey-4'>Primary color</div>
                 <q-color 
                     v-model='$1t.settings.value.primaryColor'
                     @change='colorChange'

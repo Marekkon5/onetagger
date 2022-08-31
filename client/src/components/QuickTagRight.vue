@@ -3,15 +3,14 @@
 <div class='q-pa-md'>
     <!-- Note -->
     <div class='full-width row justify-center q-my-xs'>
-        <q-btn class='text-bold' flat color='primary' v-if='$1t.quickTag.value.track' @click='$1t.onQuickTagEvent("onNoteTag")'>
-            Custom note
+            <q-btn outline color='primary' class='text-caption' v-if='$1t.quickTag.value.track' @click='$1t.onQuickTagEvent("onNoteTag")'>         
+            Add custom note            
         </q-btn>
     </div>
     <div v-for='(tag, i) in $1t.settings.value.quickTag.custom' :key='"tag"+i' class='q-pb-md'>
         <!-- Tag title -->
         <q-expansion-item 
             :label='tag.name' 
-            dense 
             class='text-subtitle1 text-bold q-pb-sm'
             style='margin-bottom: -24px;'
             default-opened
@@ -44,7 +43,7 @@
 
     <!-- Reorder the values inside of tag -->
     <div class='full-width row justify-center'>
-        <q-btn flat class='text-bold' color='primary' @click='sortValues' v-if='$1t.quickTag.value.track'>Sort values</q-btn>
+        <q-btn outline color='primary' class='text-caption'  @click='sortValues' v-if='$1t.quickTag.value.track'>Sort values</q-btn>
     </div>
 
 </div>

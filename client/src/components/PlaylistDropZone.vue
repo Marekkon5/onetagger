@@ -4,7 +4,7 @@
     @dragleave.prevent='drag = false'
     @drop.prevent='drop'
 >
-    <q-card class='inset-shadow-down' :class='{"bg-highlight": drag, "playlist-drop-zone": !drag}' v-if='!tiny'>
+    <q-card class='elevation-4' :class='{"bg-highlight": drag, "playlist-drop-zone": !drag}' v-if='!tiny'>
         <q-card-section>
             <div 
                 style='width: 100%; height: 50px;'
@@ -96,6 +96,6 @@ function remove() {
 
 <style lang='scss'>
 .playlist-drop-zone {
-    background-color: #252525;
+    background-color: #252525 !important;
 }
 </style>
