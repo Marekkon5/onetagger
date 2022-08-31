@@ -118,7 +118,7 @@
 
 <script lang='ts' setup>
 import axios from 'axios';
-import compareVersions from 'compare-versions';
+import { compareVersions } from 'compare-versions';
 import { useQuasar } from 'quasar';
 import { onMounted, onUpdated, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
