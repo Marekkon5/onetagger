@@ -503,7 +503,7 @@ watch(() => config.value.template, () => {
 }
 
 .suggestions-box {
-    background-color: #101211;
+    background-color: #111111;
     max-width: 500px;
     width: 500px;
     font-size: 16px;
