@@ -501,8 +501,8 @@
                         </div>
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%'>
-                        <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg' style='line-height: 24px'>Custom</div>
-                        <div class='col-10 q-mb-md q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
+                        <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg' style='line-height: 24px; margin-top: 21px;'>Custom</div>
+                        <div class='col-10 q-mb-md q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px; margin-top: 21px;'>
                             Whatever you want! Focus on different elements like vibe, instruments, vocals, time to play or situation, etc.
                         </div>
                         </div>
@@ -669,7 +669,7 @@
                                     <HelpRenamerExamples></HelpRenamerExamples>
                                 </div>
 
-                                <div class='bg-darker text-subtitle2 text-grey-5 q-px-md q-py-sm q-my-md text-center' style='line-height: 24px'>
+                                <div class='bg-darker text-subtitle2 text-grey-5 q-py-sm q-my-md text-center' style='line-height: 24px'>
                                     Use &nbsp;<q-badge outline color='grey-5'><span class='text-grey-4'>/</span></q-badge>&nbsp; to define a folder (on Windows too).
                                 </div>
                                 
