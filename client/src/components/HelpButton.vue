@@ -3,8 +3,8 @@
 
     <!-- Button -->
     <div class='help-button-container' @click='show = true' v-if='showButton'>
-        <q-btn color='primary' class='q-px-sm help-button text-bold'>
-            <q-icon name='mdi-help-circle-outline' class='q-pr-sm' size='xs'></q-icon>
+        <q-btn color='primary' class='q-px-md help-button text-bold' style='margin-right: -10px'>
+            <q-icon name='mdi-help-circle-outline' class='q-pr-xs' size='xs'></q-icon>
             Help
         </q-btn>
     </div>
@@ -52,7 +52,7 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             It reads the <q-badge outline color='primary'><span class='text-white'>Artist</span></q-badge> & <q-badge outline color='primary'><span class='text-white'>Title</span></q-badge> tag from your local MP3, AIFF, FLAC & M4A files (or filename or playlist), <br>feeds it into the search engine of the selected platforms, fetches the tags & writes it to your files.<p></p>
                             When no tags or proper filename is present, you can enable <span @click='$1t.url("https://shazam.com")' class='clickable doc-link'>Shazam </span> to identify the track & still fetch tags.<br>
-                                           
+                                            
                             <span @click='$1t.url("https://beatport.com")' class='clickable doc-link'>Beatport </span> , <span @click='$1t.url("https://junodownload.com")' class='clickable doc-link'>Juno Download </span> & <span @click='$1t.url("https://traxsource.com")' class='clickable doc-link'>Traxsource </span> are based on a method called scraping. <br>
                             <span @click='$1t.url("https://beatsource.com")' class='clickable doc-link'>Beatsource </span> , <span @click='$1t.url("https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/index.html")' class='clickable doc-link'>iTunes </span> & <span @click='$1t.url("https://musicbrainz.org")' class='clickable doc-link'>MusicBrainz </span> are based on their API.
                             <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs </span> & <span @click='$1t.url("https://spotify.com")' class='clickable doc-link'>Spotify </span> too, but need a free account.
@@ -84,7 +84,7 @@
                             
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Album</span></q-badge></div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>BPM</span></q-badge>
-                               <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
+                                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
                                     <q-tooltip>Available from Beatport, Beatsource, Juno Download & Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
@@ -101,7 +101,7 @@
                                     <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
-                             
+                                
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Label</span></q-badge></div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Duration</span></q-badge></div>
                             
@@ -125,10 +125,10 @@
                                     <q-tooltip>Adds UNIQUEFILEID tag when Beatport is selected</q-tooltip>
                                 </q-icon>
                             </div>
-                         </div>
+                            </div>
                         </div>
                         
-                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-my-md q-py-md text-center' style='line-height: 24px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-my-md q-py-md text-center' style='line-height: 24px'>
                             <span class='q-pl-md'>Not all platforms have the same tags available. Hover over the help <q-icon name='mdi-help-circle-outline' style='margin-bottom: -2px;' class='q-pb-xs text-grey-6'></q-icon> icons for more info</span> <br>
                         </div>
                     </div>
@@ -208,7 +208,7 @@
                         <div class='row' style='width: 88%; margin-left:12%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Audio features?</div>
                         <div class='col-10 q-mt-lg text-subtitle text-grey-4'>
-                               
+                                
                         <div class='row text-subtitle2 text-grey-4' style='width: 70%; margin-left: 0%; line-height: 24px'>
                             <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Acousticness</span></q-badge></div>     <div class='text-right text-grey-3 col-8'>#acoustic <span class='text-grey-6'>&nbsp;·&nbsp;</span> #electronic</div> 
                             <div class='col-4 text-grey-4'><q-badge outline color='primary'><span class='text-white'>Danceability</span></q-badge></div>     <div class='text-right text-grey-3 col-8'>#dance-low <span class='text-grey-6'>&nbsp;·&nbsp;</span> #dance-med <span class='text-grey-6'>&nbsp;·&nbsp;</span> #dance-high</div> 
@@ -221,9 +221,9 @@
                         </div>
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-mt-md q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-mt-md q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
                             For a more in-depth description, check out <span class='clickable doc-link' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#/operations/get-several-audio-features")'>Spotify’s official Audio Features </span> documentation<br>
-                            <div class='bg-grey-10 text-subtitle2 text-grey-5 text-center q-pt-xs' style='line-height: 24px'>
+                            <div class='bg-darker text-subtitle2 text-grey-5 text-center q-pt-xs' style='line-height: 24px'>
                             To look up audio features online for other tracks, check out <span class='clickable doc-link' @click='$1t.url("https://songdata.io")'>SongData.io </span> - Ignore the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify </span> though
                             </div>
                         </div>
@@ -303,8 +303,8 @@
                                         </span>
                                 </div>
 
-                           <div class='col-1 text-primary text-bold q-mt-lg text-right' style='line-height: 24px'><q-badge outline color='primary'><span class='text-white'>Instrumental</span></q-badge>
-                           <q-badge color='grey-8'>
+                            <div class='col-1 text-primary text-bold q-mt-lg text-right' style='line-height: 24px'><q-badge outline color='primary'><span class='text-white'>Instrumental</span></q-badge>
+                            <q-badge color='grey-8'>
                                         <span class='textnumber text-grey-2'>0-50</span>
                                 </q-badge>
                                     <br>
@@ -413,7 +413,7 @@
                                 When threshold is <q-badge color='grey-8'><span class='textnumber text-grey-2'>0*</span></q-badge>&nbsp; it won't write the Prominent tag
                             </div>
                         
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center text-caption'>
+                        <div class='bg-darker text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center text-caption'>
                             <DJAppIcons></DJAppIcons>                                                                           
                         </div>
                         <div class='text-subtitle3 text-grey-5 text-center text-caption' style='line-height: 24px'>
@@ -441,7 +441,7 @@
                         <div class='text-subtitle2 text-grey-4 q-mt-md text-center' style='line-height: 24px'>
                             Manually tag your local audio files quickly, based on <q-badge outline color='primary'><span class='text-white'>Energy</span></q-badge> , 
                             <q-badge outline color='primary'><span class='text-white'>Mood</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge>
-                             & other characteristics you defined. <br> Key bind compatible for quick access. <br>
+                                & other characteristics you defined. <br> Key bind compatible for quick access. <br>
                         </div>
                         <div class='row' style='width: 93%; margin-left:7%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>How does it work?</div>
@@ -466,7 +466,7 @@
                             <span class='text-number text-bold text-grey-6'>8. </span><span class='q-pl-sm'>Tag ‘em quickly using the keyboard <q-badge outline color='grey-5'><span class='text-white'>key</span></q-badge> binds - or point & click</span><br>
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-py-lg q-my-lg text-center' style='line-height: 12px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-py-lg q-my-lg text-center' style='line-height: 12px'>
                             For inspiration, check out the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/c3o2jk/my_ultimate_track_tagging_system_the_little_data/")'>Little Data, Lotta Love </span> tagging system by u/nonomomomo
                         </div> 
                         
@@ -496,7 +496,7 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             If the genre stated in the original <q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge> tag of your tracks, or the ones fetched with <span class='text-subtitle3 text-bold'>AUTO TAG</span> are still not to your liking, <br>
                             predefine them in settings <q-icon name='mdi-cog' class='q-mb-xs'></q-icon> > <span class='text-subtitle3 text-bold'>QUICK TAG</span>.<br>
-                                                      
+                                                        
                             <span class='text-subtitle2 text-grey-5'>Tip: When keybinding, use <q-badge outline color='grey-5'>SHIFT</q-badge> + <q-badge outline color='grey-5'>character</q-badge> for a genre. This way you can keep a <q-badge outline color='grey-5'>character</q-badge> for moods</span>
                         </div>
                         </div>
@@ -506,14 +506,14 @@
                             Whatever you want! Focus on different elements like vibe, instruments, vocals, time to play or situation, etc.
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center'>
+                        <div class='bg-darker text-subtitle2 text-grey-6 q-px-md q-py-md q-my-md text-center'>
                             <DJAppIcons></DJAppIcons>                                                                           
                         </div>
                         <div class='text-subtitle3 text-grey-5 text-center text-caption' style='line-height: 24px'>
                             Which tag frames can be read by your DJ software? <q-icon name='mdi-cursor-default-outline'></q-icon> Click on the app icon above<br>
                             Also shows you recommended tags to use
                             </div>
-                                               
+                                                
                     </div>
 
                 </q-card-section>
@@ -563,7 +563,7 @@
                             This allows you to drag & drop audio files from the treelist into 'Your list'.
                         </div>
                         </div>
-                        <div class='bg-grey-10 text-subtitle2 text-grey-5 q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
                             The path selected in <span class='text-subtitle3 text-bold'>QUICK TAG</span> will overwrite the path of <span class='text-subtitle3 text-bold'>EDIT TAGS</span> & vice versa.<br>
                             This way it becomes easy to review where your custom tags got written, by switching between the two tabs.
                         </div>
@@ -635,13 +635,13 @@
     
                                     <div class='q-mt-sm' style="padding-left: 64px;">
                                         <div style='width: 240px; margin: auto;' class='row'>
-                                            <div class='col-6 text-left'>
+                                            <div class='col-6 text-left text-grey-4'>
                                                 <span class='monospace'>%album%</span><br>
                                                 <span class='monospace'>%artist%</span><br>
                                                 <span class='monospace'>%title%</span><br>
                                                 <span class='monospace'>%track%</span><br>
                                             </div>
-                                            <div class='col-6 text-left'>
+                                            <div class='col-6 text-left text-grey-4'>
                                                 <span>Album</span><br>
                                                 <span>Artist</span><br>
                                                 <span>Title</span><br>
@@ -669,7 +669,7 @@
                                     <HelpRenamerExamples></HelpRenamerExamples>
                                 </div>
 
-                                <div class='bg-grey-10 text-subtitle2 text-grey-5 q-px-md q-py-sm q-my-md text-center' style='line-height: 24px'>
+                                <div class='bg-darker text-subtitle2 text-grey-5 q-px-md q-py-sm q-my-md text-center' style='line-height: 24px'>
                                     Use &nbsp;<q-badge outline color='grey-5'><span class='text-grey-4'>/</span></q-badge>&nbsp; to define a folder (on Windows too).
                                 </div>
                                 
@@ -680,7 +680,7 @@
                                 <RenamerTokenName :token='renamerDoc' class='text-h5'></RenamerTokenName>
                                 <br>
                                 <div class='text-caption q-mt-sm q-mb-md'>{{renamerDoc.kind.toUpperCase()}}</div>
-                                <div style='font-size: 150%;'>
+                                <div style='font-size: 120%;'>
                                     <div v-html='renamerDoc.doc'></div>
                                 </div>
                             </div>

@@ -18,7 +18,7 @@
 
 <script lang='ts' setup>
 import { get1t } from '../scripts/onetagger.js';
-import { spotifyUrl } from '../scripts/utils.js';
+import { spotifyUrl } from '../scripts/utils';
 
 const $1t = get1t();
 const redirectUrl = spotifyUrl();

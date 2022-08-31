@@ -1,7 +1,7 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-subtitle2 text-bold text-primary q-mt-md'>TAGGING STATUS</div>
+    <div class='text-subtitle1 text-bold text-primary q-mt-md'>TAGGING STATUS</div>
 
     <!-- Post tagging actions -->
     <div v-if='$1t.taggerStatus.value.done && $1t.taggerStatus.value.data' class='row justify-center q-my-md'>
@@ -116,7 +116,7 @@
                                 <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='item.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'>
                                     <q-tooltip v-if='item.status.message'>
-                                       {{item.status.message}}
+                                        {{item.status.message}}
                                     </q-tooltip>
                                 </q-icon>
                             </span>

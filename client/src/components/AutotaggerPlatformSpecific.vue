@@ -3,7 +3,7 @@
 
     <!-- Platforms -->
     <div v-for='(platform, i) in platforms' :key='"p"+i' class='q-mb-xl'>
-        <div class='text-subtitle2 text-bold text-uppercase text-grey-4' style='margin-top: 1px;'>{{platform.name}}</div>
+        <div class='text-subtitle1 text-bold text-uppercase text-grey-4' style='margin-top: 1px;'>{{platform.name}}</div>
 
         <!-- Custom options -->
         <div v-for='(option, j) in platform.customOptions.options' :key='i+"o"+j' class='q-mt-lg'>
@@ -88,8 +88,9 @@
     </div>
 
     <!-- Spotify -->
-    <div v-if='spotify'>        
-        <div class='text-subtitle2 text-bold text-uppercase text-grey-4' style='margin-top: 54px;'>Spotify</div>
+    <div v-if='spotify'>  
+        <q-separator class='q-mx-auto q-mt-lg custom-separator' inset color="dark"/>      
+        <div class='text-subtitle1 text-bold text-uppercase text-grey-4' style='margin-top: 54px;'>Spotify</div>
         <div class='justify-center' style='max-width: 836px; margin: auto;'>
             <SpotifyLogin v-if='!$1t.spotify.value.authorized'></SpotifyLogin>
         </div>

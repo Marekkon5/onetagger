@@ -3,7 +3,7 @@
 
     <!-- Login -->
     <div v-if='!$1t.spotify.value.authorized' class='af-content'>
-        <div class='text-subtitle2 text-bold text-primary q-mt-lg'>SETUP</div>
+        <div class='text-subtitle1 text-bold text-primary q-mt-lg'>SETUP</div>
         <SpotifyLogin></SpotifyLogin>
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6' style='line-height: 24px'>
@@ -15,7 +15,7 @@
     <!-- Logged in -->
     <div v-if='$1t.spotify.value.authorized' class='af-content'>
         <!-- Path -->
-        <div class='text-subtitle2 text-bold text-primary q-mt-lg'>SELECT INPUT</div>
+        <div class='text-subtitle1 text-bold text-primary q-mt-lg'>SELECT INPUT</div>
         <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
             <div class='col-1'></div>
@@ -50,7 +50,7 @@
 
         <!-- Main tag -->
         <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 16px;' inset color="dark" />
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>PROMINENT TAG</div>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>PROMINENT TAG</div>
         <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tag frame</div>
         <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-5'>e.g. #dance-high, #energy-med, #vocal-low, #positive, #popular</div>
 
@@ -58,7 +58,7 @@
 
         <!-- Values -->
         <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>PROPERTIES</div>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>PROPERTIES</div>
         <div class='q-px-xl'>
             <!-- Header -->
             <div class='row text-subtitle2 q-mb-md text-grey-6'>
@@ -105,14 +105,14 @@
 
         <!-- Separators -->
         <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>SEPARATORS</div>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>SEPARATORS</div>
         <div class='row q-pb-md q-mt-sm justify-center'>            
             <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
         </div>
 
         <!-- Advanced -->
         <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>ADVANCED</div>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>ADVANCED</div>
 
         <q-toggle v-model='config.metaTag' label='Write OneTagger meta tag'></q-toggle>
         <br>
@@ -120,7 +120,7 @@
         <br>
         <q-toggle v-model='config.includeSubfolders' label='Include subfolders'></q-toggle>
 
-        <div class='q-my-md'></div>
+        <div class='q-my-xl'></div>
 
         <!-- Start -->
         <q-page-sticky position='bottom-right' :offset='[36, 24]'>
@@ -136,7 +136,6 @@
             </q-tooltip>
             </q-btn>
         </q-page-sticky>
-       
     </div>
 
 

@@ -175,7 +175,7 @@
 
     <!-- Track number padding -->
     <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
-    <div class='text-center text-bold text-primary q-mt-md' style='margin-top: 31px;'>TAG OPTIONS</div>
+    <div class='text-subtitle1 text-center text-bold text-primary q-mt-md' style='margin-top: 31px;'>TAG OPTIONS</div>
     <div class='row q-pb-xs justify-center half-width'>
     <q-input 
         v-model.number='$1t.config.value.trackNumberLeadingZeroes' 
@@ -187,7 +187,7 @@
     </div>
 
     <!-- Separators -->
-    <div class='text-center text-bold text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>
+    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>
     <div class='row q-pb-xs q-mt-sm justify-center half-width'>
         <Separators
             :initial='$1t.config.value.separators'
@@ -197,7 +197,7 @@
     
 
     <!-- Command -->
-    <div class='text-center text-bold text-primary q-mt-lg'>
+    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg'>
         EXECUTE COMMAND WHEN TAGGING IS FINISHED
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
             <q-tooltip>
@@ -210,7 +210,7 @@
     
     <!-- Styles / genres action -->
     <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
-    <div class='text-center text-bold text-primary q-mt-lg'>
+    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg'>
         GENRES/STYLES OPTIONS
         <div class='text-subtitle2 q-mb-md text-grey-6'>
             Fetch both <i>(default)</i>, if it should merge them, or write elsewhere <i>(used only in supported platforms)</i>

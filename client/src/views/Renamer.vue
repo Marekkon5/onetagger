@@ -4,7 +4,7 @@
     <div class='q-py-lg' v-if='!$1t.lock.value.locked'>
         <div style='max-width: 800px; margin: auto;'>
             <!-- Input and output folders -->
-            <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
+            <div class='text-subtitle1 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
             <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
@@ -22,10 +22,10 @@
                     </template>
                 </q-input>                
             </div>
-            <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 21px;' inset color="dark" />           
+            <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 41px;' inset color="dark" />
     
             <!-- Template -->            
-            <div class='text-subtitle2 text-bold text-primary custom-margin'>TEMPLATE</div>            
+            <div class='text-subtitle1 text-bold text-primary custom-margin'>TEMPLATE</div>
                 <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info? Click <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right</div>
             
             <div style='margin-top: -30px;'>
@@ -92,7 +92,7 @@
 
         <!-- Preview -->              
         <div class='full-width'>            
-            <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>PREVIEW</div>
+            <div class='q-mt-md q-mb-sm text-subtitle1 text-bold text-primary custom-margin'>PREVIEW</div>
             <div v-for='(file, i) in preview' :key='"prev"+i'>
                 <div class='text-caption monospace text-grey-5'>{{file[1]}}</div>
                 <br>
@@ -103,7 +103,7 @@
         <!-- Options -->
         <div class='full-width'>    
             <p></p><q-separator class='q-mb-lg custom-separator' inset color="dark" />
-            <div class='q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>OPTIONS</div>
+            <div class='q-mb-sm text-subtitle1 text-bold text-primary custom-margin'>OPTIONS</div>
 
             <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
             <br>

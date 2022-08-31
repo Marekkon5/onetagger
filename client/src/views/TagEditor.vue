@@ -101,7 +101,7 @@
             style='max-height: 100%; overflow-y: scroll;'>
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 
-                <div class='col-12 text-subtitle2 text-bold text-primary text-center q-my-sm'>NO FILE SELECTED</div><br>
+                <div class='col-12 text-subtitle1 text-bold text-primary text-center q-my-sm'>NO FILE SELECTED</div><br>
                 <span class='text-center text-subtitle1 text-grey-6'>Tip: Click the path to select folder using your OS's picker</span>
             </div>
 
@@ -109,7 +109,7 @@
                 <div class='text-center q-py-md text-subtitle1 text-primary'>{{file.filename}}</div>
                 <div class='q-mt-md'>
                     <div v-for='(tag, i) in Object.keys(file.tags)' :key='i' class='row q-my-sm'>
-                        <div class='col-3 text-subtitle1  text-grey-3 q-mt-xs q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
+                        <div class='col-3 text-subtitle2  text-grey-3 q-mt-sm q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
                             <span v-if='ABSTRACTIONS[tag]'><span class='text-weight-bold'>{{ABSTRACTIONS[tag]}}</span> ({{tag}})</span>
                             <span v-if='!ABSTRACTIONS[tag]'>{{tag}}</span>
                         </div>
@@ -132,7 +132,7 @@
 
                 <!-- Add new tag -->
                 <div class='row q-mt-xl'>
-                    <div class='text-subtitle1 text-primary text-weight-bold col-3 q-pt-xs'>Add new text tag:</div>
+                    <div class='col-3 q-pt-sm text-uppercase text-primary text-subtitle2'>Add new text tag</div>
                     <TagField tageditor class='col-8' dense :format='tagFormat!' @change='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
@@ -142,7 +142,7 @@
                 </div>
 
                 <!-- Album art -->
-                <div class='text-subtitle1 text-grey-3 text-weight-bold'>
+                <div class='text-subtitle2 text-grey-3 text-weight-bold'>
                     Album art
                     <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
                         <q-icon name='mdi-plus' color='primary'></q-icon>
@@ -163,7 +163,7 @@
                 <!-- ID3 specific tags -->
                 <div v-if='file.id3'>
                     <!-- Comments -->
-                    <div class='text-subtitle1'>
+                    <div class='text-subtitle2'>
                         <span class='text-grey-3 text-weight-bold'>Comments</span> (COMM)
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3Comment'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
@@ -205,7 +205,7 @@
                     </div>
 
                     <!-- Unsynchronized lyrics -->
-                    <div class='text-subtitle1 text-grey-3'>
+                    <div class='text-subtitle2 text-grey-3'>
                         <span class='text-weight-bold'>Unsynchronized lyrics</span> (USLT)
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3USLT'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
@@ -251,7 +251,7 @@
 
                     <!-- Popularimeter -->
                     <div>
-                        <div class='text-subtitle1 text-grey-3'>
+                        <div class='text-subtitle2 text-grey-3'>
                             <span class='text-weight-bold'>Popularimeter</span> (POPM)
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
                                 <q-icon name='mdi-plus' color='primary'></q-icon>
@@ -297,7 +297,7 @@
 
                     <!-- ID3v2.4 -->
                     <div class='q-mb-xl q-mt-sm'>
-                         <div class='text-subtitle1 text-grey-3'>
+                            <div class='text-subtitle2 text-grey-3'>
                             <span class='text-weight-bold'>Options</span>
                         </div>
                         <q-toggle label='Use ID3v2.4' class='q-mt-md' v-model='id3v24'></q-toggle>

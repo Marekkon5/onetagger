@@ -214,8 +214,7 @@
                     <TagFields class='col-10 q-mb-md' style='margin-bottom: 20px;' dense v-model='$1t.settings.value.quickTag.noteTag.tag'></TagFields>
                     <KeybindVue
                         class='col-2 text-center' 
-                        @set='$1t.settings.value.quickTag.noteTag.keybind = $event'
-                        :initial='$1t.settings.value.quickTag.noteTag.keybind'
+                        v-model='$1t.settings.value.quickTag.noteTag.keybind'
                     ></KeybindVue>
                 </div>
 

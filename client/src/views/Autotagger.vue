@@ -20,7 +20,7 @@
             :error='step > 0 && $1t.config.value.platforms.length == 0'
             class='text-center step'>
 
-            <div class='text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
+            <div class='text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
             <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
             <AutotaggerPlatforms class='q-mb-xl'></AutotaggerPlatforms>
         </q-step>
@@ -56,7 +56,7 @@
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-subtitle2 text-bold text-primary'>ADVANCED</div>
+            <div class='text-subtitle1 text-bold text-primary'>ADVANCED</div>
             <span class='text-subtitle2 text-grey-6'>Miscellaneous options</span>
             <br>
             <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
@@ -81,7 +81,7 @@
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
-                <div class='q-mt-md text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
+                <div class='q-mt-md text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
                 <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
                 <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
