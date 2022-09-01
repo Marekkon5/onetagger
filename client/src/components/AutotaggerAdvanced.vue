@@ -189,10 +189,7 @@
     <!-- Separators -->
     <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>
     <div class='row q-pb-xs q-mt-sm justify-center half-width'>
-        <Separators
-            :initial='$1t.config.value.separators'
-            @input='$1t.config.value.separators = $event'
-        ></Separators>
+        <Separators v-model='$1t.config.value.separators'></Separators>
     </div>
     
 
@@ -225,7 +222,7 @@
             class='select'
             label='Genres/Styles tag'
             style='margin-bottom: 48px;'
-            @input='updateStyleOption'
+            @update:model-value='updateStyleOption'
         ></q-select>
         <!-- Styles custom tag -->
         <div v-if='$1t.config.value.stylesOptions == "customTag"'>
@@ -257,7 +254,7 @@ const stylesOption = ref('Default');
 
 function updateStyleOption() {
     $1t.config.value.stylesOptions = values[stylesOptions.indexOf(stylesOption.value)];
-};
+}
 
 onMounted(() => {
     stylesOption.value = stylesOptions[values.indexOf($1t.config.value.stylesOptions)];

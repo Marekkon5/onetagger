@@ -4,7 +4,7 @@ import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger
 import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile, QuickTagSettings } from './quicktag';
 import { Settings } from './settings';
-import { Keybind, Playlist, Spotify, wsUrl } from './utils';
+import { FrameName, Keybind, Playlist, Separators, Spotify, wsUrl } from './utils';
 import router from './router';
 
 class OneTagger {
@@ -356,6 +356,8 @@ class OneTagger {
         // AT config (nested)
         let config = Object.assign(new AutotaggerConfig(), this.config.value, this.settings.value.autoTaggerConfig);
         this.config.value = config;
+        this.config.value.stylesCustomTag = Object.assign(FrameName.same('STYLE'), config.stylesCustomTag);
+        this.config.value.separators = Object.assign(new Separators(), config.separators);
  
         // Restore specific
         this.player.value.volume = this.settings.value.volume??0.5;

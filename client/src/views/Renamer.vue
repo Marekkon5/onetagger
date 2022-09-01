@@ -448,7 +448,7 @@ watch(() => config.value.template, () => {
 <style lang='scss'>
 .template-input {
     text-align: left;
-    background-color: #eeeeee10;
+    background-color: #99999910;
     padding-left: 12px;
     padding-right: 12px;
     padding-top: 20px;

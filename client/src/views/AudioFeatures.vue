@@ -107,7 +107,7 @@
         <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
         <div class='text-subtitle1 text-bold text-primary custom-margin'>SEPARATORS</div>
         <div class='row q-pb-md q-mt-sm justify-center'>            
-            <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
+            <Separators v-model='config.separators'></Separators>
         </div>
 
         <!-- Advanced -->

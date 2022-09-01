@@ -96,6 +96,6 @@ function remove() {
 
 <style lang='scss'>
 .playlist-drop-zone {
-    background-color: #252525 !important;
+    background-color: #99999910 !important;
 }
 </style>

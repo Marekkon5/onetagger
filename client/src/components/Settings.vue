@@ -196,10 +196,7 @@
                 <!-- Separators -->
                 <div class='text-subtitle2 text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>  
                 <div class='text-center' style='margin-bottom: 40px;'>
-                    <Separators
-                        :initial="$1t.settings.value.quickTag.separators"
-                        @input='$1t.settings.value.quickTag.separators = $event'                    
-                    ></Separators>
+                    <Separators v-model='$1t.settings.value.quickTag.separators'></Separators>
                 </div>
                 <q-separator class='custom-separator q-my-lg' inset color="darker"/>
 
