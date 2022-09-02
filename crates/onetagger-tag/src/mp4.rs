@@ -253,8 +253,12 @@ impl TagImpl for MP4Tag {
             }
 
             // Add each data separately
-            for v in value {
-                self.tag.add_data(ident.clone(), Data::Utf8(v));
+            if self.separator.is_empty() {
+                for v in value {
+                    self.tag.add_data(ident.clone(), Data::Utf8(v));
+                }
+            } else {
+                self.tag.add_data(ident.clone(), Data::Utf8(value.join(&self.separator)));
             }
         }
     }
