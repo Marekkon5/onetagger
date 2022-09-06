@@ -15,8 +15,7 @@
             style='margin-bottom: -24px;'
             default-opened
             :model-value="true"
-            :switch-toggle-side='true'
-            expand-icon-class='hide-expand-icon'
+            :switch-toggle-side='false'
         >
             <!-- Values -->
             <div v-for='(value, j) in tag.values' :key='i+"value"+j'>
