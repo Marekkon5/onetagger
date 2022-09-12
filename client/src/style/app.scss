@@ -105,6 +105,11 @@ input {
     -webkit-user-select: text !important;
 }
 
+// Fix the input fields on Webkit
+input[type="search"] {
+    -webkit-appearance: textfield;
+}
+
 .selectable {
     user-select: text !important;
     cursor: text;

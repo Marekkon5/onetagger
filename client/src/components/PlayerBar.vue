@@ -70,7 +70,7 @@
         </div>
 
         <!-- Volume -->
-        <div class="q-pt-sm" style="width: 95px">
+        <div class="q-pt-sm" style="width: 88px">
             <q-slider
                 v-model="$1t.player.value.volume"
                 :min="0.0"

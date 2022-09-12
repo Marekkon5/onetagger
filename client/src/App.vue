@@ -217,7 +217,7 @@ function settingsClosed() {
 }
 
 function setWaveformWidth() {
-    document.documentElement.style.setProperty('--waveform-wave', Math.round(32 + ((window.innerWidth - 1200) / 10)).toString());
+    document.documentElement.style.setProperty('--waveform-wave', Math.round(30 + ((window.innerWidth - 1200) / 10)).toString());
 }
 
 // Setup

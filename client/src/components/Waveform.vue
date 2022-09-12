@@ -92,6 +92,7 @@ const time = computed(() => duration(pos.value * $1t.player.value.duration));
     color: transparent;
     -webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
+    cursor: pointer;
 }
 
 .wavefont {
@@ -99,7 +100,7 @@ const time = computed(() => duration(pos.value * $1t.player.value.duration));
     font-variation-settings: 'wdth' var(--waveform-wave), 'algn' 0.5, 'radi' 30;
     font-size: 40px;
     margin: 1px;
-    display: inline-block;
+    /* display: inline-block; */
     animation-name: wave-anim;
     animation-duration: 200ms;
 }

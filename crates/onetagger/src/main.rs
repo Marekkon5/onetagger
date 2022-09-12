@@ -32,7 +32,8 @@ fn main() {
     }
 
     info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
-
+    
+            
     // Start
     let context = StartContext {
         start_path: cli.path, 

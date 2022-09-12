@@ -11,8 +11,12 @@
                         width='50px' 
                         height='50px' 
                         class='rounded-borders' 
-                        placeholder-src='../assets/placeholder.png'
-                    />
+                        :placeholder-src='PLACEHOLDER_IMG'
+                    >
+                        <template v-slot:error>
+                            <q-img :src='PLACEHOLDER_IMG' width='50px' height='50px' class='rounded-borders'></q-img>
+                        </template>
+                    </q-img>
                 </div>
                 <!-- Title -->
                 <div class='col-4 q-pl-sm'>
@@ -93,6 +97,7 @@ import { get1t } from '../scripts/onetagger.js';
 import { QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';
 
+const PLACEHOLDER_IMG = (new URL('../assets/placeholder.png', import.meta.url)).toString();
 
 const KEY_COLORS: Record<string, string> = {
     "12A": "#00e5e5",
