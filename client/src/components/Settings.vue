@@ -42,11 +42,12 @@
                 
                 <!-- Energy keybinds --> 
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='text-subtitle1 text-uppercase text-primary q-mt-lg q-mb-md row justify-between' style='margin-top: 28px;'>
-                    <span>Energy</span>
-                    <span class='text-grey-5 text-uppercase text-caption' style='margin-top: 6px;'>Key binds</span>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>Energy</div>
+                <div class='q-mb-sm q-mt-md text-grey-5 text-uppercase text-caption row justify-between'>
+                    <span>Stars</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
                 </div>
-                <div class='row q-mb-md'>
+                <div class='row q-mb-lg'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
                         <div class='col-4 q-pt-xs'>
                             <span>{{i}}</span>
@@ -62,8 +63,8 @@
                 </div>
                 
                 <!-- Energy settings -->                
-                <div class='q-mb-md row justify-between text-grey-5 text-uppercase text-caption'>
-                    <span>Tag</span>
+                <div class='q-mb-sm row justify-between text-grey-5 text-uppercase text-caption'>
+                    <span>Tag frame</span>
                     <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
                 </div>
                 <q-select
@@ -87,9 +88,9 @@
                 
                 <!-- Mood tag -->
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='text-uppercase text-primary text-subtitle1 q-mt-lg' style='margin-top: 28px;'>Mood</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>Mood</div>
                 <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
-                    <span>Tag</span>
+                    <span>Tag frame</span>
                     <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
                 </div>
                 <TagFields class='q-mb-sm' v-model='$1t.settings.value.quickTag.moodTag'></TagFields>
@@ -141,9 +142,10 @@
                 
                 <!-- Genres -->
                 <q-separator class='custom-separator' inset color="darker"/>                
-                <div class='q-mb-sm q-mt-lg row justify-between text-primary text-subtitle1 text-uppercase' style='margin-top:31px;'>
-                    <span>Genre</span>
-                    <span class='text-grey-5 text-uppercase text-caption' style='margin-top: 6px;'>Key binds</span>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>Genre</div>
+                <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
+                    <span>Values</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
                 </div>
                 <div>
                     <draggable v-model='$1t.settings.value.quickTag.genres' :item-key='(e: any) => `genre`'>
@@ -180,7 +182,7 @@
                         </template>
                     </draggable>
                     <!-- Add new genre -->
-                    <div class='q-mt-md q-mb-sm text-uppercase text-primary text-subtitle2'>Add new genre</div>
+                    <div class='q-mb-sm text-uppercase text-primary text-subtitle2'>Add new genre</div>
                     <div class='row'>
                         <q-input filled dense class='col-10 q-pr-md' v-model='newGenre'></q-input>
                         <div class='col-1'>
@@ -194,19 +196,17 @@
             <div v-if='tab == "quicktag-custom"'>
 
                 <!-- Separators -->
-                <div class='text-subtitle2 text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>  
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-sm q-mb-sm text-center'>Separators</div>
                 <div class='text-center' style='margin-bottom: 40px;'>
                     <Separators v-model='$1t.settings.value.quickTag.separators'></Separators>
                 </div>
                 <q-separator class='custom-separator q-my-lg' inset color="darker"/>
 
                 <!-- Note tag -->
-                <div class='text-subtitle2 text-primary q-mb-md row' style='margin-top: 35px'>
-                    CUSTOM NOTE
-                    <span class='text-grey-5 text-uppercase text-caption' style='padding-left: 300px; margin-top: 2px;'>
-                        <span>Save to</span>
-                        <span style='padding-left: 26px; margin-top: 2px;'>Key bind</span>
-                    </span>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-sm text-center' style='margin-top: 35px;'>Custom note</div>
+                    <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
+                    <span>Tag frame</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>Key bind</span>
                 </div>
                 <div class='row'>
                     <TagFields class='col-10 q-mb-md' style='margin-bottom: 20px;' dense v-model='$1t.settings.value.quickTag.noteTag.tag'></TagFields>
@@ -217,8 +217,8 @@
                 </div>
 
                 <q-separator class='custom-separator' inset color="darker"/>
-                <div class='q-mb-lg'></div>
-                <div v-for='(tag, i) in $1t.settings.value.quickTag.custom' :key='"tag"+i' class='q-mb-md'>
+                <div class='q-mb-lg' style='margin-bottom: 29px;'></div>                
+                <div v-for='(tag, i) in $1t.settings.value.quickTag.custom' :key='"tag"+i'>
                     <div class='row'>
                         <div class='text-subtitle1 text-bold q-mb-sm' style='margin-top: 4px;' v-if='!customQTEdit[i]'>{{tag.name}}</div>
                         <q-input dense filled v-if='customQTEdit[i]' v-model='$1t.settings.value.quickTag.custom[i].name'></q-input>
@@ -266,7 +266,7 @@
                         flat 
                         color='primary' 
                         class='q-mt-sm q-mb-sm' 
-                        style='margin-bottom: 11px;'
+                        style='margin-bottom: 22px;'
                         icon='mdi-plus'
                         @click='addNewQTValue(i)'
                     >Add new value</q-btn>
@@ -287,20 +287,22 @@
             <div v-if='tab == "advanced"'>
                 
                 <!-- Open settings folder -->
+                <div class='text-center'>
                 <q-btn
                     color='primary'
-                    class='text-black q-mb-md'
+                    class='text-black q-mb-md q-mt-sm'
                     @click='$1t.send("openSettingsFolder")'
                 >Open data folder</q-btn>
+                </div>
                 
                 
-                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Auto Tag</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Auto Tag</div>
                 <q-checkbox
                     v-model='$1t.settings.value.autoTaggerSinglePage'
                     label="Show as single page"
                     class='checkbox'
                 ></q-checkbox><br>
-                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Quick Tag</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Quick Tag</div>
                 <q-checkbox
                     v-model='$1t.settings.value.quickTag.autosave'
                     label='Autosave changes when switching to a different track'
@@ -322,7 +324,7 @@
                     class='checkbox'
                 ></q-checkbox><br>
 
-                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Edit Tags</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Edit Tags</div>
                 <q-checkbox
                     v-model='$1t.settings.value.tagEditorDouble'
                     label="Show 'Your list'"
@@ -339,14 +341,14 @@
                     class='checkbox'
                 ></q-checkbox><br>
 
-                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Display</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Display</div>
                 <q-checkbox
                     v-model='$1t.settings.value.helpButton'
                     label='Show help button'
                     class='checkbox'
                 ></q-checkbox>     
                 
-                <div class='q-mt-md text-subtitle2 text-uppercase text-bold text-grey-4'>Advanced</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Advanced</div>
                 <q-checkbox
                     v-model='$1t.settings.value.clientSidePlayer'
                     label='Client side player (for server mode)'
@@ -359,7 +361,7 @@
                 ></q-checkbox>    
                         
                 <!-- Color picker -->
-                <div class='q-pt-md q-my-sm text-subtitle2 text-uppercase text-bold text-grey-4'>Primary color</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-md text-left'>Primary color</div>
                 <q-color 
                     v-model='$1t.settings.value.primaryColor'
                     @change='colorChange'

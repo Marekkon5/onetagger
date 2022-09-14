@@ -183,7 +183,7 @@
                     <div class='text-subtitle1 text-primary text-bold text-uppercase text-center'>Getting started with Audio Features</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
-                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                        <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
                     </q-badge>
                     </div>    
 
@@ -432,7 +432,7 @@
                     <div class='text-subtitle1 text-primary text-bold text-uppercase text-center'>Getting started with Quick Tag</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
-                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                        <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
                     </q-badge>
                     </div>    
 
@@ -525,7 +525,7 @@
                     <div class='text-subtitle1 text-primary text-bold text-uppercase text-center'>GETTING STARTED WITH EDIT TAGS</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
-                        <span class='text-number text-bold text-grey-9'>{{page+1}} / {{pages}}</span>
+                        <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
                     </q-badge>
                     </div>    
 

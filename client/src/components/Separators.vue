@@ -4,21 +4,21 @@
         <q-input
             v-model='id3'
             filled
-            label='ID3 Separator (MP3 + AIFF)'
+            label='ID3 (MP3 + AIFF)'
             class='col-4 q-pr-sm'
             @update:model-value='save'
         ></q-input>
         <q-input
             v-model='vorbis'
             filled
-            label='FLAC Separator (Leave empty for default)'
+            label='FLAC (empty is default)'
             class='col-4 q-px-sm'
             @update:model-value='save'
         ></q-input>
         <q-input
             v-model='mp4'
             filled
-            label='M4A Separator'
+            label='MP4/M4A'
             class='col-4 q-pl-sm'
             @update:model-value='save'
         ></q-input>
