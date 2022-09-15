@@ -4,11 +4,11 @@
             <!-- Header -->
             <q-header class="bg-darker text-white" height-hint="98">
                 <q-toolbar class="row justify-between">
-                    <div class="col-2" style="height: 58px">
+                    <div class="col-2 row" style="height: 58px">
                         <img src="./assets/icon.png" height="42" @click="home" class="logo q-mt-sm" :class="{ spin: $1t.lock.value.locked }" />
-                        <img src="./assets/logo-text.png" height="42" @click="home" class="logo" />
+                        <img src="./assets/logo-text.png" height="42" @click="home" class="logo" style="margin-top: 8px" />
                     </div>
-
+                    
                     <div class="col-8">
                         <q-tabs style="padding-top: 8px">
                             <q-route-tab :disable="$1t.lock.value.locked" to="/" class="text-weight-bolder" @click="hideSide">
