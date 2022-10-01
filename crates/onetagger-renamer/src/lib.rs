@@ -49,7 +49,7 @@ impl Renamer {
         let files = AudioFileInfo::get_file_list(&config.path, config.subfolders);
         let mut output = vec![];
         for (i, file) in files.iter().enumerate() {
-            let info = match AudioFileInfo::load_file(&file, None) {
+            let info = match AudioFileInfo::load_file(&file, None, None) {
                 Ok(info) => info,
                 Err(e) => {
                     warn!("Failed loading: {file}. Skipping! {e}");

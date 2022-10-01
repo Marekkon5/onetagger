@@ -86,6 +86,7 @@ pub struct TaggerConfig {
     pub only_year: bool,
     pub move_files: bool,
     pub move_target: Option<String>,
+    pub title_regex: Option<String>,
     /// Tag the same track on multiple platforms
     pub multiplatform: bool,
 
@@ -107,7 +108,7 @@ impl Default for TaggerConfig {
             isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false, only_year: false,
             overwrite: false, merge_genres: false, album_art_file: false, camelot: false, styles_options: StylesOptions::Default,
             parse_filename: false, filename_template: None, short_title: false, match_duration: false, multiplatform: false,
-            max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default,
+            max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default, title_regex: None,
             post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(), include_subfolders: true,
             track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false, move_files: false, move_target: None
         }
@@ -284,7 +285,7 @@ pub struct AudioFileInfo {
 }
 
 impl AudioFileInfo {
-    // Get title
+    /// Get title (or error shorthand)
     pub fn title(&self) -> Result<&str, Box<dyn Error>> {
         if self.title.is_none() {
             error!("Track is missing title tag. {}", self.path);
@@ -293,7 +294,7 @@ impl AudioFileInfo {
         Ok(self.title.as_ref().unwrap().as_str())
     }
 
-    // Get first artist
+    /// Get first artist (or error shorthand)
     pub fn artist(&self) -> Result<&str, Box<dyn Error>> {
         if self.artists.is_empty() {
             error!("Track is missing artist tag. {}", self.path);
@@ -507,7 +508,7 @@ impl PlatformCustomOptionsResponse {
 
 pub struct MatchingUtils;
 impl MatchingUtils {
-    // Clean title for searching
+    /// Clean title for searching
     pub fn clean_title(input: &str) -> String {
         let step1 = input.to_lowercase()
             // Remove - because search engines
@@ -533,7 +534,7 @@ impl MatchingUtils {
         out.trim().to_string()
     }
 
-    // Remove spacial characters
+    /// Remove spacial characters
     pub fn remove_special(input: &str) -> String {
         let special = ".,()[]&_\"'-/\\^";
         let mut out = input.to_string();
@@ -544,7 +545,7 @@ impl MatchingUtils {
         unidecode(out.trim())
     }
 
-    // Clean list of artists
+    /// Clean list of artists
     pub fn clean_artists(input: &Vec<String>) -> Vec<String> {
         let mut clean: Vec<String> = input.into_iter().map(
             |a| MatchingUtils::remove_special(&a.to_lowercase()).trim().to_string()
@@ -553,7 +554,7 @@ impl MatchingUtils {
         clean
     }
 
-    // Clean title for matching, removes special characters etc
+    /// Clean title for matching, removes special characters etc
     pub fn clean_title_matching(input: &str) -> String {
         let title = MatchingUtils::clean_title(input);
         // Remove edit, specials
@@ -562,7 +563,7 @@ impl MatchingUtils {
         step2.to_string()
     }
 
-    // Match atleast 1 artist
+    /// Match atleast 1 artist
     pub fn match_artist(a: &Vec<String>, b: &Vec<String>, strictness: f64) -> bool {
         // Exact match atleast 1 artist
         let clean_a = MatchingUtils::clean_artists(a);
@@ -596,7 +597,7 @@ impl MatchingUtils {
         false
     }
 
-    // Default track matching
+    /// Default track matching
     pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
         let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
         // Exact match
@@ -671,7 +672,7 @@ impl MatchingUtils {
         }
     }
 
-    // Match duration
+    /// Match duration
     pub fn match_duration(info: &AudioFileInfo, track: &Track, config: &TaggerConfig) -> bool {
         // Disabled
         if !config.match_duration || info.duration.is_none() {
@@ -686,7 +687,7 @@ impl MatchingUtils {
         diff <= config.max_duration_difference
     }
 
-    // Parse duration from String
+    /// Parse duration from String
     pub fn parse_duration(input: &str) -> Result<Duration, Box<dyn Error>> {
         let clean = input.replace("(", "").replace(")", "");
         let mut parts = clean.trim().split(":").collect::<Vec<&str>>();

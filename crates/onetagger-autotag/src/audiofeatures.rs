@@ -177,7 +177,7 @@ impl AudioFeatures {
                     message: None, accuracy: None, used_shazam: false
                 };
                 // Load file
-                if let Ok(info) = AudioFileInfo::load_file(&file, None) {
+                if let Ok(info) = AudioFileInfo::load_file(&file, None, None) {
                     if config.skip_tagged && info.tagged.af() {
                         // Skip tagged
                         status.status = TaggingState::Skipped;

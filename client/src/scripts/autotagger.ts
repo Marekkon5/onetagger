@@ -88,6 +88,7 @@ class AutotaggerConfig {
     moveFiles: boolean = false;
     moveTarget?: string;
     multiplatform: boolean = false;
+    titleRegex?: string;
     // TODO: annotate type
     custom: any = {};
     spotify?: SpotifyConfig;

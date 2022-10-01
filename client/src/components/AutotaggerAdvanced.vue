@@ -168,6 +168,14 @@
         </q-icon>
     </div>
 
+    <!-- Title cleanup regex -->
+    <q-input
+        v-model='$1t.config.value.titleRegex'
+        filled 
+        label='Title cleanup regex'
+        class='input'
+    ></q-input>
+
     <!-- Duration -->
     <br>
     <div class='row justify-center items-center' style='margin-bottom: -3px;'>

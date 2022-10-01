@@ -297,7 +297,7 @@ impl TrackImpl for Track {
 
 pub trait AudioFileInfoImpl {
     /// Load audio file info from path
-    fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>>;
+    fn load_file(path: &str, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>>;
     /// Load duration from file
     fn load_duration(&mut self);
     /// Parse the filename template
@@ -309,7 +309,7 @@ pub trait AudioFileInfoImpl {
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {
-    fn load_file(path: &str, filename_template: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
+    fn load_file(path: &str, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag();
         // Get title artist from tag
@@ -351,6 +351,11 @@ impl AudioFileInfoImpl for AudioFileInfo {
             },
             None => FileTaggedStatus::Untagged,
         };
+
+        // Clean title
+        if let Some(re) = title_regex {
+            title = title.map(|t| re.replace_all(&t, "").to_string());
+        }
 
         // Track number
         let track_number = tag.get_field(Field::TrackNumber).unwrap_or(vec![String::new()])[0].parse().ok();
@@ -651,6 +656,8 @@ impl Tagger {
             }
         }
 
+        // Title cleanup regex
+        let title_regex = config.title_regex.as_ref().map(|r| Regex::new(&r).ok()).flatten();
 
         // Load audio file info by shazam or tags
         let mut info = if config.enable_shazam && config.force_shazam {
@@ -666,7 +673,7 @@ impl Tagger {
                 }
             }
         } else {
-            match AudioFileInfo::load_file(path, template) {
+            match AudioFileInfo::load_file(path, template, title_regex) {
                 Ok(info) => info,
                 Err(e) => {
                     // Try shazam if enabled
