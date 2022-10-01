@@ -709,6 +709,11 @@ impl Tagger {
                             Ok(_) => {
                                 out.accuracy = Some(acc);
                                 out.status = TaggingState::Ok;
+                                // Move file
+                                match Tagger::move_file(&info, config) {
+                                    Ok(_) => {},
+                                    Err(e) => error!("Failed moving tagged file: {e}")
+                                };
                             },
                             Err(e) => out.message = Some(format!("Failed writing tags to file: {}", e))
                         }
@@ -761,6 +766,22 @@ impl Tagger {
             file_tx.send(f.to_string()).ok();
         }
         Some(rx)
+    }
+
+    /// Move file to target dir if enabled
+    fn move_file(info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        if !config.move_files || config.move_target.is_none() {
+            return Ok(());
+        }
+        // Generate path
+        let target_dir = Path::new(config.move_target.as_ref().unwrap());
+        let filename = Path::new(&info.path).file_name().unwrap();
+        std::fs::create_dir_all(&target_dir).ok();
+        let target = Path::new(&target_dir).join(filename);
+        std::fs::copy(&info.path, target)?;
+        std::fs::remove_file(&info.path)?;
+
+        Ok(())
     }
 }
 

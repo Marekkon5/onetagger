@@ -85,6 +85,8 @@ class AutotaggerConfig {
     onlyYear: boolean = false;
     includeSubfolders: boolean = true;
     stylesCustomTag: FrameName = FrameName.same('STYLE');
+    moveFiles: boolean = false;
+    moveTarget?: string;
     // TODO: annotate type
     custom: any = {};
     spotify?: SpotifyConfig;
