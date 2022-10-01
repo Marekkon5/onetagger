@@ -121,8 +121,8 @@ impl TrackImpl for Track {
         if config.genre && !self.genres.is_empty() {
             if config.merge_genres {
                 // Merge with existing ones
-                let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).iter().map(|g| g.to_lowercase()).collect();
-                let mut genres = self.genres.clone().into_iter().filter(|g| !current.iter().any(|i| i == &g.to_lowercase())).collect();
+                let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
+                let mut genres = self.genres.clone().into_iter().filter(|g| !current.iter().any(|i| i.to_lowercase() == g.to_lowercase())).collect();
                 current.append(&mut genres);
                 tag.set_field(Field::Genre, current, config.overwrite); 
             } else {
@@ -137,8 +137,8 @@ impl TrackImpl for Track {
 
             } else if config.merge_genres {
                 // Merge with existing ones
-                let mut current: Vec<String> = tag.get_field(Field::Style).unwrap_or(vec![]).iter().map(|s| s.to_lowercase()).collect();
-                let mut styles = self.styles.clone().into_iter().filter(|s| !current.iter().any(|i| i == &s.to_lowercase())).collect();
+                let mut current: Vec<String> = tag.get_field(Field::Style).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
+                let mut styles = self.styles.clone().into_iter().filter(|s| !current.iter().any(|i| i.to_lowercase() == s.to_lowercase())).collect();
                 current.append(&mut styles);
                 tag.set_field(Field::Style, current, config.overwrite); 
 
@@ -709,6 +709,11 @@ impl Tagger {
                             Ok(_) => {
                                 out.accuracy = Some(acc);
                                 out.status = TaggingState::Ok;
+                                // Move file
+                                match Tagger::move_file(&info, config) {
+                                    Ok(_) => {},
+                                    Err(e) => error!("Failed moving tagged file: {e}")
+                                };
                             },
                             Err(e) => out.message = Some(format!("Failed writing tags to file: {}", e))
                         }
@@ -761,6 +766,22 @@ impl Tagger {
             file_tx.send(f.to_string()).ok();
         }
         Some(rx)
+    }
+
+    /// Move file to target dir if enabled
+    fn move_file(info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        if !config.move_files || config.move_target.is_none() {
+            return Ok(());
+        }
+        // Generate path
+        let target_dir = Path::new(config.move_target.as_ref().unwrap());
+        let filename = Path::new(&info.path).file_name().unwrap();
+        std::fs::create_dir_all(&target_dir).ok();
+        let target = Path::new(&target_dir).join(filename);
+        std::fs::copy(&info.path, target)?;
+        std::fs::remove_file(&info.path)?;
+
+        Ok(())
     }
 }
 

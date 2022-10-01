@@ -82,7 +82,6 @@
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 
             label='Parse metadata from filename'
-            style='margin-bottom: 29px;' 
             tooltip='Valid variables are: %track%, %artist%, %title%, etc. anything in between % % gets treated as dynamic content'
             v-model='$1t.config.value.parseFilename'
         ></AdvancedSettingsToggle>
@@ -91,9 +90,24 @@
                 v-model='$1t.config.value.filenameTemplate'
                 filled
                 label='Filename scheme'
-                class='input q-mb-xl' 
+                class='input q-mb-sm' 
             ></q-input>
         </div>
+
+        <!-- Move file -->
+        <AdvancedSettingsToggle
+            label='Move files after tagging'
+            v-model='$1t.config.value.moveFiles'
+        ></AdvancedSettingsToggle>
+        <div v-if='$1t.config.value.moveFiles'>
+            <q-input
+                v-model='$1t.config.value.moveTarget'
+                filled
+                label='Target folder'
+                class='input q-mb-sm' 
+            ></q-input>
+        </div>
+
     </q-list>
 
     <!-- Multiple matches ordering -->
