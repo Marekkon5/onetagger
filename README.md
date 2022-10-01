@@ -1,4 +1,11 @@
-# ![Logo](https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/32x32.png) OneTagger
+<div style='text-align: center;'>
+    <img alt='logo' src='https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/onetagger-logo-github.png'>
+    <br>
+    <h2><b> The ultimate cross-platform tagger for DJs </b></h2>
+</div>
+
+
+## OneTagger
 
 Cross-platform music tagger written in Rust, Vue.js and Quasar.
 It can fetch metadata from Beatport, Traxsource, Juno Download and Discogs.
