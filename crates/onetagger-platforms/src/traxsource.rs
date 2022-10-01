@@ -164,7 +164,7 @@ impl Traxsource {
         selector = Selector::parse("h1.artists").unwrap();
         let album_artists_element = document.select(&selector).next().unwrap();
         let album_artists_text = album_artists_element.text().collect::<Vec<_>>().join(" ");
-        let album_artists: Vec<String> = album_artists_text.split(",").map(String::from).collect();
+        let album_artists: Vec<String> = album_artists_text.split(",").map(|i| i.trim().to_string()).collect();
         track.album_artists = album_artists;
 
         // Track number
@@ -200,7 +200,7 @@ impl AutotaggerSource for Traxsource {
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
             if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist || config.track_number || config.track_total {
-                match self.extend_track(&mut track, config.catalog_number || config.track_number || config.album_art || config.track_total) {
+                match self.extend_track(&mut track, config.catalog_number || config.track_number || config.album_art || config.track_total || config.album_artist) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
                 }
