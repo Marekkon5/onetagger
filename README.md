@@ -1,20 +1,25 @@
-<div style='text-align: center;'>
-    <img alt='logo' src='https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/onetagger-logo-github.png'>
-    <br>
-    <h2><b> The ultimate cross-platform tagger for DJs </b></h2>
-</div>
+<p align='center'>
+    <img alt='Logo' src='https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/onetagger-logo-github.png'>
+</p>
+<h1 align='center'>The ultimate cross-platform tagger for DJs</h1>
 
+<p align='center'>
+    <img alt='Version Badge' src='https://img.shields.io/github/v/release/marekkon5/onetagger?label=Latest%20Release'>
+    <img alt='Supported OS' src='https://img.shields.io/badge/OS-Windows%2C%20Mac%20OS%2C%20Linux-orange'>
+    <img alt='Build Status' src='https://img.shields.io/github/workflow/status/marekkon5/onetagger/Build'>
+</p>
 
-## OneTagger
+<hr>
 
-Cross-platform music tagger written in Rust, Vue.js and Quasar.
-It can fetch metadata from Beatport, Traxsource, Juno Download and Discogs.
+Cross-platform music tagger.
+It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
 It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
 There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts.
+Written in Rust, Vue.js and Quasar.
 
 MP3, AIFF, FLAC, M4A (AAC, ALAC) supported.
 
-For more info check out our [website](https://onetagger.github.io/).
+*For more info and tutorials check out our [website](https://onetagger.github.io/).*
 
 https://user-images.githubusercontent.com/15169286/143677591-a8571820-1e7e-486d-aa1d-091ee52cce66.mp4
 
