@@ -1,4 +1,4 @@
-const ABSTRACTIONS = {
+const ABSTRACTIONS: Record<string, string> = {
     "TIT2": "Title",
     "TCON": "Genre",
     "TALB": "Album",
@@ -117,4 +117,4 @@ const ID3 = [
     "MVNM (Movement Name)"
 ];
 
-export {ABSTRACTIONS, MP4, VORBIS, ID3};
+export { ABSTRACTIONS, MP4, VORBIS, ID3 };

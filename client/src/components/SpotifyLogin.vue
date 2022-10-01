@@ -9,51 +9,37 @@
     </div>
     <!-- Client ID and secret field -->
     <form class='row q-mt-xl auth-container justify-evenly'>
-        <q-input v-model='$1t.spotify.clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
-        <q-input v-model='$1t.spotify.clientSecret' :type='$1t.info.os == "macos" ? "text" : "password"' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
+        <q-input v-model='$1t.spotify.value.clientId' outlined label='Client ID' class='col-5 q-pr-xs'></q-input>
+        <q-input v-model='$1t.spotify.value.clientSecret' :type='$1t.info.value.os == "macos" ? "text" : "password"' outlined label='Client Secret' class='col-5 q-pr-xs'></q-input>
         <q-btn push color='primary' class='text-black' @click='authorize'>Login</q-btn>
     </form>
 </div>
 </template>
 
-<script>
-export default {
-    name: 'SpotifyLogin',
-    methods: {
-        authorize() {
-            this.$1t.send("spotifyAuthorize", {
-                clientId: this.$1t.spotify.clientId,
-                clientSecret: this.$1t.spotify.clientSecret
-            });
-            // Save (using AF for compatibility with older settings)
-            this.$1t.settings.audioFeatures.spotifyClientId = this.$1t.spotify.clientId;
-            this.$1t.settings.audioFeatures.spotifyClientSecret = this.$1t.spotify.clientSecret;
-            this.$1t.saveSettings();
-        }
-    },
-    mounted() {
-        // Register events
-        this.$1t.onSpotifyAuthEvent = (json) => {
-            switch (json.action) {
-                case 'spotifyAuthorized':
-                    this.$1t.spotify.authorized = json.value;
-                    break;
-            }
-        }
-    },
-    computed: {
-        redirectUrl() {
-            return `http://${window.location.hostname}:36914/spotify`
-        }
-    }
+<script lang='ts' setup>
+import { get1t } from '../scripts/onetagger.js';
+import { spotifyUrl } from '../scripts/utils';
+
+const $1t = get1t();
+const redirectUrl = spotifyUrl();
+
+function authorize() {
+    $1t.send("spotifyAuthorize", {
+        clientId: $1t.spotify.value.clientId,
+        clientSecret: $1t.spotify.value.clientSecret
+    });
+    // Save (using AF for compatibility with older settings)
+    $1t.settings.value.audioFeatures.spotifyClientId = $1t.spotify.value.clientId;
+    $1t.settings.value.audioFeatures.spotifyClientSecret = $1t.spotify.value.clientSecret;
+    $1t.saveSettings();
 }
 </script>
 
 <style>
 .doc-link {
-    color: var(--q-color-primary);
+    color: var(--q-primary) !important;
 }
 .doc-link:hover {
-    color: #f0f0f0;    
+    color: #f0f0f0 !important;    
 }
 </style>

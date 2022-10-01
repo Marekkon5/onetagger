@@ -31,35 +31,20 @@
 </div>
 </template>
 
-<script>
-import TagField from './TagField';
+<script lang='ts' setup>
+import { ref } from 'vue';
+import { FrameName } from '../scripts/utils';
+import TagField from './TagField.vue';
 
-export default {
-    name: 'TagFields',
-    components: {TagField},
-    props: {
-        value: Object,
-        //Passthru
-        dense: {
-            type: Boolean,
-            default: false
-        },
-        tageditor: {
-            default: false,
-            type: Boolean
-        }
-    },
-    data() {
-        return {
-            tag: this.value
-        }
-    },
-    methods: {
-        // Update
-        onChange() {
-            this.$emit('input', this.tag);
-        }
-    }
+const { modelValue, dense, tageditor } = defineProps({
+    modelValue: { type: FrameName, required: true },
+    dense: { default: false, type: Boolean },
+    tageditor: { default: false, type: Boolean }
+});
+const tag = ref(modelValue);
+const emit = defineEmits(['update:modelValue']);
+
+function onChange() {
+    emit('update:modelValue', tag.value);
 }
-
 </script>

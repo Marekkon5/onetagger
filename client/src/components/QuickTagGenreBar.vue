@@ -2,7 +2,7 @@
 <div class='genre-bar' @mouseleave="onMouseLeave">
 
     <div class='row q-mx-md q-pt-sm no-wrap genre-bar-container'>
-        <div v-for='(genre, i) in $1t.settings.quickTag.genres' :key='"genre"+i'>
+        <div v-for='(genre, i) in $1t.settings.value.quickTag.genres' :key='"genre"+i'>
             <div 
                 @mouseenter="mouseOver = i"
                 class='q-mx-sm text-subtitle1 clickable text-no-wrap text-grey-4' 
@@ -12,7 +12,7 @@
                 {{genre.genre}}
 
                 <!-- Subgenres -->
-                <q-menu v-if='genre.subgenres' :value='mouseOver == i'>
+                <q-menu v-if='genre.subgenres' :model-value='mouseOver == i'>
                     <q-list @mouseleave="mouseOver = -1" class='bg-darker'>
                         <div v-for='(subgenre, j) in genre.subgenres' :key='"sg"+j'>
                             <q-item clickable @click='setGenre(subgenre)'>
@@ -35,29 +35,28 @@
 </div>
 </template>
 
-<script>
-export default {
-    name: 'QuickTagGenreBar',
-    data() {
-        return {
-            mouseOver: -1,
-        }
-    },
-    methods: {
-        isSelected(genre) {
-            return this.$1t.quickTag.track.genres.includes(genre);
-        },
-        setGenre(genre) {
-            this.$1t.quickTag.track.toggleGenre(genre);
-        },
-        // Stay open if subgenres are present
-        onMouseLeave() {
-            if (this.mouseOver == -1) return;
-            if (this.$1t.settings.quickTag.genres[this.mouseOver].subgenres.length > 0) return;
-            this.mouseOver = -1;
-        }
-    }
+<script lang='ts' setup>
+import { ref } from 'vue';
+import { get1t } from '../scripts/onetagger.js';
+
+const $1t = get1t();
+const mouseOver = ref(-1);
+
+function isSelected(genre: string) {
+    return $1t.quickTag.value.track!.genres.includes(genre);
 }
+
+function setGenre(genre: string) {
+    $1t.quickTag.value.track!.toggleGenre(genre);
+}
+
+// Stay open if subgenres are present
+function onMouseLeave() {
+    if (mouseOver.value == -1) return;
+    if ($1t.settings.value.quickTag.genres[mouseOver.value].subgenres.length > 0) return;
+    mouseOver.value = -1;
+}
+
 </script>
 
 <style>

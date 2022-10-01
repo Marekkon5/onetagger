@@ -8,19 +8,19 @@
         animated 
         alternative-labels
         flat 
-        class='bg-dark-page'
-        v-if='!$1t.settings.autoTaggerSinglePage'>
+        class='bg-darker'
+        v-if='!$1t.settings.value.autoTaggerSinglePage'>
 
         <!-- Platforms -->
         <q-step 
             :name='0' 
             title='Select Platforms' 
-            :done='step > 0 && $1t.config.platforms.length > 0'
+            :done='step > 0 && $1t.config.value.platforms.length > 0'
             icon='mdi-web'
-            :error='step > 0 && $1t.config.platforms.length == 0'
+            :error='step > 0 && $1t.config.value.platforms.length == 0'
             class='text-center step'>
 
-            <div class='text-h5 text-grey-4'>Select platforms</div>
+            <div class='text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
             <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
             <AutotaggerPlatforms class='q-mb-xl'></AutotaggerPlatforms>
         </q-step>
@@ -56,7 +56,7 @@
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-h5 text-grey-4'>Advanced</div>
+            <div class='text-subtitle1 text-bold text-primary'>ADVANCED</div>
             <span class='text-subtitle2 text-grey-6'>Miscellaneous options</span>
             <br>
             <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
@@ -65,7 +65,7 @@
     </q-stepper>
 
     <!-- Stepper bar -->
-    <div class='at-stepper-bar row justify-center content-center' v-if='!$1t.settings.autoTaggerSinglePage'>
+    <div class='at-stepper-bar row justify-center content-center' v-if='!$1t.settings.value.autoTaggerSinglePage'>
         <div>
             <q-btn push color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
                 Next
@@ -74,14 +74,14 @@
     </div>
 
     <!-- Single page -->
-    <div v-if='$1t.settings.autoTaggerSinglePage' class='text-center'>
+    <div v-if='$1t.settings.value.autoTaggerSinglePage' class='text-center'>
         <div class='row q-mx-xl'>
             <div class='col q-px-xl'>
                 <AutotaggerTags class='q-mt-md'></AutotaggerTags>
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
-                <div class='text-h5 q-mt-md text-grey-4'>Select platforms</div>
+                <div class='q-mt-md text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
                 <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
                 <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
@@ -109,79 +109,74 @@
 </div>
 </template>
 
-<script>
-import AutotaggerPlatforms from '../components/AutotaggerPlatforms';
-import AutotaggerTags from '../components/AutotaggerTags';
-import AutotaggerPlatformSpecific from '../components/AutotaggerPlatformSpecific';
-import AutotaggerAdvanced from '../components/AutotaggerAdvanced';
+<script lang='ts' setup>
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { get1t } from '../scripts/onetagger';
 
-export default {
-    name: 'Autotagger',
-    components: {AutotaggerPlatforms, AutotaggerTags, AutotaggerPlatformSpecific, AutotaggerAdvanced},
-    data() {
-        return {
-            step: 0
-        }
-    },
-    methods: {
-        startTagging() {
-            // Merge custom fields
-            let custom = {};
-            for (let platform of this.$1t.info.platforms) {
-                if (platform.platform.customOptions.options.length > 0) {
-                    custom[platform.platform.id] = {}
-                    for (let option of platform.platform.customOptions.options) {
-                        custom[platform.platform.id][option.id] = option.value;
-                    }
-                }
+import AutotaggerPlatforms from '../components/AutotaggerPlatforms.vue';
+import AutotaggerTags from '../components/AutotaggerTags.vue';
+import AutotaggerPlatformSpecific from '../components/AutotaggerPlatformSpecific.vue';
+import AutotaggerAdvanced from '../components/AutotaggerAdvanced.vue';
+
+const $1t = get1t();
+const $router = useRouter();
+const step = ref(0);
+
+function startTagging() {
+    // Merge custom fields
+    let custom: any = {};
+    for (let platform of $1t.info.value.platforms) {
+        if (platform.platform.customOptions.options.length > 0) {
+            custom[platform.platform.id] = {}
+            for (let option of platform.platform.customOptions.options) {
+                custom[platform.platform.id][option.id] = option.value;
             }
-            this.$1t.config.custom = custom;
-
-            // Save settings
-            this.$1t.saveSettings();
-            this.$1t.config.type = 'autoTagger';
-
-            // Tag playlist rather than folder
-            let playlist = null;
-            if (this.$1t.autoTaggerPlaylist && this.$1t.autoTaggerPlaylist.data)
-                playlist = this.$1t.autoTaggerPlaylist;
-
-            // Spotify auth
-            if (this.$1t.settings.audioFeatures.spotifyClientId && this.$1t.settings.audioFeatures.spotifyClientSecret) {
-                this.$1t.config.spotify = {
-                    clientId: this.$1t.settings.audioFeatures.spotifyClientId,
-                    clientSecret: this.$1t.settings.audioFeatures.spotifyClientSecret
-                }
-            } else {
-                this.$1t.config.spotify = null;
-            }
-
-            // Start
-            this.$1t.send('startTagging', {
-                config: this.$1t.config,
-                playlist
-            });
-            this.$router.push('/autotagger/status');
-        }
-    },
-    computed: {
-        // If tagging can be started
-        canStart() {
-            // Path or playlist & atleast 1 platform
-            return (this.$1t.config.path || (this.$1t.autoTaggerPlaylist && this.$1t.autoTaggerPlaylist.data)) && 
-                this.$1t.config.platforms.length > 0;
         }
     }
-};
+    $1t.config.value.custom = custom;
+
+    // Save settings
+    $1t.saveSettings();
+    $1t.config.value.type = 'autoTagger';
+
+    // Tag playlist rather than folder
+    let playlist = null;
+    if ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)
+        playlist = $1t.autoTaggerPlaylist.value;
+
+    // Spotify auth
+    if ($1t.settings.value.audioFeatures.spotifyClientId && $1t.settings.value.audioFeatures.spotifyClientSecret) {
+        $1t.config.value.spotify = {
+            clientId: $1t.settings.value.audioFeatures.spotifyClientId,
+            clientSecret: $1t.settings.value.audioFeatures.spotifyClientSecret
+        }
+    } else {
+        $1t.config.value.spotify = undefined;
+    }
+
+    // Start
+    $1t.send('startTagging', {
+        config: $1t.config.value,
+        playlist
+    });
+    $router.push('/autotagger/status');
+}
+
+const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)) 
+    && $1t.config.value.platforms.length > 0) ? true : false);
+
 </script>
-<style>
+
+
+<style lang='scss'>
 .step {
     min-height: calc(100vh - 164px);
     max-height: calc(100vh - 164px);
-    background: #1a1c1b;
+    background: #181818;
 }
 .q-stepper__step-inner {
-    background: #1a1c1b;
+    background: #181818;
 }
 
 .input {
@@ -209,6 +204,6 @@ export default {
     position: absolute;
     height: 64px;
     bottom: 0%;
-    background-color: var(--q-color-accent);
+    background-color: var(--q-accent);
 }
 </style>

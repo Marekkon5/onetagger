@@ -253,13 +253,28 @@ impl TagImpl for MP4Tag {
             }
 
             // Add each data separately
-            for v in value {
-                self.tag.add_data(ident.clone(), Data::Utf8(v));
+            if self.separator.is_empty() {
+                for v in value {
+                    self.tag.add_data(ident.clone(), Data::Utf8(v));
+                }
+            } else {
+                self.tag.add_data(ident.clone(), Data::Utf8(value.join(&self.separator)));
             }
         }
     }
 
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
+        // Overrides
+        if field == Field::TrackNumber {
+            return self.tag.track_number().map(|v| vec![v.to_string()]);
+        }
+        if field == Field::TrackTotal {
+            return self.tag.total_tracks().map(|v| vec![v.to_string()]);
+        }
+        if field == Field::DiscNumber {
+            return self.tag.disc_number().map(|v| vec![v.to_string()]);
+        }
+
         self.raw_by_ident(&MP4Tag::field_to_ident(field))
     }
 

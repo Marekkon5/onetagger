@@ -1,6 +1,6 @@
 [package]
 name = "onetagger"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2021"
 description = "App to tag your music library."
 keywords = ["gui", "audio"]
@@ -8,17 +8,20 @@ categories = ["multimedia::audio"]
 
 [dependencies]
 log = "0.4"
+mime = "0.3"
 dunce = "1.0"
 image = "0.24"
 opener = "0.5"
 base64 = "0.13"
-rouille = "3.0"
+rouille = "3.5"
 walkdir = "2.3"
 web-view = "0.7"
 tempfile = "3.2"
 serde_json = "1.0"
 webbrowser = "0.7"
+mime_guess = "2.0"
 urlencoding = "2.1"
+include_dir = "0.7"
 directories = "4.0"
 tungstenite = "0.17"
 tinyfiledialogs = "3.3"
@@ -53,7 +56,7 @@ name = "OneTagger"
 identifier = "com.marekkon5.onetagger"
 icon = ["../../assets/32x32.png", "../../assets/128x128.png", "../../assets/128x128@2x.png", 
     "../../assets/icon.icns", "../../assets/icon.ico"]
-version = "1.4.0"
+version = "1.5.0"
 resources = []
 copyright = "Copyright (c) Marekkon5 2022. All rights reserved."
 category = "Music"

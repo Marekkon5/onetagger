@@ -28,130 +28,132 @@
 </div>
 </template>
 
-<script>
-export default {
-    name: 'FileBrowser',
-    data() {
-        return {
-            path: '/',
-            folders: [],
-            onResolve: null,
-            baseLoaded: false,
-        }
-    },
-    props: {
-        base: {
-            type: String,
-            default: '/'
-        },
-    },
-    methods: {
-        // Tree lazy loading
-        lazyLoad({ node, done }) {
-            this.path = node.parent;
-            this.onResolve = done;
-            this.$1t.send('folderBrowser', { path: this.path, child: node.label, base: false });
-        },
-        // Convert entry into a tree node
-        convEntry(entry) {
-            if (entry.children)
-                entry.children = entry.children.map((e) => {
-                    let parts = e.path.replace(/\\/g, "/").split('/');
-                    // Recurse
-                    if (e.children) {
-                        e = this.convEntry(e);
-                    }
-                    return {
-                        label: parts[parts.length - 1],
-                        lazy: e.children ? false : true,
-                        parent: entry.path,
-                        path: e.path,
-                        children: e.children
-                    }; 
-                });
-            return entry;
-        },
-        // Find scroll offset of a path
-        findScrollOffset(entry, parts, prev = 0) {
-            for(let i=0; i<(entry.children??[]).length; i++) {
-                if (entry.children[i].label == parts[0]) {
-                    parts.splice(0, 1);
-                    return this.findScrollOffset(entry.children[i], parts, prev + i);
-                }
+<script lang='ts' setup>
+import { onMounted, ref } from 'vue';
+import { get1t } from '../scripts/onetagger.js';
+
+const { base } = defineProps({
+    base: { type: String, default: '/' }
+});
+const $1t = get1t();
+const path = ref('/');
+const folders = ref<any[]>([]);
+const baseLoaded = ref(false);
+let onResolve: any = undefined;
+
+
+// Tree lazy loading
+function lazyLoad({ node, done }: { node: any, done: any }) {
+    path.value = node.parent;
+    onResolve = done;
+    $1t.send('folderBrowser', { path: path.value, child: node.label, base: false });
+}
+
+// Convert entry into a tree node
+function convEntry(entry: any) {
+    if (entry.children)
+        entry.children = entry.children.map((e: any) => {
+            let parts = e.path.replace(/\\/g, "/").split('/');
+            // Recurse
+            if (e.children) {
+                e = convEntry(e);
             }
-            return prev;
-        },
-        // Split path to parts
-        pathParts(path) {
-            let parts = path.replace(/\\/g, "/").split("/");
-            if (parts.length == 0) return [];
-            if (parts[0] == '') {
-                parts.splice(0, 1);
-            }
-            return parts;
-        },
-        // Close
-        cancel() {
-            this.$1t.folderBrowser.open = false;
-        },
-        // Save
-        save() {
-            this.$1t.onBrowse({ context: this.$1t.folderBrowser.context, path: this.path, action: 'browse' });
-            this.$1t.folderBrowser.open = false;
-        }
-    },
-    mounted() {
-        // Register events
-        this.$1t.onFolderBrowserEvent = (json) => {
-            switch (json.action) {
-                case 'folderBrowser':
-                    // Base folder structure
-                    if (json.base) {
-                        var entry = this.convEntry(json.entry);
-                        this.folders = entry.children;
-                        this.path = json.path;
-                        this.baseLoaded = true;
+            return {
+                label: parts[parts.length - 1],
+                lazy: e.children ? false : true,
+                parent: entry.path,
+                path: e.path,
+                children: e.children
+            }; 
+        });
+    return entry;
+}
 
-                        // Scroll
-                        setTimeout(() => {
-                            let offset = this.findScrollOffset(entry, this.pathParts(this.path));
-                            this.$refs.folderList.scrollTo({
-                                top: offset * 23,
-                                behavior: 'smooth'
-                            });
-                        }, 64);
-                        
-                        break;
-                    }
-
-                    // Structure
-                    var folders = this.convEntry(json.entry).children;
-
-                    // Resolve lazy load
-                    if (this.onResolve) {
-                        this.onResolve(folders);
-                        this.onResolve = null;
-                    } else {
-                        this.folders = folders;
-                        this.baseLoaded = true;
-                    }
-
-                    this.path = json.path;
-                    break;
-            }
-        }
-
-        // Load base
-        if (this.base) {
-            this.$1t.send('folderBrowser', { path: this.base, child: '', base: true });
-        } else {
-            this.$1t.send('folderBrowser', { path: this.path, child: '', base: false });
+// Find scroll offset of a path
+function findScrollOffset(entry: any, parts: any[], prev = 0): number {
+    for(let i=0; i<(entry.children??[]).length; i++) {
+        if (entry.children[i].label == parts[0]) {
+            parts.splice(0, 1);
+            return findScrollOffset(entry.children[i], parts, prev + i);
         }
     }
+    return prev;
 }
+
+// Split path to parts
+function pathParts(path: string) {
+    let parts = path.replace(/\\/g, "/").split("/");
+    if (parts.length == 0) return [];
+    if (parts[0] == '') {
+        parts.splice(0, 1);
+    }
+    return parts;
+}
+
+// Close
+function cancel() {
+    $1t.folderBrowser.value.open = false;
+}
+
+// Save
+function save() {
+    $1t.onBrowse({ context: $1t.folderBrowser.value.context, path: path.value, action: 'browse' });
+    $1t.folderBrowser.value.open = false;
+}
+
+const folderList = ref<any>();
+onMounted(() => {
+    // Register events
+    $1t.onFolderBrowserEvent = (json) => {
+        switch (json.action) {
+            case 'folderBrowser':
+                // Base folder structure
+                if (json.base) {
+                    var entry = convEntry(json.entry);
+                    folders.value = entry.children;
+                    path.value = json.path;
+                    baseLoaded.value = true;
+
+                    // Scroll
+                    setTimeout(() => {
+                        let offset = findScrollOffset(entry, pathParts(path.value));
+                        folderList.value!.scrollTo({
+                            top: offset * 23,
+                            behavior: 'smooth'
+                        });
+                    }, 64);
+                    
+                    break;
+                }
+
+                // Structure
+                var f = convEntry(json.entry).children;
+
+                // Resolve lazy load
+                if (onResolve) {
+                    onResolve(f);
+                    onResolve = undefined;
+                } else {
+                    folders.value = f;
+                    baseLoaded.value = true;
+                }
+
+                path.value = json.path;
+                break;
+        }
+    }
+
+    // Load base
+    if (base) {
+        $1t.send('folderBrowser', { path: base, child: '', base: true });
+    } else {
+        $1t.send('folderBrowser', { path: path.value, child: '', base: false });
+    }
+});
+
 </script>
 
-<style>
+<style lang='scss'>
 .folder-browser {
     width: 500px;
     height: 590px;

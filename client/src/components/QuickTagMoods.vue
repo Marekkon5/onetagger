@@ -1,14 +1,13 @@
 <template>
 <div class='q-mx-md'>
     <div class='q-mt-sm moods row'>
-        <div v-for='(mood, i) in $1t.settings.quickTag.moods' :key='"mood"+i' class='q-mx-xs'>
+        <div v-for='(mood, i) in $1t.settings.value.quickTag.moods' :key='"mood"+i' class='q-mx-xs' @click='moodSelect(mood)'>
             <q-chip 
                 :outline='!(moodSelected(mood) || moodHover == i)' 
                 :color='mood.color + ((moodSelected(mood) || moodHover == i) ? "-6" : "")'
                 :label='mood.mood'
-                @mousemove.native='moodHover = i'
-                @mouseleave.native="moodHover = -1"
-                @click.native='moodSelect(mood)'
+                @mousemove='moodHover = i'
+                @mouseleave="moodHover = -1"
                 class='pointer'
             ></q-chip>
         </div>
@@ -16,28 +15,28 @@
 </div>
 </template>
 
-<script>
-export default {
-    name: 'QuickTagLeft',
-    data() {
-        return {
-            moodHover: -1
-        }
-    },
-    methods: {
-        //If mood is in track data
-        moodSelected(mood) {
-            return this.$1t.quickTag.track && this.$1t.quickTag.track.mood == mood.mood
-        },
-        //Set mood
-        moodSelect(mood) {
-            if (!this.$1t.quickTag.track) return;
-            // toggle
-            if (this.$1t.quickTag.track.mood == mood.mood) this.$1t.quickTag.track.mood = null;
-            else this.$1t.quickTag.track.mood = mood.mood;
-        }
-    },
+<script lang='ts' setup>
+import { ref } from 'vue';
+import { get1t } from '../scripts/onetagger.js';
+import { QuickTagMood } from '../scripts/quicktag.js';
+
+const $1t = get1t();
+const moodHover = ref(-1);
+
+
+// If mood is in track data
+function moodSelected(mood: QuickTagMood) {
+    return $1t.quickTag.value.track && $1t.quickTag.value.track.mood == mood.mood
 }
+
+// Set mood
+function moodSelect(mood: QuickTagMood) {
+    if (!$1t.quickTag.value.track) return;
+    // toggle
+    if ($1t.quickTag.value.track.mood == mood.mood) $1t.quickTag.value.track.mood = undefined;
+    else $1t.quickTag.value.track.mood = mood.mood;
+}
+
 </script>
 
 <style>

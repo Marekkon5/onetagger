@@ -95,6 +95,7 @@ impl Beatport {
                 .send()?.json()?;
             response.expires_in = response.expires_in * 1000 + timestamp!() - 60000;
             *token = Some(response);
+            debug!("OAuth: {:?}", token);
         }
         // Expired
         let t = token.clone().unwrap();
@@ -102,7 +103,6 @@ impl Beatport {
             *token = None;
             return self.update_token();
         }
-        debug!("OAuth: {:?}", t);
         Ok(t.access_token)
     }
 
@@ -149,7 +149,7 @@ pub struct BeatportTrack {
     pub exclusive: Option<bool>
 }
 
-// TODO: Track from private API has different data!
+// Track from private API has different data!
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportAPITrack {
     pub slug: String,

@@ -11,8 +11,12 @@
                         width='50px' 
                         height='50px' 
                         class='rounded-borders' 
-                        :placeholder-src='require("../assets/placeholder.png")'
-                    />
+                        :placeholder-src='PLACEHOLDER_IMG'
+                    >
+                        <template v-slot:error>
+                            <q-img :src='PLACEHOLDER_IMG' width='50px' height='50px' class='rounded-borders'></q-img>
+                        </template>
+                    </q-img>
                 </div>
                 <!-- Title -->
                 <div class='col-4 q-pl-sm'>
@@ -25,9 +29,9 @@
                         <!-- Mood -->
                         <q-chip 
                             v-if='getMood(track.mood)'
-                            :color='getMood(track.mood).color + "-6"'
-                            :outline='getMood(track.mood).outline'
-                            :label='getMood(track.mood).mood'
+                            :color='getMood(track.mood)!.color + "-6"'
+                            :outline='getMood(track.mood)!.outline'
+                            :label='getMood(track.mood)!.mood'
                         ></q-chip>
                     </div>
                     <div class='col-3'>
@@ -42,7 +46,7 @@
                         <!-- Current track rating -->
                         <q-rating 
                             size='1.4em' 
-                            v-model='$1t.quickTag.track.energy'
+                            v-model='$1t.quickTag.value.track!.energy'
                             v-if='selected'
                         ></q-rating>
                     </div>
@@ -87,9 +91,15 @@
 </div>
 </template>
 
-<script>
+<script lang='ts' setup>
+import { computed, ref } from 'vue';
+import { get1t } from '../scripts/onetagger.js';
+import { QTTrack } from '../scripts/quicktag.js';
+import { httpUrl } from '../scripts/utils.js';
 
-const KEY_COLORS = {
+const PLACEHOLDER_IMG = (new URL('../assets/placeholder.png', import.meta.url)).toString();
+
+const KEY_COLORS: Record<string, string> = {
     "12A": "#00e5e5",
     "12B": "#00e5e5",
     "01A": "#00d58f",
@@ -116,7 +126,7 @@ const KEY_COLORS = {
     "11B": "#00c9fe"
 };
 
-const CAMELOT_KEYS = {
+const CAMELOT_KEYS: Record<string, string> = {
     "ABM" :"01A",
     "G#M" :"01A",
     "B"   :"01B",
@@ -154,57 +164,50 @@ const CAMELOT_KEYS = {
     "E"   :"12B",
 }
 
-export default {
-    name: 'QuickTagTile',
-    data() {
-        return {
-            mouseOver: false
-        }
-    },
-    props: {
-        track: Object
-    },
-    methods: {
-        // Get mood by name
-        getMood(name) {
-            if (!name) return null;
-            let mood = this.$1t.settings.quickTag.moods.find(m => m.mood == name);
-            // Inject outline if unknown mood
-            if (mood) {
-                mood.outline = false;
-                return mood;
-            }
-            return {mood: name, color: 'white', outline: true};
-        },
-        // Remove genre from track
-        removeGenre(genre) {
-            this.$1t.quickTag.track.toggleGenre(genre);
-        },
-        // Get color for musical key
-        keyColor(key) {
-            if (!key) return;
-            key = key.trim().toUpperCase();
-            // Camelot
-            let color = KEY_COLORS[CAMELOT_KEYS[key]];
-            // Normal
-            if (!color) {
-                if (key.length < 3) key = `0${key}`;
-                color = KEY_COLORS[key];
-            }
-            if (color) {
-                return `color: ${color};`;
-            }
-        }
-    },
-    computed: {
-        selected() {
-            return this.$1t.quickTag.track && this.track.path == this.$1t.quickTag.track.path;
-        },
-        art() {
-            return `http://${window.location.hostname}:36913/thumb?path=${encodeURIComponent(this.track.path)}`;
-        }
+const $1t = get1t();
+const mouseOver = ref(false);
+const { track } = defineProps({
+    track: { required: true, type: QTTrack }
+});
+
+
+// Get mood by name
+function getMood(name?: string) {
+    if (!name) return;
+    let mood = $1t.settings.value.quickTag.moods.find(m => m.mood == name);
+    // Inject outline if unknown mood
+    if (mood) {
+        mood.outline = false;
+        return mood;
+    }
+    return {mood: name, color: 'white', outline: true};
+}
+
+// Remove genre from track
+function removeGenre(genre: string) {
+    $1t.quickTag.value.track?.toggleGenre(genre);
+}
+
+// Get color for musical key
+function keyColor(key?: string) {
+    if (!key) return;
+    key = key.trim().toUpperCase();
+    // Camelot
+    let color = KEY_COLORS[CAMELOT_KEYS[key]];
+    // Normal
+    if (!color) {
+        if (key.length < 3) key = `0${key}`;
+        color = KEY_COLORS[key];
+    }
+    if (color) {
+        return `color: ${color};`;
     }
 }
+
+
+const selected = computed(() => $1t.quickTag.value.track && track.path == $1t.quickTag.value.track.path);
+const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.path)}`);
+
 </script>
 
 <style>

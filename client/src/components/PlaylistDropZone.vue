@@ -4,7 +4,7 @@
     @dragleave.prevent='drag = false'
     @drop.prevent='drop'
 >
-    <q-card class='inset-shadow-down' :class='{"bg-darker": (drag && !dark) || (!drag && dark)}' v-if='!tiny'>
+    <q-card class='elevation-4' :class='{"bg-highlight": drag, "playlist-drop-zone": !drag}' v-if='!tiny'>
         <q-card-section>
             <div 
                 style='width: 100%; height: 50px;'
@@ -29,10 +29,10 @@
             round
             flat
             icon='mdi-playlist-music'
-            :color='(drag || filename) ? "primary" : null'
+            :color='(drag || filename) ? "primary" : undefined'
             @click='filename ? remove() : true'
         >
-            <q-tooltip content-style="font-size: 13px">
+            <q-tooltip>
                 Drag & drop playlist here / click to remove it
             </q-tooltip>
         </q-btn>
@@ -40,65 +40,62 @@
 </div>
 </template>
 
-<script>
-export default { 
-    name: 'PlaylistDropZone',
-    props: {
-        value: Object,
-        tiny: {
-            default: false,
-            type: Boolean
-        },
-        dark: {
-            default: false,
-            type: Boolean
-        }
-    },
-    data() {
-        return { 
-            drag: false,
-            filename: this.value.filename
-        }
-    },
-    methods: {
-        drop(e) {
-            this.drag = false;
-            //Get file
-            let files = e.dataTransfer.files;
-            if (files.length !== 1) return;
-            let file = files[0];
-            //Filter supported
-            let type = this.getType(file.type);
-            if (!type) return;
-            this.filename = file.name;
+<script lang='ts' setup>
+import { ref } from 'vue';
+import { Playlist } from '../scripts/utils';
 
-            //Read
-            let reader = new FileReader();
-            reader.onload = f => {
-                //Emit
-                this.$emit('input', {
-                    data: f.target.result,
-                    format: type,
-                    filename: file.name
-                });
-            }
-            reader.readAsDataURL(file);
-        },
-        //Get type from mime
-        getType(mime) {
-            switch (mime.toLowerCase()) {
-                case 'audio/mpegurl':
-                case 'audio/x-mpegurl':
-                    return 'm3u';
-                default: 
-                    return null;
-            }
-        },
-        remove() {
-            this.filename = null;
-            this.$emit('input', {data: null, filename: null, format: null});
-        }
-    },
+const { value, tiny } = defineProps({
+    value: { type: Object },
+    tiny: { default: false, type: Boolean },
+});
+const drag = ref(false);
+const filename = ref(value?.filename);
+const emit = defineEmits(['input']);
+
+function drop(e: DragEvent) {
+    drag.value = false;
+    // Get file
+    let files = e.dataTransfer!.files;
+    if (files.length !== 1) return;
+    let file = files[0];
+    // Filter supported
+    let type = getType(file.type);
+    if (!type) return;
+    filename.value = file.name;
+
+    // Read
+    let reader = new FileReader();
+    reader.onload = f => {
+        //Emit
+        emit('input', {
+            data: f.target?.result,
+            format: type,
+            filename: file.name
+        } as Playlist)
+    }
+    reader.readAsDataURL(file);
+}
+
+// Get type from mime
+function getType(mime: string) {
+    switch (mime.toLowerCase()) {
+        case 'audio/mpegurl':
+        case 'audio/x-mpegurl':
+            return 'm3u';
+        default: 
+            return;
+    }
+}
+
+function remove() {
+    filename.value = undefined;
+    emit('input', {} as Playlist);
 }
 
 </script>
+
+<style lang='scss'>
+.playlist-drop-zone {
+    background-color: #99999910 !important;
+}
+</style>

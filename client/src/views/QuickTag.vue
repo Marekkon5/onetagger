@@ -1,7 +1,7 @@
 <template>
 <div>
     <!-- Tracks -->
-    <div class='tracklist qt-full-height' v-if='$1t.quickTag.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.track}'>
+    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
         <!-- Search -->
         <q-input
             filled 
@@ -28,14 +28,14 @@
 
         <!-- Stats -->
         <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
-            Loaded files: <span class='text-bold'>{{$1t.quickTag.tracks.length}}</span> | Filtered: <span class='text-bold'>{{tracks.length}}</span> | Failed to load: <span class='text-bold'>{{$1t.quickTag.failed}}</span>
+            Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span> | Filtered: <span class='text-bold'>{{tracks.length}}</span> | Failed to load: <span class='text-bold'>{{$1t.quickTag.value.failed}}</span>
         </div>
 
         <!-- Tracklist -->
         <div v-for='(item, i) in tracks' :key='i'>
             <q-intersection style='height: 140px;' @click.native='trackClick(item)' once>
-                <QuickTagTile :track='$1t.quickTag.track' v-if='$1t.quickTag.track && item.path == $1t.quickTag.track.path'></QuickTagTile>
-                <QuickTagTile :track='item' v-if='!$1t.quickTag.track || item.path != $1t.quickTag.track.path'></QuickTagTile>
+                <QuickTagTile :track='$1t.quickTag.value.track' v-if='$1t.quickTag.value.track && item.path == $1t.quickTag.value.track.path'></QuickTagTile>
+                <QuickTagTile :track='item' v-if='!$1t.quickTag.value.track || item.path != $1t.quickTag.value.track.path'></QuickTagTile>
             </q-intersection>
         </div>
 
@@ -45,15 +45,15 @@
         </div>
     </div>
 
-    <div v-if='$1t.quickTag.tracks.length == 0' class='qtbg-container qt-full-height'>
+    <div v-if='$1t.quickTag.value.tracks.length == 0' class='qtbg-container qt-full-height'>
         <!-- Loading -->
-        <div v-if='$1t.lock.locked' class='row justify-center'>
+        <div v-if='$1t.lock.value.locked' class='row justify-center'>
             <q-circular-progress indeterminate color='primary' size='64px'></q-circular-progress>
         </div>
 
         <!-- No path selected -->
-        <div @click='selectFolder' v-if='!$1t.lock.locked'>
-            <div class='text-center text-h4 text-grey-6 q-my-sm'>No folder selected!</div>
+        <div @click='selectFolder' v-if='!$1t.lock.value.locked'>
+            <div class='text-center text-subtitle1 text-bold text-primary q-my-sm'>NO FOLDER SELECTED</div>
             <div class='text-center text-subtitle1 text-grey-6'>Click here to select folder</div>
             <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
                 Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
@@ -84,7 +84,7 @@
 
     <!-- Note tag dialog -->
     <q-dialog v-model='noteDialog' @show='onNoteDialogShow'>
-        <q-card v-if='$1t.quickTag.track'>
+        <q-card v-if='$1t.quickTag.value.track'>
             <q-card-section>
                 <div class='text-h6'>Custom note</div>
             </q-card-section>
@@ -94,8 +94,8 @@
                     dense
                     label="Note tag"
                     style='width: 256px;'
-                    :value='$1t.quickTag.track.getNote()'
-                    @input='$1t.quickTag.track.setNote($event)'
+                    :model-value='$1t.quickTag.value.track.getNote()'
+                    @update:model-value='(d) => $1t.quickTag.value.track!.setNote(d as string)'
                     @keyup.enter="noteDialog = false"
                     ref='noteDialogInput'
                 ></q-input>
@@ -106,195 +106,200 @@
 </div>
 </template>
 
-<script>
-import QuickTagTile from '../components/QuickTagTile';
+<script lang='ts' setup>
+import { scroll, useQuasar } from 'quasar';
+import { computed, onDeactivated, onMounted, ref, watch } from 'vue';
+import { get1t } from '../scripts/onetagger.js';
+import { QTTrack } from '../scripts/quicktag.js';
 
-import { scroll } from 'quasar';
+import QuickTagTile from '../components/QuickTagTile.vue';
+
 const { setVerticalScrollPosition } = scroll;
 
-export default {
-    name: 'QuickTag',
-    components: {QuickTagTile},
-    data() {
-        return {
-            saveDialog: false,
-            noteDialog: false,
-            note: null,
-            filter: null,
+const $1t = get1t();
+const $q = useQuasar();
+const sortOptions =  ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key'];
+const saveDialog =  ref(false);
+const noteDialog =  ref(false);
+const note =  ref(undefined);
+const filter =  ref<string | undefined>(undefined);
+const sortDescending =  ref(false);
+const sortOption =  ref('title');
 
-            sortDescending: false,
-            sortOption: 'title',
-            sortOptions: ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key'],
-        }
-    },
-    methods: {
-        // Click on track card
-        trackClick(track) {
-            // Prevent clicking on same track
-            if (this.$1t.quickTag.track && track.path == this.$1t.quickTag.track.path) return;
-            this.$1t.loadQTTrack(track);
-        },
-        // Save dialog callback
-        async saveDialogCallback(save) {
-            if (save) {
-                await this.$1t.saveQTTrack();
-                this.$q.notify({
-                    message: "Tags saved!",
-                    color: 'primary',
-                    textColor: 'black',
-                    timeout: 500,
-                });
-            }
-            this.$1t.loadQTTrack(null, true);
-            this.saveDialog = false;
-            // focus on custom tags fix
-            setTimeout(() => { this.$1t.quickTagUnfocus(); }, 50);
-        },
-        // Select folder and load tracks
-        selectFolder() {
-            this.$1t.browse('qt', null);
-        },
-        // Focus
-        onNoteDialogShow() {
-            this.$refs.noteDialogInput.focus();
-        },
-        // Sort by option
-        sort(option) {
-            if (this.sortOption != option) {
-                // reset sort direction
-                this.sortDescending = false;
-                this.sortOption = option;
-            } else {
-                this.sortDescending = !this.sortDescending;
-            }
-        },
-        // Scroll to track index
-        scrollToIndex(index) {
-            setVerticalScrollPosition(this.$refs.tracklist, index * 140 - 154, 250);
-            // this.$refs.tracklist.scrollTop = index * 140 - 140;
-        }
-    },
-    computed: {
-        tracks() {
-            let tracks = this.$1t.quickTag.tracks;
-            if (this.filter) {
-                let filter = this.filter.toLowerCase();
-                // title, artist or track or tags
-                tracks = this.$1t.quickTag.tracks.filter((t) => 
-                    t.title.toLowerCase().includes(filter) || t.path.toLowerCase().includes(filter) ||
-                    t.artists.filter((a) => a.toLowerCase().includes(filter)).length > 0 ||
-                    (t.mood??'').toLowerCase().includes(filter) ||
-                    t.getAllCustom().some((i) => i.toLowerCase().includes(filter)) ||
-                    (t.genres??[]).some((i) => i.toLowerCase().includes(filter)) 
-                );
-            }
-            if (!this.sortOption) return tracks;
-            
-            // Sort
-            tracks.sort((a, b) => {
-                let va, vb;
-                switch (this.sortOption) {
-                    // Arrays
-                    case 'artist':
-                    case 'genre':
-                        va = a[`${this.sortOption}s`].join(', ').toLowerCase();
-                        vb = b[`${this.sortOption}s`].join(', ').toLowerCase();
-                        break;
-                    default:
-                        va = a[this.sortOption]??''.toLowerCase();
-                        vb = b[this.sortOption]??''.toLowerCase();
-                        break;
-                }
-                
 
-                // Compare
-                if (va < vb) {
-                    return -1;
-                }
-                if (va > vb) {
-                    return 1;
-                }
-                return 0;
-            });
-            if (this.sortDescending) tracks.reverse();
+// Click on track card
+function trackClick(track: QTTrack) {
+    // Prevent clicking on same track
+    if ($1t.quickTag.value.track && track.path == $1t.quickTag.value.track.path) return;
+    $1t.loadQTTrack(track);
+}
 
-            return tracks;
-        }
-    },
-    mounted() {
-        this.$1t.onQuickTagEvent = (action, data) => {
-            switch (action) {
-                // Save dialog
-                case 'onUnsavedChanges':
-                    //Autosave enabled
-                    if (this.$1t.settings.quickTag.autosave) {
-                        this.saveDialogCallback(true);
-                        return;
-                    }
+// Save dialog callback
+async function saveDialogCallback(save: boolean) {
+    if (save) {
+        await $1t.saveQTTrack();
+        $q.notify({
+            message: "Tags saved!",
+            color: 'primary',
+            textColor: 'black',
+            timeout: 500,
+        });
+    }
+    $1t.loadQTTrack(undefined, true);
+    saveDialog.value = false;
+    // focus on custom tags fix
+    setTimeout(() => { $1t.quickTagUnfocus(); }, 50);
+}
 
-                    this.saveDialog = true;
-                    setTimeout(() => {
-                        this.$refs.saveButton.$el.focus();
-                    }, 100)
-                    break;
-                // Note tag updated
-                case 'onNoteTag':
-                    this.noteDialog = true;
-                    break;
-                // Change track position relatively
-                case 'changeTrack':
-                    var offset = data.offset;
-                    var i = this.tracks.findIndex((t) => t.path == this.$1t.quickTag.track.path);
-                    if (i != -1 && (i + offset) != this.tracks.length && (i + offset) >= 0) {
-                        this.$1t.loadQTTrack(this.tracks[i + offset], data.force??false);
-                    }
-                    break;
-                case 'focusSearch':
-                    break
-                case 'quickTagLoad':
-                    if (this.$1t.settings.quickTag.trackIndex == -1 || this.$1t.quickTag.tracks.length == 0 || this.$1t.lock.locked) return;
-                    // Reload last opened track track
-                    setTimeout(() => {
-                        this.$1t.loadQTTrack(this.$1t.quickTag.tracks[this.$1t.settings.quickTag.trackIndex]);
-                        this.$1t.settings.quickTag.trackIndex = -1;
-                    }, 50);
+// Select folder and load tracks
+function selectFolder() {
+    $1t.browse('qt');
+}
 
-                    break;
-                default:
-                    console.log(`Unknown QT Event: ${action} ${data}`);
-                    break;
-            }
-        }
+// Focus
+const noteDialogInput = ref<HTMLElement | undefined>();
+function onNoteDialogShow() {
+    noteDialogInput.value?.focus();
+}
 
-        // Restore sort state
-        this.sortOption = this.$1t.settings.quickTag.sortOption||'title';
-        this.sortDescending = this.$1t.settings.quickTag.sortDescending === true;
-
-        // Load tracks if path available
-        this.$1t.loadQuickTag();
-    },
-    destroyed() {
-        // Save track index
-        if (this.$1t.quickTag.track)
-            this.$1t.settings.quickTag.trackIndex = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
-        else
-            this.$1t.settings.quickTag.trackIndex = -1;
-        // Save sorting
-        this.$1t.settings.quickTag.sortOption = this.sortOption;
-        this.$1t.settings.quickTag.sortDescending = this.sortDescending;
-
-        this.$1t.saveSettings(false);
-    },
-    watch: {
-        '$1t.quickTag.track'() {
-            let index = this.$1t.quickTag.tracks.findIndex((t) => this.$1t.quickTag.track.path == t.path);
-            this.scrollToIndex(index);
-        },
+// Sort by option
+function sort(option: string) {
+    if (sortOption.value != option) {
+        // reset sort direction
+        sortDescending.value = false;
+        sortOption.value = option;
+    } else {
+        sortDescending.value = !sortDescending.value;
     }
 }
+
+// Scroll to track index
+const tracklist = ref<HTMLElement | undefined>();
+function scrollToIndex(index: number) {
+    setVerticalScrollPosition(tracklist.value!, index * 140 - 154, 250);
+    // this.$refs.tracklist.scrollTop = index * 140 - 140;
+}
+
+const tracks = computed(() => {
+    let tracks = $1t.quickTag.value.tracks;
+    if (filter.value) {
+        let newFilter = filter.value.toLowerCase();
+        // title, artist or track or tags
+        tracks = $1t.quickTag.value.tracks.filter((t) => 
+            t.title.toLowerCase().includes(newFilter) || t.path.toLowerCase().includes(newFilter) ||
+            t.artists.filter((a: any) => a.toLowerCase().includes(newFilter)).length > 0 ||
+            (t.mood??'').toLowerCase().includes(newFilter) ||
+            t.getAllCustom().some((i: any) => i.toLowerCase().includes(newFilter)) ||
+            (t.genres??[]).some((i: any) => i.toLowerCase().includes(newFilter)) 
+        );
+    }
+    if (!sortOption.value) return tracks;
+    
+    // Sort
+    tracks.sort((a, b) => {
+        let va, vb;
+        switch (sortOption.value) {
+            // Arrays
+            case 'artist':
+            case 'genre':
+                va = a[`${sortOption.value}s`].join(', ').toLowerCase();
+                vb = b[`${sortOption.value}s`].join(', ').toLowerCase();
+                break;
+            default:
+                va = (a as any)[sortOption.value]??''.toLowerCase();
+                vb = (b as any)[sortOption.value]??''.toLowerCase();
+                break;
+        }
+        
+
+        // Compare
+        if (va < vb) {
+            return -1;
+        }
+        if (va > vb) {
+            return 1;
+        }
+        return 0;
+    });
+    if (sortDescending.value) tracks.reverse();
+
+    return tracks;
+});
+
+const saveButton = ref<any>();
+onMounted(() => {
+    $1t.onQuickTagEvent = (action, data) => {
+        switch (action) {
+            // Save dialog
+            case 'onUnsavedChanges':
+                //Autosave enabled
+                if ($1t.settings.value.quickTag.autosave) {
+                    saveDialogCallback(true);
+                    return;
+                }
+
+                saveDialog.value = true;
+                setTimeout(() => {
+                    saveButton.value?.$el.focus()
+                }, 100)
+                break;
+            // Note tag updated
+            case 'onNoteTag':
+                noteDialog.value = true;
+                break;
+            // Change track position relatively
+            case 'changeTrack':
+                var offset = data.offset;
+                var i = tracks.value.findIndex((t) => t.path == $1t.quickTag.value.track!.path);
+                if (i != -1 && (i + offset) != tracks.value.length && (i + offset) >= 0) {
+                    $1t.loadQTTrack(tracks.value[i + offset], data.force??false);
+                }
+                break;
+            case 'focusSearch':
+                break
+            case 'quickTagLoad':
+                if ($1t.settings.value.quickTag.trackIndex == -1 || $1t.quickTag.value.tracks.length == 0 || $1t.lock.value.locked) return;
+                // Reload last opened track track
+                setTimeout(() => {
+                    $1t.loadQTTrack($1t.quickTag.value.tracks[$1t.settings.value.quickTag.trackIndex]);
+                    $1t.settings.value.quickTag.trackIndex = -1;
+                }, 50);
+
+                break;
+            default:
+                console.log(`Unknown QT Event: ${action} ${data}`);
+                break;
+        }
+    }
+
+    // Restore sort state
+    sortOption.value = $1t.settings.value.quickTag.sortOption||'title';
+    sortDescending.value = $1t.settings.value.quickTag.sortDescending === true;
+
+    // Load tracks if path available
+    $1t.loadQuickTag();
+});
+
+onDeactivated(() => {
+    // Save track index
+    if ($1t.quickTag.value.track)
+        $1t.settings.value.quickTag.trackIndex = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
+    else
+        $1t.settings.value.quickTag.trackIndex = -1;
+    // Save sorting
+    $1t.settings.value.quickTag.sortOption = sortOption.value;
+    $1t.settings.value.quickTag.sortDescending = sortDescending.value;
+
+    $1t.saveSettings(false);
+});
+
+watch(() => $1t.quickTag.value.track, () => {
+    let index = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
+    scrollToIndex(index);
+});
 </script>
 
-<style>
+<style lang='scss'>
 .tracklist {
     overflow-y: auto;
 }
@@ -320,6 +325,10 @@ export default {
     background: #262828;
     margin-bottom: 4px;
     margin-left: 4px;
+}
+
+.bar-bg {
+    background: #00ff00;
 }
 
 </style>

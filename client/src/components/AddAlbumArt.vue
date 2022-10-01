@@ -26,7 +26,7 @@
                 @dragleave.prevent='drag = false'
                 @drop.prevent='drop'
             >
-                <q-img v-if='image' :src='image' style='height: 200px;' ref='image'></q-img>
+                <q-img v-if='image' :src='image' style='height: 200px;'></q-img>
                 <span class='text-grey-7 text-h6' v-if='!image'>Drag & drop image here</span>
             </div>
         </q-card-section>
@@ -41,57 +41,54 @@
     </q-card>
 </template>
 
-<script>
-export default {
-    name: 'AddAlbumArt',
-    props: {
-        types: Array
-    },
-    data() {
-        return { 
-            drag: false,
-            type: null,
-            image: null,
-            description: null
-        }
-    },
-    methods: {
-        drop(e) {
-            //Get file
-            let files = e.dataTransfer.files;
-            if (files.length !== 1) return;
-            let file = files[0];
-            if (!file.type.includes('image/')) return;
+<script lang='ts' setup>
+import { ref } from 'vue';
 
-            //Read
-            let reader = new FileReader();
-            reader.onload = f => {
-                this.image = f.target.result;
-            }
-            reader.readAsDataURL(file);
-            this.drag = false;
-        },
-        async add() {
-            //Load width/height
-            let wh = await new Promise((res) => {
-                let i = new Image();
-                i.onload = function() {
-                    res([i.width, i.height]);
-                }
-                i.src = this.image;
-            });
+const drag = ref(false);
+const type = ref<string | undefined>();
+const image = ref<string | undefined>();
+const description = ref<string | undefined>();
+const { types } = defineProps({
+    types: { type: Array, required: true }
+});
+const emit = defineEmits(['save', 'close']);
 
-            let image = {
-                data: this.image.substring(this.image.indexOf('base64,')+7).trim(),
-                mime: this.image.substring(5, this.image.indexOf(';')),
-                description: this.description??'',
-                kind: this.type,
-                width: wh[0],
-                height: wh[1]
-            }
-            this.$emit("save", image);
-            this.$emit("close");
-        }
+function drop(e: DragEvent) {
+    // Get file
+    let files = e.dataTransfer!.files;
+    if (files.length !== 1) return;
+    let file = files[0];
+    if (!file.type.includes('image/')) return;
+
+    // Read
+    let reader = new FileReader();
+    reader.onload = f => {
+        image.value = f.target!.result as string;
     }
+    reader.readAsDataURL(file);
+    drag.value = false;
 }
+
+async function add() {
+    // Load width/height
+    let wh: [number, number] = await new Promise((res) => {
+        let i = new Image();
+        i.onload = function() {
+            res([i.width, i.height]);
+        }
+        i.src = image.value!;
+    });
+
+    let outImage: any = {
+        data: image.value!.substring(image.value!.indexOf('base64,')+7).trim(),
+        mime: image.value!.substring(5, image.value!.indexOf(';')),
+        description: description.value??'',
+        kind: type.value,
+        width: wh[0],
+        height: wh[1]
+    }
+    emit("save", outImage);
+    emit("close");
+}
+
 </script>

@@ -719,7 +719,7 @@ impl Tagger {
             // Failed matching track
             Err(e) => {
                 error!("Matching error: {} ({})", e, path);
-                out.message = Some(format!("Error marching track: {}", e));
+                out.message = Some(format!("Error matching track: {}", e));
             }
         }
 

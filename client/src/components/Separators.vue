@@ -1,54 +1,43 @@
 <template>
 <div>
-
     <div class='row'>
         <q-input
             v-model='id3'
             filled
-            label='ID3 Separator (MP3 + AIFF)'
+            label='ID3 (MP3 + AIFF)'
             class='col-4 q-pr-sm'
-            @input='save'
+            @update:model-value='save'
         ></q-input>
         <q-input
             v-model='vorbis'
             filled
-            label='FLAC Separator (Leave empty for default)'
+            label='FLAC (empty is default)'
             class='col-4 q-px-sm'
-            @input='save'
+            @update:model-value='save'
         ></q-input>
         <q-input
             v-model='mp4'
             filled
-            label='M4A Separator'
+            label='MP4/M4A'
             class='col-4 q-pl-sm'
-            @input='save'
+            @update:model-value='save'
         ></q-input>
     </div>
-
 </div>
 </template>
 
-<script>
-export default {
-    name: 'Separators',
-    props: {
-        initial: Object
-    },
-    data() {
-        return {
-            id3: this.initial.id3??', ',
-            vorbis: this.initial.vorbis,
-            mp4: this.initial.mp4
-        }
-    },
-    methods: {
-        save() {
-            this.$emit('input', {
-                id3: this.id3,
-                vorbis: this.vorbis,
-                mp4: this.mp4
-            })
-        }
-    }
+<script lang='ts' setup>
+import { PropType, toRefs } from 'vue';
+import { Separators } from '../scripts/utils.js';
+
+const { modelValue } = defineProps({
+    modelValue: { type: Object as PropType<Separators>, required: true }
+});
+const { id3, vorbis, mp4 } = toRefs(modelValue);
+const emit = defineEmits(['update:modelValue']);
+
+function save() {
+    emit('update:modelValue', new Separators(id3.value, vorbis?.value??undefined, mp4.value));
 }
+
 </script>

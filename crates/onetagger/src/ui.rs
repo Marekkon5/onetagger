@@ -1,14 +1,11 @@
+use include_dir::Dir;
 use onetagger_player::AudioSources;
 use rouille::{router, Response};
 use serde::{Serialize, Deserialize};
 
 use crate::quicktag::QuickTagFile;
 
-// UI
-static BG_PNG: &'static [u8] = include_bytes!("../../../client/dist/bg.png");
-static INDEX_HTML: &'static str = include_str!("../../../client/dist/dist.html");
-static FAVICON_PNG: &'static [u8] = include_bytes!("../../../client/dist/favicon.png");
-
+static CLIENT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../client/dist");
 
 // Should have data from arguments and other flags (eg. port / host in future)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,16 +50,20 @@ pub fn start_webserver_thread(context: &StartContext) {
 
     std::thread::spawn(move || {
         rouille::start_server(host, move |request| {
+            // Path to static file
+            let mut path = request.url();
+            if path == "/" {
+                path = "/index.html".to_string();
+            }
+            path = path[1..].to_string();
+
+            // Static files
+            if let Some(file) = CLIENT_DIR.get_file(&path) {
+                let mime = mime_guess::from_path(&path).first().unwrap_or(mime::APPLICATION_OCTET_STREAM);
+                return Response::from_data(mime.to_string(), file.contents());
+            }
+
             router!(request, 
-                (GET) ["/"] => {
-                    Response::html(INDEX_HTML)
-                },
-                (GET) ["/bg.png"] => {
-                    Response::from_data("image/png", BG_PNG)
-                },
-                (GET) ["/favicon.png"] => {
-                    Response::from_data("image/png", FAVICON_PNG)
-                },
                 // Get thumbnail of image from tag by path
                 (GET) ["/thumb"] => {
                     match request.get_param("path") {

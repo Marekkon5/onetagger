@@ -1,56 +1,101 @@
-import Vue from 'vue';
+import { QuickTagSettings } from "./settings";
+import { FrameName, Keybind, Separators } from "./utils";
 
-class QTTrack {
-    // From backend
-    constructor(data, settings) {
+class QuickTag {
+    tracks: QTTrack[] = [];
+    track?: QTTrack;
+    failed: number = 0;
+}
+
+interface QuickTagMood {
+    mood: string;
+    color: string,
+    keybind?: Keybind
+    outline?: boolean;
+}
+
+class EnergyTag {
+    type: 'rating' | 'symbol' = 'rating';
+    symbol: string = '*';
+    tag: FrameName = new FrameName('TCOM', 'COMPOSER', '©wrt')
+
+    static fromJson(data: any): EnergyTag {
+        let et: EnergyTag = Object.assign(new EnergyTag(), data);
+        et.tag = FrameName.fromJson(data.tag);
+        return et;
+    }
+}
+
+interface QuickTagGenre {
+    genre: string;
+    keybind?: Keybind;
+    subgenres: string[]
+}
+
+interface QuickTagCustom {
+    name: string;
+    tag: FrameName;
+    values: QuickTagCustomValue[];
+}
+
+interface QuickTagCustomValue {
+    val: string;
+    keybind?: Keybind;
+}
+
+interface QuickTagFile {
+    path: string;
+    format: 'flac' | 'aiff' | 'mp3' | 'mp4';
+    title: string;
+    artists: string[];
+    genres: string[];
+    bpm?: number;
+    rating: number;
+    tags: Record<string, string[]>;
+    year?: number;
+    key?: string;
+}
+
+class QTTrack implements QuickTagFile {
+    // QuickTagFile
+    path!: string;
+    format!: "flac" | "aiff" | "mp3" | "mp4";
+    title!: string;
+    artists!: string[];
+    genres!: string[];
+    bpm?: number | undefined;
+    rating!: number;
+    tags!: Record<string, string[]>;
+    year?: number | undefined;
+    key?: string | undefined;
+
+    // QTTrack
+    mood?: string;
+    energy: number = 0;
+    note: string;
+    originalNote: string;
+    custom: string[][] = [];
+    originalGenres: string[];
+
+    settings: QuickTagSettings;
+
+    constructor(data: QuickTagFile, settings: QuickTagSettings) {
+        // Data from backend
         Object.assign(this, data);
         this.settings = settings;
 
-        // Load mood, energy etc
         this.mood = this.getMood();
         this.energy = this.getEnergy();
         this.note = this.getNote();
-        this._originalNote = this.note;
+        this.originalNote = this.note;
         this.custom = this.loadCustom();
-        // very retarded, but it is what it is
-        this._genres = JSON.parse(JSON.stringify(this.genres));
+        // Stupid copy
+        this.originalGenres = JSON.parse(JSON.stringify(this.genres));
     }
 
-    // Get note from tags
-    getNote() {
-        if (this.note || this.note === '') {
-            return this.note;
-        }
-        let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
-        let note = this.tags[field]??[];
-        // Remove custom tags from note
-        for (let custom of this.settings.custom) {
-            if (custom.tag[this.getTagField()] == field) {
-                note = note.filter(v => !custom.values.map(i => i.val).includes(v));
-            }
-        }
-        return note.join(',');
-    }
 
-    // Update note field
-    setNote(note) {
-        this.note = note;
-    }
-
-    // Get name of field for tag
-    getTagField() {
-        switch (this.format) {
-            case 'mp3':
-            case 'aiff':
-                return 'id3';
-            case 'flac':
-                return 'vorbis';
-            case 'mp4':
-                return 'mp4';
-        }
-    }
-
-    removeAbstractions(input) {
+    // Remove field name abstractions
+    removeAbstractions(input: string): string {
         if (this.format != 'mp4' || !input) return input;
         // Leading
         input = input.replace('----:', '');
@@ -58,38 +103,74 @@ class QTTrack {
         if (input.startsWith('iTunes:')) input = 'com.apple.' + input;
         return input;
     }
+    
+    // Get note from tags
+    getNote() {
+        if (this.note || this.note === '') {
+            return this.note;
+        }
+        let field = this.removeAbstractions(this.settings.noteTag.tag.byFormat(this.format));
+        let note = this.tags[field]??[];
+        // Remove custom tags from note
+        for (let custom of this.settings.custom) {
+            if (custom.tag.byFormat(this.format) == field) {
+                note = note.filter(v => !custom.values.map(i => i.val).includes(v));
+            }
+        }
+        return note.join(',');
+    }
+
+    // Update note field
+    setNote(note: string) {
+        console.log('setnote');
+        this.note = note;
+    }
 
     // Get mood tag value
     getMood() {
-        let field = this.removeAbstractions(this.settings.moodTag[this.getTagField()]);
+        let field = this.removeAbstractions(this.settings.moodTag.byFormat(this.format));
         if (this.tags[field]??[].length >= 1) {
             return this.tags[field][0]
         }
-        return null;
     }
 
+    // Get energy value
     getEnergy() {
         // Use rating as energy
         if (this.settings.energyTag.type == 'rating') {
             return this.rating??0;
         }
         // Use custom symbols as energy
-        let t = this.tags[this.removeAbstractions(this.settings.energyTag.tag[this.getTagField()])];
+        let t = this.tags[this.removeAbstractions(this.settings.energyTag.tag.byFormat(this.format))];
         if (t) {
             // Use first element of array
+            let val = '';
             if (typeof t == 'object') {
                 if (t.length == 0) return 0;
-                t = t[0];
+                val = t[0];
+            } else {
+                val = t;
             }
-            return t.split(this.settings.energyTag.symbol).length - 1;
+
+            return val.split(this.settings.energyTag.symbol).length - 1;
         }
         return 0;
     }
 
+    // Add or remove genre
+    toggleGenre(genre: string) {
+        let i = this.genres.indexOf(genre);
+        if (i == -1) {
+            this.genres.push(genre);
+        } else {
+            this.genres.splice(i, 1);
+        }
+    }
+
     // Enable or disable custom value
-    toggleCustom(tag, value) {
+    toggleCustom(tag: number, value: string) {
         // newly added custom value
-        if (!this.custom[tag]) Vue.set(this.custom, tag, []);
+        if (!this.custom[tag]) this.custom[tag] = [];
 
         let i = this.custom[tag].indexOf(value);
         // Add or remove
@@ -101,18 +182,8 @@ class QTTrack {
         }
     }
 
-    // Add or remove genre
-    toggleGenre(genre) {
-        let i = this.genres.indexOf(genre);
-        if (i == -1) {
-            this.genres.push(genre);
-        } else {
-            this.genres.splice(i, 1);
-        }
-    }
-
     // Properly order the values
-    sortCustom(tag) {
+    sortCustom(tag: number) {
         this.custom[tag].sort((a, b) => 
             this.settings.custom[tag].values.findIndex((i) => i.val == a) - 
             this.settings.custom[tag].values.findIndex((i) => i.val == b)
@@ -123,7 +194,7 @@ class QTTrack {
     loadCustom() {
         let output = [];
         for (let custom of this.settings.custom) {
-            let t = this.tags[this.removeAbstractions(custom.tag[this.getTagField()])]??[];
+            let t = this.tags[this.removeAbstractions(custom.tag.byFormat(this.format))]??[];
             // Filter atributes if multiple custom tags use the same tag
             t = t.filter(t => custom.values.findIndex(v => v.val == t) != -1)
             output.push(t);
@@ -133,7 +204,7 @@ class QTTrack {
 
     // Get all selected custom values + note (for chips)
     getAllCustom() {
-        let out = [];
+        let out: string[] = [];
         for (let custom of this.custom) {
             out = out.concat(custom.filter(v => !out.includes(v) && v));
         }
@@ -149,7 +220,7 @@ class QTTrack {
         if (this.getMood() != this.mood) {
             changes.push({
                 type: 'raw',
-                tag: this.settings.moodTag[this.getTagField()],
+                tag: this.settings.moodTag.byFormat(this.format),
                 value: this.mood ? [this.mood] : []
             });
         }
@@ -165,13 +236,13 @@ class QTTrack {
             } else {
                 changes.push({
                     type: 'raw',
-                    tag: this.settings.energyTag.tag[this.getTagField()],
+                    tag: this.settings.energyTag.tag.byFormat(this.format),
                     value: this.energy ? [this.settings.energyTag.symbol.repeat(this.energy)] : []
                 });
             }
         }
         // Genre change
-        if (this.genres.join('') != this._genres.join('')) {
+        if (this.genres.join('') != this.originalGenres.join('')) {
             changes.push({
                 type: 'genre',
                 value: this.genres
@@ -179,15 +250,15 @@ class QTTrack {
         }
         
         // Note change
-        if (this._originalNote != this.note) {
-            let field = this.removeAbstractions(this.settings.noteTag.tag[this.getTagField()]);
+        if (this.originalNote != this.note) {
+            let field = this.removeAbstractions(this.settings.noteTag.tag.byFormat(this.format));
             // Remove original note from tags, add new one
-            let original = this._originalNote.split(',');
+            let original = (this.originalNote??'').split(',');
             let value = (this.tags[field]??[]).filter(t => !original.includes(t));
             changes.push({
                 type: 'raw',
                 tag: field,
-                value: value.concat(this.note.split(','))
+                value: value.concat((this.note??'').split(','))
             })
         }
         
@@ -196,8 +267,8 @@ class QTTrack {
         for(let i=0; i<original.length; i++) {
             if (this.custom[i] && original[i].length != this.custom[i].length) {
                 
-                let field = this.removeAbstractions(this.settings.custom[i].tag[this.getTagField()]);
-                let values = [];
+                let field = this.removeAbstractions(this.settings.custom[i].tag.byFormat(this.format));
+                let values: string[] = [];
                 let existingIndex = changes.findIndex(c => c.tag == field);
                 // Original tag data
                 if (existingIndex == -1) {
@@ -207,6 +278,8 @@ class QTTrack {
                 // Multiple changes for the same tag
                 while (existingIndex != -1) {
                     values = values.concat(changes[existingIndex].value
+                        // TS throws an error because `value` can be number in case of energy, however it works
+                        // @ts-ignore
                         .filter(v => !this.settings.custom[i].values.find(t => t.val == v))
                     );
                     changes.splice(existingIndex, 1);
@@ -235,4 +308,6 @@ class QTTrack {
 
 }
 
-export {QTTrack};
+
+export type { QuickTagFile, QuickTagMood, QuickTagGenre, QuickTagCustom };
+export { QuickTag, QuickTagSettings, QTTrack, EnergyTag };

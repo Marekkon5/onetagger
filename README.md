@@ -33,7 +33,7 @@ You can support this project by donating on [PayPal](https://paypal.me/marekkon5
 ## Compilling
 
 ### Linux & Mac
-Mac version is cross compiled from linux, the build script is designed to run on Github Actions enviromnent, so you have to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/)
+Mac version is cross compiled from linux, the build script is designed to run on Github Actions enviromnent, so you have to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
 
 **Install remaining dependencies**
 ```
@@ -43,8 +43,8 @@ sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libss
 **Compile UI**
 ```
 cd client
-npm i
-npm run build
+pnpm i
+pnpm run build
 cd ..
 ```
 
@@ -62,13 +62,13 @@ assets/compile-nix.sh
 Output files will be in the `dist/` directory.
 
 ### Windows
-You need to install dependencies: [rustup](https://rustup.rs), [nodejs](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe)
+You need to install dependencies: [rustup](https://rustup.rs), [nodejs](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe), [pnpm](https://pnpm.io/installation)
 
 **Compile UI:**
 ```
 cd client
-npm i
-npm run build
+pnpm i
+pnpm run build
 cd ..
 ```
 

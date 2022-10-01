@@ -170,60 +170,80 @@ impl Spotify {
     pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Box<dyn Error>> {
         self.rate_limit_wrap(|s| s.spotify.artist(id))
     }
+
+    /// Extend track for autotagger
+    fn extend_track(&self, track: &mut Track, results: &Vec<FullTrack>, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        // Fetch album
+        if config.label {
+            match self.album(&AlbumId::from_id(&track.release_id)?) {
+                Ok(album) => {
+                    track.label = album.label;
+                }
+                Err(e) => warn!("Failed to fetch album data: {}", e),
+            }
+        }
+        // Fetch artist
+        if config.genre {
+            // Get artist id
+            let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id().to_string()) == track.track_id).unwrap();
+            if let Some(artist_id) = t.artists.first().map(|a| a.id.clone()).flatten() {
+                match self.artist(&artist_id) {
+                    Ok(artist) => {
+                        track.genres = artist.genres;
+                    },
+                    Err(e) => warn!("Failed to fetch artist data: {}", e)
+                }
+            } else {
+                warn!("Missing artist ID");
+            }
+            
+        }
+        // Fetch audio features
+        if config.key {
+            let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id()) == track.track_id.as_ref().map(|s| s.as_str())).unwrap();
+            if let Some(track_id) = &t.id {
+                match self.audio_features(track_id) {
+                    Ok(features) => {
+                        if features.key < 0 || features.key >= 12 {
+                            warn!("Spotify returned unkown key!");
+                        } else {
+                            match features.mode {
+                                Modality::Major => track.key = Some(PITCH_CLASS_MAJOR[features.key as usize].to_string()),
+                                Modality::Minor => track.key = Some(PITCH_CLASS_MINOR[features.key as usize].to_string()),
+                                v => warn!("Invalid audio features mode: {v:?}")
+                            }
+                        }
+                    },
+                    Err(e) => warn!("Failed to fetch audio features: {e}")
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl AutotaggerSource for Spotify {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+        // Try ISRC
+        if let Some(isrc) = info.isrc.as_ref() {
+            let query = format!("isrc:{isrc}");
+            let results = self.search_tracks(&query, 20)?;
+            let tracks: Vec<Track> = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
+            if let Some(track) = tracks.first() {
+                info!("Matched by ISRC");
+                let mut track = track.clone();
+                self.extend_track(&mut track, &results, config)?;
+                return Ok(Some((1.0, track)));
+            }
+        };
+
+        // Normal search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search_tracks(&query, 20)?;
-        let tracks: Vec<Track> = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
+        let tracks = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
         if let Some((acc, mut track)) = MatchingUtils::match_track(info, &tracks, config, true) {
-            // Fetch album
-            if config.label {
-                match self.album(&AlbumId::from_id(&track.release_id)?) {
-                    Ok(album) => {
-                        track.label = album.label;
-                    }
-                    Err(e) => warn!("Failed to fetch album data: {}", e),
-                }
-            }
-            // Fetch artist
-            if config.genre {
-                // Get artist id
-                let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id().to_string()) == track.track_id).unwrap();
-                if let Some(artist_id) = t.artists.first().map(|a| a.id.clone()).flatten() {
-                    match self.artist(&artist_id) {
-                        Ok(artist) => {
-                            track.genres = artist.genres;
-                        },
-                        Err(e) => warn!("Failed to fetch artist data: {}", e)
-                    }
-                } else {
-                    warn!("Missing artist ID");
-                }
-                
-            }
-            // Fetch audio features
-            if config.key {
-                let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id()) == track.track_id.as_ref().map(|s| s.as_str())).unwrap();
-                if let Some(track_id) = &t.id {
-                    match self.audio_features(track_id) {
-                        Ok(features) => {
-                            if features.key < 0 || features.key >= 12 {
-                                warn!("Spotify returned unkown key!");
-                            } else {
-                                match features.mode {
-                                    Modality::Major => track.key = Some(PITCH_CLASS_MAJOR[features.key as usize].to_string()),
-                                    Modality::Minor => track.key = Some(PITCH_CLASS_MINOR[features.key as usize].to_string()),
-                                    v => warn!("Invalid audio features mode: {v:?}")
-                                }
-                            }
-                        },
-                        Err(e) => warn!("Failed to fetch audio features: {e}")
-                    }
-                }
-            }
-
+            self.extend_track(&mut track, &results, config)?;
             return Ok(Some((acc, track)));
         }
         Ok(None)

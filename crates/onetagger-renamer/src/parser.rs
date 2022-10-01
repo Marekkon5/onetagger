@@ -412,6 +412,8 @@ impl TokenVariable {
             "track" | "tracknumber" => Some(Field::TrackNumber),
             "duration" => Some(Field::Duration),
             "remixer" => Some(Field::Remixer),
+            "total" | "tracktotal" => Some(Field::TrackTotal),
+            "disc" | "disk" | "discnumber" | "disknumber" => Some(Field::DiscNumber),
             _ => None
         };
         if let Some(field) = field {
@@ -424,7 +426,6 @@ impl TokenVariable {
                     }
                     return Some(Data::String(v.first().unwrap().to_string()));
                 }
-
                 return Some(Data::Array(v.clone()));
             }
         }

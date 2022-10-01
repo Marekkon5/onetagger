@@ -13,23 +13,12 @@
 </span>
 </template>
 
-<script>
-export default {
-    name: 'RenamerTokenName',
-    props: {
-        token: {
-            type: Object
-        },
-        params: {
-            type: Boolean,
-            default: true
-        },
-        type: {
-            type: Boolean,
-            default: true
-        }
-    }
-}
+<script lang='ts' setup>
+const { token, params, type } = defineProps({
+    token: { type: Object, required: true },
+    params: { type: Boolean, default: true, required: false },
+    type: { type: Boolean, default: true, required: false }
+});
 </script>
 
 <style>

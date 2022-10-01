@@ -1,10 +1,10 @@
 <template>
 <div class='text-center'>
 
-    <div class='q-py-lg' v-if='!$1t.lock.locked'>
+    <div class='q-py-lg' v-if='!$1t.lock.value.locked'>
         <div style='max-width: 800px; margin: auto;'>
             <!-- Input and output folders -->
-            <div class='text-h5 text-grey-4'>Select input / output</div>
+            <div class='text-subtitle1 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
             <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
@@ -20,12 +20,12 @@
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
                     </template>
-                </q-input>
+                </q-input>                
             </div>
+            <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 41px;' inset color="dark" />
     
-            <!-- Template -->
-            <q-separator class='q-mx-auto q-mt-xl q-mb-lg custom-separator' inset color="dark" />
-            <div class='text-h5 text-grey-4 custom-margin'>Template</div>
+            <!-- Template -->            
+            <div class='text-subtitle1 text-bold text-primary custom-margin'>TEMPLATE</div>
                 <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info? Click <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right</div>
             
             <div style='margin-top: -30px;'>
@@ -37,14 +37,15 @@
                 <input
                     class='template-input monospace' 
                     spellcheck="false"
-                    ref='templateInput'
+                    ref='templateInputElem'
                     @blur='onBlur'
                     @focus='onSelectionChange'
                     @selectionchange='onSelectionChange'
                     @keyup='onSelectionChange'
                     @keydown='onKeyDown'
-                    @input='templateInput'
+                    @input='(e) => templateInput(e as InputEvent)'
                     @click='onSelectionChange'
+                    @paste='onPaste'
                 >
             </div>
     
@@ -90,20 +91,19 @@
         
 
         <!-- Preview -->              
-        <div class='full-width'>
-            <div class='q-mt-md q-mb-sm text-h6 text-grey-4 custom-margin'>Preview</div>
+        <div class='full-width'>            
+            <div class='q-mt-md q-mb-sm text-subtitle1 text-bold text-primary custom-margin'>PREVIEW</div>
             <div v-for='(file, i) in preview' :key='"prev"+i'>
                 <div class='text-caption monospace text-grey-5'>{{file[1]}}</div>
                 <br>
             </div>
         </div>
         
-
         
         <!-- Options -->
-        <div class='full-width'>
-            <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' inset color="dark" />
-            <div class='q-mb-sm text-h5 text-grey-4 custom-margin'>Options</div>
+        <div class='full-width'>    
+            <p></p><q-separator class='q-mb-lg custom-separator' inset color="dark" />
+            <div class='q-mb-sm text-subtitle1 text-bold text-primary custom-margin'>OPTIONS</div>
 
             <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
             <br>
@@ -143,7 +143,7 @@
     </q-page-sticky>
 
     <!-- Loading -->
-    <div v-if='$1t.lock.locked'>
+    <div v-if='$1t.lock.value.locked'>
         <div style='margin-top: 45vh;'>
             <q-circular-progress indeterminate size='64px' color='primary'></q-circular-progress>
         </div>
@@ -157,275 +157,298 @@
 </div>
 </template>
 
-<script>
+<script lang='ts' setup>
 import RenamerTokenName from '../components/RenamerTokenName.vue';
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
+import { get1t } from '../scripts/onetagger';
+import { useQuasar } from 'quasar';
 
-export default { 
-    name: 'Renamer',
-    components: { RenamerTokenName },
-    data() {
-        return {
-            config: {
-                path: null,
-                outDir: null,
-                template: null,
-                copy: false,
-                subfolders: true,
-                overwrite: false,
-                separator: ", ",
-            },
-            highlighted: null,
-            cursor: -99999,
-            charWidth: 1.0,
-            suggestions: [],
-            suggestionIndex: 0,
-            suggestionOffset: 0,
-            suggestionsTop: 0,
-            preview: []
+class RenamerConfig {
+    path?: string;
+    outDir?: string;
+    template = '';
+    copy = false;
+    subfolders = true;
+    overwrite = false;
+    separator = ', ';
+}
+
+const $1t = get1t();
+const $q = useQuasar();
+const config = ref(new RenamerConfig());
+const highlighted = ref(undefined);
+const cursor = ref(-99999);
+const charWidth = ref(1.0);
+const suggestions = ref<any[]>([]);
+const suggestionIndex = ref(0);
+const suggestionOffset = ref(0);
+const suggestionsTop = ref(0);
+const preview = ref([]);
+
+const templateInputElem = ref<HTMLInputElement | undefined>();
+const textWidthRef = ref<HTMLElement | undefined>();
+
+// Browse folder
+function browse(output = false) {
+    $1t.browse(output ? 'rnOutput' : 'rn', config.value.path);
+};
+
+// Handle typing into the template box
+function templateInput(e: InputEvent) {
+    if (!config.value.template) {
+        if (!e.data) return;
+        config.value.template = e.data;
+    }
+    
+    // Autoclose
+    let pos = cursor.value;
+    if (e.data == '(') {
+        injectTemplate(cursor.value + 1, ')');
+        moveCursor(pos + 1);
+    }
+    if (e.data == '"') {
+        injectTemplate(cursor.value, '"');
+        moveCursor(pos + 1);
+    }
+    if (e.data == '%') {
+        injectTemplate(cursor.value, '%');
+        moveCursor(pos + 1);
+    }
+
+    // @ts-ignore
+    config.value.template = e.target.value;
+    updateTemplate();
+};
+
+// Fetch syntax highlighting and ac
+function updateTemplate() {
+    $1t.send('renamerSyntaxHighlight', { template: config.value.template });
+    $1t.send('renamerAutocomplete', { 
+        template: config.value.template.substring(0, cursor.value + 1) 
+    });
+    // Update cursor
+    onSelectionChange();
+};
+
+// Handle paste event
+function onPaste(e: ClipboardEvent) {
+    setTimeout(() => {
+        const value = (e as any).target.value;
+        if (value) {
+            config.value.template = value;
+            updateTemplate();
         }
-    },
-    methods: {
-        // Browse folder
-        browse(output = false) {
-            this.$1t.browse(output ? 'rnOutput' : 'rn', this.config.path);
-        },
-        // Handle typing into the template box
-        templateInput(e) {
-            if (!this.config.template) {
-                if (!e.data) return;
-                this.config.template = e.data;
-            }
-            
-            // Autoclose
-            let pos = this.cursor;
-            if (e.data == '(') {
-                this.injectTemplate(this.cursor + 1, ')');
-                this.moveCursor(pos + 1);
-            }
-            if (e.data == '"') {
-                this.injectTemplate(this.cursor, '"');
-                this.moveCursor(pos + 1);
-            }
-            if (e.data == '%') {
-                this.injectTemplate(this.cursor, '%');
-                this.moveCursor(pos + 1);
-            }
+    }, 25);
+}
 
-            this.config.template = e.target.value;
-            this.updateTemplate();
-        },
-        // Fetch syntax highlighting and ac
-        updateTemplate() {
-            this.$1t.send('renamerSyntaxHighlight', { template: this.config.template });
-            this.$1t.send('renamerAutocomplete', { 
-                template: this.config.template.substring(0, this.cursor + 1) 
-            });
-            // Update cursor
-            this.onSelectionChange();
-        },
-        // Handle global selection change to update fake cursor (yes, pain)
-        onSelectionChange() {
-            this.cursor = this.$refs.templateInput.selectionStart;
-        },
-        /// Template blur
-        onBlur() {
-            this.cursor = -6969;
-            this.suggestions = [];
-        },
-        /// Template key down
-        onKeyDown(e) {
-            // Control suggestions
-            if (e.key == "ArrowDown") {
-                if (this.suggestionIndex < this.suggestions.length - 1) this.suggestionIndex += 1;
-                e.preventDefault();
-                return;
-            }
-            if (e.key == "ArrowUp") {
-                if (this.suggestionIndex > 0) this.suggestionIndex -= 1;
-                e.preventDefault();
-                return;
-            }
-            // Enter override
-            if (e.key == "Enter") {
-                if (this.suggestions[this.suggestionIndex]) {
-                    // Fill suggestion
-                    let text = this.suggestions[this.suggestionIndex].name.substring(this.suggestionOffset);
-                    let pos = this.cursor;
-                    this.injectTemplate(this.cursor, text);
-                    this.updateTemplate();
-                    this.moveCursor(pos + text.length);
-                }
-                e.preventDefault();
-                return;
-            }
-            // Don't close again
-            if (this.$refs.templateInput.selectionStart == this.$refs.templateInput.selectionEnd) {
-                if (e.key == ')') {
-                    if (this.config.template[this.cursor] == ')') {
-                        e.preventDefault();
-                        this.moveCursor(this.cursor + 1);
-                    }
-                }
-                if (e.key == '"') {
-                    if (this.config.template[this.cursor] == '"') {
-                        e.preventDefault();
-                        this.moveCursor(this.cursor + 1);
-                    }
-                }
-                if (e.key == '%') {
-                    if (this.config.template[this.cursor] == '%') {
-                        e.preventDefault();
-                        this.moveCursor(this.cursor + 1);
-                    }
-                }
-            }
-            
+// Handle global selection change to update fake cursor (yes, pain)
+function onSelectionChange() {
+    cursor.value = templateInputElem.value!.selectionStart!;
+};
 
-            return true;
-        },
-        /// Move cursor in template field
-        moveCursor(pos) {
-            this.$refs.templateInput.setSelectionRange(pos, pos);
-        },
-        /// Add text to template
-        injectTemplate(index, text) {
-            this.$refs.templateInput.value = this.$refs.templateInput.value.substring(0, index) + text + this.$refs.templateInput.value.substring(index);
-            this.config.template = this.$refs.templateInput.value;
-        },
-        /// Start renaming
-        start(force = false) {
-            // Dialog
-            if (!force) {
-                this.$q.dialog({
-                    title: 'Warning',
-                    message: 'Many DJ apps store cue points and other metadata based on the original file name. When renamed, this information will be lost and you will have to reimport these files.',
+/// Template blur
+function onBlur() {
+    cursor.value = -6969;
+    suggestions.value = [];
+};
+
+/// Template key down
+function onKeyDown(e: KeyboardEvent) {
+    // Control suggestions
+    if (e.key == "ArrowDown") {
+        if (suggestionIndex.value < suggestions.value.length - 1) suggestionIndex.value += 1;
+        e.preventDefault();
+        return;
+    }
+    if (e.key == "ArrowUp") {
+        if (suggestionIndex.value > 0) suggestionIndex.value -= 1;
+        e.preventDefault();
+        return;
+    }
+    // Enter override
+    if (e.key == "Enter") {
+        if (suggestions.value[suggestionIndex.value]) {
+            // Fill suggestion
+            let text = suggestions.value[suggestionIndex.value].name.substring(suggestionOffset.value);
+            let pos = cursor.value;
+            injectTemplate(cursor.value, text);
+            updateTemplate();
+            moveCursor(pos + text.length);
+        }
+        e.preventDefault();
+        return;
+    }
+    // Don't close again
+    if (templateInputElem.value?.selectionStart == templateInputElem.value?.selectionEnd) {
+        if (e.key == ')') {
+            if (config.value.template[cursor.value] == ')') {
+                e.preventDefault();
+                moveCursor(cursor.value + 1);
+            }
+        }
+        if (e.key == '"') {
+            if (config.value.template[cursor.value] == '"') {
+                e.preventDefault();
+                moveCursor(cursor.value + 1);
+            }
+        }
+        if (e.key == '%') {
+            if (config.value.template[cursor.value] == '%') {
+                e.preventDefault();
+                moveCursor(cursor.value + 1);
+            }
+        }
+    }
+    
+    return true;
+}
+
+/// Move cursor in template field
+function moveCursor(pos: number) {
+    templateInputElem.value?.setSelectionRange(pos, pos);
+}
+
+/// Add text to template
+function injectTemplate(index: number, text: string) {
+    templateInputElem.value!.value = templateInputElem.value!.value.substring(0, index) + text + templateInputElem.value!.value.substring(index);
+    config.value.template = templateInputElem.value!.value;
+}
+
+// Start renaming
+function start(force = false) {
+    // Dialog
+    if (!force) {
+        $q.dialog({
+            title: 'Warning',
+            message: 'Many DJ apps store cue points and other metadata based on the original file name. When renamed, this information will be lost and you will have to reimport these files.',
+            html: true,
+            ok: {
+                color: 'primary',
+                label: 'Start'
+            },
+            cancel: {
+                color: 'primary',
+                flat: true
+            }
+        })
+        .onOk(() => {
+            start(true);
+        });
+        return;
+    }
+
+    // Prevent reference
+    $1t.settings.value.renamer = JSON.parse(JSON.stringify(config.value));
+    $1t.saveSettings(true);
+    $1t.lock.value.locked = true;
+    $1t.send('renamerStart', { config: config.value });
+}
+
+/// Move suggestions box
+function onScroll(e: Event) {
+    // @ts-ignore
+    suggestionsTop.value = e.target.scrollTop;
+}
+
+onMounted(() => {
+    $1t.onRenamerEvent = (json: any) => {
+        switch (json.action) {
+            // Browse folder
+            case 'browse':
+                if (json.context == 'rnOutput')
+                    config.value.outDir = json.path
+                else 
+                    config.value.path = json.path;
+                break;
+            // Syntax highlight
+            case 'renamerSyntaxHighlight':
+                highlighted.value = json.html;
+                break;
+            // Finished
+            case 'renamerDone':
+                $1t.lock.value.locked = false;
+                $q.dialog({
+                    title: 'Done',
+                    message: 'Renaming finished!',
                     html: true,
                     ok: {
                         color: 'primary',
-                        label: 'Start'
+                        label: 'Open Folder'
                     },
                     cancel: {
                         color: 'primary',
                         flat: true
                     }
-                })
-                .onOk(() => {
-                    this.start(true);
+                }).onOk(() => {
+                    $1t.send('openFolder', { path: config.value.outDir??config.value.path });
                 });
-                return;
-            }
-
-            // Prevent reference
-            this.$1t.settings.renamer = JSON.parse(JSON.stringify(this.config));
-            this.$1t.saveSettings(true);
-            this.$1t.lock.locked = true;
-            this.$1t.send('renamerStart', { config: this.config });
-        },
-        /// Move suggestions box
-        onScroll(e) {
-            this.suggestionsTop = e.target.scrollTop;
+                break;
+            // Suggestions
+            case 'renamerAutocomplete':
+                suggestions.value = json.suggestions;
+                suggestionOffset.value = json.offset;
+                if (suggestionIndex.value > suggestions.value.length)
+                    suggestionIndex.value = 0;
+                break;
+            // Preview renamed files
+            case 'renamerPreview':
+                preview.value = json.files;
+                break;
+            default:
+                console.error(`Unknown action: ${json}`);
         }
-    },
-    mounted() {
-        this.$1t.onRenamerEvent = (json) => {
-            switch (json.action) {
-                // Browse folder
-                case 'browse':
-                    if (json.context == 'rnOutput')
-                        this.config.outDir = json.path
-                    else 
-                        this.config.path = json.path;
-                    break;
-                // Syntax highlight
-                case 'renamerSyntaxHighlight':
-                    this.highlighted = json.html;
-                    break;
-                // Finished
-                case 'renamerDone':
-                    this.$1t.lock.locked = false;
-                    this.$q.dialog({
-                        title: 'Done',
-                        message: 'Renaming finished!',
-                        html: true,
-                        ok: {
-                            color: 'primary',
-                            label: 'Open Folder'
-                        },
-                        cancel: {
-                            color: 'primary',
-                            flat: true
-                        }
-                    }).onOk(() => {
-                        this.$1t.send('openFolder', { path: this.config.outDir??this.config.path });
-                    });
-                    break;
-                // Suggestions
-                case 'renamerAutocomplete':
-                    this.suggestions = json.suggestions;
-                    this.suggestionOffset = json.offset;
-                    if (this.suggestionIndex > this.suggestions.length)
-                        this.suggestionIndex = 0;
-                    break;
-                // Preview renamed files
-                case 'renamerPreview':
-                    this.preview = json.files;
-                    break;
-                default:
-                    console.error(`Unknown action: ${json}`);
-            }
-        }
-        // Restore settings
-        if (this.$1t.settings.renamer) {
-            this.config = Object.assign({}, this.config, this.$1t.settings.renamer);
-            if (this.config.template) {
-                this.$1t.send('renamerSyntaxHighlight', { template: this.config.template });
-                document.getElementsByClassName('template-input')[0].value = this.config.template;
-            }
-        }
-
-        // Pain (character width)
-        this.charWidth = this.$refs.textWidthRef.offsetWidth / 36.0;
-
-        // Fix scroll suggestions box
-        document.addEventListener('scroll', this.onScroll, true);
-    },
-    unmounted() {
-        // Remove event
-        document.removeEventListener('scroll', this.onScroll, true);
-    },
-    computed: {
-        startable() {
-            return this.config.path && this.config.template
-        },
-        cursorStyle() {
-            return `margin-left: ${12 + this.cursor * this.charWidth}px`
-        },
-        // Autocomplete suggestions style
-        suggestionsStyle() {
-            let top = `margin-top: -${this.suggestionsTop}px;`
-            if ((this.cursor * this.charWidth) > 500) {
-                return `${top} margin-left: ${12 + this.cursor * this.charWidth - 500}px`;
-            }
-            return `${top} margin-left: ${12 + this.cursor * this.charWidth}px`
-        }
-    },
-    watch: {
-        'config.template'() {
-            // Debounce and render preview
-            let cur = this.config.template;
-            setTimeout(() => {
-                if (cur != this.config.template || !this.config.template || !this.startable) return;
-                this.$1t.send('renamerPreview', { config: this.config });
-            }, 400);
-        },
     }
-}
+
+    // Restore settings
+    if ($1t.settings.value.renamer) {
+        config.value = Object.assign({}, config.value, $1t.settings.value.renamer);
+        if (config.value.template) {
+            $1t.send('renamerSyntaxHighlight', { template: config.value.template });
+            // @ts-ignore
+            document.getElementsByClassName('template-input')[0].value = config.value.template;
+        }
+    }
+
+    // Fix scroll suggestions box
+    document.addEventListener('scroll', onScroll, true);
+});
+
+// Calculate character width after render
+watchEffect(() => {
+    setTimeout(() => {
+        charWidth.value = textWidthRef.value!.offsetWidth / 36.0;
+    }, 100);
+})
+
+onUnmounted(() => {
+    // Remove event
+    document.removeEventListener('scroll', onScroll, true);
+});
+
+const startable = computed(() => config.value.path && config.value.template);
+const cursorStyle = computed(() => `margin-left: ${12 + cursor.value * charWidth.value}px`);
+const suggestionsStyle = computed(() => {
+    let top = `margin-top: -${suggestionsTop}px;`;
+        if ((cursor.value * charWidth.value) > 500) {
+            return `${top} margin-left: ${12 + cursor.value * charWidth.value - 500}px`;
+        }
+    return `${top} margin-left: ${12 + cursor.value * charWidth.value}px`;
+});
+
+watch(() => config.value.template, () => {
+    // Debounce and render preview
+    let cur = config.value.template;
+    setTimeout(() => {
+        if (cur != config.value.template || !config.value.template || !startable.value) return;
+        $1t.send('renamerPreview', { config: config.value });
+    }, 400);
+});
 </script>
 
 <style lang='scss'>
 .template-input {
     text-align: left;
-    background-color: #ffffff12;
+    background-color: #99999910;
     padding-left: 12px;
     padding-right: 12px;
     padding-top: 20px;
@@ -480,7 +503,7 @@ export default {
 }
 
 .suggestions-box {
-    background-color: #101211;
+    background-color: #111111;
     max-width: 500px;
     width: 500px;
     font-size: 16px;
@@ -501,5 +524,9 @@ export default {
 
 .custom-margin {
     margin-top: 35px !important;
+}
+
+.custom-separator {
+    width: 150px;
 }
 </style>

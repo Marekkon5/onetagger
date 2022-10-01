@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate include_dir;
 #[macro_use] extern crate onetagger_shared;
 
 use clap::Parser;
@@ -31,7 +32,8 @@ fn main() {
     }
 
     info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
-
+    
+            
     // Start
     let context = StartContext {
         start_path: cli.path, 

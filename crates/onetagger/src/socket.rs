@@ -383,6 +383,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "spotifyAuthorized",
                 "value": true
             }).to_string())).ok();
+            debug!("Spotify Authorized!");
         },
         // Check if authorized
         Action::SpotifyAuthorized => {

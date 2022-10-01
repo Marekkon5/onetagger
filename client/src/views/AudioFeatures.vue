@@ -2,8 +2,8 @@
 <div class='text-center af-wrapper'>
 
     <!-- Login -->
-    <div v-if='!$1t.spotify.authorized' class='af-content'>
-        <div class='text-h5 q-mt-lg text-grey-4'>Setup</div>
+    <div v-if='!$1t.spotify.value.authorized' class='af-content'>
+        <div class='text-subtitle1 text-bold text-primary q-mt-lg'>SETUP</div>
         <SpotifyLogin></SpotifyLogin>
         <!-- Description -->
         <div class='q-mt-xl text-subtitle2 text-grey-6' style='line-height: 24px'>
@@ -13,10 +13,10 @@
     </div>
 
     <!-- Logged in -->
-    <div v-if='$1t.spotify.authorized' class='af-content'>
+    <div v-if='$1t.spotify.value.authorized' class='af-content'>
         <!-- Path -->
-        <div class='text-h5 q-mt-lg text-grey-4'>Select input</div>
-            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
+        <div class='text-subtitle1 text-bold text-primary q-mt-lg'>SELECT INPUT</div>
+        <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
             <div class='col-1'></div>
             <q-input filled class='col-10' label='Path' v-model='config.path'>
@@ -27,7 +27,7 @@
 
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='path-tooltip q-mx-sm q-pt-md q-mt-xs'>
-                    <q-tooltip content-style="font-size: 13px">Subfolders are included</q-tooltip>
+                    <q-tooltip>Subfolders are included</q-tooltip>
                 </q-icon>
             </div>
         </div>
@@ -43,28 +43,28 @@
                     
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='playlist-tooltip q-mx-sm q-mt-xl q-pt-sm'>
-                    <q-tooltip content-style="font-size: 13px">.m3u and .m3u8 extensions are supported</q-tooltip>
+                    <q-tooltip>.m3u and .m3u8 extensions are supported</q-tooltip>
                 </q-icon>
             </div>
         </div>
 
         <!-- Main tag -->
-        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' inset color="dark" />
-        <div class='text-h5 text-grey-4 custom-margin'>Prominent tag</div>
+        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 16px;' inset color="dark" />
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>PROMINENT TAG</div>
         <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tag frame</div>
         <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-5'>e.g. #dance-high, #energy-med, #vocal-low, #positive, #popular</div>
 
         <TagFields style='max-width: 550px; margin: auto;' v-model='config.mainTag'></TagFields>
 
         <!-- Values -->
-        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
-        <div class='text-h5 q-mt-lg text-grey-4 custom-margin'>Properties</div>
+        <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>PROPERTIES</div>
         <div class='q-px-xl'>
             <!-- Header -->
             <div class='row text-subtitle2 q-mb-md text-grey-6'>
                 <div class='col-1'>Include
                     <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
-                        <q-tooltip content-style="font-size: 13px">
+                        <q-tooltip>
                             Include the audio feature in Prominent tag
                         </q-tooltip>
                     </q-icon>
@@ -104,14 +104,15 @@
         </div>
 
         <!-- Separators -->
-        <div class='text-center text-body1 text-grey-4 q-mt-md q-mb-sm'>Separators</div>
-        <div class='row q-pb-lg q-mt-sm justify-center'>            
-            <Separators :initial='config.separators' @input='config.separators = $event'></Separators>
+        <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>SEPARATORS</div>
+        <div class='row q-pb-md q-mt-sm justify-center'>            
+            <Separators v-model='config.separators'></Separators>
         </div>
 
         <!-- Advanced -->
         <q-separator class='q-mx-auto q-mt-lg q-mb-lg custom-separator' style='margin-top: 28px;' inset color="dark"/>
-        <div class='text-h5 q-mt-lg text-grey-4 custom-margin'>Advanced</div>
+        <div class='text-subtitle1 text-bold text-primary custom-margin'>ADVANCED</div>
 
         <q-toggle v-model='config.metaTag' label='Write OneTagger meta tag'></q-toggle>
         <br>
@@ -119,7 +120,7 @@
         <br>
         <q-toggle v-model='config.includeSubfolders' label='Include subfolders'></q-toggle>
 
-        <div class='q-my-md'></div>
+        <div class='q-my-xl'></div>
 
         <!-- Start -->
         <q-page-sticky position='bottom-right' :offset='[36, 24]'>
@@ -135,7 +136,6 @@
             </q-tooltip>
             </q-btn>
         </q-page-sticky>
-       
     </div>
 
 
@@ -143,85 +143,58 @@
 </div>
 </template>
 
-<script>
-import TagFields from '../components/TagFields';
+<script lang='ts' setup>
+import TagFields from '../components/TagFields.vue';
 import PlaylistDropZone from '../components/PlaylistDropZone.vue';
 import Separators from '../components/Separators.vue';
 import SpotifyLogin from '../components/SpotifyLogin.vue';
+import { Playlist } from '../scripts/utils';
+import { onMounted, ref } from 'vue';
+import { AudioFeaturesConfig } from '../scripts/settings';
+import { get1t } from '../scripts/onetagger';
+import { useRouter } from 'vue-router';
 
-export default {
-    name: 'AudioFeatures',
-    components: {TagFields, PlaylistDropZone, Separators, SpotifyLogin},
-    data() {
-        return {
-            playlist: { filename: null, data: null, format: null },
-            config: {
-                path: null,
-                metaTag: true,
-                skipTagged: false,
-                includeSubfolders: true,
-                mainTag: {id3: 'AUDIO_FEATURES', vorbis: 'AUDIO_FEATURES', mp4: 'AUDIO_FEATURES'},
-                separators: {id3: ', ', vorbis: null, mp4: ', '},
-                properties: {
-                    acousticness: {enabled: true, range: {min: 0, max: 90}, 
-                        tag: {id3: '1T_ACOUSTICNESS', vorbis: '1T_ACOUSTICNESS', mp4: '1T_ACOUSTICNESS'}},
-                    danceability: {enabled: true, range: {min: 20, max: 80}, 
-                        tag: {id3: '1T_DANCEABILITY', vorbis: '1T_DANCEABILITY', mp4: '1T_DANCEABILITY'}},
-                    energy: {enabled: true, range: {min: 20, max: 90}, 
-                        tag: {id3: '1T_ENERGY', vorbis: '1T_ENERGY', mp4: '1T_ENERGY'}},
-                    instrumentalness: {enabled: true, range: {min: 50, max: 90}, 
-                        tag: {id3: '1T_INSTRUMENTALNESS', vorbis: '1T_INSTRUMENTALNESS', mp4: '1T_INSTRUMENTALNESS'}},
-                    liveness: {enabled: true, range: {min: 0, max: 80}, 
-                        tag: {id3: '1T_LIVENESS', vorbis: '1T_LIVENESS', mp4: '1T_LIVENESS'}},
-                    speechiness: {enabled: true, range: {min: 0, max: 70}, 
-                        tag: {id3: '1T_SPEECHINESS', vorbis: '1T_SPEECHINESS', mp4: '1T_SPEECHINESS'}},
-                    valence: {enabled: true, range: {min: 15, max: 85}, 
-                        tag: {id3: '1T_VALENCE', vorbis: '1T_VALENCE', mp4: '1T_VALENCE'}},
-                    popularity: {enabled: true, range: {min: 0, max: 80}, 
-                        tag: {id3: '1T_POPULARITY', vorbis: '1T_POPULARITY', mp4: '1T_POPULARITY'}}
-                    
-                }
-            }
-        }
-    },
-    methods: {
-        // Browse folder
-        browse() {
-            this.$1t.browse('af', this.config.path);
-        },
-        // Start tagging
-        start() {
-            // Save config
-            this.$1t.settings.audioFeatures.config = this.config;
-            this.$1t.saveSettings();
+const $1t = get1t();
+const $router = useRouter();
+const playlist = ref<Playlist>({});
+const config = ref(new AudioFeaturesConfig());
 
-            let playlist = null;
-            if (this.playlist && this.playlist.data)
-                playlist = this.playlist;
+// Browse folder
+function browse() {
+    $1t.browse('af', config.value.path);
+}
 
-            // Start
-            this.config.type = 'audioFeatures';
-            this.$1t.send('startTagging', {config: this.config, playlist});
-            this.$router.push('/audiofeatures/status');
-        }
-    },
-    mounted() {
-        // Load config from settings
-        if (this.$1t.settings.audioFeatures.config) {
-            let properties = Object.assign({}, this.config.properties, this.$1t.settings.audioFeatures.config.properties);
-            this.config = Object.assign({}, this.config, this.$1t.settings.audioFeatures.config);
-            this.config.properties = properties;
-        }
-        // Register events
-        this.$1t.onAudioFeaturesEvent = (json) => {
-            switch (json.action) {
-                case 'browse':
-                    this.config.path = json.path;
-                    break;
-            }
+// Start tagging
+function start() {
+    // Save config
+    $1t.settings.value.audioFeatures.config = config.value;
+    $1t.saveSettings();
+
+    let p = null;
+    if (playlist.value && playlist.value.data)
+        p = playlist.value;
+
+    // Start
+    config.value.type = 'audioFeatures';
+    $1t.send('startTagging', {config: config.value, playlist: p});
+    $router.push('/audiofeatures/status');
+}
+    
+
+onMounted(() => {
+    // Load config from settings
+    if ($1t.settings.value.audioFeatures.config) {
+        config.value = AudioFeaturesConfig.fromJson($1t.settings.value.audioFeatures.config);
+    }
+    // Register events
+    $1t.onAudioFeaturesEvent = (json) => {
+        switch (json.action) {
+            case 'browse':
+                config.value.path = json.path;
+                break;
         }
     }
-}
+});
 </script>
 
 <style>
@@ -246,10 +219,10 @@ export default {
     max-width: 1400px;
 }
 .t-range .q-slider__inner.absolute {
-    background: var(--q-color-primary) !important;    
+    background: var(--q-primary) !important;    
 }
 .custom-separator {
-    max-width: 550px;
+    width: 150px;
     margin: auto;
 }
 .custom-margin {

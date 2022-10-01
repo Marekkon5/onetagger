@@ -327,6 +327,17 @@ impl TagImpl for ID3Tag {
         self.set_raw(field.id3(), value, overwrite);
     }
     fn get_field(&self, field: Field) -> Option<Vec<String>> {
+        // Overrides
+        if field == Field::TrackNumber {
+            return self.tag.track().map(|v| vec![v.to_string()]);
+        }
+        if field == Field::TrackTotal {
+            return self.tag.total_tracks().map(|v| vec![v.to_string()]);
+        }
+        if field == Field::DiscNumber {
+            return self.tag.disc().map(|v| vec![v.to_string()]);
+        }
+
         self.get_raw(field.id3())
     }
 

@@ -23,7 +23,7 @@
         <div v-for='file in files' :key='file.filename'>
             <div 
                 class='clickable te-file' 
-                @click='(file.dir || file.playlist) ? loadFiles(file.filename) : loadFile(file.path)'
+                @click='(file.dir || file.playlist) ? loadFiles(file.filename) : loadFiles(file.path)'
                 :class='{"text-primary": isSelected(file.path), "text-grey-5": !isSelected(file.path)}'
             >
                 <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='!file.dir && !file.playlist' name='mdi-music'></q-icon>
@@ -38,63 +38,64 @@
 </div>
 </template>
 
-<script>
-export default {
-    name: 'QuickTagFileBrowser',
-    data() {
-        return {
-            path: this.$1t.settings.path,
-            files: [],
-            originalFiles: [],
-            filter: null,
-            initial: true,
-        }
-    },
-    methods: {
-        loadFiles(f = null) {
-            this.$1t.send('quickTagFolder', {path: this.path, subdir: f});
-        },
-        browse() {
-            this.$1t.browse('qt', this.path);
-        },
-        applyFilter() {
-            if (!this.filter || this.filter.trim().length == 0) {
-                this.files = this.originalFiles;
-                return;
-            }
-            this.files = this.originalFiles.filter(f => f.filename.toLowerCase().includes(this.filter.toLowerCase()));
-        },
-        isSelected(path) {
-            return path == this.$1t.settings.path;
-        }
-    },
-    mounted() {
-        // fix path loading
-        this.path = this.$1t.settings.path;
-        // Register events
-        this.$1t.onQuickTagBrowserEvent = (json) => {
-            switch (json.action) {
-                case 'quickTagFolder':
-                    // Load dir
-                    if (!this.initial) {
-                        this.$1t.settings.path = json.path;
-                        this.$1t.loadQuickTag();
-                    } 
-                    this.initial = false;
-                
-                    if (json.files.length == 0) return;
-                    this.files = json.files;
-                    this.originalFiles = json.files;
-                    this.path = json.path;
-                    break;
-                case 'pathUpdate':
-                    this.initial = true;
-                    this.$1t.send('quickTagFolder', { path: this.$1t.settings.path, subdir: '..' });
-            }
-        }
+<script lang='ts' setup>
+import { onMounted, ref } from 'vue';
+import { get1t } from '../scripts/onetagger.js';
 
-        this.initial = true;
-        this.loadFiles('..');
-    },
+const $1t = get1t();
+const path = ref($1t.settings.value.path);
+const files = ref<any[]>([]);
+const originalFiles = ref<any[]>([]);
+const filter = ref<string | undefined>(undefined);
+const initial = ref(true);
+
+function loadFiles(f?: string) {
+    $1t.send('quickTagFolder', {path: path.value, subdir: f});
 }
+
+function browse() {
+    $1t.browse('qt', path.value);
+}
+
+function applyFilter() {
+    if (!filter.value || filter.value.trim().length == 0) {
+        files.value = originalFiles.value;
+        return;
+    }
+    files.value = originalFiles.value.filter(f => f.filename.toLowerCase().includes(filter.value?.toLowerCase()));
+}
+
+function isSelected(path: string) {
+    return path == $1t.settings.value.path;
+}
+
+onMounted(() => {
+    // fix path loading
+    path.value = $1t.settings.value.path;
+    // Register events
+    $1t.onQuickTagBrowserEvent = (json) => {
+        switch (json.action) {
+            case 'quickTagFolder':
+                // Load dir
+                if (!initial.value) {
+                    $1t.settings.value.path = json.path;
+                    $1t.loadQuickTag();
+                } 
+                initial.value = false;
+            
+                if (json.files.length == 0) return;
+                files.value = json.files;
+                originalFiles.value = json.files;
+                path.value = json.path;
+                break;
+            case 'pathUpdate':
+                initial.value = true;
+                $1t.send('quickTagFolder', { path: $1t.settings.value.path, subdir: '..' });
+        }
+    }
+
+    initial.value = true;
+    loadFiles('..');
+});
+
 </script>
