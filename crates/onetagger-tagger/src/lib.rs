@@ -53,15 +53,15 @@ pub struct TaggerConfig {
     pub disc_number: bool,
     pub isrc: bool,
     pub mood: bool,
-    // 1T meta tags
+    /// 1T meta tags
     pub meta_tags: bool,
 
-    // Advanced
+    /// Advanced
     pub separators: TagSeparators,
     pub id3v24: bool,
     pub overwrite: bool,
     pub threads: u16,
-    // From 0 to 1
+    /// From 0 to 1
     pub strictness: f64,
     pub merge_genres: bool,
     pub album_art_file: bool,
@@ -70,7 +70,7 @@ pub struct TaggerConfig {
     pub filename_template: Option<String>,
     pub short_title: bool,
     pub match_duration: bool,
-    // In seconds
+    /// In seconds
     pub max_duration_difference: u64,
     pub match_by_id: bool,
     pub multiple_matches: MultipleMatchesSort,
@@ -86,6 +86,8 @@ pub struct TaggerConfig {
     pub only_year: bool,
     pub move_files: bool,
     pub move_target: Option<String>,
+    /// Tag the same track on multiple platforms
+    pub multiplatform: bool,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
     pub custom: HashMap<String, PlatformCustomOptionsResponse>,
@@ -104,7 +106,7 @@ impl Default for TaggerConfig {
             version: false, duration: false, album_artist: false, remixer: false, track_number: false,
             isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false, only_year: false,
             overwrite: false, merge_genres: false, album_art_file: false, camelot: false, styles_options: StylesOptions::Default,
-            parse_filename: false, filename_template: None, short_title: false, match_duration: false,
+            parse_filename: false, filename_template: None, short_title: false, match_duration: false, multiplatform: false,
             max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default,
             post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(), include_subfolders: true,
             track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false, move_files: false, move_target: None

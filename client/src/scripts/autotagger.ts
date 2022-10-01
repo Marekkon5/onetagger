@@ -87,6 +87,7 @@ class AutotaggerConfig {
     stylesCustomTag: FrameName = FrameName.same('STYLE');
     moveFiles: boolean = false;
     moveTarget?: string;
+    multiplatform: boolean = false;
     // TODO: annotate type
     custom: any = {};
     spotify?: SpotifyConfig;

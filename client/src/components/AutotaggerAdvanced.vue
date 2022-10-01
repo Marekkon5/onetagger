@@ -79,6 +79,12 @@
             v-model='$1t.config.value.onlyYear'
         ></AdvancedSettingsToggle>
 
+        <AdvancedSettingsToggle 
+            label='Tag same track on multiple platforms'
+            tooltip='Tag every track on every platform to get all the tags'
+            v-model='$1t.config.value.multiplatform'
+        ></AdvancedSettingsToggle>
+
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 
             label='Parse metadata from filename'

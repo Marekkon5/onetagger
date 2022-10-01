@@ -507,6 +507,11 @@ impl Tagger {
         thread::spawn(move || {
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
+                // If multiplatform, disable overwrite
+                if platform_index > 0 && config.multiplatform {
+                    config.overwrite = false;
+                }
+
                 // For progress
                 let mut processed = 0;
                 let total = files.len();
@@ -554,7 +559,9 @@ impl Tagger {
                     tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status,  platform_index, config.platforms.len(), processed, total)).ok();
                     // Fallback
                     if status.status == TaggingState::Ok {
-                        files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                        if !config.multiplatform {
+                            files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                        }
                     }
                 }
             }
