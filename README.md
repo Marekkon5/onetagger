@@ -3,6 +3,9 @@
 </p>
 <h1 align='center'>The ultimate cross-platform tagger for DJs</h1>
 
+<h3 align='center'><b><a href='https://onetagger.github.io/'>OneTagger.github.io</a></b></h3>
+<br>
+
 <p align='center'>
     <img alt='Version Badge' src='https://img.shields.io/github/v/release/marekkon5/onetagger?label=Latest%20Release'>
     <img alt='Supported OS' src='https://img.shields.io/badge/OS-Windows%2C%20Mac%20OS%2C%20Linux-orange'>
@@ -14,8 +17,7 @@
 Cross-platform music tagger.
 It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
 It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
-There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts.
-Written in Rust, Vue.js and Quasar.
+There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts. Written in Rust, Vue.js and Quasar.
 
 MP3, AIFF, FLAC, M4A (AAC, ALAC) supported.
 
