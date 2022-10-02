@@ -509,12 +509,17 @@ impl Tagger {
         // Create thread
         let (tx, rx) = unbounded();
         let mut config = cfg.clone();
+        let move_files = config.move_files;
         thread::spawn(move || {
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
                 // If multiplatform, disable overwrite
-                if platform_index > 0 && config.multiplatform {
-                    config.overwrite = false;
+                if config.multiplatform {
+                    if platform_index > 0 {
+                        config.overwrite = false;
+                    }
+                    // Move files only at last platform
+                    config.move_files = move_files && platform_index == config.platforms.len() - 1;
                 }
 
                 // For progress
