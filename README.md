@@ -3,7 +3,9 @@
 </p>
 <h1 align='center'>The ultimate cross-platform tagger for DJs</h1>
 
-<h3 align='center'><b><a href='https://onetagger.github.io/'>OneTagger.github.io</a></b></h3>
+<h3 align='center'><b>
+<a href='https://onetagger.github.io/'>Website</a> | <a href='https://github.com/Marekkon5/onetagger/releases/'>Latest Release</a>
+</b></h3>
 <br>
 
 <p align='center'>
@@ -12,6 +14,7 @@
     <img alt='Build Status' src='https://img.shields.io/github/workflow/status/marekkon5/onetagger/Build'>
 </p>
 
+<h3 align='center'><b></b></h3>
 <hr>
 
 Cross-platform music tagger.
