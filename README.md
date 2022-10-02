@@ -23,7 +23,7 @@ MP3, AIFF, FLAC, M4A (AAC, ALAC) supported.
 
 *For more info and tutorials check out our [website](https://onetagger.github.io/).*
 
-https://user-images.githubusercontent.com/15169286/143677591-a8571820-1e7e-486d-aa1d-091ee52cce66.mp4
+https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-bdbf-5a1dca2d99c8.mp4
 
 
 ## Installing
