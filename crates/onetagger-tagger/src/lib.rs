@@ -84,9 +84,11 @@ pub struct TaggerConfig {
     pub skip_tagged: bool,
     pub include_subfolders: bool,
     pub only_year: bool,
-    pub move_files: bool,
-    pub move_target: Option<String>,
     pub title_regex: Option<String>,
+    pub move_success: bool,
+    pub move_success_path: Option<String>,
+    pub move_failed: bool,
+    pub move_failed_path: Option<String>,
     /// Tag the same track on multiple platforms
     pub multiplatform: bool,
 
@@ -110,7 +112,8 @@ impl Default for TaggerConfig {
             parse_filename: false, filename_template: None, short_title: false, match_duration: false, multiplatform: false,
             max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default, title_regex: None,
             post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(), include_subfolders: true,
-            track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false, move_files: false, move_target: None
+            track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false, 
+            move_success: false, move_success_path: None, move_failed: false, move_failed_path: None
         }
     }
 }

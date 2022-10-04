@@ -503,13 +503,13 @@ impl Tagger {
     // Returtns progress receiver, and file count
     pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
         let original_files = files.clone();
+        let mut succesful_files = vec![];
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
         // Create thread
         let (tx, rx) = unbounded();
         let mut config = cfg.clone();
-        let move_files = config.move_files;
         thread::spawn(move || {
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
@@ -518,8 +518,6 @@ impl Tagger {
                     if platform_index > 0 {
                         config.overwrite = false;
                     }
-                    // Move files only at last platform
-                    config.move_files = move_files && platform_index == config.platforms.len() - 1;
                 }
 
                 // For progress
@@ -566,9 +564,14 @@ impl Tagger {
                     info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {}", status.status, status.accuracy, status.path);
                     processed += 1;
                     // Send to UI
-                    tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status,  platform_index, config.platforms.len(), processed, total)).ok();
-                    // Fallback
+                    tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
+
                     if status.status == TaggingState::Ok {
+                        // Save good files
+                        if !succesful_files.contains(&status.path) {
+                            succesful_files.push(status.path.to_string());
+                        }
+                        // Fallback
                         if !config.multiplatform {
                             files.remove(files.iter().position(|f| f == &status.path).unwrap());
                         }
@@ -587,8 +590,9 @@ impl Tagger {
                 let success_file = folder.join(format!("success-{}.m3u", time));
                 {
                     let mut file = File::create(&failed_file)?;
-                    file.write_all(files
+                    file.write_all(original_files
                         .iter()
+                        .filter(|i| !succesful_files.contains(&i))
                         .filter_map(|f| Path::new(f).canonicalize().ok().map(|p| p.to_str().unwrap().to_string()))
                         .collect::<Vec<_>>()
                         .join("\r\n")
@@ -597,9 +601,8 @@ impl Tagger {
                 }
                 {
                     let mut file = File::create(&success_file)?;
-                    let files: Vec<String> = original_files
-                        .into_iter()
-                        .filter(|i| !files.contains(i))
+                    let files: Vec<String> = succesful_files
+                        .iter()
                         .filter_map(|f| Path::new(&f).canonicalize().ok().map(|p| p.to_str().unwrap().to_string()))
                         .collect();
                     file.write_all(files.join("\r\n").as_bytes())?;
@@ -632,6 +635,27 @@ impl Tagger {
                 },
                 Err(e) => warn!("Failed writing failed songs to file! {}", e)
             };
+
+            // Move files
+            if config.move_success && config.move_success_path.is_some() {
+                for file in &succesful_files {
+                    match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
+                        Ok(_) => {},
+                        Err(e) => warn!("Failed moving file: {file} {e}"),
+                    }
+                }
+            }
+            if config.move_failed && config.move_failed_path.is_some() {
+                for file in &original_files {
+                    if succesful_files.contains(file) {
+                        continue;
+                    }
+                    match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
+                        Ok(_) => {},
+                        Err(e) => warn!("Failed moving file: {file} {e}"),
+                    }
+                }
+            }
             
 
         });
@@ -728,11 +752,7 @@ impl Tagger {
                             Ok(_) => {
                                 out.accuracy = Some(acc);
                                 out.status = TaggingState::Ok;
-                                // Move file
-                                match Tagger::move_file(&info, config) {
-                                    Ok(_) => {},
-                                    Err(e) => error!("Failed moving tagged file: {e}")
-                                };
+
                             },
                             Err(e) => out.message = Some(format!("Failed writing tags to file: {}", e))
                         }
@@ -788,17 +808,14 @@ impl Tagger {
     }
 
     /// Move file to target dir if enabled
-    fn move_file(info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
-        if !config.move_files || config.move_target.is_none() {
-            return Ok(());
-        }
+    fn move_file(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
         // Generate path
-        let target_dir = Path::new(config.move_target.as_ref().unwrap());
-        let filename = Path::new(&info.path).file_name().unwrap();
+        let target_dir = Path::new(target.as_ref());
+        let filename = Path::new(source.as_ref()).file_name().unwrap();
         std::fs::create_dir_all(&target_dir).ok();
         let target = Path::new(&target_dir).join(filename);
-        std::fs::copy(&info.path, target)?;
-        std::fs::remove_file(&info.path)?;
+        std::fs::copy(source.as_ref(), target)?;
+        std::fs::remove_file(source.as_ref())?;
 
         Ok(())
     }

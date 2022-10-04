@@ -100,19 +100,32 @@
             ></q-input>
         </div>
 
-        <!-- Move file -->
+        <!-- Move files -->
         <AdvancedSettingsToggle
-            label='Move files after tagging'
-            v-model='$1t.config.value.moveFiles'
+            label='Move succesfully tagged files after tagging'
+            v-model='$1t.config.value.moveSuccess'
         ></AdvancedSettingsToggle>
-        <div v-if='$1t.config.value.moveFiles'>
+        <div v-if='$1t.config.value.moveSuccess'>
             <q-input
-                v-model='$1t.config.value.moveTarget'
+                v-model='$1t.config.value.moveSuccessPath'
                 filled
                 label='Target folder'
                 class='input q-mb-sm' 
             ></q-input>
         </div>
+        <AdvancedSettingsToggle
+            label='Move files that failed to get tagged'
+            v-model='$1t.config.value.moveFailed'
+        ></AdvancedSettingsToggle>
+        <div v-if='$1t.config.value.moveFailed'>
+            <q-input
+                v-model='$1t.config.value.moveFailedPath'
+                filled
+                label='Target folder'
+                class='input q-mb-sm' 
+            ></q-input>
+        </div>
+
 
     </q-list>
 
