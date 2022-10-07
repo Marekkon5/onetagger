@@ -4,7 +4,7 @@ use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
-use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
 
 pub struct ITunes {
     client: Client,
@@ -25,11 +25,6 @@ impl ITunes {
             last_request: 0
         }
     }
-
-    // /// Set rate limit, -1 for no rate limit
-    // pub fn set_rate_limit(&mut self, rate_limit: i16) {
-    //     self.rate_limit = rate_limit;
-    // }
 
     /// Make get request to API
     fn get(&mut self, path: &str, query: &[(&str, &str)]) -> Result<Response, Box<dyn Error>> {
@@ -61,10 +56,14 @@ impl ITunes {
 
 impl AutotaggerSource for ITunes {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+        // Get config
+        let art_resolution = config.custom.get("itunes").ok_or("Missing iTunes config!")?
+            .get_i32("art_resolution").ok_or("Missing art_resolution")? as u32;
+
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search(&query)?;
-        let tracks: Vec<Track> = results.results.iter().filter_map(|r| r.into_track()).collect();
+        let tracks: Vec<Track> = results.results.iter().filter_map(|r| r.into_track(art_resolution)).collect();
         if let Some((f, track)) = MatchingUtils::match_track(info, &tracks, config, true) {
             return Ok(Some((f, track)));
         }
@@ -106,7 +105,7 @@ pub enum SearchResult {
 }
 
 impl SearchResult {
-    pub fn into_track(&self) -> Option<Track> {
+    pub fn into_track(&self, art_resolution: u32) -> Option<Track> {
         match self {
             SearchResult::Track { collection_id, track_id, artist_name, collection_name, track_name, track_view_url, track_time_millis, primary_genre_name, release_date, track_number, artwork_url100, track_count, .. } => {
                 Some(Track {
@@ -122,7 +121,7 @@ impl SearchResult {
                     release_date: release_date.as_ref().map(|release_date| NaiveDate::parse_from_str(&release_date[0..10], "%Y-%m-%d").ok()).flatten(),
                     track_number: track_number.map(|t| t.into()),
                     track_total: *track_count,
-                    art: artwork_url100.clone(),
+                    art: artwork_url100.clone().map(|a| a.replace("100x100bb.jpg", &format!("{art_resolution}x{art_resolution}bb.jpg"))),
                     ..Default::default()
                 })
             },
@@ -159,7 +158,11 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
             icon: include_bytes!("../assets/itunes.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
-            custom_options: Default::default(),
+            custom_options: PlatformCustomOptions::new()
+                // Album art resolution
+                .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {
+                    min: 100, max: 2400, step: 100, value: 1000 
+                })
         }
     }
 }
