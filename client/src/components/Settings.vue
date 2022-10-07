@@ -35,7 +35,7 @@
                 </div>
                 <PlaylistDropZone 
                     v-model='qtPlaylist' 
-                    @input='loadQTPlaylist' 
+                    @update:model-value='loadQTPlaylist' 
                     class='input'   
                     style='margin-bottom: 40px;'                 
                 ></PlaylistDropZone>

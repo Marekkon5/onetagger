@@ -24,7 +24,7 @@
         <div class='col-1'></div>
         <PlaylistDropZone 
             :value='$1t.autoTaggerPlaylist'
-            @input='Object.assign($1t.autoTaggerPlaylist, $event)'
+            @update:model-value='(p) => $1t.autoTaggerPlaylist.value = p'
             class='q-my-sm q-pt-md q-pb-lg col-10'            
         ></PlaylistDropZone>
                 

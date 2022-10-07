@@ -36,8 +36,7 @@
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
             <div class='col-1'></div>
             <PlaylistDropZone 
-                :value='playlist' 
-                @input='Object.assign(playlist, $event)'
+                v-model='playlist'
                 class='q-my-sm q-pt-md q-pb-md col-10'                 
                 ></PlaylistDropZone>            
                     

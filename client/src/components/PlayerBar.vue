@@ -63,7 +63,7 @@
             <PlaylistDropZone
                 tiny
                 v-model="qtPlaylist"
-                @input="loadQTPlaylist(); $1t.quickTagUnfocus()"
+                @update:model-value="loadQTPlaylist(); $1t.quickTagUnfocus()"
                 @click.native='$1t.quickTagUnfocus'
                 class="q-mt-sm q-mr-sm"
             ></PlaylistDropZone>

@@ -41,16 +41,16 @@
 </template>
 
 <script lang='ts' setup>
-import { ref } from 'vue';
+import { PropType, ref } from 'vue';
 import { Playlist } from '../scripts/utils';
 
-const { value, tiny } = defineProps({
-    value: { type: Object },
+const { modelValue, tiny } = defineProps({
+    modelValue: { type: Object as PropType<Playlist> },
     tiny: { default: false, type: Boolean },
 });
 const drag = ref(false);
-const filename = ref(value?.filename);
-const emit = defineEmits(['input']);
+const filename = ref(modelValue?.filename);
+const emit = defineEmits(['update:model-value']);
 
 function drop(e: DragEvent) {
     drag.value = false;
@@ -67,7 +67,7 @@ function drop(e: DragEvent) {
     let reader = new FileReader();
     reader.onload = f => {
         //Emit
-        emit('input', {
+        emit('update:model-value', {
             data: f.target?.result,
             format: type,
             filename: file.name
@@ -89,7 +89,7 @@ function getType(mime: string) {
 
 function remove() {
     filename.value = undefined;
-    emit('input', {} as Playlist);
+    emit('update:model-value', {} as Playlist);
 }
 
 </script>
