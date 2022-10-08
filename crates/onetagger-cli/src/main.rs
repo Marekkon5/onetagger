@@ -224,6 +224,10 @@ enum Actions {
         /// Write only year instead of full date
         #[clap(long)]
         only_year: bool,
+
+        /// Tag on multiple platforms instead of the default fallback mode
+        #[clap(long)]
+        multiplatform: bool,
     },
     /// Start Audio Features in CLI mode
     Audiofeatures {
@@ -329,7 +333,7 @@ impl Actions {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
                 overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
                 short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
-                skip_tagged, parse_filename, filename_template, no_subfolders, only_year } => {
+                skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform } => {
 
                 // Load config
                 let mut config = if let Some(config_path) = config {
@@ -354,7 +358,7 @@ impl Actions {
                 }
                 // Boolean options
                 config_option!(config, id3v24, overwrite, album_art_file, merge_genres, camelot, short_title, match_duration,
-                    match_by_id, enable_shazam, force_shazam, skip_tagged, parse_filename, only_year);
+                    match_by_id, enable_shazam, force_shazam, skip_tagged, parse_filename, only_year, multiplatform);
                 // Remaining options
                 if let Some(threads) = threads {
                     config.threads = *threads;

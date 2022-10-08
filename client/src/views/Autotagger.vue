@@ -92,20 +92,38 @@
 
     <!-- Start FAB -->
     <q-page-sticky position='bottom-right' :offset='[36, 24]'>
-        <q-btn 
-            fab 
-            push
-            icon='mdi-play' 
-            color='primary'
-            :disable='!canStart'
-            @click='startTagging'
-        >
-            <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                <span class='text-weight-bold'>START</span>
-            </q-tooltip>
-        </q-btn>
+        <div class='row'>
+            <!-- CLI FAB -->
+            <div class='q-mr-md q-mt-md'>
+                <q-btn flat round icon='mdi-console' color='grey-8' @click='cliDialog = true'>
+                    <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                        <span class='text-weight-bold'>CLI Version Config</span>
+                    </q-tooltip>
+                </q-btn>
+            </div>
+
+            <!-- Start fab -->
+            <div>
+                <q-btn 
+                    fab 
+                    push
+                    icon='mdi-play' 
+                    color='primary'
+                    :disable='!canStart'
+                    @click='startTagging'
+                >
+                    <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                        <span class='text-weight-bold'>START</span>
+                    </q-tooltip>
+                </q-btn>
+            </div>
+        </div>
     </q-page-sticky>
 
+    <!-- CLI Dialog -->
+    <q-dialog v-model='cliDialog'>
+        <CliDialog :config='$1t.config.value' command='autotagger'></CliDialog>
+    </q-dialog>
 </div>
 </template>
 
@@ -118,10 +136,12 @@ import AutotaggerPlatforms from '../components/AutotaggerPlatforms.vue';
 import AutotaggerTags from '../components/AutotaggerTags.vue';
 import AutotaggerPlatformSpecific from '../components/AutotaggerPlatformSpecific.vue';
 import AutotaggerAdvanced from '../components/AutotaggerAdvanced.vue';
+import CliDialog from '../components/CliDialog.vue';
 
 const $1t = get1t();
 const $router = useRouter();
 const step = ref(0);
+const cliDialog = ref(false);
 
 function startTagging() {
     // Save settings

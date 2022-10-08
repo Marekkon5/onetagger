@@ -123,21 +123,37 @@
 
         <!-- Start -->
         <q-page-sticky position='bottom-right' :offset='[36, 24]'>
-            <q-btn 
-                fab push
-                icon='mdi-play' 
-                color='primary'
-                :disable='!config.path && !playlist.data'
-                @click='start'                
-            >
-            <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                <span class='text-weight-bold'>START</span>
-            </q-tooltip>
-            </q-btn>
+            <div class='row'>
+                <!-- CLI FAB -->
+                <div class='q-mr-md q-mt-md'>
+                    <q-btn class='bg-grey-9' flat round icon='mdi-console' color='grey-4' @click='cliDialog = true'>
+                        <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                            <span class='text-weight-bold'>CLI Version Config</span>
+                        </q-tooltip>
+                    </q-btn>
+                </div>
+
+                <!-- Start FAB -->
+                <q-btn 
+                    fab push
+                    icon='mdi-play' 
+                    color='primary'
+                    :disable='!config.path && !playlist.data'
+                    @click='start'                
+                >
+                <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                    <span class='text-weight-bold'>START</span>
+                </q-tooltip>
+                </q-btn>
+            </div>
         </q-page-sticky>
     </div>
 
 
+    <!-- CLI Dialog -->
+    <q-dialog v-model='cliDialog'>
+        <CliDialog :config='config' command='audiofeatures' :extra='`--client-id ${$1t.spotify.value.clientId} --client-secret ${$1t.spotify.value.clientSecret}`'></CliDialog>
+    </q-dialog>
 
 </div>
 </template>
@@ -147,6 +163,7 @@ import TagFields from '../components/TagFields.vue';
 import PlaylistDropZone from '../components/PlaylistDropZone.vue';
 import Separators from '../components/Separators.vue';
 import SpotifyLogin from '../components/SpotifyLogin.vue';
+import CliDialog from '../components/CliDialog.vue';
 import { Playlist } from '../scripts/utils';
 import { onMounted, ref } from 'vue';
 import { AudioFeaturesConfig } from '../scripts/settings';
@@ -157,6 +174,7 @@ const $1t = get1t();
 const $router = useRouter();
 const playlist = ref<Playlist>({});
 const config = ref(new AudioFeaturesConfig());
+const cliDialog = ref(false);
 
 // Browse folder
 function browse() {
