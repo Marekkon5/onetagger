@@ -57,13 +57,12 @@ impl ITunes {
 impl AutotaggerSource for ITunes {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Get config
-        let art_resolution = config.custom.get("itunes").ok_or("Missing iTunes config!")?
-            .get_i32("art_resolution").ok_or("Missing art_resolution")? as u32;
+        let custom_config: ITunesConfig = config.get_custom("itunes")?;
 
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search(&query)?;
-        let tracks: Vec<Track> = results.results.iter().filter_map(|r| r.into_track(art_resolution)).collect();
+        let tracks: Vec<Track> = results.results.iter().filter_map(|r| r.into_track(custom_config.art_resolution)).collect();
         if let Some((f, track)) = MatchingUtils::match_track(info, &tracks, config, true) {
             return Ok(Some((f, track)));
         }
@@ -165,4 +164,9 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
                 })
         }
     }
+}
+
+#[derive(Deserialize)]
+struct ITunesConfig {
+    pub art_resolution: u32
 }

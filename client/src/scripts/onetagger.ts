@@ -132,31 +132,16 @@ class OneTagger {
                     this.config.value.path = json.startContext.startPath;
                 }
 
-                //TODO: REFACTOR THIS MESS AND FIND BETTER WAY TO SAVE JUST VALUES
-                // restore custom platform fields
-                for (const [key, value] of Object.entries(this.config.value.custom)) {
-                    for (let platform of this.info.value.platforms) {
-                        if (platform.platform.id == key) {
-                            // restore keys
-                            // @ts-ignore
-                            for (const [id, newValue] of Object.entries(value)) {
-                                for (let i in platform.platform.customOptions.options) {
-                                    if (platform.platform.customOptions.options[i].id == id) {
-                                        // @ts-ignore
-                                        platform.platform.customOptions.options[i].value.value = newValue.value;
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                }
                 this.info.value.ready = true;
                 break;
             
             // Settings loaded
             case 'loadSettings':
                 this.loadSettings(json.settings);
+                break;
+            // Update custom platform settings to V2
+            case 'defaultCustomPlatformSettings':
+                this.config.value.custom = json.custom;
                 break;
             // Path selected
             case 'browse':
@@ -358,6 +343,11 @@ class OneTagger {
         this.config.value = config;
         this.config.value.stylesCustomTag = Object.assign(FrameName.same('STYLE'), config.stylesCustomTag);
         this.config.value.separators = Object.assign(new Separators(), config.separators);
+
+        // Update custom to v2
+        if (!this.config.value.custom['beatport'] || typeof this.config.value.custom['beatport']['art_resolution'] === 'object') {
+            this.send('defaultCustomPlatformSettings');
+        }
  
         // Restore specific
         this.player.value.volume = this.settings.value.volume??0.5;

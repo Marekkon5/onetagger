@@ -11,6 +11,7 @@ regex = "1.5"
 chrono = "0.4"
 strsim = "0.10"
 unidecode = "0.3"
+serde_json = "1.0"
 
 serde = { version = "1.0", features = ["derive"] }
 

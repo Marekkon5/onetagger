@@ -150,7 +150,7 @@ impl Discogs {
 
 impl AutotaggerSource for Discogs {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
-        let discogs_config = DiscogsConfig::parse(config)?;
+        let discogs_config: DiscogsConfig = config.get_custom("discogs")?;
         // Exact ID match
         if config.match_by_id {
             if let Some(id) = info.tags.get("DISCOGS_RELEASE_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
@@ -422,7 +422,7 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
-        let config = DiscogsConfig::parse(config)?;
+        let config: DiscogsConfig = config.get_custom("discogs")?;
         let mut discogs = Discogs::new();
         // Auth
         discogs.set_auth_token(&config.token);
@@ -458,22 +458,10 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
     }
 }
 
+#[derive(Deserialize)]
 pub struct DiscogsConfig {
     pub token: String,
     pub max_albums: i32,
     pub track_number_int: bool,
     pub rate_limit: Option<i32>,
-}
-
-impl DiscogsConfig {
-    /// Parse custom options from config
-    pub fn parse(config: &TaggerConfig) -> Result<DiscogsConfig, Box<dyn Error>> {
-        let config = config.custom.get("discogs").ok_or("Missing discogs config!")?;
-        Ok(DiscogsConfig {
-            token: config.get_str("token").ok_or("Missing token!")?,
-            max_albums: config.get_i32("max_albums").ok_or("Missing max_albums")?,
-            track_number_int: config.get_bool("track_number_int").unwrap_or(false),
-            rate_limit: config.get_i32("_rate_limit")
-        })
-    }
 }

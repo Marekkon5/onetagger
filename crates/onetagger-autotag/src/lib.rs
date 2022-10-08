@@ -22,8 +22,7 @@ use crossbeam_channel::{unbounded, Sender, Receiver};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 use onetagger_shared::Settings;
 use onetagger_player::AudioSources;
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, StylesOptions, PlatformCustomOptionValue,
-    AutotaggerSource, AutotaggerSourceBuilder, PlatformCustomOptionsResponse, CAMELOT_NOTES};
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, StylesOptions, AutotaggerSource, AutotaggerSourceBuilder, CAMELOT_NOTES};
 
 use crate::shazam::Shazam;
 mod shazam;
@@ -43,11 +42,11 @@ impl TaggerConfigExt for TaggerConfig {
         let mut custom = HashMap::new();
         for platform in &AUTOTAGGER_PLATFORMS.0 {
             if !platform.platform.custom_options.options.is_empty() {
-                let mut options = PlatformCustomOptionsResponse::new();
+                let mut options = HashMap::new();
                 for option in &platform.platform.custom_options.options {
-                    options.0.insert(option.id.to_string(), option.value.clone());
+                    options.insert(option.id.to_string(), option.value.json_value());
                 }
-                custom.insert(platform.platform.id.to_string(), options);
+                custom.insert(platform.platform.id.to_string(), serde_json::to_value(options).unwrap());
             }
         }
         let mut default = TaggerConfig::default();
@@ -529,14 +528,14 @@ impl Tagger {
                     break;
                 }
 
-                // Discogs rate limit override
-                if let Some(discogs) = config.custom.get_mut("discogs") {
-                    discogs.0.remove("_rate_limit");
-                    if files.len() <= 35 {
-                        let value = if files.len() <= 20 { 1000 } else { 150 };
-                        discogs.0.insert("_rate_limit".to_string(), PlatformCustomOptionValue::Number { min: 0, max: 0, step: 0, value });
-                    }
-                }
+                // // Discogs rate limit override
+                // if let Some(discogs) = config.custom.get_mut("discogs") {
+                //     discogs.0.remove("_rate_limit");
+                //     if files.len() <= 35 {
+                //         let value = if files.len() <= 20 { 1000 } else { 150 };
+                //         discogs.0.insert("_rate_limit".to_string(), PlatformCustomOptionValue::Number { min: 0, max: 0, step: 0, value });
+                //     }
+                // }
 
                 // Get tagger
                 let mut tagger = match AUTOTAGGER_PLATFORMS.get_builder(platform) {

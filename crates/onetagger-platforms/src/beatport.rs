@@ -317,7 +317,7 @@ impl BeatportImage {
 impl AutotaggerSource for Beatport {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
         // Load custom config
-        let custom_config = BeatportConfig::parse(config)?;
+        let custom_config: BeatportConfig = config.get_custom("beatport")?;
 
         // Fetch by ID
         if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
@@ -452,19 +452,8 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct BeatportConfig {
     pub art_resolution: u32,
     pub max_pages: i32,
-}
-
-impl BeatportConfig {
-    /// Load custom options from tagger config
-    pub fn parse(config: &TaggerConfig) -> Result<BeatportConfig, Box<dyn Error>> {
-        let config = config.custom.get("beatport").ok_or("Missing Beatport config!")?;
-        Ok(BeatportConfig {
-            art_resolution: config.get_i32("art_resolution").ok_or("Missing art_resolution")? as u32,
-            max_pages: config.get_i32("max_pages").ok_or("Missing max_pages")?,
-        })
-    }
 }

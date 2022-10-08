@@ -92,9 +92,10 @@ class AutotaggerConfig {
     moveFailed: boolean = false;
     moveFailedPath?: string;
 
-    // TODO: annotate type
-    custom: any = {};
     spotify?: SpotifyConfig;
+
+    // { platform: { option1: value, option2: value ... }, ... }
+    custom: Record<string, Record<string, any>> = {};
 
     // autotagger or audiofeatures, not actually serialized, dynamically changed
     type?: string;

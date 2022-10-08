@@ -11,7 +11,7 @@
             <!-- Slider -->
             <div v-if='option.value.type == "number"'>
                 <q-chip text-color='black' color='primary'>
-                    {{option.label}}: {{option.value.value}}
+                    {{option.label}}: {{$1t.config.value.custom[platform.id][option.id]}}
                     <q-tooltip v-if='option.tooltip'>
                         {{option.tooltip}}
                     </q-tooltip>
@@ -19,7 +19,7 @@
                 <div class='row justify-center'>
                     <q-slider
                         label-text-color='black'
-                        v-model='option.value.value'
+                        v-model='$1t.config.value.custom[platform.id][option.id]'
                         :min='option.value.min'
                         :max='option.value.max'
                         :step='option.value.step'
@@ -32,7 +32,7 @@
             <!-- Custom tag type -->
             <div v-if='option.value.type == "tag"'>
                 <div class='text-body1'>{{option.label}}</div>
-                <TagFields v-model='(option.value.value as any)' class='input'></TagFields>
+                <TagFields v-model='$1t.config.value.custom[platform.id][option.id]' class='input'></TagFields>
             </div>
 
             <!-- Select -->
@@ -43,7 +43,7 @@
                 <q-select
                     dark
                     standout='text-grey-4 bg-dark'
-                    v-model='option.value.value'
+                    v-model='$1t.config.value.custom[platform.id][option.id]'
                     :options='option.value.values'
                     class='select'
                     :label='option.label'
@@ -56,7 +56,7 @@
                 <q-input
                     dark
                     standout='text-grey-4 bg-dark'
-                    v-model='option.value.value'
+                    v-model='$1t.config.value.custom[platform.id][option.id]'
                     class='input' 
                     :label='option.label'
                     :type='option.value.hidden ? "password" : "text"'
@@ -68,7 +68,7 @@
                 <div>
                     <q-toggle 
                         style='margin-bottom: 10px;' 
-                        v-model='option.value.value' 
+                        v-model='$1t.config.value.custom[platform.id][option.id]' 
                         :label="option.label"
                     ><br></q-toggle>
                 </div>
@@ -115,6 +115,7 @@ const spotify = computed(() => $1t.config.value.platforms.includes('spotify'));
 const platforms = computed(() => $1t.info.value.platforms
     .filter((p) => $1t.config.value.platforms.includes(p.id) && p.platform.customOptions.options.length > 0)
     .map((p) => p.platform));
+
 </script>
 
 <style>

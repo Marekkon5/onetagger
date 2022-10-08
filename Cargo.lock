@@ -2603,6 +2603,7 @@ dependencies = [
  "onetagger-tag",
  "regex",
  "serde",
+ "serde_json",
  "strsim",
  "unidecode",
 ]

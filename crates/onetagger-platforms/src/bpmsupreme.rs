@@ -198,11 +198,8 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
             Some(token) => token.to_string(),
             None => {
                 // Try to login
-                let custom = config.custom.get("bpmsupreme").ok_or("Missing bpmsupreme config!")?;
-                let token = BPMSupreme::login(
-                    &custom.get_str("email").ok_or("Missing email!")?, 
-                    &custom.get_str("password").ok_or("Missing password!")?
-                )?;
+                let custom: BPMSupremeConfig = config.get_custom("bpmsupreme")?;
+                let token = BPMSupreme::login(&custom.email, &custom.password)?;
                 self.token = Some(token.to_string());
                 token
             }
@@ -228,4 +225,10 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
                 }),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BPMSupremeConfig {
+    pub email: String,
+    pub password: String
 }

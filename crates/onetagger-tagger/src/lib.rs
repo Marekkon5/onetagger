@@ -8,6 +8,8 @@ use std::time::Duration;
 use chrono::NaiveDate;
 use regex::Regex;
 use serde::{Serialize, Deserialize};
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
@@ -93,27 +95,81 @@ pub struct TaggerConfig {
     pub multiplatform: bool,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
-    pub custom: HashMap<String, PlatformCustomOptionsResponse>,
+    pub custom: HashMap<String, Value>,
     pub spotify: Option<SpotifyConfig>,
 }
 
+impl TaggerConfig {
+    /// Get platform's custom config
+    pub fn get_custom<T: DeserializeOwned>(&self, platform_id: &str) -> Result<T, Box<dyn Error>> {
+        let config = self.custom.get(platform_id).ok_or(format!("Missing {platform_id} custom config!"))?;
+        Ok(serde_json::from_value(config.to_owned())?)
+    }
+}
 
 impl Default for TaggerConfig {
-    // Suffering, but threads has to be 16 by default, strictness >0 etc and Default::default() caused stack overflow
     fn default() -> Self {
         Self {
-            platforms: vec!["beatport".to_string()], threads: 16, strictness: 0.8, path: None, track_total: false,
-            title: false, artist: false, album: false, key: false, bpm: false, genre: false, mood: false,
-            style: false, label: false, release_date: false, publish_date: false, album_art: false, disc_number: false,
-            other_tags: false, catalog_number: false, url: false, track_id: false, release_id: false,
-            version: false, duration: false, album_artist: false, remixer: false, track_number: false,
-            isrc: false, meta_tags: false, separators: TagSeparators::default(), id3v24: false, only_year: false,
-            overwrite: false, merge_genres: false, album_art_file: false, camelot: false, styles_options: StylesOptions::Default,
-            parse_filename: false, filename_template: None, short_title: false, match_duration: false, multiplatform: false,
-            max_duration_difference: 30, match_by_id: false, multiple_matches: MultipleMatchesSort::Default, title_regex: None,
-            post_command: None, styles_custom_tag: None, spotify: None, custom: HashMap::new(), include_subfolders: true,
-            track_number_leading_zeroes: 0, enable_shazam: false, force_shazam: false, skip_tagged: false, 
-            move_success: false, move_success_path: None, move_failed: false, move_failed_path: None
+            platforms: vec!["beatport".to_string()], 
+            threads: 16, 
+            strictness: 0.7, 
+            path: None, 
+            track_total: false,
+            title: false, 
+            artist: false, 
+            album: false, 
+            key: false, 
+            bpm: true, 
+            genre: true, 
+            mood: false,
+            style: true, 
+            label: true, 
+            release_date: true, 
+            publish_date: false, 
+            album_art: false, 
+            disc_number: false,
+            other_tags: false, 
+            catalog_number: false, 
+            url: false, 
+            track_id: false, 
+            release_id: false,
+            version: false, 
+            duration: false, 
+            album_artist: false, 
+            remixer: false, 
+            track_number: false,
+            isrc: false, 
+            meta_tags: false, 
+            separators: TagSeparators::default(), 
+            id3v24: true, 
+            only_year: false,
+            overwrite: true, 
+            merge_genres: false, 
+            album_art_file: false, 
+            camelot: false, 
+            styles_options: StylesOptions::Default,
+            parse_filename: false, 
+            filename_template: Some("%artists% - %title%".to_string()), 
+            short_title: false, 
+            match_duration: false, 
+            multiplatform: false,
+            max_duration_difference: 30, 
+            match_by_id: false, 
+            multiple_matches: MultipleMatchesSort::Default, 
+            title_regex: None,
+            post_command: None, 
+            styles_custom_tag: Some(FrameName::same("STYLE")), 
+            spotify: None, 
+            custom: HashMap::new(), 
+            include_subfolders: true,
+            track_number_leading_zeroes: 0, 
+            enable_shazam: false, 
+            force_shazam: false, 
+            skip_tagged: false, 
+            move_success: false, 
+            move_success_path: None, 
+            move_failed: false, 
+            move_failed_path: None
         }
     }
 }
@@ -408,6 +464,19 @@ pub enum PlatformCustomOptionValue {
     Option { values: Vec<String>, value: String }
 }
 
+impl PlatformCustomOptionValue {
+    /// Get JSON value 
+    pub fn json_value(&self) -> Value {
+        match self {
+            PlatformCustomOptionValue::Boolean { value } => Value::from(*value),
+            PlatformCustomOptionValue::Number { value, .. } => Value::from(*value),
+            PlatformCustomOptionValue::String { value, .. } => Value::from(value.clone()),
+            PlatformCustomOptionValue::Tag { value } => serde_json::to_value(&value).unwrap(),
+            PlatformCustomOptionValue::Option { value, .. } => Value::from(value.to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
@@ -460,51 +529,6 @@ impl PlatformCustomOptions {
     pub fn add_tooltip(mut self, id: &str, label: &str, tooltip: &str, value: PlatformCustomOptionValue) -> PlatformCustomOptions {
         self.options.push(PlatformCustomOption::new(id, label, value).tooltip(tooltip));
         self
-    }
-}
-
-
-/// Already filled in custom options. Format: `{ custom_option: value }`
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PlatformCustomOptionsResponse(pub HashMap<String, PlatformCustomOptionValue>);
-
-impl PlatformCustomOptionsResponse {
-    /// Create empty response
-    pub fn new() -> PlatformCustomOptionsResponse {
-        PlatformCustomOptionsResponse(HashMap::new())
-    }
-
-    /// Short to get number field
-    pub fn get_i32(&self, id: &str) -> Option<i32> {
-        self.0.get(id).map(|o| match o {
-            PlatformCustomOptionValue::Number { value, .. } => Some(*value),
-            _ => None
-        }).flatten()
-    }
-
-    /// Short to get string/option field
-    pub fn get_str(&self, id: &str) -> Option<String> {
-        self.0.get(id).map(|o| match &o {
-            PlatformCustomOptionValue::String { value, .. } => Some(value.to_string()),
-            PlatformCustomOptionValue::Option { value, .. } => Some(value.to_string()),
-            _ => None
-        }).flatten()
-    }
-
-    /// Short to get tag value
-    pub fn get_tag(&self, id: &str) -> Option<FrameName> {
-        self.0.get(id).map(|o| match &o {
-            PlatformCustomOptionValue::Tag { value, .. } => Some(value.clone()),
-            _ => None
-        }).flatten()
-    }
-
-    /// Short to get boolean
-    pub fn get_bool(&self, id: &str) -> Option<bool> {
-        self.0.get(id).map(|o| match o {
-            PlatformCustomOptionValue::Boolean { value, .. } => Some(*value),
-            _ => None
-        }).flatten()
     }
 }
 

@@ -124,18 +124,6 @@ const $router = useRouter();
 const step = ref(0);
 
 function startTagging() {
-    // Merge custom fields
-    let custom: any = {};
-    for (let platform of $1t.info.value.platforms) {
-        if (platform.platform.customOptions.options.length > 0) {
-            custom[platform.platform.id] = {}
-            for (let option of platform.platform.customOptions.options) {
-                custom[platform.platform.id][option.id] = option.value;
-            }
-        }
-    }
-    $1t.config.value.custom = custom;
-
     // Save settings
     $1t.saveSettings();
     $1t.config.value.type = 'autoTagger';

@@ -44,7 +44,7 @@ impl Beatsource {
 
 impl AutotaggerSource for Beatsource {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
-        let beatsource_config = BeatsourceConfig::parse(config)?;
+        let beatsource_config: BeatsourceConfig = config.get_custom("beatsource")?;
         
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
@@ -244,21 +244,9 @@ impl AutotaggerSourceBuilder for BeatsourceBuilder {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatsourceConfig {
     pub art_resolution: i32
-}
-
-impl BeatsourceConfig {
-    /// Get custom config from tagger config
-    pub fn parse(config: &TaggerConfig) -> Result<BeatsourceConfig, Box<dyn Error>> {
-        let c = config.custom.get("beatsource").map(|config| {
-            BeatsourceConfig {
-                art_resolution: config.get_i32("art_resolution").unwrap_or(500)
-            }
-        }).ok_or("Missing beatsource config!")?;
-        Ok(c)
-    }
 }
 
 

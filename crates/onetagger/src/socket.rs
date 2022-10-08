@@ -14,7 +14,7 @@ use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo};
-use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl};
+use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl, TaggerConfigExt};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -33,6 +33,7 @@ enum Action {
     Init,
     SaveSettings { settings: Value },
     LoadSettings,
+    DefaultCustomPlatformSettings,
     Browse { path: Option<String>, context: Option<String> },
     Browser { url: String },
     OpenSettingsFolder,
@@ -206,6 +207,13 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             // Ignore settings if they don't exist (might be initial load)
             Err(e) => error!("Failed loading settings, using defaults. {}", e)
         },
+        // Get the default custom platform options
+        Action::DefaultCustomPlatformSettings => {
+            websocket.write_message(Message::from(json!({
+                "action": "defaultCustomPlatformSettings",
+                "custom": TaggerConfig::custom_default().custom
+            }).to_string())).ok();
+        }
         // Browse for folder
         Action::Browse { path, context } => {
             let mut initial = path.unwrap_or(".".to_string());
