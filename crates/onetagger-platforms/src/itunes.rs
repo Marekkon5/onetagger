@@ -160,7 +160,7 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
             custom_options: PlatformCustomOptions::new()
                 // Album art resolution
                 .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {
-                    min: 100, max: 2400, step: 100, value: 1000 
+                    min: 100, max: 5000, step: 100, value: 1000 
                 })
         }
     }
