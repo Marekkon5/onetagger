@@ -508,17 +508,10 @@ impl Tagger {
 
         // Create thread
         let (tx, rx) = unbounded();
-        let mut config = cfg.clone();
+        let config = cfg.clone();
         thread::spawn(move || {
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
-                // If multiplatform, disable overwrite
-                if config.multiplatform {
-                    if platform_index > 0 {
-                        config.overwrite = false;
-                    }
-                }
-
                 // For progress
                 let mut processed = 0;
                 let total = files.len();
