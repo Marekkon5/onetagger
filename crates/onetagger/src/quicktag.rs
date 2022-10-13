@@ -59,13 +59,13 @@ impl QuickTag {
     /// Check extension and load file
     pub fn load_files(files: Vec<String>, separators: &TagSeparators) -> Result<QuickTagData, Box<dyn Error>> {
         let mut out = vec![];
-        let mut failed = 0;
+        let mut failed = vec![];
         for path in files {
             if EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
                 match QuickTagFile::from_path(&path, separators) {
                     Ok(t) => out.push(t),
                     Err(e) => {
-                        failed += 1;
+                        failed.push(QuickTagFailed::new(&path, e.to_string()));
                         error!("Error loading file: {} {}", path, e);
                     }
                 }
@@ -82,7 +82,20 @@ impl QuickTag {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct QuickTagData {
     pub files: Vec<QuickTagFile>,
-    pub failed: usize
+    pub failed: Vec<QuickTagFailed>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuickTagFailed {
+    pub path: String,
+    pub error: String
+}
+
+impl QuickTagFailed {
+    /// Create new instance
+    pub fn new(path: impl Into<String>, error: impl Into<String>) -> QuickTagFailed {
+        QuickTagFailed { path: path.into(), error: error.into() }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -105,11 +118,11 @@ impl QuickTagFile {
     pub fn from_path(path: &str, separators: &TagSeparators) -> Result<QuickTagFile, Box<dyn Error>> {
         let mut tag_wrap = Tag::load_file(path, false)?;
         tag_wrap.set_separators(separators);
-        Ok(QuickTagFile::from_tag(path, &tag_wrap).ok_or("Unable to load tags!")?)
+        Ok(QuickTagFile::from_tag(path, &tag_wrap)?)
     }
 
     /// Load tags from `Tag`
-    pub fn from_tag(path: &str, tag_wrap: &Tag) -> Option<QuickTagFile> {
+    pub fn from_tag(path: &str, tag_wrap: &Tag) -> Result<QuickTagFile, Box<dyn Error>> {
         let tag = tag_wrap.tag();
         let mut all_tags = tag.all_tags();
         // Insert overriden tags
@@ -120,11 +133,11 @@ impl QuickTagFile {
             all_tags.insert("USLT".to_string(), v);
         }
 
-        Some(QuickTagFile {
+        Ok(QuickTagFile {
             path: path.to_string(),
             format: tag_wrap.format(),
-            title: tag.get_field(Field::Title)?.first()?.to_string(),
-            artists: tag.get_field(Field::Artist)?,
+            title: tag.get_field(Field::Title).ok_or("Missing title tag")?.first().ok_or("Missing title")?.to_string(),
+            artists: tag.get_field(Field::Artist).ok_or("Missing artist tag")?,
             genres: tag.get_field(Field::Genre).unwrap_or(vec![]),
             rating: tag.get_rating().unwrap_or(0),
             bpm: match tag.get_field(Field::BPM) {

@@ -364,7 +364,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             websocket.write_message(Message::from(json!({
                 "action": "quickTagSaved",
                 "path": &changes.path,
-                "file": QuickTagFile::from_tag(&changes.path, &tag).ok_or("Failed loading tags")?
+                "file": QuickTagFile::from_tag(&changes.path, &tag)?
             }).to_string())).ok();
         },
         // List dir

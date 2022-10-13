@@ -28,7 +28,13 @@
 
         <!-- Stats -->
         <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
-            Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span> | Filtered: <span class='text-bold'>{{tracks.length}}</span> | Failed to load: <span class='text-bold'>{{$1t.quickTag.value.failed}}</span>
+            Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
+             | Filtered: <span class='text-bold'>{{tracks.length}}</span>
+            <span v-if='$1t.quickTag.value.failed.length != 0'> | Failed to load: 
+                <span class='text-bold cursor-pointer' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
+                    <span class='text-underline q-pl-xs'>(show)</span>
+                </span>
+            </span>
         </div>
 
         <!-- Tracklist -->
@@ -103,6 +109,27 @@
         </q-card>
     </q-dialog>
 
+    <!-- Failed files dialog -->
+    <q-dialog v-model='failedDialog'>
+        <q-card class='q-pa-md'>
+            <q-card-section>
+                <div class='text-h4'>Failed to load</div>
+            </q-card-section>
+            <q-card-section>
+                <div>
+                    <div v-for='failed in $1t.quickTag.value.failed' class='q-my-sm'>
+                        <div class='text-body1 monospace'>{{failed.path}}</div>
+                        <div class='text-body2 text-red'>{{failed.error}}</div>
+                    </div>
+                </div>
+            </q-card-section>
+            <q-card-section horizontal>
+                <q-space></q-space>
+                <q-btn flat color='primary'>Close</q-btn>
+            </q-card-section>
+        </q-card>
+    </q-dialog>
+
 </div>
 </template>
 
@@ -118,13 +145,13 @@ const { setVerticalScrollPosition } = scroll;
 
 const $1t = get1t();
 const $q = useQuasar();
-const sortOptions =  ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key'];
-const saveDialog =  ref(false);
-const noteDialog =  ref(false);
-const note =  ref(undefined);
-const filter =  ref<string | undefined>(undefined);
-const sortDescending =  ref(false);
-const sortOption =  ref('title');
+const sortOptions = ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key'];
+const saveDialog = ref(false);
+const noteDialog = ref(false);
+const filter = ref<string | undefined>(undefined);
+const sortDescending = ref(false);
+const sortOption = ref('title');
+const failedDialog = ref(false);
 
 
 // Click on track card

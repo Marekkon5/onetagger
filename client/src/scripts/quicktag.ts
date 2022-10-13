@@ -4,7 +4,12 @@ import { FrameName, Keybind, Separators } from "./utils";
 class QuickTag {
     tracks: QTTrack[] = [];
     track?: QTTrack;
-    failed: number = 0;
+    failed: QuickTagFailed[] = [];
+}
+
+interface QuickTagFailed {
+    path: string,
+    error: string,
 }
 
 interface QuickTagMood {
