@@ -11,7 +11,7 @@
 - Tag each track using multiple platforms
 - Merging styles and genres fixes
 - Regex title cleanup
-- Move failed/succesful files
+- Move failed/successful files
 
 ### Audio Features:
 - Spofiy rate limits
