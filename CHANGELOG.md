@@ -1,5 +1,5 @@
 # 1.5.0
-**(Not released yet)**
+**(14.10.2022)**
 
 ### OneTagger:
 - **Rewrite entire frontend to Vue3 + Typescript**
