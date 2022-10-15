@@ -118,7 +118,7 @@
             <q-card-section>
                 <div>
                     <div v-for='failed in $1t.quickTag.value.failed' class='q-my-sm'>
-                        <div class='text-body1 monospace'>{{failed.path}}</div>
+                        <div class='text-body2 monospace'>{{failed.path}}</div>
                         <div class='text-body2 text-red'>{{failed.error}}</div>
                     </div>
                 </div>

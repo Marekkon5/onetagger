@@ -10,3 +10,5 @@ dist/
 osxcross/
 .vscode/
 test/
+vc_redist.x64.exe
+assets/vc_redist.x64.exe

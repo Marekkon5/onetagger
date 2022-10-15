@@ -6,7 +6,7 @@
 
 ### Auto Tag:
 - Only write year
-- Track/dics number/total tags
+- Track/disc number/total tags
 - BPMSupreme, iTunes improvements
 - Tag each track using multiple platforms
 - Merging styles and genres fixes

@@ -93,7 +93,7 @@ Section "One Tagger" OneTagger
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
 		"InstallLocation" "$INSTDIR"
 	; Dependencies
-	ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet'
+	ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart'
 	ExecWait '"$INSTDIR\onetagger.exe" --bootstrap-webview2'
 	Delete "$INSTDIR\vc_redist.x64.exe"
 SectionEnd
