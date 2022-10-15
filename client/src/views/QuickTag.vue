@@ -125,7 +125,7 @@
             </q-card-section>
             <q-card-section horizontal>
                 <q-space></q-space>
-                <q-btn flat color='primary'>Close</q-btn>
+                <q-btn flat color='primary' @click='failedDialog = false'>Close</q-btn>
             </q-card-section>
         </q-card>
     </q-dialog>
