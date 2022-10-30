@@ -806,6 +806,14 @@ impl Tagger {
         let filename = Path::new(source.as_ref()).file_name().unwrap();
         std::fs::create_dir_all(&target_dir).ok();
         let target = Path::new(&target_dir).join(filename);
+        if target.exists() {
+            return Ok(());
+        }
+        // Try to rename, if fails copy
+        match std::fs::rename(source.as_ref(), &target) {
+            Ok(_) => return Ok(()),
+            Err(_) => {}
+        }
         std::fs::copy(source.as_ref(), target)?;
         std::fs::remove_file(source.as_ref())?;
 

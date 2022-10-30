@@ -101,7 +101,7 @@
                     label="Note tag"
                     style='width: 256px;'
                     :model-value='$1t.quickTag.value.track.getNote()'
-                    @update:model-value='(d) => $1t.quickTag.value.track!.setNote(d as string)'
+                    @update:model-value='(d: string) => $1t.quickTag.value.track!.setNote(d)'
                     @keyup.enter="noteDialog = false"
                     ref='noteDialogInput'
                 ></q-input>
