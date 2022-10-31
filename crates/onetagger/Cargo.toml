@@ -50,6 +50,10 @@ winapi = { version = "0.3", features = ["winuser", "consoleapi"] }
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 
+# MacOS specific
+[target.'cfg(target_os = "macos")'.dependencies]
+native-dialog = "0.6.3"
+
 
 [package.metadata.bundle]
 name = "OneTagger"

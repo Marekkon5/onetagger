@@ -4,6 +4,7 @@
 #[macro_use] extern crate include_dir;
 #[macro_use] extern crate onetagger_shared;
 
+use std::error::Error;
 use clap::Parser;
 use onetagger_shared::{VERSION, COMMIT};
 
@@ -33,12 +34,15 @@ fn main() {
 
     info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
     
+    // MacOS
+    old_macos_warning().ok();
             
     // Start
     let context = StartContext {
         start_path: cli.path, 
         server_mode: cli.server, 
         expose: cli.expose,
+        browser: cli.browser
     };
     ui::start_all(context);
 }
@@ -61,4 +65,47 @@ struct Cli {
     /// Windows only installer option
     #[clap(long)]
     bootstrap_webview2: bool,
+
+    /// Open in browser
+    #[clap(long)]
+    browser: bool,
 }
+
+/// Show warning for old macOS
+#[cfg(target_os = "macos")]
+fn old_macos_warning() -> Result<(), Box<dyn Error>> {
+    use std::process::Command;
+    use native_dialog::MessageDialog;
+
+    // Get version
+    let output = Command::new("sw_vers")
+        .arg("-productVersion")
+        .output()?
+        .stdout;
+    let version = String::from_utf8(output)?;
+    // Show warning
+    if version.starts_with("10.") && !version.contains("10.15") {
+        let server_version = MessageDialog::new()
+            .set_title("Unsupported version")
+            .set_text("This version of MacOS is unsupported and might cause crashes, because of outdated WebKit. Would you like to run the server version and open it in the browser?")
+            .show_confirm()?;
+
+        if server_version {
+            Command::new("osascript")
+                .arg("-e")
+                .arg(format!(
+                    "tell application \"Terminal\" to do script \"{} --server --browser\"",
+                    std::env::args().next().unwrap()
+                ))
+                .output()
+                .ok();
+            std::process::exit(0);
+        }
+    }
+    Ok(())
+
+}
+
+/// Show warning for old macOS
+#[cfg(not(target_os = "macos"))]
+fn old_macos_warning() -> Result<(), Box<dyn Error>> { Ok(()) }

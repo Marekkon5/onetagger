@@ -1,3 +1,4 @@
+use std::time::Duration;
 use include_dir::Dir;
 use onetagger_player::AudioSources;
 use rouille::{router, Response};
@@ -14,6 +15,7 @@ pub struct StartContext {
     pub server_mode: bool,
     pub start_path: Option<String>,
     pub expose: bool,
+    pub browser: bool,
 }
 
 // Start webview window
@@ -114,6 +116,14 @@ pub fn start_all(context: StartContext) {
             warn!("Server is exposed to public!");
         },
         false => info!("Starting server on http://127.0.0.1:36913 ws://127.0.0.1:36912")
+    }
+
+    // Open in browser with 1s delay to allow the srever to load
+    if context.browser {
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(1));
+            webbrowser::open("http://127.0.0.1:36913").ok();
+        });
     }
 
     // Server mode
