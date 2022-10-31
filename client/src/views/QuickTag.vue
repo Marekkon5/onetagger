@@ -113,7 +113,7 @@
     <q-dialog v-model='failedDialog'>
         <q-card class='q-pa-md'>
             <q-card-section>
-                <div class='text-h4'>Failed to load</div>
+                <div class='text-h6'>Failed to load</div>
             </q-card-section>
             <q-card-section>
                 <div>
