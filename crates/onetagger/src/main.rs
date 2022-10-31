@@ -35,7 +35,9 @@ fn main() {
     info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
     
     // MacOS
-    old_macos_warning().ok();
+    if !cli.server {
+        old_macos_warning().ok();
+    }
             
     // Start
     let context = StartContext {
