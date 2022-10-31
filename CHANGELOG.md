@@ -1,3 +1,13 @@
+# 1.5.1
+**(31.10.2022)**
+
+### OneTagger:
+- Older MacOS warning and server version restart
+
+### Auto Tag:
+- HOTFIX: Make sure the Move files feature is more safe
+
+
 # 1.5.0
 **(14.10.2022)**
 

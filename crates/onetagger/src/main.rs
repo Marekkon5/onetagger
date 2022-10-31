@@ -89,7 +89,7 @@ fn old_macos_warning() -> Result<(), Box<dyn Error>> {
     if version.starts_with("10.") && !version.contains("10.15") {
         let server_version = MessageDialog::new()
             .set_title("Unsupported version")
-            .set_text("This version of MacOS is unsupported and might cause crashes, because of outdated WebKit. Would you like to run the server version and open it in the browser?")
+            .set_text("In order to use One Tagger on older macOS, install a more recent browser like Google Chrome and set it as default browser. Click Yes to restart One Tagger into server mode and open in browser, No to open normally.")
             .show_confirm()?;
 
         if server_version {
