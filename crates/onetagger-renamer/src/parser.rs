@@ -7,7 +7,7 @@ use regex::Regex;
 use crate::RenamerConfig;
 
 /// Illegal filename characters
-static ILLEGAL_FILENAME: &'static str = "<>:\"/\\|?*";
+static ILLEGAL_FILENAME: &'static str = "<>:\"/\\|?*\0";
 
 #[derive(Debug, Clone)]
 pub struct TemplateParser {
