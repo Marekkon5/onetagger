@@ -8,6 +8,7 @@ use onetagger_shared::OTError;
 
 pub mod mp3;
 pub mod mp4;
+pub mod wav;
 pub mod alac;
 pub mod aiff;
 pub mod flac;
@@ -145,6 +146,9 @@ impl AudioSources {
         // MP4
         if p.ends_with(".m4a") || p.ends_with(".mp4") {
             return Ok(Box::new(mp4::MP4Source::new(path)?));
+        }
+        if p.ends_with(".wav") {
+            return Ok(Box::new(wav::WAVSource::new(path)?));
         }
 
         Err(OTError::new("Unsupported format!").into())

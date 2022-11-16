@@ -47,6 +47,7 @@ class FrameName {
             case 'aiff':
             case 'aif':
             case 'id3':
+            case 'wav':
                 return this.id3;
             case 'flac':
             case 'vorbis':

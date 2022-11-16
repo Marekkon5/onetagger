@@ -31,7 +31,7 @@ const COVER_TYPES: [(PictureType, CoverType); 21] = [
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ID3AudioFormat {
-    MP3, AIFF
+    MP3, AIFF, WAV
 }
 
 pub struct ID3Tag {
@@ -72,6 +72,21 @@ impl ID3Tag {
                 }
             }.into());
         }
+        // WAV
+        if path.to_lowercase().ends_with(".wav") {
+            let tag = Tag::read_from_wav_path(path)?;
+            let version = tag.version();
+            return Ok(ID3Tag { 
+                tag,
+                format: ID3AudioFormat::WAV,
+                id3_separator: String::from(", "),
+                id3v24: match version {
+                    Version::Id3v24 => true,
+                    _ => false
+                }
+            }.into());
+        }
+
 
         // Unsupported
         Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unsupported format!").into())
@@ -81,6 +96,8 @@ impl ID3Tag {
     pub fn load_or_new(path: &str) -> ID3Tag {
         let format = if path.to_lowercase().ends_with(".mp3") {
             ID3AudioFormat::MP3
+        } else if path.to_lowercase().ends_with(".wav") {
+            ID3AudioFormat::WAV
         } else {
             ID3AudioFormat::AIFF
         };
@@ -174,17 +191,18 @@ impl TagImpl for ID3Tag {
             }
         }
 
-        // MP3
-        if self.format == ID3AudioFormat::MP3 {
-            Encoder::new()
-                .version(version)
-                .padding(2048)
-                .encode_to_path(&self.tag, path)?;
+        // Write
+        match self.format {
+            ID3AudioFormat::MP3 => {
+                Encoder::new()
+                    .version(version)
+                    .padding(2048)
+                    .encode_to_path(&self.tag, path)?;
+            },
+            ID3AudioFormat::AIFF => self.tag.write_to_aiff_path(path, version)?,
+            ID3AudioFormat::WAV => self.tag.write_to_wav_path(path, version)?,
         }
-        // AIFF
-        if self.format == ID3AudioFormat::AIFF {
-            self.tag.write_to_aiff_path(path, version)?;
-        }
+        
         Ok(())
     }
 

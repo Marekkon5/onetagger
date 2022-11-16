@@ -121,7 +121,7 @@ function onFilter(val: any, update: any) {
 
 const label = computed(() => {
     switch (format) {
-        case 'id3': return 'ID3 (MP3 + AIFF)';
+        case 'id3': return 'ID3 (MP3 + AIFF + WAV)';
         case 'vorbis': return 'FLAC';
         case 'mp4': return 'MP4/M4A';
     }

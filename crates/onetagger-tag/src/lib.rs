@@ -15,7 +15,7 @@ pub mod flac;
 pub mod mp4;
 
 // Supported extensions
-pub static EXTENSIONS : [&'static str; 6] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", ".mp4"];
+pub static EXTENSIONS : [&'static str; 7] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", ".mp4", ".wav"];
 
 #[cfg(feature = "tag")]
 pub enum Tag {
@@ -78,6 +78,7 @@ impl Tag {
             Tag::ID3(id3) => match id3.format {
                 id3::ID3AudioFormat::MP3 => AudioFileFormat::MP3,
                 id3::ID3AudioFormat::AIFF => AudioFileFormat::AIFF,
+                id3::ID3AudioFormat::WAV => AudioFileFormat::WAV
             },
         }
     }
@@ -144,7 +145,7 @@ impl Default for TagSeparators {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AudioFileFormat {
-    FLAC, AIFF, MP3, MP4
+    FLAC, AIFF, MP3, MP4, WAV
 }
 
 impl AudioFileFormat {
@@ -155,6 +156,7 @@ impl AudioFileFormat {
             "aiff" | "aif" => Some(AudioFileFormat::AIFF),
             "mp3" => Some(AudioFileFormat::MP3),
             "m4a" | "mp4" => Some(AudioFileFormat::MP4),
+            "wav" => Some(AudioFileFormat::WAV),
             _ => None
         }
     }
@@ -190,8 +192,9 @@ impl FrameName {
         match format.to_owned() {
             AudioFileFormat::AIFF => self.id3.to_string(),
             AudioFileFormat::MP3 => self.id3.to_string(),
+            AudioFileFormat::WAV => self.id3.to_string(),
             AudioFileFormat::FLAC => self.vorbis.to_string(),
-            AudioFileFormat::MP4 => self.mp4.to_string()
+            AudioFileFormat::MP4 => self.mp4.to_string(),
         }
     }
 }
@@ -284,6 +287,7 @@ impl Field {
         match format {
             AudioFileFormat::FLAC => self.vorbis(),
             AudioFileFormat::AIFF => self.id3(),
+            AudioFileFormat::WAV => self.id3(),
             AudioFileFormat::MP3 => self.id3(),
             AudioFileFormat::MP4 => self.mp4(),
         }
