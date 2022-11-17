@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, io::BufReader};
 use std::fs::File;
 use rodio::{Source, Decoder};
 use crate::AudioSource;
@@ -29,6 +29,6 @@ impl AudioSource for WAVSource {
 
     // Get rodio decoder
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
-        Ok(Box::new(Decoder::new_wav(File::open(&self.path)?)?))
+        Ok(Box::new(Decoder::new_wav(BufReader::new(File::open(&self.path)?))?))
     }
 }

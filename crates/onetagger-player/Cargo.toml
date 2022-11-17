@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 mp4 = "0.12"
 alac = "0.5"
-hound = "3.4"
+hound = "3.5"
 rodio = "0.15" 
 redlux = "0.5"
 mp3-duration = "0.1"
