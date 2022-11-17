@@ -85,17 +85,18 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
     // Generate the RIFF chunk
     let mut riff_data = vec![];
     for chunk in riff_chunks {
-        // ID3 chunk
+        // skip old ID3 chunk
         if chunk.id() == ID3_ID_1 || chunk.id() == ID3_ID_2 {
-            let mut out = vec![];
-            tag.write_to(Cursor::new(&mut out), version)?;
-            riff_data.push(ChunkContents::Data(ID3_ID_1.clone(), out));
             continue;
         }
         // Passthru
         let data = ChunkContents::Data(chunk.id(), chunk.read_contents(&mut file)?);
         riff_data.push(data);
     }
+    // Add ID3 chunk
+    let mut out = vec![];
+    tag.write_to(Cursor::new(&mut out), version)?;
+    riff_data.push(ChunkContents::Data(ID3_ID_1.clone(), out));
     let riff_chunk = ChunkContents::Children(RIFF_ID.clone(), WAVE_ID.clone(), riff_data);
 
     // Generate LIST chunk

@@ -356,12 +356,16 @@ impl AudioFileInfoImpl for AudioFileInfo {
             title = title.map(|t| re.replace_all(&t, "").to_string());
         }
 
+        // Validate artists
+        let artists = artists.ok_or("Missing artist tag!")?;
+        artists.first().ok_or("Artist tag empty!")?;
+
         // Track number
         let track_number = tag.get_field(Field::TrackNumber).unwrap_or(vec![String::new()])[0].parse().ok();
         Ok(AudioFileInfo {
             format: tag_wrap.format(),
             title,
-            artists: artists.unwrap_or(vec![]),
+            artists,
             path: path.to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
