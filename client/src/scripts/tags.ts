@@ -98,6 +98,8 @@ const VORBIS = [
 ];
 
 const ID3 = [
+    "TIT2 (Title)",
+    "TPE1 (Artist)",
     "TALB (Album)", 
     "TPE2 (Album Artist)", 
     "COMM (Comment)",
