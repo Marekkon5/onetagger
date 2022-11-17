@@ -744,9 +744,11 @@ impl Tagger {
                             Ok(_) => {
                                 out.accuracy = Some(acc);
                                 out.status = TaggingState::Ok;
-
                             },
-                            Err(e) => out.message = Some(format!("Failed writing tags to file: {}", e))
+                            Err(e) => {
+                                error!("Failed writing tags to file: {e}");
+                                out.message = Some(format!("Failed writing tags to file: {}", e));
+                            }
                         }
                     },
                     None => out.message = Some("No match!".to_owned())
@@ -758,6 +760,7 @@ impl Tagger {
                 out.message = Some(format!("Error matching track: {}", e));
             }
         }
+
 
         out
     }

@@ -74,7 +74,7 @@ impl ID3Tag {
         }
         // WAV
         if path.to_lowercase().ends_with(".wav") {
-            let tag = Tag::read_from_wav_path(path)?;
+            let tag = crate::wav::read_wav(path)?;
             let version = tag.version();
             return Ok(ID3Tag { 
                 tag,
@@ -200,7 +200,7 @@ impl TagImpl for ID3Tag {
                     .encode_to_path(&self.tag, path)?;
             },
             ID3AudioFormat::AIFF => self.tag.write_to_aiff_path(path, version)?,
-            ID3AudioFormat::WAV => self.tag.write_to_wav_path(path, version)?,
+            ID3AudioFormat::WAV => crate::wav::write_wav(path, self.tag.clone(), version)?,
         }
         
         Ok(())

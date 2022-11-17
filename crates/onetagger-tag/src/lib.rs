@@ -13,6 +13,8 @@ pub mod id3;
 pub mod flac;
 #[cfg(feature = "tag")]
 pub mod mp4;
+#[cfg(feature = "tag")]
+mod wav;
 
 // Supported extensions
 pub static EXTENSIONS : [&'static str; 7] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", ".mp4", ".wav"];
