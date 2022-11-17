@@ -575,6 +575,35 @@ impl Tagger {
                 }
             }
 
+            // Move files
+            let mut successful_paths = vec![];
+            for file in &succesful_files {
+                if config.move_success && config.move_success_path.is_some() {
+                    match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
+                        Ok(p) => successful_paths.push(p),
+                        Err(e) => warn!("Failed moving file: {file} {e}"),
+                    }
+                } else {
+                    successful_paths.push(PathBuf::from(file));
+                }
+            }
+            let mut failed_paths = vec![];
+            for file in &original_files {
+                if succesful_files.contains(file) {
+                    continue;
+                }
+                if config.move_failed && config.move_failed_path.is_some() {
+                    match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
+                        Ok(p) => failed_paths.push(p),
+                        Err(e) => warn!("Failed moving file: {file} {e}"),
+                    }
+                } else {
+                    failed_paths.push(PathBuf::from(file))
+                }
+            }
+            std::mem::drop(succesful_files);
+            std::mem::drop(original_files);
+
             // Tagging ended, save lists of files
             let write_result = || -> Result<(String, String), Box<dyn Error>> {
                 let time = timestamp!();
@@ -586,10 +615,9 @@ impl Tagger {
                 let success_file = folder.join(format!("success-{}.m3u", time));
                 {
                     let mut file = File::create(&failed_file)?;
-                    file.write_all(original_files
+                    file.write_all(failed_paths
                         .iter()
-                        .filter(|i| !succesful_files.contains(&i))
-                        .filter_map(|f| Path::new(f).canonicalize().ok().map(|p| p.to_str().unwrap().to_string()))
+                        .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
                         .collect::<Vec<_>>()
                         .join("\r\n")
                         .as_bytes()
@@ -597,9 +625,9 @@ impl Tagger {
                 }
                 {
                     let mut file = File::create(&success_file)?;
-                    let files: Vec<String> = succesful_files
+                    let files: Vec<String> = successful_paths
                         .iter()
-                        .filter_map(|f| Path::new(&f).canonicalize().ok().map(|p| p.to_str().unwrap().to_string()))
+                        .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
                         .collect();
                     file.write_all(files.join("\r\n").as_bytes())?;
                 }
@@ -631,27 +659,6 @@ impl Tagger {
                 },
                 Err(e) => warn!("Failed writing failed songs to file! {}", e)
             };
-
-            // Move files
-            if config.move_success && config.move_success_path.is_some() {
-                for file in &succesful_files {
-                    match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
-                        Ok(_) => {},
-                        Err(e) => warn!("Failed moving file: {file} {e}"),
-                    }
-                }
-            }
-            if config.move_failed && config.move_failed_path.is_some() {
-                for file in &original_files {
-                    if succesful_files.contains(file) {
-                        continue;
-                    }
-                    match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
-                        Ok(_) => {},
-                        Err(e) => warn!("Failed moving file: {file} {e}"),
-                    }
-                }
-            }
             
 
         });
@@ -807,24 +814,24 @@ impl Tagger {
     }
 
     /// Move file to target dir if enabled
-    fn move_file(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
+    fn move_file(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<PathBuf, Box<dyn Error>> {
         // Generate path
         let target_dir = Path::new(target.as_ref());
         let filename = Path::new(source.as_ref()).file_name().unwrap();
         std::fs::create_dir_all(&target_dir).ok();
         let target = Path::new(&target_dir).join(filename);
         if target.exists() {
-            return Ok(());
+            return Ok(target);
         }
         // Try to rename, if fails copy
         match std::fs::rename(source.as_ref(), &target) {
-            Ok(_) => return Ok(()),
+            Ok(_) => return Ok(target),
             Err(_) => {}
         }
-        std::fs::copy(source.as_ref(), target)?;
+        std::fs::copy(source.as_ref(), &target)?;
         std::fs::remove_file(source.as_ref())?;
 
-        Ok(())
+        Ok(target)
     }
 }
 

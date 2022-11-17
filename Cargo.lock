@@ -2530,6 +2530,7 @@ dependencies = [
  "base64",
  "chrono",
  "crossbeam-channel",
+ "dunce",
  "execute",
  "image",
  "lazy_static",

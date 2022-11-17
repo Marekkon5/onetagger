@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 regex = "1.5"
+dunce = "1.0"
 image = "0.24"
 rodio = "0.15"
 chrono = "0.4"
