@@ -418,7 +418,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
                     artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),
                     format: AudioFileFormat::from_extension(path.split(".").last().unwrap()).unwrap(),
                     path: path.to_string(),
-                    isrc: Some(shazam_track.isrc),
+                    isrc: shazam_track.isrc,
                     duration: Some(Duration::from_millis(duration as u64)),
                     track_number: None,
                     tagged: FileTaggedStatus::Untagged,

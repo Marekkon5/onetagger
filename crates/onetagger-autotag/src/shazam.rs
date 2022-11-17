@@ -47,9 +47,9 @@ pub struct ShazamResponse {
 pub struct ShazamTrack {
     pub albumadamid: Option<String>,
     pub artists: Option<Vec<ShazamSmall>>,
-    pub genres: ShazamGenres,
-    pub images: ShazamImages,
-    pub isrc: String,
+    pub genres: Option<ShazamGenres>,
+    pub images: Option<ShazamImages>,
+    pub isrc: Option<String>,
     pub key: String,
     pub sections: Vec<ShazamSection>,
     /// Song title
