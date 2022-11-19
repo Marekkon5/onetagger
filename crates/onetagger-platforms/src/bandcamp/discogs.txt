@@ -1,0 +1,615 @@
+pop rock
+house
+vocal
+experimental
+punk
+synth-pop
+alternative rock
+techno
+disco
+soul
+indie rock
+ambient
+hardcore
+folk
+country
+hard rock
+ballad
+electro
+rock & roll
+chanson
+trance
+heavy metal
+psychedelic rock
+folk rock
+downtempo
+romantic
+soundtrack
+classic rock
+noise
+schlager
+prog rock
+funk
+easy listening
+black metal
+tech house
+new wave
+blues rock
+deep house
+rhythm & blues
+industrial
+euro house
+drum n bass
+death metal
+classical
+progressive house
+soft rock
+abstract
+garage rock
+minimal
+europop
+gospel
+acoustic
+thrash
+swing
+baroque
+big band
+modern
+dub
+country rock
+breakbeat
+rnb/swing
+contemporary jazz
+drone
+progressive trance
+indie pop
+dancehall
+opera
+idm
+breaks
+contemporary
+reggae
+art rock
+african
+fusion
+dark ambient
+gangsta
+hard trance
+doom metal
+avantgarde
+post-punk
+pop rap
+rockabilly
+religious
+beat
+roots reggae
+electro house
+jazz-funk
+acid
+lo-fi
+instrumental
+comedy
+score
+dance-pop
+leftfield
+grindcore
+ska
+dubstep
+theme
+soul-jazz
+post rock
+hip hop
+power pop
+psy-trance
+spoken word
+glam
+modern classical
+bop
+goth rock
+hard house
+salsa
+new age
+jazz-rock
+conscious
+bolero
+free improvisation
+trip hop
+latin jazz
+italo-disco
+musical
+emo
+stoner rock
+ebm
+cumbia
+hard bop
+shoegaze
+surf
+garage house
+free jazz
+mpb
+contemporary r&b
+j-pop
+doo wop
+jungle
+oi
+field recording
+story
+cool jazz
+volksmusik
+samba
+happy hardcore
+hardstyle
+post bop
+uk garage
+tribal
+tango
+pop punk
+bluegrass
+laïkó
+celtic
+radioplay
+darkwave
+synthwave
+novelty
+smooth jazz
+eurodance
+vaporwave
+italodance
+flamenco
+grunge
+polka
+dixieland
+arena rock
+future jazz
+symphonic rock
+metalcore
+southern rock
+latin
+hardcore hip-hop
+parody
+choral
+nu metal
+aor
+glitch
+progressive metal
+hindustani
+rumba
+trap
+gabber
+space rock
+cha-cha
+krautrock
+hi nrg
+dub techno
+thug rap
+speed metal
+bossa nova
+power metal
+merengue
+breakcore
+audiobook
+bollywood
+acid house
+reggae-pop
+poetry
+power electronics
+neo-classical
+boom bap
+musique concrète
+mod
+harsh noise wall
+electric blues
+freestyle
+boogie
+acid jazz
+avant-garde jazz
+jazzy hip-hop
+bossanova
+renaissance
+chiptune
+country blues
+mambo
+marches
+big beat
+tribal house
+post-hardcore
+sludge metal
+interview
+kayōkyoku
+ranchera
+math rock
+bass music
+broken beat
+dungeon synth
+rocksteady
+calypso
+chicago blues
+modal
+neofolk
+minimal techno
+ethereal
+education
+psychedelic
+nu-disco
+afrobeat
+indian classical
+lounge
+afro-cuban
+grime
+light music
+neo soul
+crust
+goa trance
+hip-house
+berlin-school
+lovers rock
+ragtime
+impressionist
+guaracha
+éntekhno
+operetta
+g-funk
+britpop
+rhythmic noise
+psychobilly
+gothic metal
+chillwave
+brass band
+euro-disco
+cut-up/dj
+nursery rhymes
+neo-romantic
+mandopop
+ragga
+pacific
+medieval
+tech trance
+dialogue
+son
+symphonic metal
+speedcore
+melodic death metal
+ragga hiphop
+canzone napoletana
+guaguancó
+deep techno
+twist
+space-age
+honky tonk
+promotional
+goregrind
+video game music
+fado
+eurobeat
+nordic
+educational
+political
+funk metal
+music hall
+military
+highlife
+melodic hardcore
+acid rock
+makina
+hard techno
+soca
+jazzdance
+afro-cuban jazz
+dream pop
+new jack swing
+zouk
+speech
+mariachi
+atmospheric black metal
+soukous
+monolog
+folk metal
+sound collage
+piano blues
+deathcore
+delta blues
+hawaiian
+k-pop
+modern electric blues
+romani
+horrorcore
+new beat
+reggaeton
+freetekno
+cubano
+witch house
+hands up
+noisecore
+viking metal
+gypsy jazz
+luk thung
+public broadcast
+jumpstyle
+bubblegum
+texas blues
+forró
+post-metal
+italo house
+harmonica blues
+boogaloo
+coldwave
+city pop
+speed garage
+no wave
+special effects
+cajun
+post-modern
+therapy
+norteño
+j-rock
+sound art
+pub rock
+p.funk
+bhangra
+jump blues
+oratorio
+vallenato
+enka
+illbient
+yé-yé
+descarga
+corrido
+bassline
+porro
+pachanga
+rebetiko
+hillbilly
+louisiana blues
+brit pop
+electroacoustic
+guajira
+tejano
+boogie woogie
+beguine
+screw
+donk
+son montuno
+karaoke
+depressive black metal
+raï
+min'yō
+nueva cancion
+juke
+charanga
+deathrock
+séga
+cloud rap
+power violence
+klezmer
+industrial metal
+technical death metal
+chinese classical
+western swing
+copla
+sermon
+crunk
+technical
+dj battle tool
+compas
+ghetto
+aboriginal
+cantopop
+disco polo
+groove metal
+népzene
+andean music
+swingbeat
+tropical house
+electroclash
+pasodoble
+bounce
+danzon
+free funk
+bachata
+bayou funk
+health-fitness
+batucada
+zydeco
+funeral doom metal
+minneapolis sound
+turntablism
+appalachian music
+conjunto
+halftime
+catalan music
+jangle pop
+pornogrind
+levenslied
+sea shanties
+quechua
+carnatic
+música criolla
+movie effects
+steel band
+progressive breaks
+skiffle
+hokkien pop
+lambada
+swamp pop
+early
+ghetto house
+liscio
+ethno-pop
+sound poetry
+j-core
+pipe & drum
+doomcore
+miami bass
+axé
+footwork
+cretan
+bleep
+plena
+gamelan
+indo-pop
+baião
+schranz
+horror rock
+ottoman classical
+choro
+mizrahi
+britcore
+kwaito
+persian classical
+musette
+nueva trova
+erotic
+glitch hop
+zarzuela
+trova
+ghazal
+barbershop
+zamba
+basque music
+samba-canção
+chamamé
+public service announcement
+uk street soul
+go-go
+group sounds
+east coast blues
+dangdut
+memphis blues
+ndw
+chacarera
+beatdown
+bengali music
+luk krung
+huayno
+neo trance
+tamil film music
+ghettotech
+twelve-tone
+kaseko
+reggae gospel
+joropo
+qawwali
+mo lam
+gaita
+k-rock
+chutney
+dub poetry
+hyphy
+cabaret
+timba
+hiplife
+marimba
+rock opera
+morna
+piedmont blues
+cape jazz
+keroncong
+gogo
+uk funky
+guarania
+favela funk
+mento
+andalusian classical
+balearic
+medical
+ryūkōka
+baltimore club
+nhạc vàng
+overtone singing
+jibaro
+sephardic
+phleng phuea chiwit
+jota
+maloya
+phonk
+salegy
+griot
+hard beat
+dark jazz
+lento violento
+marcha carnavalesca
+hyperpop
+beatbox
+sertanejo
+thai classical
+serial
+villancicos
+mugham
+spirituals
+bomba
+gagaku
+mbalax
+skweee
+candombe
+galician traditional
+nerdcore techno
+funaná
+cuatro
+vaudeville
+sámi music
+ballroom
+sonero
+carimbó
+kizomba
+aguinaldo
+shaabi
+champeta
+stride
+caipira
+zemer ivri
+electro swing
+break-in
+baroque pop
+seresta
+jug band
+philippine classical
+yemenite jewish
+funkot
+jersey club
+junkanoo
+mouth music
+rune singing
+gwo ka
+cobla
+néo kyma
+bambuco
+moombahton
+piobaireachd
+hill country blues
+taarab
+occitan
+filk
+korean court music
+progressive bluegrass
+rapso
+waiata
+bubbling
+cambodian classical
+bangladeshi classical
+milonga
+lao music
+rōkyoku
+guggenmusik
+klasik
+gqom
+kuduro
+għana
+bongo flava
+motswako
+spaza
+azonto
+shidaiqu
+sean-nós
+shoegazer
+trallalero
+rock
+electronic
+pop
+folk, world, & country
+jazz
+funk / soul
+stage & screen
+blues
+non-music
+children's
+brass & military

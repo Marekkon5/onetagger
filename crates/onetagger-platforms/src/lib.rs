@@ -10,3 +10,4 @@ pub mod itunes;
 pub mod musicbrainz;
 pub mod beatsource;
 pub mod bpmsupreme;
+pub mod bandcamp;

@@ -2572,6 +2572,7 @@ dependencies = [
  "chrono",
  "log",
  "minify-html",
+ "once_cell",
  "onetagger-shared",
  "onetagger-tag",
  "onetagger-tagger",
