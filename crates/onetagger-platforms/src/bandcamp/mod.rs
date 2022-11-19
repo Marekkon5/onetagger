@@ -151,17 +151,19 @@ impl BandcampTrack {
 
 impl Into<Track> for BandcampTrack {
     fn into(self) -> Track {
+        let genre = self.publisher.genre();
         Track {
             platform: "bandcamp".to_string(),
             release_date: self.date_published(),
             release_year: self.date_published().map(|d| d.year() as i64),
             title: self.name,
             album: Some(self.in_album.name),
-            artists: vec![self.by_artist.name],
-            genres: vec![self.publisher.genre()],
+            // Prioritize album artist, because it is more likely the artist
+            artists: vec![ self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
             label: Some(self.publisher.name),
             art: Some(self.image),
-            styles: self.keywords.into_iter().filter(|k| GENRE_LIST.contains(&k.to_lowercase().trim().to_string())).collect::<Vec<_>>(),
+            styles: self.keywords.into_iter().filter(|k| k.to_lowercase() != genre.to_lowercase() && GENRE_LIST.contains(&k.to_lowercase().trim().to_string())).collect::<Vec<_>>(),
+            genres: vec![genre],
             track_id: Some(self.id.clone()),
             url: self.id,
             release_id: self.in_album.id.unwrap_or(String::new()),
@@ -177,7 +179,8 @@ struct BandcampAlbumSmall {
     pub name: String,
     pub num_tracks: Option<u16>,
     #[serde(rename = "@id")]
-    pub id: Option<String>
+    pub id: Option<String>,
+    pub by_artist: Option<BandcampArtistSmall>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
