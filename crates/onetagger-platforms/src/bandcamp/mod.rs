@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, time::Duration};
 use chrono::{NaiveDate, Datelike};
 use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils};
 use reqwest::blocking::Client;
@@ -32,26 +32,41 @@ impl Bandcamp {
 
     /// Search for tracks
     fn search_tracks(&self, query: &str) -> Result<Vec<BandcampSearchResult>, Box<dyn Error>> {
-        let r: Value = self.client.post("https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic")
+        let response = self.client.post("https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic")
             .json(&json!({
                 "fan_id": null,
                 "full_page": false,
                 "search_filter": "t",
                 "search_text": query
             }))
-            .send()?.json()?;
-        let results = serde_json::from_value(r["auto"]["results"].to_owned())?;
-        Ok(results)
+            .send()?;
+        // No rate limit
+        if response.status().is_success() {
+            let r: Value = response.json()?;
+            let results = serde_json::from_value(r["auto"]["results"].to_owned())?;
+            return Ok(results)
+        }
+        // Rate limit
+        warn!("Bandcamp rate limit... Waiting for few seconds");
+        std::thread::sleep(Duration::from_secs(3));
+        self.search_tracks(query)
     }
 
     /// Get data from track page
     fn track_page(&self, url: &str) -> Result<BandcampTrack, Box<dyn Error>> {
-        let response = self.client.get(url).send()?.text()?;
+        // Fetch with rate limit
+        let response = self.client.get(url).send()?;
+        if response.status().is_client_error() {
+            warn!("Bandcamp track page rate limit... Waiting for few seconds");
+            std::thread::sleep(Duration::from_secs(3));
+            return self.track_page(url);
+        }
+        let response = response.text()?;
         // Get <script> tag
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script[type=\"application/ld+json\"]").unwrap();
-        let data: BandcampTrack = serde_json::from_str(&document.select(&selector).next().ok_or("Missing <script> tag with data")?
-            .text().collect::<Vec<_>>().join(""))?;
+        let elem = document.select(&selector).next().ok_or(format!("Missing <script> tag with data on: {url}"))?;
+        let data: BandcampTrack = serde_json::from_str(&elem.text().collect::<Vec<_>>().join(""))?;
         Ok(data)
     }
 
@@ -90,10 +105,10 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
         PlatformInfo {
             id: "bandcamp".to_string(),
             name: "Bandcamp".to_string(),
-            description: "//todo:".to_string(),
+            description: "Artist/Album/Cover/Genre/Title only".to_string(),
             version: "1.0.0".to_string(),
-            icon: &[],
-            max_threads: 0,
+            icon: include_bytes!("../../assets/bandcamp.png"),
+            max_threads: 4,
             custom_options: Default::default(),
         }
     }
@@ -159,11 +174,11 @@ impl Into<Track> for BandcampTrack {
             title: self.name,
             album: Some(self.in_album.name),
             // Prioritize album artist, because it is more likely the artist
-            artists: vec![ self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
+            artists: vec![self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
             label: Some(self.publisher.name),
             art: Some(self.image),
-            styles: self.keywords.into_iter().filter(|k| k.to_lowercase() != genre.to_lowercase() && GENRE_LIST.contains(&k.to_lowercase().trim().to_string())).collect::<Vec<_>>(),
-            genres: vec![genre],
+            styles: self.keywords.into_iter().filter(|k| Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && GENRE_LIST.contains(&k.to_lowercase().trim().to_string())).collect::<Vec<_>>(),
+            genres: genre.map(|g| vec![g]).unwrap_or(vec![]),
             track_id: Some(self.id.clone()),
             url: self.id,
             release_id: self.in_album.id.unwrap_or(String::new()),
@@ -193,19 +208,19 @@ struct BandcampArtistSmall {
 #[serde(rename_all = "camelCase")]
 struct BandcampPublisherSmall {
     pub name: String,
-    pub genre: String
+    pub genre: Option<String>
 }
 
 impl BandcampPublisherSmall {
     /// Get genre of this song from url
-    pub fn genre(&self) -> String {
-        let genre = self.genre.rsplit("/").next().unwrap().to_string();
+    pub fn genre(&self) -> Option<String> {
+        let genre = self.genre.as_ref()?.rsplit("/").next().unwrap().to_string();
         // Capitalize https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust/38406885#38406885
         let mut c = genre.chars();
-        match c.next() {
+        Some(match c.next() {
             None => String::new(),
             Some(f) => f.to_uppercase().collect::<String>() + c.as_str()
-        }
+        })
     }
 }
 
