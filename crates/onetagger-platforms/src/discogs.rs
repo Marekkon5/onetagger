@@ -9,8 +9,8 @@ use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, StylesOptions, 
-    TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
+use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, 
+    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
 
 pub struct Discogs {
     client: Client,
@@ -157,12 +157,12 @@ impl AutotaggerSource for Discogs {
                 let release = self.full_release(ReleaseType::Release, id)?;
                 // Exact track number match
                 if let Some(track_number) = info.track_number {
-                    return Ok(Some((1.0, release.get_track(track_number as usize - 1, &config.styles_options, &discogs_config))))
+                    return Ok(Some((1.0, release.get_track(track_number as usize - 1, &discogs_config))))
                 }
                 // Match inside release
                 let mut tracks = vec![];
                 for i in 0..release.tracks.len() {
-                    tracks.push(release.get_track(i, &config.styles_options, &discogs_config));
+                    tracks.push(release.get_track(i, &discogs_config));
                 }
                 return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
             }
@@ -192,7 +192,7 @@ impl AutotaggerSource for Discogs {
             
             let mut tracks = vec![];
             for i in 0..release.tracks.len() {
-                tracks.push(release.get_track(i, &config.styles_options, &discogs_config));
+                tracks.push(release.get_track(i, &discogs_config));
             }
             if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
@@ -317,37 +317,12 @@ impl ReleaseMaster {
         re.replace(input, "").to_string()
     }
 
-    pub fn get_track(&self, track_index: usize, styles_option: &StylesOptions, discogs_config: &DiscogsConfig) -> Track {
+    pub fn get_track(&self, track_index: usize, discogs_config: &DiscogsConfig) -> Track {
         // Parse release date
         let release_date = match &self.released {
             Some(r) => NaiveDate::parse_from_str(&r, "%Y-%m-%d").ok(),
             None => None
         };
-
-        // Generate styles and genres
-        let mut styles = vec![];
-        let mut genres = vec![];
-        let styles_o = self.styles.clone().unwrap_or(vec![]);
-        let genres_o = self.genres.clone();
-        match styles_option {
-            StylesOptions::OnlyGenres => genres = genres_o,
-            StylesOptions::OnlyStyles => styles = styles_o,
-            StylesOptions::MergeToGenres => {
-                genres = genres_o;
-                genres.extend(styles_o);
-            },
-            StylesOptions::MergeToStyles => {
-                styles = styles_o;
-                styles.extend(genres_o);
-            },
-            StylesOptions::GenresToStyle => styles = genres_o,
-            StylesOptions::StylesToGenre => genres = styles_o,
-            // Default and custom
-            _ => {
-                genres = genres_o;
-                styles = styles_o;
-            }
-        }
 
         // Get catalog number
         let mut catalog_number = None;
@@ -385,8 +360,8 @@ impl ReleaseMaster {
             },
             album_artists: self.artists.iter().map(|a| ReleaseMaster::clean_artist(&a.name).to_string()).collect(),
             album: Some(self.title.to_string()),
-            genres,
-            styles,
+            genres: self.genres.clone(),
+            styles: self.styles.clone().unwrap_or(vec![]),
             art: match self.images.as_ref().unwrap_or(&Vec::new()).first() {
                 Some(image) => Some(image.url.to_string()),
                 None => None

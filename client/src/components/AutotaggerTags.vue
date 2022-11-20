@@ -77,7 +77,7 @@
             <!-- Style/Subgenre -->
             <q-checkbox :disable='!isSupported("style")' class='tag checkbox text-grey-4' label='Style/Subgenre' v-model='$1t.config.value.style'>            
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs' style='margin-top: -2px;'>
-                    <q-tooltip>Style is available from Discogs only, Subgenre from Beatport only</q-tooltip>
+                    <q-tooltip>Style is available from Discogs & Bandcamp, Subgenre from Beatport only</q-tooltip>
                 </q-icon>            
             </q-checkbox>   
             <!-- Label -->                
@@ -235,5 +235,12 @@ function toggleTags(mode: string) {
 
 .doc-link:hover {
     color: #f0f0f0;    
+}
+
+.q-checkbox[aria-disabled=true] {
+    color: #666666 !important;
+    .q-checkbox__bg {
+        opacity: 0.4 !important;
+    }
 }
 </style>

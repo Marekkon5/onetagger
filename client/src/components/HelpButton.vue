@@ -90,7 +90,7 @@
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Genre</span></q-badge> , <q-badge outline color='primary'><span class='text-white'>Style / Subgenre</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip>Style is available from Discogs only, Subgenre from Beatport only</q-tooltip>
+                                    <q-tooltip>Style is available from Discogs & Bandcamp, Subgenre from Beatport only</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-white'>Track No.</span></q-badge></div>

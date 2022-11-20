@@ -105,7 +105,7 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
         PlatformInfo {
             id: "bandcamp".to_string(),
             name: "Bandcamp".to_string(),
-            description: "Artist/Album/Cover/Genre/Title only".to_string(),
+            description: "Specialized in indie artists. Limited amount of tags".to_string(),
             version: "1.0.0".to_string(),
             icon: include_bytes!("../../assets/bandcamp.png"),
             max_threads: 4,

@@ -57,13 +57,14 @@ impl TaggerConfigExt for TaggerConfig {
 
 
 trait TrackImpl {
-    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>>;
+    fn write_to_file(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>>;
     fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>>;
+    fn merge_styles(&mut self, option: &StylesOptions);
 }
 
 impl TrackImpl for Track {
     // Write tags to file
-    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
+    fn write_to_file(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
         // Get tag
         let mut tag_wrap = Tag::load_file(&info.path, true)?;
         tag_wrap.set_separators(&config.separators);
@@ -79,6 +80,9 @@ impl TrackImpl for Track {
                 mp4.remove_all_artworks();
             }
         }
+        
+        // Merge styles
+        self.merge_styles(&config.styles_options);
 
         let tag = tag_wrap.tag_mut();
         // Set tags
@@ -290,6 +294,35 @@ impl TrackImpl for Track {
         }
        
         Ok(Some(response.bytes()?.to_vec()))
+    }
+
+    /// Merge styles by config
+    fn merge_styles(&mut self, option: &StylesOptions) {
+        let genres = self.genres.clone();
+        let styles = self.styles.clone();
+        match option {
+            StylesOptions::OnlyGenres => self.styles = vec![],
+            StylesOptions::OnlyStyles => self.genres = vec![],
+            StylesOptions::MergeToGenres => {
+                self.genres.extend(styles);
+                self.styles = vec![];
+            },
+            StylesOptions::MergeToStyles => {
+                self.styles.extend(genres);
+                self.genres = vec![];
+            },
+            StylesOptions::StylesToGenre => {
+                self.genres = styles;
+                self.styles = vec![];
+            },
+            StylesOptions::GenresToStyle => {
+                self.styles = genres;
+                self.genres = vec![];
+            },
+            StylesOptions::Default => {},
+            // Is written separately
+            StylesOptions::CustomTag => {},
+        }
     }
 
 }
@@ -749,7 +782,7 @@ impl Tagger {
         match result {
             Ok(o) => {
                 match o {
-                    Some((acc, track)) => {
+                    Some((acc, mut track)) => {
                         // Save to file
                         match track.write_to_file(&info, &config) {
                             Ok(_) => {

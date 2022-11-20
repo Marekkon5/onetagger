@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, StylesOptions, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
+use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -375,32 +375,7 @@ impl AutotaggerSource for Beatport {
                                 Err(e) => warn!("Beatport failed fetching full API track data for track number! {}", e)
                             }
                         }
-
-                        // Apply style config similar way to Discogs
-                        let genres = track.genres.clone();
-                        let styles = track.styles.clone();
-                        match config.styles_options {
-                            StylesOptions::OnlyGenres => track.styles = vec![],
-                            StylesOptions::OnlyStyles => track.genres = vec![],
-                            StylesOptions::MergeToGenres => {
-                                track.genres.extend(styles);
-                                track.styles = vec![];
-                            },
-                            StylesOptions::MergeToStyles => {
-                                track.styles.extend(genres);
-                                track.genres = vec![];
-                            },
-                            StylesOptions::StylesToGenre => {
-                                track.genres = styles;
-                                track.styles = vec![];
-                            },
-                            StylesOptions::GenresToStyle => {
-                                track.styles = genres;
-                                track.genres = vec![];
-                            },
-                            _ => {}
-                        }
-                        
+                                                
                         return Ok(Some((f, track)));
                     }
                 },
