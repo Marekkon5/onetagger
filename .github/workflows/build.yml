@@ -69,7 +69,7 @@ jobs:
       with:
         version: latest
 
-    - name: Install rust
+    - name: Install Rust
       uses: ATiltedTree/setup-rust@v1
       with:
         rust-version: stable

@@ -41,8 +41,8 @@ onetagger-platforms = { path = "../onetagger-platforms" }
 
 # Windows specific 
 [target.'cfg(windows)'.dependencies]
-winit = "0.26"
-sysinfo = "0.23"
+winit = "0.27"
+sysinfo = "0.26"
 webview2 = "0.1"
 once_cell = "1.8"
 winapi = { version = "0.3", features = ["winuser", "consoleapi"] }
