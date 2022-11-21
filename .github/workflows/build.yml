@@ -17,12 +17,12 @@ jobs:
         sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 
     - name: Install NodeJS
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v2.2.2
+      uses: pnpm/action-setup@v2
       with:
-        version: 7.7.1
+        version: latest
 
     - name: Run build script
       run: |
@@ -30,25 +30,25 @@ jobs:
         ./assets/compile-nix.sh
     
     - name: Upload Linux
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-linux
         path: dist/OneTagger-linux.tar.gz
     
     - name: Upload Linux CLI
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-linux-cli
         path: dist/OneTagger-linux-cli.tar.gz
 
     - name: Upload Mac
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-mac
         path: dist/OneTagger-mac.zip
 
     - name: Upload Mac CLI
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-mac-cli
         path: dist/OneTagger-mac-cli.zip
@@ -58,17 +58,16 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      
     - name: Checkout
       uses: actions/checkout@v2
       
     - name: Install NodeJS
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v2.2.2
+      uses: pnpm/action-setup@v2
       with:
-        version: 7.7.1
+        version: latest
 
     - name: Install Dependencies
       run: |
@@ -92,19 +91,19 @@ jobs:
         copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
 
     - name: Upload Archive
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-win
         path: dist/OneTagger-windows.exe
     
     - name: Upload Archive
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-win-setup
         path: dist/OneTagger-windows-setup.exe
 
     - name: Upload CLI
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: onetagger-win-cli
         path: dist/OneTagger-windows-cli.exe
