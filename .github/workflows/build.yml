@@ -70,7 +70,9 @@ jobs:
         version: latest
 
     - name: Install rust
-      uses: icepuma/rust-action@master
+      uses: ATiltedTree/setup-rust@v1
+      with:
+        rust-version: stable
 
     - name: Install Dependencies
       run: |
