@@ -168,7 +168,13 @@ impl Into<Track> for BandcampTrack {
             artists: vec![self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
             label: Some(self.publisher.name),
             art: Some(self.image),
-            styles: self.keywords.into_iter().filter(|k| Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && crate::bandcamp_genres::GENRES.contains(&k.to_lowercase().trim())).collect::<Vec<_>>(),
+            styles: self.keywords.into_iter()
+                .filter(|k| 
+                    Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && 
+                    crate::bandcamp_genres::GENRES.contains(&k.to_lowercase().trim())
+                )
+                .map(|s| capitalize(&s.replace(" and ", " & ")))
+                .collect::<Vec<_>>(),
             genres: genre.map(|g| vec![g]).unwrap_or(vec![]),
             track_id: Some(self.id.clone()),
             url: self.id,
@@ -206,15 +212,21 @@ impl BandcampPublisherSmall {
     /// Get genre of this song from url
     pub fn genre(&self) -> Option<String> {
         let genre = self.genre.as_ref()?.rsplit("/").next().unwrap().to_string();
-        // Capitalize https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust/38406885#38406885
-        let mut c = genre.chars();
-        Some(match c.next() {
-            None => String::new(),
-            Some(f) => f.to_uppercase().collect::<String>() + c.as_str()
-        })
+        Some(capitalize(&genre))
     }
 }
 
+/// Capitalize every word
+/// https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust/38406885#38406885
+fn capitalize(input: &str) -> String {
+    input.split(" ").map(|w| {
+        let mut c = w.trim().chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str()
+        }
+    }).collect::<Vec<_>>().join(" ")
+}
 
 #[test]
 fn test_bandcamp() {
