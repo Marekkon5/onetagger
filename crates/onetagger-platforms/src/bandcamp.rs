@@ -4,15 +4,6 @@ use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, 
 use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
-use once_cell::sync::Lazy;
-
-/// Generate genre list for matching against tags
-static GENRE_LIST: Lazy<Vec<String>> = Lazy::new(|| {
-    let discogs = include_str!("discogs.txt").split("\n").collect::<Vec<_>>();
-    let musicbrainz = include_str!("musicbrainz.txt").split("\n").collect::<Vec<_>>();
-    let genres = vec![discogs, musicbrainz].concat().into_iter().map(String::from).collect();
-    genres
-});
 
 pub struct Bandcamp {
     client: Client
@@ -107,7 +98,7 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
             name: "Bandcamp".to_string(),
             description: "Specialized in indie artists. Limited amount of tags".to_string(),
             version: "1.0.0".to_string(),
-            icon: include_bytes!("../../assets/bandcamp.png"),
+            icon: include_bytes!("../assets/bandcamp.png"),
             max_threads: 4,
             custom_options: Default::default(),
         }
@@ -177,7 +168,7 @@ impl Into<Track> for BandcampTrack {
             artists: vec![self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
             label: Some(self.publisher.name),
             art: Some(self.image),
-            styles: self.keywords.into_iter().filter(|k| Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && GENRE_LIST.contains(&k.to_lowercase().trim().to_string())).collect::<Vec<_>>(),
+            styles: self.keywords.into_iter().filter(|k| Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && crate::bandcamp_genres::GENRES.contains(&k.to_lowercase().trim())).collect::<Vec<_>>(),
             genres: genre.map(|g| vec![g]).unwrap_or(vec![]),
             track_id: Some(self.id.clone()),
             url: self.id,

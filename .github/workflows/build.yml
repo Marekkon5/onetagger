@@ -69,11 +69,6 @@ jobs:
       with:
         version: latest
 
-    - name: Install Rust
-      uses: ATiltedTree/setup-rust@v1
-      with:
-        rust-version: stable
-
     - name: Install Dependencies
       run: |
         choco install nsis -y

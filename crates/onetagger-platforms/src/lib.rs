@@ -11,3 +11,4 @@ pub mod musicbrainz;
 pub mod beatsource;
 pub mod bpmsupreme;
 pub mod bandcamp;
+mod bandcamp_genres;
