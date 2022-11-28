@@ -2742,6 +2742,7 @@ dependencies = [
  "onetagger-tag",
  "onetagger-tagger",
  "opener",
+ "reqwest",
  "rouille",
  "serde",
  "serde_json",
