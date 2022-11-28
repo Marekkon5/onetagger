@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use mp4ameta::{Tag, Data, Img, ImgFmt};
 use mp4ameta::ident::DataIdent;
-use chrono::{DateTime, NaiveDate, Utc, Datelike};
+use chrono::{DateTime, NaiveDate, Utc, Datelike, NaiveTime};
 
 use crate::{TagImpl, TagDate, CoverType, Picture, Field};
 
@@ -153,8 +153,8 @@ impl TagImpl for MP4Tag {
             let value = if self.date_year_only || !date.has_md() {
                 date.year.to_string()
             } else {
-                let naive_date = NaiveDate::from_ymd(date.year, date.month.unwrap() as u32, date.day.unwrap() as u32)
-                    .and_hms(0, 0, 0);
+                let naive_date =NaiveDate::from_ymd_opt(date.year, date.month.unwrap() as u32, date.day.unwrap() as u32).unwrap()
+                    .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap());
                 let date: DateTime<Utc> = DateTime::from_utc(naive_date, Utc);
                 format!("{}", date.format("%+"))
             };
