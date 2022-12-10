@@ -8,7 +8,7 @@
             @mouseover='onHover' 
             @mouseleave="hover = false" 
             @click='seek'
-            :style='`background-image: linear-gradient(to right, var(--q-primary) ${pos*100}%, #3a3c3c ${pos*100}%, #3a3c3c);`'
+            :style='waveformBackground'
             class='waveform' 
         >
             <span v-for='(wave, i) in $1t.player.value.waveform' class='wavefont' :key='wave + i'>
@@ -23,6 +23,7 @@
 </template>
 
 <script lang='ts' setup>
+import { getCssVar, setCssVar } from 'quasar';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
 
@@ -71,6 +72,23 @@ onUnmounted(() => {
 });
 
 const time = computed(() => duration(pos.value * $1t.player.value.duration));
+const waveformBackground = computed(() => {
+    if (!hover.value) {
+        return `background-image: linear-gradient(to right, var(--q-primary) ${pos.value*100}%, #3a3c3c ${pos.value*100}%, #3a3c3c);`;
+    } else {
+        // Calculate light and dark parts
+        let hoverPos = pos.value * 100.0;
+        let audioPos = ($1t.player.value.position / $1t.player.value.duration) * 100.0;
+        setCssVar('primary-dark', `${getCssVar('primary')!.substring(0, 7)}70`);
+        // Generate gradient
+        if (hoverPos > audioPos) {
+            return `background-image: linear-gradient(to right, var(--q-primary) ${audioPos}%, var(--q-primary-dark) ${audioPos}%, var(--q-primary-dark) ${hoverPos}%, #3a3c3c ${hoverPos}%, #3a3c3c);`;
+        } else {
+            return `background-image: linear-gradient(to right, var(--q-primary) ${hoverPos}%, var(--q-primary-dark) ${hoverPos}%, var(--q-primary-dark) ${audioPos}%, #3a3c3c ${audioPos}%, #3a3c3c);`;
+        }
+    }
+
+})
 
 </script>
 

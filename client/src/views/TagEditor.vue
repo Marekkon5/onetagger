@@ -370,8 +370,8 @@ function loadFile(path: string) {
     if (file.value && $1t.settings.value.tagEditorAutosave) {
         save();
     }
-
     changes.value = [];
+
     // Will be joined in backend
     $1t.send('tagEditorLoad', {path});
     if ($1t.settings.value.tagEditorPlayer)
@@ -722,6 +722,11 @@ const POPMLabel = computed(() => {
 onMounted(() => {
     $1t.onTagEditorEvent = wsCallback;
     loadFiles();
+
+    // Load QT track
+    if ($1t.quickTag.value.track) {
+        loadFile($1t.quickTag.value.track.path);
+    }
 })
 
 // Unregister

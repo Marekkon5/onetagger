@@ -23,7 +23,7 @@ mime_guess = "2.0"
 urlencoding = "2.1"
 include_dir = "0.7"
 directories = "4.0"
-tungstenite = "0.17"
+tungstenite = "0.18"
 tinyfiledialogs = "3.3"
 
 clap = { version = "4.0", features = ["derive"] }

@@ -135,7 +135,7 @@
 
 <script lang='ts' setup>
 import { scroll, useQuasar } from 'quasar';
-import { computed, onDeactivated, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { QTTrack } from '../scripts/quicktag.js';
 
@@ -307,7 +307,7 @@ onMounted(() => {
     $1t.loadQuickTag();
 });
 
-onDeactivated(() => {
+onUnmounted(() => {
     // Save track index
     if ($1t.quickTag.value.track)
         $1t.settings.value.quickTag.trackIndex = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
@@ -316,12 +316,10 @@ onDeactivated(() => {
     // Save sorting
     $1t.settings.value.quickTag.sortOption = sortOption.value;
     $1t.settings.value.quickTag.sortDescending = sortDescending.value;
-
-    $1t.saveSettings(false);
 });
 
 watch(() => $1t.quickTag.value.track, () => {
-    let index = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
+    let index = tracks.value.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
     scrollToIndex(index);
 });
 </script>

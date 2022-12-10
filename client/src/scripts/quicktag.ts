@@ -61,6 +61,13 @@ interface QuickTagFile {
     key?: string;
 }
 
+/// Custom Tag chips
+interface CustomTagInfo {
+    value: string,
+    type: 'custom' | 'note';
+    index: number
+}
+
 class QTTrack implements QuickTagFile {
     // QuickTagFile
     path!: string;
@@ -127,7 +134,6 @@ class QTTrack implements QuickTagFile {
 
     // Update note field
     setNote(note: string) {
-        console.log('setnote');
         this.note = note;
     }
 
@@ -208,13 +214,25 @@ class QTTrack implements QuickTagFile {
     }
 
     // Get all selected custom values + note (for chips)
-    getAllCustom() {
-        let out: string[] = [];
+    getAllCustom(): CustomTagInfo[] {
+        let out: CustomTagInfo[] = [];
+        let i = 0;
         for (let custom of this.custom) {
-            out = out.concat(custom.filter(v => !out.includes(v) && v));
+            // out = out.concat(custom.filter(v => !out.includes(v) && v));
+            for (let value of custom) {
+                if (value.trim())
+                    out.push({value, type: 'custom', index: i});
+            }
+            i += 1;
         }
         // Add note tag
-        out = out.concat(this.note.split(',').filter(v => !out.includes(v) && v));
+        // out = out.concat(this.note.split(',').filter(v => !out.includes(v) && v));
+        i = 0;
+        for (let value of this.note.split(',')) {
+            if (value.trim())
+                out.push({value, type: 'note', index: i});
+            i += 1;
+        }
         return out;
     }
 
@@ -314,5 +332,5 @@ class QTTrack implements QuickTagFile {
 }
 
 
-export type { QuickTagFile, QuickTagMood, QuickTagGenre, QuickTagCustom };
+export type { QuickTagFile, QuickTagMood, QuickTagGenre, QuickTagCustom, CustomTagInfo };
 export { QuickTag, QuickTagSettings, QTTrack, EnergyTag };

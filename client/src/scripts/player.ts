@@ -1,4 +1,4 @@
-import { get1t } from "./onetagger";
+import { get1t, OneTagger } from "./onetagger";
 import { httpUrl, wsUrl } from "./utils";
 
 const WAVES = 180;
@@ -18,12 +18,18 @@ class Player {
     _waveformLock: boolean[] = [];
     _waveformPath?: string;
 
-    constructor() {
+    constructor($1t: OneTagger) {
         // Setup
         this.generateDefaultWaveform();
         setInterval(() => {
-            if (this.position > this.duration)
-                this.pause();
+            if (this.position > this.duration) {
+                // Auto play next track
+                if ($1t.settings.value.autoPlayNext) {
+                    $1t.onQuickTagEvent('changeTrack', { offset: 1 });
+                } else {
+                    this.pause();
+                }
+            }
 
             if (this.playing)
                 this.position += 150;

@@ -12,7 +12,8 @@ class Settings {
     clientSidePlayer: boolean = false;
     nonNativeBrowser: boolean = false;
     playOnSeek: boolean = false;
-    
+    autoPlayNext: boolean = false;
+
     renamer: RenamerSettings = new RenamerSettings();
     quickTag: QuickTagSettings = new QuickTagSettings();
     audioFeatures: AudioFeaturesSettings = new AudioFeaturesSettings();

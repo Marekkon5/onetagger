@@ -14,7 +14,7 @@ class OneTagger {
     info: Ref<AppInfo> = ref({}) as Ref<AppInfo>;
     config: Ref<AutotaggerConfig> = ref(new AutotaggerConfig());
     lock: Ref<{ locked: boolean }> = ref({ locked: false });
-    player: Ref<Player> = ref(new Player());
+    player: Ref<Player> = ref(new Player(this));
     quickTag: Ref<QuickTag> = ref(new QuickTag());
     settings: Ref<Settings> = ref(new Settings());
     spotify: Ref<Spotify> = ref(new Spotify());
@@ -548,4 +548,4 @@ function get1t(): OneTagger {
     return new OneTagger();
 }
 
-export { get1t };
+export { OneTagger, get1t };

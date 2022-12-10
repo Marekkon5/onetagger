@@ -25,13 +25,14 @@
                 </div>
                 <!-- Details -->
                 <div class='col-7 row text-grey-6 text-weight-medium text-center items-center'>
-                    <div class='col-3'>
+                    <div class='col-3' @click='removeMood(track.mood)'>
                         <!-- Mood -->
                         <q-chip 
                             v-if='getMood(track.mood)'
                             :color='getMood(track.mood)!.color + "-6"'
                             :outline='getMood(track.mood)!.outline'
                             :label='getMood(track.mood)!.mood'
+                            class='cursor-pointer'
                         ></q-chip>
                     </div>
                     <div class='col-3'>
@@ -82,8 +83,16 @@
 
         <!-- Custom tags -->
         <div class='row q-mx-sm no-wrap overflow-hidden custom-tag-chips'>
-            <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'>
-                <q-chip dense square :label='tag' outline color='primary' class='chip-text-white'></q-chip>
+            <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'  @click='removeCustom(tag)'>
+                <q-chip 
+                    icon='mdi-close'
+                    dense 
+                    square 
+                    :label='tag.value' 
+                    outline 
+                    color='primary' 
+                    class='qt-tile-chip' 
+                ></q-chip>
             </div>
         </div>
 
@@ -94,7 +103,7 @@
 <script lang='ts' setup>
 import { computed, ref } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
-import { QTTrack } from '../scripts/quicktag.js';
+import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';
 
 const PLACEHOLDER_IMG = (new URL('../assets/placeholder.png', import.meta.url)).toString();
@@ -183,6 +192,13 @@ function getMood(name?: string) {
     return {mood: name, color: 'white', outline: true};
 }
 
+function removeMood(mood?: string) {
+    console.log(selected.value);
+
+    if (!mood || !selected.value) return;
+    $1t.quickTag.value.track!.mood = undefined;
+}
+
 // Remove genre from track
 function removeGenre(genre: string) {
     $1t.quickTag.value.track?.toggleGenre(genre);
@@ -204,6 +220,19 @@ function keyColor(key?: string) {
     }
 }
 
+/// Remove custom tag chip
+function removeCustom(tag: CustomTagInfo) {
+    if (!selected.value) return;
+
+    if (tag.type === 'custom') {
+        $1t.quickTag.value.track!.toggleCustom(tag.index, tag.value);
+    } else {
+        // Note
+        $1t.quickTag.value.track!.setNote(
+            $1t.quickTag.value.track!.getNote().split(",").filter((i) => i != tag.value).join(",")
+        );
+    }
+}
 
 const selected = computed(() => $1t.quickTag.value.track && track.path == $1t.quickTag.value.track.path);
 const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.path)}`);
@@ -217,9 +246,21 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.p
     height: 128px;
     border-radius: 4px;
 }
-.chip-text-white div {
+.qt-tile-chip {
+    cursor: pointer;
+}
+.qt-tile-chip div {
     color: white;
 }
+.qt-tile-chip .q-icon {
+    display: none;
+}
+.qt-tile-chip:hover .q-icon {
+    display: inline;
+    padding-top: 2px;
+    cursor: pointer;
+}
+
 .qt-tile {
     height: 128px;
     min-height: 128px;

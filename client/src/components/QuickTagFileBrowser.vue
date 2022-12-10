@@ -2,11 +2,20 @@
 <div class='q-px-sm'>
 
     <!-- Path -->
-    <div class='text-weight-bold clickable path-display q-my-sm' @click='browse'>
+    <div class='text-weight-bold clickable path-display q-my-sm' v-if='!editPath'>
         <div class='row inline'>
-            <span style="direction:ltr;" class='text-primary monospace'>{{path}}</span>
+            <span style="direction:ltr;">
+                <span @click='browse' class='text-primary monospace q-pr-xs'>{{path}}</span>
+                <q-icon name='mdi-pencil' class='q-pb-xs' @click='editPath = true'></q-icon>
+            </span>
         </div>
     </div>
+    <div class='q-my-sm' v-if='editPath'>
+        <form @submit.prevent='loadFiles()'>
+            <q-input outlined dense v-model='path'></q-input>
+        </form>
+    </div>
+
 
     <div class='q-mt-sm'>
 
@@ -48,6 +57,7 @@ const files = ref<any[]>([]);
 const originalFiles = ref<any[]>([]);
 const filter = ref<string | undefined>(undefined);
 const initial = ref(true);
+const editPath = ref(false);
 
 function loadFiles(f?: string) {
     $1t.send('quickTagFolder', {path: path.value, subdir: f});
