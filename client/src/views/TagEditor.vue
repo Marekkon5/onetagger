@@ -463,7 +463,8 @@ function addNewTag() {
     if (file.value.tags[newTag.value]) {
         $q.notify({
             message: "Tag already exists!",
-            timeout: 2000
+            timeout: 2000,
+            position: 'top-right'
         });
         return;
     }
@@ -681,7 +682,8 @@ function wsCallback(e: any) {
         case 'tagEditorSave':
             $q.notify({
                 message: 'Tags written!',
-                timeout: 4000
+                timeout: 4000,
+                position: 'top-right'
             });
             break;
         // Internal callback

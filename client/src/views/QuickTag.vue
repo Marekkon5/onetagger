@@ -170,6 +170,7 @@ async function saveDialogCallback(save: boolean) {
             color: 'primary',
             textColor: 'black',
             timeout: 500,
+            position: 'top-right'
         });
     }
     $1t.loadQTTrack(undefined, true);

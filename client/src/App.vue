@@ -208,6 +208,7 @@ async function checkUpdates() {
                     },
                 },
             ],
+            position: 'top-right'
         });
     }
 }

@@ -331,6 +331,7 @@ class OneTagger {
                 color: 'primary',
                 textColor: 'black',
                 timeout: 500,
+                position: 'top-right'
             });
     }
 
@@ -468,6 +469,7 @@ class OneTagger {
                     Notify.create({
                         message: "Track saved!",
                         timeout: 3000,
+                        position: 'top-right'
                     });
                 });
                 return true;
