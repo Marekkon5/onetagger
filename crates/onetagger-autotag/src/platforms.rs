@@ -156,6 +156,9 @@ impl CustomPlatform {
                 warn!("Plugin is incompatible! Plugin version: {}, Supported version: {}", **version, onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY);
                 return Err("Plugin is incompatible!".into());
             }
+            // Setup logging
+            let logging_cb_fn: Symbol<unsafe extern fn(extern fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
+            logging_cb_fn(onetagger_tagger::custom::write_log);
             // Get builder
             let builder_fn: Symbol<unsafe extern fn() -> *mut c_void> = lib.get(b"_1t_create_builder")?;
             let builder = builder_fn();

@@ -57,7 +57,7 @@ impl Spotify {
 
     /// Try to authorize spotify from cached token
     pub fn try_cached_token(client_id: &str, client_secret: &str) -> Option<Spotify> {
-        let mut client = Self::create_client(client_id, client_secret);
+        let client = Self::create_client(client_id, client_secret);
         let token = client.read_token_cache(true).ok()??;
         *client.token.lock().unwrap() = Some(token);
         client.refresh_token().ok()?;
@@ -66,7 +66,7 @@ impl Spotify {
     }
 
      /// Authentication server for callback from spotify
-     pub fn auth_server(mut spotify: AuthCodeSpotify, expose: bool) -> Result<Spotify, Box<dyn Error>> {
+     pub fn auth_server(spotify: AuthCodeSpotify, expose: bool) -> Result<Spotify, Box<dyn Error>> {
         // Prepare server
         let token: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let token_clone = token.clone();
@@ -110,7 +110,7 @@ impl Spotify {
     }
 
     /// Authorize from URL
-    pub fn auth_token_code(mut spotify: AuthCodeSpotify, url: &str) -> Result<Spotify, Box<dyn Error>> {
+    pub fn auth_token_code(spotify: AuthCodeSpotify, url: &str) -> Result<Spotify, Box<dyn Error>> {
         let code = spotify.parse_response_code(url).ok_or("Invalid token url!")?;
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
@@ -148,7 +148,7 @@ impl Spotify {
 
     /// Search tracks by query
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
-        let results = self.rate_limit_wrap(|s| s.spotify.search(query, &SearchType::Track, None, None, Some(limit), None))?;
+        let results = self.rate_limit_wrap(|s| s.spotify.search(query, SearchType::Track, None, None, Some(limit), None))?;
         let mut tracks = vec![];
         if let SearchResult::Tracks(tracks_page) = results {
             tracks = tracks_page.items;
@@ -158,17 +158,17 @@ impl Spotify {
 
     /// Fetch audio features for track id
     pub fn audio_features(&self, id: &TrackId) -> Result<AudioFeatures, Box<dyn Error>> {
-        self.rate_limit_wrap(|s| s.spotify.track_features(id))
+        self.rate_limit_wrap(|s| s.spotify.track_features(id.to_owned()))
     }
 
     /// Fetch full album
     pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Box<dyn Error>> {
-        self.rate_limit_wrap(|s| s.spotify.album(id))
+        self.rate_limit_wrap(|s| s.spotify.album(id.to_owned()))
     }
 
     /// Fetch full artist
     pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Box<dyn Error>> {
-        self.rate_limit_wrap(|s| s.spotify.artist(id))
+        self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))
     }
 
     /// Extend track for autotagger
@@ -201,7 +201,7 @@ impl Spotify {
         // Fetch audio features
         if config.key {
             let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id()) == track.track_id.as_ref().map(|s| s.as_str())).unwrap();
-            if let Some(track_id) = &t.id {
+            if let Some(track_id) = t.id.as_ref() {
                 match self.audio_features(track_id) {
                     Ok(features) => {
                         if features.key < 0 || features.key >= 12 {
