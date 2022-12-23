@@ -5,7 +5,7 @@ use mp4ameta::{Tag, Data, Img, ImgFmt};
 use mp4ameta::ident::DataIdent;
 use chrono::{DateTime, NaiveDate, Utc, Datelike, NaiveTime};
 
-use crate::{TagImpl, TagDate, CoverType, Picture, Field};
+use crate::{TagImpl, TagDate, CoverType, Picture, Field, Lyrics};
 
 const MAGIC: u8 = 0xa9;
 
@@ -333,6 +333,16 @@ impl TagImpl for MP4Tag {
         }
     }
 
-    
+    fn set_lyrics(&mut self, lyrics: &Lyrics, synced: bool, overwrite: bool) {
+        if synced {
+            warn!("MP4 doesn't support synchronized lyrics!");
+            return;
+        }
+        if !overwrite || self.tag.lyrics().is_some() {
+            return;
+        }
+        self.tag.remove_lyrics();
+        self.tag.set_lyrics(lyrics.text());
+    }
     
 }

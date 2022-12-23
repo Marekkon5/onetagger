@@ -20,7 +20,7 @@ const ATTRIBUTES_TO_REMOVE: [&'static str; 23] = ["(intro)", "(clean)", "(intro 
     "(radio edit)", "(ck cut)", "(super cut)", "(mega cutz)", "(snip hitz)", "(jd live cut)", "(djcity intro)", "(vdj jd edit)"];
 
 // Re-export
-pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field};
+pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field, Lyrics, LyricsLine, LyricsLinePart};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,6 +55,8 @@ pub struct TaggerConfig {
     pub disc_number: bool,
     pub isrc: bool,
     pub mood: bool,
+    pub synced_lyrics: bool,
+    pub unsynced_lyrics: bool,
     /// 1T meta tags
     pub meta_tags: bool,
 
@@ -91,6 +93,8 @@ pub struct TaggerConfig {
     pub move_success_path: Option<String>,
     pub move_failed: bool,
     pub move_failed_path: Option<String>,
+    pub write_lrc: bool,
+    pub enhanced_lrc: bool,
     /// Tag the same track on multiple platforms
     pub multiplatform: bool,
 
@@ -139,6 +143,8 @@ impl Default for TaggerConfig {
             remixer: false, 
             track_number: false,
             isrc: false, 
+            synced_lyrics: false,
+            unsynced_lyrics: false,
             meta_tags: false, 
             separators: TagSeparators::default(), 
             id3v24: true, 
@@ -169,7 +175,9 @@ impl Default for TaggerConfig {
             move_success: false, 
             move_success_path: None, 
             move_failed: false, 
-            move_failed_path: None
+            move_failed_path: None,
+            write_lrc: false,
+            enhanced_lrc: false,
         }
     }
 }
@@ -225,6 +233,8 @@ pub struct Track {
     pub disc_number: Option<u16>,
     pub isrc: Option<String>,
     pub mood: Option<String>,
+
+    pub lyrics: Option<Lyrics>,
     
     // Only year OR date should be available
     pub release_year: Option<i64>,
@@ -274,6 +284,7 @@ impl ToString for TrackNumber {
 /// For Discogs & Beatport
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+#[repr(C)]
 pub enum StylesOptions {
     Default,
     OnlyGenres,
@@ -328,6 +339,69 @@ pub const CAMELOT_NOTES: [(&str, &str); 35] = [
     ("Dbm", "12A"),
     ("E",   "12B"),
 ];
+
+pub trait LyricsExt {
+    /// Generate LRC data
+    /// If meta is present, will be written
+    /// None if are unsynced
+    fn generate_lrc(&self, meta: Option<&Track>, enhanced: bool) -> Option<String>;
+}
+
+/// Format LRC timestamp
+fn format_lrc_ts(ts: Duration) -> String {
+    format!("{:02}:{}{:.2}", ts.as_secs() / 60, if (ts.as_secs() % 60) < 10 { "0" } else { "" }, ts.as_secs_f32() % 60.0)
+}
+
+impl LyricsExt for Lyrics {
+    fn generate_lrc(&self, meta: Option<&Track>, enhanced: bool) -> Option<String> {
+        let mut output = String::new();
+        // Add meta
+        if let Some(track) = meta {
+            if !track.title.trim().is_empty() {
+                output.push_str(&format!("[ti:{}]\n", track.title));
+                if let Some(album) = track.album.as_ref() {
+                    output.push_str(&format!("[al:{album}]\n"));
+                }
+                if let Some(artist) = track.artists.first() {
+                    output.push_str(&format!("[ar:{artist}]\n"));
+                }
+                if track.duration != Duration::ZERO {
+                    output.push_str(&format!("[length: {}:{:02}]\n", track.duration.as_secs() / 60, track.duration.as_secs() % 60));
+                }
+                output.push('\n');
+            }
+        }
+        // Write lines
+        let mut written = false;
+        for line in self.iter_lines() {
+            if let Some(start) = line.start {
+                // Write normal
+                if !enhanced || line.parts.is_empty() {
+                    output.push_str(&format!("[{}]{}\n", format_lrc_ts(start), line.text));
+                } else {
+                    // Write enhanced
+                    output.push_str(&format!("[{}]", format_lrc_ts(start)));
+                    for part in &line.parts {
+                        if let Some(start) = part.start {
+                            output.push_str(&format!(" <{}> {}", format_lrc_ts(start), part.text));
+                        } else {
+                            output.push_str(&format!(" {}", part.text));
+                        }
+                    }
+                    output.push('\n');
+                }
+                written = true;
+            }
+        }
+
+        // No lyrics if aren't synced
+        match written {
+            true => Some(output),
+            false => None
+        }
+    }
+
+}
 
 #[derive(Debug, Clone)]
 #[repr(C)]

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder, Frame, Encoding};
-use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText};
+use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText, SynchronisedLyrics, TimestampFormat, SynchronisedLyricsType};
 use serde::{Serialize, Deserialize};
 use crate::{TagDate, CoverType, Field, TagImpl};
 
@@ -497,6 +497,36 @@ impl TagImpl for ID3Tag {
         self.set_raw("TRCK", vec![value], overwrite);
     }
 
+    fn set_lyrics(&mut self, lyrics: &crate::Lyrics, synced: bool, overwrite: bool) {
+        // Add synced
+        if synced {
+            if !lyrics.synced() || (!overwrite && self.tag.synchronised_lyrics().next().is_some()) {
+                return;
+            }
+            self.tag.remove_all_synchronised_lyrics();
+            self.tag.add_frame(SynchronisedLyrics {
+                lang: lyrics.language.to_string(),
+                timestamp_format: TimestampFormat::Ms,
+                content_type: SynchronisedLyricsType::Lyrics,
+                description: "Lyrics".to_string(),
+                content: lyrics.iter_lines().filter_map(|l| match l.start {
+                    Some(start) => Some((start.as_millis() as u32, l.text.to_string())),
+                    None => None
+                }).collect(),
+            });
+        }
+        // Add unsynced
+        if !overwrite && self.tag.lyrics().next().is_some() {
+            return;
+        }
+        self.tag.remove_all_lyrics();
+        self.tag.add_frame(Lyrics {
+            lang: lyrics.language.to_string(),
+            description: "Lyrics".to_string(),
+            text: lyrics.text()
+        });
+    }
+    
     
 }
 

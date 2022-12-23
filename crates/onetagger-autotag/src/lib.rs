@@ -12,7 +12,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
-use onetagger_tagger::FileTaggedStatus;
+use onetagger_tagger::{FileTaggedStatus, LyricsExt};
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -241,6 +241,14 @@ impl TrackImpl for Track {
                 false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string(), None, config.overwrite),
             }
         }
+        // Lyrics
+        if config.synced_lyrics && self.lyrics.is_some() {
+            tag.set_lyrics(self.lyrics.as_ref().unwrap(), true, config.overwrite);
+        }
+        if config.unsynced_lyrics && self.lyrics.is_some() {
+            tag.set_lyrics(self.lyrics.as_ref().unwrap(), false, config.overwrite);
+        }
+
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
             info!("Downloading art: {:?}", self.art);
@@ -270,6 +278,20 @@ impl TrackImpl for Track {
         if config.meta_tags {
             let time = Local::now();
             tag.set_raw("1T_TAGGEDDATE", vec![format!("{}_AT", time.format("%Y-%m-%d %H:%M:%S"))], true);
+        }
+
+        // LRC
+        if config.write_lrc && self.lyrics.is_some() {
+            let path = Path::new(&info.path).with_extension("lrc");
+            if !path.exists() {
+                if let Some(lrc) = self.lyrics.as_ref().unwrap().generate_lrc(Some(&self), config.enhanced_lrc) {
+                    info!("Writing LRC");
+                    match std::fs::write(&path, lrc) {
+                        Ok(_) => {}
+                        Err(e) => warn!("Failed writing .LRC file to {:?} {}", path, e),
+                    }
+                }
+            }
         }
 
         // Save

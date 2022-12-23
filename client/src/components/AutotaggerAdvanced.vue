@@ -126,6 +126,17 @@
             ></q-input>
         </div>
 
+        <AdvancedSettingsToggle 
+            label='Write .LRC file'
+            tooltip='Write file with lyrics'
+            v-model='$1t.config.value.writeLrc'
+        ></AdvancedSettingsToggle>
+        <AdvancedSettingsToggle 
+            label='Enhanced LRC file'
+            tooltip='Write per-word timestamps into LRC (if available). Not all players support this.'
+            v-if='$1t.config.value.writeLrc'
+            v-model='$1t.config.value.enhancedLrc'
+        ></AdvancedSettingsToggle>
 
     </q-list>
 

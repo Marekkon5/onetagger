@@ -139,9 +139,27 @@ class OneTagger {
             case 'loadSettings':
                 this.loadSettings(json.settings);
                 break;
-            // Update custom platform settings to V2
+            // Load custom platform settings
             case 'defaultCustomPlatformSettings':
-                this.config.value.custom = json.custom;
+                // Update custom platform settings to V2
+                if (!this.config.value.custom['beatport'] || typeof this.config.value.custom['beatport']['art_resolution'] === 'object') {
+                    this.config.value.custom = json.custom;
+                }
+                // Merge platform custom
+                for (let platform of Object.keys(json.custom)) {
+                    // All keys
+                    if (!this.config.value.custom[platform]) {
+                        this.config.value.custom[platform] = json.custom[platform];
+                        continue;
+                    }
+                    // Per key
+                    for (let key of Object.keys(json.custom[platform])) {
+                        if (!this.config.value.custom[platform][key]) {
+                            this.config.value.custom[platform][key] = json.custom[platform][key];
+                        }
+                    }
+                }
+                
                 break;
             // Path selected
             case 'browse':
@@ -346,9 +364,7 @@ class OneTagger {
         this.config.value.separators = Object.assign(new Separators(), config.separators);
 
         // Update custom to v2
-        if (!this.config.value.custom['beatport'] || typeof this.config.value.custom['beatport']['art_resolution'] === 'object') {
-            this.send('defaultCustomPlatformSettings');
-        }
+        this.send('defaultCustomPlatformSettings');
  
         // Restore specific
         this.player.value.volume = this.settings.value.volume??0.5;

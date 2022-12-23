@@ -3,9 +3,11 @@
 #[macro_use] extern crate log;
 
 use serde::{Serialize, Deserialize};
+use std::time::Duration;
+use std::error::Error;
 
 #[cfg(feature = "tag")]
-use std::{error::Error, collections::HashMap};
+use std::collections::HashMap;
 
 #[cfg(feature = "tag")]
 pub mod id3;
@@ -121,6 +123,9 @@ pub trait TagImpl {
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool);
     fn get_raw(&self, tag: &str) -> Option<Vec<String>>;
     fn remove_raw(&mut self, tag: &str);
+
+    /// Set lyrics
+    fn set_lyrics(&mut self, lyrics: &Lyrics, synced: bool, overwrite: bool);
 
     /// Set track number (because formats like MP3 and M4A use custom format)
     /// Track number is string because of platforms like discogs
@@ -280,7 +285,7 @@ pub enum Field {
     Remixer,
     Mood,
     TrackTotal,
-    DiscNumber
+    DiscNumber,
 }
 
 impl Field {
@@ -315,7 +320,7 @@ impl Field {
             Field::Remixer => "TPE4",
             Field::Mood => "TMOO",
             Field::TrackTotal => "TRCK",
-            Field::DiscNumber => "TPOS"
+            Field::DiscNumber => "TPOS",
         }
     }
 
@@ -460,4 +465,71 @@ impl TagChanges {
 
         Ok(tag_wrap)
     }
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[repr(C)]
+pub struct Lyrics {
+    /// Double vec for paragraph separation
+    pub paragraphs: Vec<Vec<LyricsLine>>,
+    pub language: String,
+}
+
+impl Lyrics {
+    /// Join into text
+    pub fn text(&self) -> String {
+        self.paragraphs.iter().map(|p| 
+            p.iter().map(|l| l.text.as_str()).collect::<Vec<_>>().join("\n")
+        ).collect::<Vec<_>>().join("\n\n")
+    }
+
+    /// Parse MM:SS.ms (optionally just SS.ms)
+    pub fn parse_lrc_timestamp(input: &str) -> Result<Duration, Box<dyn Error>> {
+        let mut minutes = 0;
+        let parts = input.split(":").collect::<Vec<_>>();
+        let seconds = if parts.len() == 2 {
+            minutes = parts[0].parse::<u32>()?;
+            parts[1].parse::<f32>()?
+        } else {
+            parts[0].parse()?
+        };
+        return Ok(Duration::from_secs_f32(seconds + minutes as f32 * 60.0))
+    }
+
+    /// Are the lyrics synced?
+    pub fn synced(&self) -> bool {
+        self.paragraphs.first().map(|p| p.first().map(|l| l.start.is_some())).flatten().unwrap_or(false)
+    }
+
+    /// Iterate over lines
+    pub fn iter_lines(&self) -> impl Iterator<Item = &LyricsLine> {
+        self.paragraphs.iter().flatten()
+    }
+
+    /// Iterate over lines (owned)
+    pub fn into_iter_lines(self) -> impl Iterator<Item = LyricsLine> {
+        self.paragraphs.into_iter().flatten()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[repr(C)]
+pub struct LyricsLine {
+    pub text: String,
+    pub start: Option<Duration>,
+    pub end: Option<Duration>,
+    /// Optional
+    pub parts: Vec<LyricsLinePart>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[repr(C)]
+pub struct LyricsLinePart {
+    pub text: String,
+    pub start: Option<Duration>,
+    pub end: Option<Duration>
 }

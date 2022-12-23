@@ -60,6 +60,8 @@ class AutotaggerConfig {
     catalogNumber: boolean = false;
     isrc: boolean = false;
     mood: boolean = false;
+    syncedLyrics: boolean = false;
+    unsyncedLyrics: boolean = false;
     metaTags: boolean = false;
     separators: Separators = new Separators();
     id3v24: boolean = true;
@@ -91,6 +93,8 @@ class AutotaggerConfig {
     moveSuccessPath?: string;
     moveFailed: boolean = false;
     moveFailedPath?: string;
+    writeLrc: boolean = false;
+    enhancedLrc: boolean = false;
 
     spotify?: SpotifyConfig;
 

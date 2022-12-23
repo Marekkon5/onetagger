@@ -1,6 +1,7 @@
 
 <template>
 <div class='text-center'>
+
     <!-- Path -->
     <div class='text-subtitle1 text-bold text-primary'>SELECT INPUT</div>
     <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the browse <span><q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span></div>
@@ -146,6 +147,11 @@
                     <q-tooltip>Adds 1T_TAGGEDDATE tag with timestamp</q-tooltip>
                 </q-icon>
             </q-checkbox>
+
+            <!-- Lyrics -->
+            <q-checkbox class='tag checkbox text-grey-4' label='Unsynced Lyrics' v-model='$1t.config.value.unsyncedLyrics'></q-checkbox>
+            <q-checkbox class='tag checkbox text-grey-4' label='Synced Lyrics' v-model='$1t.config.value.syncedLyrics'></q-checkbox>
+
         </div>
     </div>
 

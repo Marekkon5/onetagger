@@ -6,6 +6,7 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use metaflac::Tag;
 use metaflac::block::PictureType;
+use crate::Lyrics;
 use crate::{Field, TagDate, CoverType, TagImpl};
 
 // Cannot be a HashMap, because doens't implement Hash
@@ -240,6 +241,18 @@ impl TagImpl for FLACTag {
         if let Some(total) = track_total {
             self.set_field(Field::TrackTotal, vec![total.to_string()], overwrite);
         }
+    }
+
+    fn set_lyrics(&mut self, lyrics: &Lyrics, synced: bool, overwrite: bool) {
+        if synced {
+            warn!("FLAC doesn't support synchronized lyrics!");
+            return;
+        }
+        if !overwrite || self.get_raw("LYRICS").is_some() {
+            return;
+        }
+        self.tag.remove_vorbis("LYRICS");
+        self.tag.set_vorbis("LYRICS", vec![lyrics.text()]);
     }
 
     

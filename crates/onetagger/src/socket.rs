@@ -177,7 +177,8 @@ pub fn start_socket_server(context: StartContext) {
                             warn!("{} - Websocket can't read or write, closing connection!", e);
                             break;
                         }
-                        warn!("Invalid websocket message: {}", e);
+                        warn!("Invalid websocket message, closing: {}", e);
+                        break;
                     }
                 }
             }
