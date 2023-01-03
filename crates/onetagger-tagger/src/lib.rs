@@ -611,28 +611,61 @@ pub struct MatchingUtils;
 impl MatchingUtils {
     /// Clean title for searching
     pub fn clean_title(input: &str) -> String {
-        let step1 = input.to_lowercase()
-            // Remove - because search engines
-            .replace("-", " ")
-            .replace("  ", " ");
-        let step2 = step1.trim();
-        // Remove original mix
-        let mut re = Regex::new(r"((\(|\[)*)original( (mix|version|edit))*((\)|\])*)$").unwrap();
-        let step3 = re.replace(&step2, "");
-        // Remove initial a/an/the
-        re = Regex::new(r"^((a|an|the) )").unwrap();
-        let step4 = re.replace(&step3, "");
-        // Remove attributes
-        let mut step5 = step4.to_string();
-        for t in &ATTRIBUTES_TO_REMOVE {
-            step5 = step5.replace(t, "");
+        let input = Self::clean_title_step1(input);
+        let input = Self::clean_title_step2(&input);
+        let input = Self::clean_title_step3(&input);
+        let input = Self::clean_title_step4(&input);
+        // Trim and clean again
+        let input = Self::clean_title_step1(&input);
+        let input = Self::clean_title_step5(&input);
+        // Trim and clean again
+        Self::clean_title_step1(&input)
+    }
+
+    /// Step 1: lowercase,remove dashes and double spaces because of search engines
+    fn clean_title_step1(input: &str) -> String {
+        let mut input = input.to_lowercase().replace("-", " ");
+        while input.contains("  ") {
+            input = input.replace("  ", " ");
         }
-        // Remove - and trim
-        let step6 = step5.replace("-", "").replace("  ", " ");
-        // Remove feat.
-        re = Regex::new(r"(\(|\[)?(feat|ft)\.?.+?(\)|\]|\(|$)").unwrap();
-        let out = re.replace(&step6, "");
-        out.trim().to_string()
+        input.trim().to_string()
+    }
+
+    /// Step 2: Remove initial a/an/the
+    fn clean_title_step2(input: &str) -> String {
+        let re = Regex::new(r"^((a|an|the) )").unwrap();
+        re.replace(input, "").into_owned()
+    }
+
+    /// Step 3: Remove original mix/edit/version
+    fn clean_title_step3(input: &str) -> String {
+        let re = Regex::new(r"((\(|\[)*)original( (mix|version|edit))*((\)|\])*)$").unwrap();
+        re.replace(input, "").into_owned()
+    }
+
+    /// Step 4: Remove attributes
+    fn clean_title_step4(input: &str) -> String {
+        let mut input = input.to_string();
+        for t in &ATTRIBUTES_TO_REMOVE {
+            input = input.replace(t, "");
+        }
+        input
+    }
+
+    /// Step 5: Remove feat/ft
+    fn clean_title_step5(input: &str) -> String {
+        let re = Regex::new(r"(\(|\[)?(feat|ft)\.?.+?(\)|\]|\(|$)").unwrap();
+        re.replace(input, "").into_owned()
+    }
+
+    /// Step 6: Remove edit
+    fn clean_title_step6(input: &str) -> String {
+        input.replace("edit", "")
+    }
+
+    /// Step 7: Remove special characters
+    fn clean_title_step7(input: &str) -> String {
+        Self::remove_special(input)
     }
 
     /// Remove spacial characters
@@ -657,11 +690,9 @@ impl MatchingUtils {
 
     /// Clean title for matching, removes special characters etc
     pub fn clean_title_matching(input: &str) -> String {
-        let title = MatchingUtils::clean_title(input);
-        // Remove edit, specials
-        let step1 = title.replace("edit", "");
-        let step2 = MatchingUtils::remove_special(&step1);
-        step2.to_string()
+        let input = MatchingUtils::clean_title(input);
+        let input = Self::clean_title_step6(&input);
+        Self::clean_title_step7(&input)
     }
 
     /// Match atleast 1 artist
@@ -698,8 +729,87 @@ impl MatchingUtils {
         false
     }
 
-    /// Default track matching
+    /// Do exact matches on each step of track cleaning
+    pub fn match_track_exact_fallback(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<Track> {
+        let cleaning_steps = [
+            Self::clean_title_step1, Self::clean_title_step2, Self::clean_title_step3, Self::clean_title_step4,
+            Self::clean_title_step5, Self::clean_title_step6, Self::clean_title_step7
+        ];
+
+        // Execute cleaning steps in order
+        let clean_steps = |steps: usize, input: &str| -> String {
+            let mut input = input.to_string();
+            for i in 0..steps {
+                input = cleaning_steps[i](&input);
+            }
+            input
+        };
+
+        // Match
+        for step_count in 0..cleaning_steps.len() {
+            let clean_title = clean_steps(step_count, info.title().ok()?);
+            for track in tracks {
+                // Duration
+                if !MatchingUtils::match_duration(info, track, config) {
+                    continue;
+                }
+                // Exact matches
+                if clean_title == clean_steps(step_count, &track.full_title()) {
+                    // Match artist
+                    if match_artist {
+                        if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
+                            return Some(track.to_owned())
+                        } else {
+                            continue;
+                        }
+                    }
+                    return Some(track.to_owned())
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Default track matching algo (v2 with exact match fallabck)
     pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
+        // Exact fallback match
+        if let Some(track) = Self::match_track_exact_fallback(info, tracks, config, match_artist) {
+            return Some((1.0, track));
+        }
+
+        let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
+
+        // Fuzzy match - value, track
+        let mut fuzz: Vec<(f64, &Track)> = vec![];
+        for track in tracks {
+            // Artist
+            if match_artist {
+                if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
+                    continue;
+                }
+            }
+            // Match title
+            let clean = MatchingUtils::clean_title_matching(&track.full_title());
+            let l = normalized_levenshtein(&clean, &clean_title);
+            if l >= config.strictness {
+                fuzz.push((l, track));
+            }
+        }
+        // Empty array
+        if fuzz.is_empty() {
+            return None;
+        }
+        // Sort
+        fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+        let best_acc = fuzz[0].0;
+        let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
+        MatchingUtils::sort_tracks(&mut fuzz, &config);
+        Some((fuzz[0].0, fuzz[0].1.to_owned()))
+    }
+
+    /// Default (old) track matching
+    pub fn match_track_v1(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
         let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
         // Exact match
         let mut exact_matches = vec![];
