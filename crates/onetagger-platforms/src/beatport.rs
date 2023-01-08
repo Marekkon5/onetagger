@@ -323,12 +323,18 @@ impl AutotaggerSource for Beatport {
         if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
             info!("Fetching by ID: {}", id);
             // TODO: Serialize properly the private API response, rather than double request
-            let api_track = self.fetch_track_embed(id)?;
-            let bp_track = self.fetch_track(&api_track.slug, api_track.id)?;
-            let mut track = bp_track.to_track(custom_config.art_resolution);
-            track.isrc = api_track.isrc.clone();
-            track.track_number = Some(api_track.track_number());
-            return Ok(Some((1.0, track)));
+            match self.fetch_track_embed(id) {
+                Ok(api_track) => {
+                    let bp_track = self.fetch_track(&api_track.slug, api_track.id)?;
+                    let mut track = bp_track.to_track(custom_config.art_resolution);
+                    track.isrc = api_track.isrc.clone();
+                    track.track_number = Some(api_track.track_number());
+                    return Ok(Some((1.0, track)));
+                },
+                Err(e) => {
+                    warn!("Matching by ID failed, matching normally: {e}");
+                }
+            }
         }
 
         // Search

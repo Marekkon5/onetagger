@@ -11,7 +11,7 @@
 <p align='center'>
     <img alt='Version Badge' src='https://img.shields.io/github/v/release/marekkon5/onetagger?label=Latest%20Release'>
     <img alt='Supported OS' src='https://img.shields.io/badge/OS-Windows%2C%20Mac%20OS%2C%20Linux-orange'>
-    <img alt='Build Status' src='https://img.shields.io/github/workflow/status/marekkon5/onetagger/Build'>
+    <img alt='Build Status' src='https://img.shields.io/github/actions/workflow/status/marekkon5/onetagger/build.yml?branch=master'>
 </p>
 
 <h3 align='center'><b></b></h3>
