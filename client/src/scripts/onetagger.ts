@@ -57,6 +57,8 @@ class OneTagger {
             setTimeout(() => {
                 this.send('init');
                 this.send('spotifyAuthorized');
+                // Update custom to v2
+                this.send('defaultCustomPlatformSettings');
             }, 100);
         });
         this.ws.addEventListener('message', (event) => {
@@ -159,6 +161,7 @@ class OneTagger {
                         }
                     }
                 }
+                console.log(this.config.value.custom);
                 
                 break;
             // Path selected
@@ -362,9 +365,6 @@ class OneTagger {
         this.config.value = config;
         this.config.value.stylesCustomTag = Object.assign(FrameName.same('STYLE'), config.stylesCustomTag);
         this.config.value.separators = Object.assign(new Separators(), config.separators);
-
-        // Update custom to v2
-        this.send('defaultCustomPlatformSettings');
  
         // Restore specific
         this.player.value.volume = this.settings.value.volume??0.5;
