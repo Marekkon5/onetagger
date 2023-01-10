@@ -4,7 +4,7 @@
     @dragleave.prevent='drag = false'
     @drop.prevent='drop'
 >
-    <q-card class='elevation-4' :class='{"bg-highlight": drag, "playlist-drop-zone": !drag}' v-if='!tiny'>
+    <q-card flat class='elevation-4' :class='{"bg-highlight": drag, "playlist-drop-zone": !drag}' v-if='!tiny'>
         <q-card-section>
             <div 
                 style='width: 100%; height: 50px;'

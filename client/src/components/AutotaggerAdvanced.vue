@@ -240,30 +240,22 @@
 
     <!-- Separators -->
     <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>
-    <div class='row q-pb-xs q-mt-sm justify-center half-width'>
+    <div class='row q-pb-md q-mt-sm justify-center half-width'>
         <Separators v-model='$1t.config.value.separators'></Separators>
     </div>
     
 
-    <!-- Command -->
-    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg'>
-        EXECUTE COMMAND WHEN TAGGING IS FINISHED
+    <!-- Styles / genres action -->
+    <div class='text-subtitle1 text-center text-bold text-primary'>
+        GENRE / STYLE / SUBGENRE OPTIONS
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
             <q-tooltip>
-                $success and $failed will be substituted with paths to files containing paths of affected tracks
+                <i>Supported platforms:</i> Discogs & Bandcamp for Style, Beatport for Subgenre <i>(all gets written to Style tag by default)</i>
             </q-tooltip>
         </q-icon>
-    </div>
-    <q-input label='$success, $failed will be substituted' filled class='row input q-py-sm justify-center' style='max-width: 526px; margin: auto;' v-model='$1t.config.value.postCommand'></q-input>
-    <br>
-    
-    <!-- Styles / genres action -->
-    <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
-    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg'>
-        GENRES/STYLES OPTIONS
         <div class='text-subtitle2 q-mb-md text-grey-6'>
-            Fetch both <i>(default)</i>, if it should merge them, or write elsewhere <i>(used only in supported platforms)</i>
-        </div>
+            Fetch all <i>(default)</i>, if it should merge them, or write elsewhere <i>(supported platforms only)</i>
+        </div>        
         
         <!-- Styles -->
         <q-select
@@ -278,9 +270,23 @@
         ></q-select>
         <!-- Styles custom tag -->
         <div v-if='$1t.config.value.stylesOptions == "customTag"'>
-            <TagFields v-model='$1t.config.value.stylesCustomTag' class='input' style='margin-bottom: 28px;'></TagFields>
+            <TagFields v-model='$1t.config.value.stylesCustomTag' class='q-mb-md'></TagFields>
         </div>
     </div>
+
+    <q-separator class='q-mx-auto q-mb-lg custom-separator' inset color="dark"/>
+
+    <!-- Command -->
+    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg'>
+        EXECUTE COMMAND WHEN TAGGING IS FINISHED
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
+            <q-tooltip>
+                $success and $failed will be substituted with paths to files containing paths of affected tracks
+            </q-tooltip>
+        </q-icon>
+    </div>
+    <q-input label='$success, $failed will be substituted' filled class='row input q-py-sm justify-center' style='max-width: 526px; margin: auto;' v-model='$1t.config.value.postCommand'></q-input>
+    <br>
 
     <br>
 </div>
@@ -297,9 +303,9 @@ import TagFields from './TagFields.vue';
 
 const $1t = get1t();
 const multipleMatches = ['Default', 'Oldest', 'Newest'];
-const stylesOptions = ["Default", "Only genres", "Only styles", "Merge to genres tag", 
-    "Merge to styles tag", "Write styles to genre tag", "Write genres to style tag",
-    "Write styles to custom tag"];
+const stylesOptions = ["Default", "Only Genre(s)", "Only Style(s)", "Merge to Genre tag", 
+    "Merge to Style tag", "Write Style to Genre tag", "Write Genre to Style tag",
+    "Write Style to Custom tag"];
 const values = ["default", "onlyGenres", "onlyStyles", "mergeToGenres", "mergeToStyles",
     "stylesToGenre", "genresToStyle", "customTag"];
 const stylesOption = ref('Default');

@@ -2,7 +2,7 @@
     <div class='row justify-center q-mb-xl'>
         <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' item-key='id'>
             <template #item='{ element: platform }'>
-                <q-card class='card q-ma-md'>
+                <q-card flat class='card q-ma-md'>
                     <q-card-section horizontal class='row justify-between'>
                         <q-card-section>
                             <div class='row'>

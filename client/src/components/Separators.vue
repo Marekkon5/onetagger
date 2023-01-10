@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class='q-mb-md'>
     <div class='row'>
         <q-input
             v-model='id3'
