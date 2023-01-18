@@ -198,7 +198,7 @@ impl TrackImpl for Track {
         // Other tags
         if config.other_tags {
             for (t, value) in &self.other {
-                tag.set_raw(&t.by_format(&format), vec![value.to_string()], config.overwrite);
+                tag.set_raw(&t.by_format(&format), value.to_owned(), config.overwrite);
             }
         }
         // IDs

@@ -291,6 +291,13 @@ pub struct Image {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseFormat {
+    pub name: String,
+    pub qty: String,
+    pub description: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleaseMaster {
     pub id: i64,
     pub styles: Option<Vec<String>>,
@@ -308,7 +315,8 @@ pub struct ReleaseMaster {
     #[serde(rename = "tracklist")]
     pub tracks: Vec<DiscogsTrack>,
     pub released: Option<String>,
-    pub main_release: Option<i64>
+    pub main_release: Option<i64>,
+    pub formats: Option<Vec<ReleaseFormat>>
 }
 
 impl ReleaseMaster {
@@ -340,14 +348,25 @@ impl ReleaseMaster {
         // Parse track number
         let mut track_number = TrackNumber::Number((track_index + 1) as i32);
         let mut disc_number = None;
-
         let position = self.tracks[track_index].position.to_string();
-        let re = Regex::new("(\\d+)(\\.|-)(\\d+)").unwrap();
-        if let Some(captures) = re.captures(&position) {
-            disc_number = Some(captures.get(1).unwrap().as_str().parse::<u16>().ok()).flatten();
-            track_number = TrackNumber::Number(captures.get(3).unwrap().as_str().parse().unwrap());
-        } else if discogs_config.track_number_int {
+
+        if discogs_config.track_number_int {
+            let re = Regex::new("(\\d+)(\\.|-)(\\d+)").unwrap();
+            if let Some(captures) = re.captures(&position) {
+                disc_number = Some(captures.get(1).unwrap().as_str().parse::<u16>().ok()).flatten();
+                track_number = TrackNumber::Number(captures.get(3).unwrap().as_str().parse().unwrap());
+            } 
+        } else {
             track_number = TrackNumber::Custom(position);
+        }
+
+        // Other frames
+        let mut other = vec![
+            (FrameName::same("VINYLTRACK"), vec![self.tracks[track_index].position.to_string()])
+        ];
+        if let Some(formats) = &self.formats {
+            let formats = formats.iter().map(|f| format!("{} x {}, {}", f.qty, f.name, f.description.join(", "))).collect::<Vec<_>>();
+            other.push((FrameName::same("MEDIATYPE"), formats));
         }
 
         // Generate track
@@ -378,13 +397,13 @@ impl ReleaseMaster {
             release_year: self.year,
             release_date,
             catalog_number,
-            other: vec![(FrameName::same("VINYLTRACK"), self.tracks[track_index].position.to_string())],
             track_id: None,
             release_id: self.id.to_string(),
             duration: MatchingUtils::parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
             track_number: Some(track_number),
             disc_number,
             track_total: Some(self.tracks.len() as u16),
+            other,
             ..Default::default()
         }
     }

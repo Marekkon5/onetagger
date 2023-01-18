@@ -138,7 +138,7 @@
             <!-- Other -->
             <q-checkbox :disable='!isSupported("other")' class='tag checkbox text-grey-4' label='Other' v-model='$1t.config.value.otherTags'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
-                    <q-tooltip>Adds UNIQUEFILEID tag when Beatport is selected</q-tooltip>
+                    <q-tooltip>Specific tags only for some platforms (Beatport, Discogs)</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- One Tagger Tag -->
@@ -171,7 +171,7 @@ import PlaylistDropZone from './PlaylistDropZone.vue';
 
 const SUPPORTED_TAGS: Record<string, string[]> = {
     beatport: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other', 'isrc', 'trackTotal'],
-    discogs: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'style', 'trackTotal', 'discNumber'],
+    discogs: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'style', 'trackTotal', 'discNumber', 'other'],
     traxsource: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'trackId', 'version', 'bpm', 'key', 'trackTotal'],
     junodownload: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'bpm', 'trackTotal'],
     beatsource: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
