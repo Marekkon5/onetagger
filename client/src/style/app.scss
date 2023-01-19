@@ -100,6 +100,11 @@
     font-size: 13px !important;
 }
 
+// Card shadow fix
+.q-card {
+    box-shadow: none !important;
+}
+
 // https://medium.com/cloud-native-the-gathering/how-to-fix-your-angular-material-input-field-from-being-broken-in-safari-1419b12007ee
 input {
     -webkit-user-select: text !important;
