@@ -161,7 +161,6 @@ class OneTagger {
                         }
                     }
                 }
-                console.log(this.config.value.custom);
                 
                 break;
             // Path selected

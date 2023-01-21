@@ -137,7 +137,7 @@
 import { scroll, useQuasar } from 'quasar';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
-import { QTTrack } from '../scripts/quicktag.js';
+import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 
 import QuickTagTile from '../components/QuickTagTile.vue';
 
@@ -217,7 +217,7 @@ const tracks = computed(() => {
             t.title.toLowerCase().includes(newFilter) || t.path.toLowerCase().includes(newFilter) ||
             t.artists.filter((a: any) => a.toLowerCase().includes(newFilter)).length > 0 ||
             (t.mood??'').toLowerCase().includes(newFilter) ||
-            t.getAllCustom().some((i: any) => i.toLowerCase().includes(newFilter)) ||
+            t.getAllCustom().some((i: CustomTagInfo) => i.value.toLowerCase().includes(newFilter)) ||
             (t.genres??[]).some((i: any) => i.toLowerCase().includes(newFilter)) 
         );
     }

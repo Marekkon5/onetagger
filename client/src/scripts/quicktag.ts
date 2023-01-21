@@ -207,7 +207,8 @@ class QTTrack implements QuickTagFile {
         for (let custom of this.settings.custom) {
             let t = this.tags[this.removeAbstractions(custom.tag.byFormat(this.format))]??[];
             // Filter atributes if multiple custom tags use the same tag
-            t = t.filter(t => custom.values.findIndex(v => v.val == t) != -1)
+            // t = t.filter(t => custom.values.findIndex(v => v.val == t) != -1);
+            t = t.map((i) => i.replace(/\0/g, '').trim())
             output.push(t);
         }
         return output;
@@ -220,8 +221,14 @@ class QTTrack implements QuickTagFile {
         for (let custom of this.custom) {
             // out = out.concat(custom.filter(v => !out.includes(v) && v));
             for (let value of custom) {
-                if (value.trim())
-                    out.push({value, type: 'custom', index: i});
+                let v = value.trim()
+                if (v) {
+                    // Filter double
+                    if (out.find((i) => i.value == v)) {
+                        continue;
+                    }
+                    out.push({value: v, type: 'custom', index: i});
+                }
             }
             i += 1;
         }
