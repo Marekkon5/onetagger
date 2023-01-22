@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 use std::env;
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::{Path, PathBuf};
@@ -40,6 +41,7 @@ enum Action {
     OpenFolder { path: String },
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
+    StopTagging,
     
     Waveform { path: String },
     PlayerLoad { path: String },
@@ -291,6 +293,9 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "path": folder_path,
                 "data": *tagger_finished.lock().unwrap()
             }).to_string())).ok();
+        },
+        Action::StopTagging => {
+            onetagger_autotag::STOP_TAGGING.store(true, Ordering::SeqCst);
         },
         Action::Waveform { path } => {
             let source = AudioSources::from_path(&path)?;

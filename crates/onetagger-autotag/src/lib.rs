@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{thread, fs};
 use std::path::{Path, PathBuf};
@@ -32,6 +33,11 @@ pub mod audiofeatures;
 
 // Re-exports
 pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
+
+lazy_static::lazy_static! {
+    /// Stop tagging global variable
+    pub static ref STOP_TAGGING: AtomicBool = AtomicBool::new(false);
+}
 
 pub trait TaggerConfigExt {
     /// Add custom platform configs to the default config
@@ -558,6 +564,8 @@ impl Tagger {
 
     // Returtns progress receiver, and file count
     pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
+        STOP_TAGGING.store(false, Ordering::SeqCst);
+        
         let original_files = files.clone();
         let mut succesful_files = vec![];
         let total_files = files.len();
@@ -578,14 +586,10 @@ impl Tagger {
                     break;
                 }
 
-                // // Discogs rate limit override
-                // if let Some(discogs) = config.custom.get_mut("discogs") {
-                //     discogs.0.remove("_rate_limit");
-                //     if files.len() <= 35 {
-                //         let value = if files.len() <= 20 { 1000 } else { 150 };
-                //         discogs.0.insert("_rate_limit".to_string(), PlatformCustomOptionValue::Number { min: 0, max: 0, step: 0, value });
-                //     }
-                // }
+                // Stop
+                if STOP_TAGGING.load(Ordering::SeqCst) {
+                    continue;
+                }
 
                 // Get tagger
                 let mut tagger = match AUTOTAGGER_PLATFORMS.get_builder(platform) {
@@ -850,6 +854,11 @@ impl Tagger {
             ok_sources += 1;
             std::thread::spawn(move || {
                 while let Ok(f) = file_rx.recv() {
+                    // Stop tagging
+                    if STOP_TAGGING.load(Ordering::SeqCst) {
+                        break;
+                    }
+
                     let res = Tagger::tag_track(&f, &mut source, &config);
                     tx.send(res).ok();
                 }

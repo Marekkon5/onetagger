@@ -143,6 +143,11 @@
         </q-linear-progress>
     </div>
 
+    <!-- Stop FAB -->
+    <q-page-sticky position="bottom-right" :offset='[16, 32]' v-if='$1t.lock.value.locked'>
+        <q-btn @click='stop' fab icon='mdi-stop' color='red' :loading='stopping' :disabled='stopping'></q-btn>
+    </q-page-sticky>
+
 </div>
 </template>
 
@@ -157,8 +162,8 @@ const $1t = get1t();
 const $router = useRouter();
 const time = ref('0:00');
 const filter = ref<string | undefined>(undefined);
+const stopping = ref(false);
 let timeInterval: any = undefined;
-
 
 // Conver platform name
 function platformText(p: string) {
@@ -195,6 +200,12 @@ function toggleFilter(name: string) {
     filter.value = name;
 }
 
+// Stop tagging process
+function stop() {
+    stopping.value = true;
+    $1t.stopTagging();
+}
+
 // Open QT with result files
 function goQT(successful: boolean) {
     if (successful) $1t.settings.value.path = $1t.taggerStatus.value.data.successFile;
@@ -210,6 +221,9 @@ const statuses = computed(() => {
 
 
 onMounted(() => {
+    // Undisable stopping
+    stopping.value = false;
+
     // Update timestamp
     timeInterval = setInterval(() => {
         // Already done
@@ -241,7 +255,8 @@ onMounted(() => {
             if (path) {
                 $1t.send('openFolder', {path});
             }
-        })
+        });
+        stopping.value = false;
     }
 });
 

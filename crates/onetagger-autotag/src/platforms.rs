@@ -1,6 +1,7 @@
 use std::{error::Error, ffi::c_void};
 use std::path::PathBuf;
 use std::io::Cursor;
+use base64::Engine;
 use libloading::{Library, Symbol};
 use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp};
 use image::{io::Reader as ImageReader, ImageOutputFormat};
@@ -91,7 +92,7 @@ impl AutotaggerPlatforms {
         let img = ImageReader::new(Cursor::new(data)).with_guessed_format()?.decode()?;
         let mut buf = vec![];
         img.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png)?;
-        Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::encode(buf)))
+        Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::engine::general_purpose::STANDARD.encode(buf)))
     }
 
     /// Load custom platforms

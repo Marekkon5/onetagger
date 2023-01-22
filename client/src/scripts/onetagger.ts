@@ -436,6 +436,14 @@ class OneTagger {
         }
     }
 
+    /// Stop the tagging process
+    stopTagging() {
+        let ws = new WebSocket(wsUrl());
+        ws.onopen = () => {
+            ws.send(JSON.stringify({action: 'stopTagging'}));
+        };
+    }
+
     // Handle keydown event for keyboard bindings
     handleKeyDown(event: KeyboardEvent) {
         // QT Keybinds

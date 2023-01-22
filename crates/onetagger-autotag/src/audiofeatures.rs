@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::atomic::Ordering;
 use std::thread;
 use chrono::Local;
 use crossbeam_channel::{unbounded, Receiver};
@@ -9,7 +10,7 @@ use onetagger_platforms::spotify::{Spotify, rspotify};
 use onetagger_platforms::spotify::rspotify::model::track::FullTrack;
 use onetagger_tag::{Tag, AudioFileFormat, FrameName, TagSeparators};
 
-use crate::{TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl};
+use crate::{TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl, STOP_TAGGING};
 
 
 // Config from UI
@@ -165,11 +166,17 @@ pub struct AudioFeatures {}
 impl AudioFeatures {
     // Returtns progress receiver, and file count
     pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> Receiver<TaggingStatusWrap> {
+        STOP_TAGGING.store(false, Ordering::SeqCst);
         let file_count = files.len();
         // Start
         let (tx, rx) = unbounded();
         thread::spawn(move || {
             for (i, file) in files.iter().enumerate() {
+                // Stop tagging midway
+                if STOP_TAGGING.load(Ordering::SeqCst) {
+                    break;
+                }
+
                 // Create status
                 let mut status = TaggingStatus {
                     status: TaggingState::Error,

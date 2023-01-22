@@ -156,6 +156,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
+name = "base64"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
+
+[[package]]
 name = "bindgen"
 version = "0.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2725,7 +2731,7 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 name = "onetagger"
 version = "1.5.1"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "clap",
  "directories",
  "dunce",
@@ -2767,7 +2773,7 @@ dependencies = [
 name = "onetagger-autotag"
 version = "0.1.0"
 dependencies = [
- "base64",
+ "base64 0.21.0",
  "chrono",
  "crossbeam-channel",
  "dunce",
@@ -2846,7 +2852,7 @@ dependencies = [
 name = "onetagger-playlist"
 version = "0.1.0"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "onetagger-shared",
  "onetagger-tag",
  "serde",
@@ -2885,7 +2891,7 @@ dependencies = [
 name = "onetagger-tag"
 version = "0.1.0"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "chrono",
  "id3",
  "log",
@@ -3467,7 +3473,7 @@ version = "0.11.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68cc60575865c7831548863cc02356512e3f1dc2f3f82cb837d7fc4cc8f3c97c"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -3540,7 +3546,7 @@ version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f86e4c51a773f953f02bbab5fd049f004bfd384341d62da2a079aff812ab176"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "brotli",
  "chrono",
  "deflate",
@@ -3565,7 +3571,7 @@ version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a86007448fb9a88a0677fd332addf8e7c1057e67bc385d3477c8d44c1bb0e96f"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "chrono",
  "getrandom 0.2.8",
  "log",
@@ -3672,7 +3678,7 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0864aeff53f8c05aa08d86e5ef839d3dfcf07aeba2db32f12db0ef716e87bd55"
 dependencies = [
- "base64",
+ "base64 0.13.1",
 ]
 
 [[package]]
@@ -4028,7 +4034,7 @@ name = "songrec"
 version = "0.2.1"
 source = "git+https://github.com/Marekkon5/SongRec.git#4bf187c7369d54fbc665ba137f2062c13f79374f"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "byteorder",
  "chfft",
  "crc32fast",
@@ -4478,7 +4484,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30ee6ab729cd4cf0fd55218530c4522ed30b7b6081752839b68fcec8d0960788"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "byteorder",
  "bytes",
  "http",
@@ -4566,7 +4572,7 @@ version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b97acb4c28a254fd7a4aeec976c46a7fa404eac4d7c134b30c75144846d7cb8f"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "chunked_transfer",
  "cookie",
  "cookie_store",
