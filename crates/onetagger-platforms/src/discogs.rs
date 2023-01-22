@@ -294,7 +294,7 @@ pub struct Image {
 pub struct ReleaseFormat {
     pub name: String,
     pub qty: String,
-    pub description: Option<Vec<String>>,
+    pub descriptions: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -365,7 +365,7 @@ impl ReleaseMaster {
             (FrameName::same("VINYLTRACK"), vec![self.tracks[track_index].position.to_string()])
         ];
         if let Some(formats) = &self.formats {
-            let formats = formats.iter().map(|f| match f.description.as_ref() {
+            let formats = formats.iter().map(|f| match f.descriptions.as_ref() {
                 Some(description) => format!("{} x {}, {}", f.qty, f.name, description.join(", ")),
                 None => format!("{} x {}", f.qty, f.name),
             }).collect::<Vec<_>>();
