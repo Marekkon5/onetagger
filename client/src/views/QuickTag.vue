@@ -1,8 +1,6 @@
 <template>
 <div>
-    <!-- Tracks -->
-    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
-        <!-- Search -->
+		<!-- Search -->
         <q-input
             filled 
             dense
@@ -25,6 +23,9 @@
                 </div>
             </div>
         </div>
+        
+    <!-- Tracks -->
+    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
 
         <!-- Stats -->
         <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
