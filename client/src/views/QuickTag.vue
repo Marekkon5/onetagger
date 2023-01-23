@@ -1,28 +1,28 @@
 <template>
 <div>
-		<!-- Search -->
-        <q-input
-            filled 
-            dense
-            v-model='filter'
-            :label-slot="true"
-            class='q-px-md q-pt-md'
-        >
-            <template v-slot:label>
-                <q-icon name="mdi-magnify" size="sm"></q-icon>
-            </template>
-        </q-input>
+    <!-- Search -->
+    <q-input
+        filled 
+        dense
+        v-model='filter'
+        :label-slot="true"
+        class='q-px-md q-pt-md'
+    >
+        <template v-slot:label>
+            <q-icon name="mdi-magnify" size="sm"></q-icon>
+        </template>
+    </q-input>
 
-        <!-- Sort -->
-        <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm q-mb-xs'>
-            <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
-                <div :class='{"text-bold": sortOption == option}'>{{option}}</div>
-                <div v-if='sortOption == option' class='q-pl-xs'>
-                    <q-icon class='q-pb-xs' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
-                    <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
-                </div>
+    <!-- Sort -->
+    <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm q-mb-xs'>
+        <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
+            <div :class='{"text-bold": sortOption == option}'>{{option}}</div>
+            <div v-if='sortOption == option' class='q-pl-xs'>
+                <q-icon class='q-pb-xs' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
+                <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
             </div>
         </div>
+    </div>
         
     <!-- Tracks -->
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
