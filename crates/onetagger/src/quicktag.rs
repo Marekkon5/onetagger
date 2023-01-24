@@ -133,6 +133,9 @@ impl QuickTagFile {
             all_tags.insert("USLT".to_string(), v);
         }
 
+        // Filter null bytes
+        let all_tags = all_tags.into_iter().map(|(k, v)| (k, v.into_iter().map(|v| v.replace("\0", "")).collect::<Vec<_>>())).collect();
+
         Ok(QuickTagFile {
             path: path.to_string(),
             format: tag_wrap.format(),
