@@ -1,7 +1,6 @@
 <template>
 <div>
-    <!-- Tracks -->
-    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
+    <div>
         <!-- Search -->
         <q-input
             filled 
@@ -14,7 +13,7 @@
                 <q-icon name="mdi-magnify" size="sm"></q-icon>
             </template>
         </q-input>
-
+    
         <!-- Sort -->
         <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm q-mb-xs'>
             <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
@@ -25,21 +24,26 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Stats -->
-        <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
-            Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
-             | Filtered: <span class='text-bold'>{{tracks.length}}</span>
-            <span v-if='$1t.quickTag.value.failed.length != 0'> | Failed to load: 
-                <span class='text-bold cursor-pointer' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
-                    <span class='text-underline q-pl-xs'>(show)</span>
-                </span>
+    <!-- Stats -->
+    <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
+        Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
+            | Filtered: <span class='text-bold'>{{tracks.length}}</span>
+        <span v-if='$1t.quickTag.value.failed.length != 0'> | Failed to load: 
+            <span class='text-bold cursor-pointer' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
+                <span class='text-underline q-pl-xs'>(show)</span>
             </span>
-        </div>
+        </span>
+    </div>
 
+
+    <!-- Tracks -->
+    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
+        
         <!-- Tracklist -->
         <div v-for='(item, i) in tracks' :key='i'>
-            <q-intersection style='height: 140px;' @click.native='trackClick(item)' once>
+            <q-intersection style='height: 116px;' @click.native='trackClick(item)' once>
                 <QuickTagTile :track='$1t.quickTag.value.track' v-if='$1t.quickTag.value.track && item.path == $1t.quickTag.value.track.path'></QuickTagTile>
                 <QuickTagTile :track='item' v-if='!$1t.quickTag.value.track || item.path != $1t.quickTag.value.track.path'></QuickTagTile>
             </q-intersection>
@@ -204,7 +208,7 @@ function sort(option: string) {
 // Scroll to track index
 const tracklist = ref<HTMLElement | undefined>();
 function scrollToIndex(index: number) {
-    setVerticalScrollPosition(tracklist.value!, index * 140 - 154, 250);
+    setVerticalScrollPosition(tracklist.value!, index * 116 - 154, 250);
     // this.$refs.tracklist.scrollTop = index * 140 - 140;
 }
 
@@ -338,11 +342,11 @@ watch(() => $1t.quickTag.value.track, () => {
 }
 
 .qt-full-height {
-    height: calc(100vh - 132px);
+    height: calc(100vh - 232px);
 }
 
 .qt-height {
-    height: calc(100vh - 160px);
+    height: calc(100vh - 316px);
 }
 
 .keybind-icon {

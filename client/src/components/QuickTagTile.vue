@@ -1,11 +1,11 @@
 <template>
 <div @mouseleave='mouseOver = false' @mouseenter="mouseOver = true">
-    <q-card flat class='q-mx-md qt-tile' :class='{"bg-darker": selected || mouseOver}'>
+    <q-card flat class='q-mx-md qt-tile' :class='{"bg-onetagger-icon": selected || mouseOver}'>
         <div class='row qt-tile'>
             <div class='selected-bar bg-primary' v-if='selected'></div>
             <div class='row q-pt-md q-pl-md full-width full-height'>
                 <!-- Art -->
-                <div class='col-1 q-pt-xs'>
+                <div class='col-1 qt-tile-main'>
                     <q-img 
                         :src='art' 
                         width='50px' 
@@ -20,12 +20,12 @@
                 </div>
                 <!-- Title -->
                 <div class='col-4 q-pl-sm'>
-                    <span class='text-subtitle1 text-grey-4 text-weight-bold text-no-wrap title-span'>{{track.title}}</span>
+                    <span class='text-subtitle1 text-grey-4 text-weight-bold text-no-wrap title-span qt-tile-main'>{{track.title}}</span>
                     <span class='text-subtitle2 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
                 </div>
                 <!-- Details -->
                 <div class='col-7 row text-grey-6 text-weight-medium text-center items-center'>
-                    <div class='col-3' @click='removeMood(track.mood)'>
+                    <div class='col-3 qt-tile-col' @click='removeMood(track.mood)'>
                         <!-- Mood -->
                         <q-chip 
                             v-if='getMood(track.mood)'
@@ -35,7 +35,7 @@
                             class='cursor-pointer'
                         ></q-chip>
                     </div>
-                    <div class='col-3'>
+                    <div class='col-3 qt-tile-col'>
                         <!-- Not current track rating -->
                         <q-rating 
                             size='1.4em' 
@@ -52,7 +52,7 @@
                         ></q-rating>
                     </div>
 
-                    <div class='col-4 text-grey-4'>
+                    <div class='col-4 text-grey-4 qt-tile-col'>
                         <!-- Genres -->
                         <div v-if='selected'>
                             <span 
@@ -68,7 +68,7 @@
 
                         <div class='text-grey-6'>{{track.year}}</div>
                     </div>
-                    <div class='col-1'>
+                    <div class='col-1 qt-tile-col'>
                         <span v-if='track.bpm'>{{track.bpm}}</span>
                         <br v-if='track.bpm && track.key'>
                         <span :style='keyColor(track.key)'>{{track.key}}</span>
@@ -243,7 +243,7 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.p
 .selected-bar {
     position: absolute;
     width: 5px;
-    height: 128px;
+    height: 104px;
     border-radius: 4px;
 }
 .qt-tile-chip {
@@ -262,9 +262,9 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.p
 }
 
 .qt-tile {
-    height: 128px;
-    min-height: 128px;
-    max-height: 128px;
+    height: 104px;
+    min-height: 104px;
+    max-height: 104px;
 }
 .title-span {
     text-overflow: ellipsis;
@@ -278,4 +278,12 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.p
     text-decoration: line-through;
     cursor: pointer;
 }
+
+.qt-tile-main {
+    margin-top: -5px;
+}
+.qt-tile-col {
+    margin-top: -41px;
+}
+
 </style>
