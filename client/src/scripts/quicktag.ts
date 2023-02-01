@@ -1,3 +1,4 @@
+import { toRaw } from "vue";
 import { QuickTagSettings } from "./settings";
 import { FrameName, Keybind, Separators } from "./utils";
 
@@ -290,16 +291,18 @@ class QTTrack implements QuickTagFile {
         // Custom tags
         let original = this.loadCustom();
         for (let i=0; i<original.length; i++) {
-            if (this.custom[i] && original[i].length != this.custom[i].length) {
-                
+            let rawCustom = toRaw(this.custom[i]);
+            if (rawCustom && ((rawCustom.length != original[i].length) || !(rawCustom.every((v, j) => original[i][j] == v)))) {
                 let field = this.removeAbstractions(this.settings.custom[i].tag.byFormat(this.format));
                 let values: string[] = [];
                 let existingIndex = changes.findIndex(c => c.tag == field);
+
                 // Original tag data
                 if (existingIndex == -1) {
                     values = this.tags[field]??[];
                     values = values.filter(v => !this.settings.custom[i].values.find(t => t.val == v));
                 }
+
                 // Multiple changes for the same tag
                 while (existingIndex != -1) {
                     values = values.concat(changes[existingIndex].value
@@ -317,7 +320,7 @@ class QTTrack implements QuickTagFile {
                 })
             }
         }
-        
+
         return {
             changes, 
             path: this.path,
