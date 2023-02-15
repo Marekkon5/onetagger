@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::io::Cursor;
 use base64::Engine;
 use libloading::{Library, Symbol};
-use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp};
+use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp, deezer};
 use image::{io::Reader as ImageReader, ImageOutputFormat};
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
@@ -35,6 +35,7 @@ impl AutotaggerPlatforms {
         AutotaggerPlatforms::add_builtin::<itunes::ITunesBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<bpmsupreme::BPMSupremeBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<bandcamp::BandcampBuilder>(&mut output);
+        AutotaggerPlatforms::add_builtin::<deezer::DeezerBuilder>(&mut output);
 
         // Custom
         let mut platforms = AutotaggerPlatforms(output);
@@ -60,6 +61,7 @@ impl AutotaggerPlatforms {
                 "traxsource" => Box::new(traxsource::TraxsourceBuilder::new()),
                 "bpmsupreme" => Box::new(bpmsupreme::BPMSupremeBuilder::new()),
                 "bandcamp" => Box::new(bandcamp::BandcampBuilder::new()),
+                "deezer" => Box::new(deezer::DeezerBuilder::new()),
                 _ => unreachable!()
             };
             Some(platform)
