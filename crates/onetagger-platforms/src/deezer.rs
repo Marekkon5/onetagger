@@ -268,9 +268,9 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
         PlatformInfo {
             id: "deezer".to_string(),
             name: "Deezer".to_string(),
-            description: "//TODO: Write description".to_string(),
+            description: "Spotify alternative, but faster. No login required".to_string(),
             version: "1.0.0".to_string(),
-            icon: &[0],
+            icon: include_bytes!("../assets/deezer.png"),
             max_threads: 2,
             custom_options: PlatformCustomOptions::new()
                 .add("art_resolution", "Album Art Resolution", PlatformCustomOptionValue::Number { min: 100, max: 1600, step: 100, value: 1200 }),
