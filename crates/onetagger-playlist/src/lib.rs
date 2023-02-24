@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use serde::{Serialize, Deserialize};
+use base64::Engine;
 
 use onetagger_tag::EXTENSIONS;
 use onetagger_shared::OTError;
@@ -23,7 +24,7 @@ impl UIPlaylist {
         let files = match self.format {
             PlaylistFormat::M3U => {
                 // Decode base64 from JS
-                let bytes = base64::decode(self.data[self.data.find(';').ok_or("Invalid data!")? + 8..].trim())?;
+                let bytes = base64::engine::general_purpose::STANDARD.decode(self.data[self.data.find(';').ok_or("Invalid data!")? + 8..].trim())?;
                 let m3u = String::from_utf8(bytes)?;
                 get_files_from_m3u(&m3u, None)
             }

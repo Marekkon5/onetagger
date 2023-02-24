@@ -71,7 +71,11 @@ impl AutotaggerSource for Deezer {
                     Ok(t) => {
                         track.track_number = t.track_position.map(|t| TrackNumber::Number(t));
                         track.disc_number = t.disk_number;
-                        track.bpm = t.bpm.map(|b| b as i64);
+                        if let Some(bpm) = t.bpm {
+                            if bpm > 1.0 {
+                                track.bpm = Some(bpm as i64);
+                            }
+                        }
                         track.isrc = t.isrc;
                         track.release_date = NaiveDate::parse_from_str(&t.release_date, "%Y-%m-%d").ok();
                     },

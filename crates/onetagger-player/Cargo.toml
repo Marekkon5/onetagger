@@ -6,11 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mp4 = "0.12"
+mp4 = "0.13"
 alac = "0.5"
 hound = "3.5"
-rodio = "0.15" 
-redlux = "0.5"
+rodio = "0.16"
+redlux = "0.6"
 mp3-duration = "0.1"
 
 # Outdated ndarray for sndfile

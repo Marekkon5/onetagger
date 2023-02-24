@@ -2,6 +2,7 @@ use std::error::Error;
 use std::io::Cursor;
 use std::collections::HashMap;
 use std::path::Path;
+use base64::Engine;
 use serde::{Serialize, Deserialize};
 use image::{GenericImageView, io::Reader as ImageReader};
 
@@ -45,7 +46,7 @@ impl TagEditor {
         let img = ImageReader::new(Cursor::new(&picture.data)).with_guessed_format()?.decode()?;
         Ok(TagEditorImage {
             mime: picture.mime.to_string(),
-            data: format!("data:{};base64,{}", &picture.mime, base64::encode(picture.data)),
+            data: format!("data:{};base64,{}", &picture.mime, base64::engine::general_purpose::STANDARD.encode(picture.data)),
             kind: picture.kind.to_owned(),
             description: picture.description.to_owned(),
             width: img.dimensions().0,

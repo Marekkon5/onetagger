@@ -413,6 +413,8 @@ pub struct TagChanges {
 impl TagChanges {
     // Save all changes to file
     pub fn commit(&self) -> Result<Tag, Box<dyn Error>> {
+        use base64::Engine;
+        
         let mut tag_wrap = Tag::load_file(&self.path, false)?;
         tag_wrap.set_separators(&self.separators);
 
@@ -456,7 +458,7 @@ impl TagChanges {
                 TagChange::Genre {value} => tag.set_field(Field::Genre, value, true),
                 TagChange::Remove {tag: t} => tag.remove_raw(&t),
                 TagChange::RemovePicture {kind} => if format != AudioFileFormat::MP4 { tag.remove_art(kind) },
-                TagChange::AddPictureBase64 {kind, description, data, mime} => tag.set_art(kind, &mime, Some(&description), base64::decode(&data)?),
+                TagChange::AddPictureBase64 {kind, description, data, mime} => tag.set_art(kind, &mime, Some(&description), base64::engine::general_purpose::STANDARD.decode(&data)?),
                 _ => {}
             }
         }

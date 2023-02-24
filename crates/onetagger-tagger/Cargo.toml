@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-regex = "1.5"
+regex = "1.7"
 chrono = "0.4"
 strsim = "0.10"
 unidecode = "0.3"
