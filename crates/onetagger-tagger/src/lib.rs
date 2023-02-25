@@ -266,6 +266,15 @@ pub enum TrackNumber {
     Custom(String)
 }
 
+impl TrackNumber {
+    pub fn to_string_with_zeroes(&self, leading_zeroes: usize) -> String {
+        match self {
+            TrackNumber::Number(n) => format!("{n:00$}", leading_zeroes),
+            TrackNumber::Custom(c) => c.to_owned(),
+        }
+    }
+}
+
 impl From<i32> for TrackNumber {
     fn from(i: i32) -> Self {
         TrackNumber::Number(i)

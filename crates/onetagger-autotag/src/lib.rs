@@ -243,8 +243,8 @@ impl TrackImpl for Track {
         // Track number
         if config.track_number && self.track_number.is_some() {
             match config.track_total {
-                true => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string(), self.track_total.clone(), config.overwrite),
-                false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string(), None, config.overwrite),
+                true => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), self.track_total.clone(), config.overwrite),
+                false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), None, config.overwrite),
             }
         }
         // Lyrics
