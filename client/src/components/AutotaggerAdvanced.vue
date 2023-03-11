@@ -64,7 +64,6 @@
             label='Skip already tagged tracks'
             tooltip='Skip tracks with the 1T_TAGGEDDATE tag (One Tagger Tag)'
             v-model='$1t.config.value.skipTagged'
-            v-if='!$1t.config.value.forceShazam'
         ></AdvancedSettingsToggle>
         
         <AdvancedSettingsToggle 
