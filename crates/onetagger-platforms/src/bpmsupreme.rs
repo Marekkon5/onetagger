@@ -34,18 +34,19 @@ impl BPMSupreme {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36.")
             .build()
             .unwrap();
-        let res: BPMSupremeResponse<BPMSupremeUser> = client.post("https://api.bpmsupreme.com/v3/login")
+        let res: BPMSupremeResponse<BPMSupremeUser> = client.post("https://api.bpmsupreme.com/v4/login")
             .json(&json!({
                 "device": {
                     "app_version": "2.0",
                     "build_version": "1",
-                    "debug": true,
+                    "debug": false,
                     "device_data_os": "web",
-                    "device_uuid": "b9e709ad12df28dd5f06ac07933254bf",
+                    "device_uuid": "d2d9dc2f7cf311a3bff7f3ea6df3ba9b",
                     "language": "en-US"
                 },
                 "email": email,
-                "password": password
+                "password": password,
+                "from": "global-login"
             }))
             .send()?
             .error_for_status()?
@@ -73,11 +74,13 @@ impl BPMSupreme {
     /// Search for tracks
     pub fn search(&self, query: &str) -> Result<Vec<BPMSupremeSong>, Box<dyn Error>> {
         let res: BPMSupremeResponse<Vec<BPMSupremeSong>> = self.get(
-            "https://api.bpmsupreme.com/v1.2/search/audio",
+            "https://api.download.bpmsupreme.com/v1/albums",
             &[
-                ("keywords", query),
+                ("term", query),
                 ("limit", "100"),
                 ("skip", "0"),
+                ("library", "music"),
+                ("hide_remix", "0")
             ]
         )?;
         Ok(res.data)
@@ -110,28 +113,28 @@ struct BPMSupremeUser {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BPMSupremeSong {
     pub artist: String,
-    pub bpm_count: i64,
+    pub bpm: i64,
     pub category: BPMSupremeCategory,
-    pub cover: String,
+    pub cover_url: String,
     pub depth_analysis: Option<DepthAnalysis>,
     pub genre: BPMSupremeGenre,
     pub key: Option<String>,
     pub label: String,
-    pub song_name: String,
+    pub title: String,
     pub created_at: Option<DateTime<Utc>>,
     pub id: i64,
-    pub tracks: Vec<BPMSupremeTrack>
+    pub media: Vec<BPMSupremeMedia>
 }
 
 impl BPMSupremeSong {
-    /// Convert self and all the versions into tracks
+    /// Convert self and all versions into tracks
     pub fn into_tracks(self) -> Vec<Track> {
         let base = Track {
             platform: "bpmsupreme".to_string(),
             artists: vec![self.artist],
-            title: self.song_name,
-            bpm: Some(self.bpm_count),
-            art: if self.cover.contains("default_cover.png") { None } else { Some(self.cover) },
+            title: self.title,
+            bpm: Some(self.bpm),
+            art: if self.cover_url.contains("default_cover.png") { None } else { Some(self.cover_url) },
             genres: vec![self.genre.name],
             key: self.key,
             label: Some(self.label),
@@ -142,8 +145,13 @@ impl BPMSupremeSong {
             catalog_number: Some(self.id.to_string()),
             ..Default::default()
         };
-        let mut output = self.tracks.into_iter().map(|t| t.extend_track(base.clone())).collect::<Vec<_>>();
-        output.push(base);
+        // Different versions
+        let mut output = vec![base.clone()];
+        for media in self.media {
+            let mut t = base.clone();
+            t.title = media.name;
+            output.push(t);
+        }
         output
     }
 }
@@ -165,22 +173,8 @@ struct BPMSupremeGenre {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct BPMSupremeTrack {
-    pub created_at: Option<DateTime<Utc>>,
-    pub key: String,
-    pub tag_name: String,
-    pub id: i64
-}
-
-impl BPMSupremeTrack {
-    /// Add own data to Track
-    pub fn extend_track(self, mut track: Track) -> Track {
-        track.release_date = self.created_at.map(|c| c.naive_utc().date());
-        track.key = Some(self.key);
-        track.track_id = Some(self.id.to_string());
-        track.version = Some(self.tag_name);
-        track
-    }
+struct BPMSupremeMedia {
+    name: String
 }
 
 pub struct BPMSupremeBuilder {
