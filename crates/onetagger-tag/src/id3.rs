@@ -38,7 +38,8 @@ pub struct ID3Tag {
     tag: Tag,
     pub format: ID3AudioFormat,
     pub id3_separator: String,
-    pub id3v24: bool
+    pub id3v24: bool,
+    pub comm_lang: String,
 }
 
 impl ID3Tag {
@@ -55,7 +56,8 @@ impl ID3Tag {
                 id3v24: match version {
                     Version::Id3v24 => true,
                     _ => false
-                }
+                },
+                comm_lang: "xxx".to_string()
             }.into());
         }
         // AIFF
@@ -69,7 +71,8 @@ impl ID3Tag {
                 id3v24: match version {
                     Version::Id3v24 => true,
                     _ => false
-                }
+                },
+                comm_lang: "xxx".to_string()
             }.into());
         }
         // WAV
@@ -83,7 +86,8 @@ impl ID3Tag {
                 id3v24: match version {
                     Version::Id3v24 => true,
                     _ => false
-                }
+                },
+                comm_lang: "xxx".to_string()
             }.into());
         }
 
@@ -110,7 +114,8 @@ impl ID3Tag {
                     tag: Tag::new(),
                     format,
                     id3_separator: String::from(", "),
-                    id3v24: true
+                    id3v24: true,
+                    comm_lang: "xxx".to_string()
                 }
             }
         }
@@ -119,6 +124,11 @@ impl ID3Tag {
     // ID3 Settings
     pub fn set_id3v24(&mut self, id3v24: bool) {
         self.id3v24 = id3v24;
+    }
+
+    /// Set COMM frame language
+    pub fn set_comm_lang(&mut self, lang: String) {
+        self.comm_lang = lang;
     }
 
     // Read and write all comments
@@ -383,7 +393,7 @@ impl TagImpl for ID3Tag {
                 let mut comment = match self.tag.comments().cloned().next() {
                     Some(comment) => comment.to_owned(),
                     None => Comment {
-                        lang: "eng".to_string(),
+                        lang: self.comm_lang.to_string(),
                         description: String::new(),
                         text: String::new()
                     }
