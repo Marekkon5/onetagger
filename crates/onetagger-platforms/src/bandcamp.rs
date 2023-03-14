@@ -161,7 +161,7 @@ impl Into<Track> for BandcampTrack {
         Track {
             platform: "bandcamp".to_string(),
             release_date: self.date_published(),
-            release_year: self.date_published().map(|d| d.year() as i64),
+            release_year: self.date_published().map(|d| d.year() as i16),
             title: self.name,
             album: Some(self.in_album.name),
             // Prioritize album artist, because it is more likely the artist

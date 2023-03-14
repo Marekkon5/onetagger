@@ -237,9 +237,9 @@ pub struct Track {
     pub lyrics: Option<Lyrics>,
     
     // Only year OR date should be available
-    pub release_year: Option<i64>,
+    pub release_year: Option<i16>,
     pub release_date: Option<NaiveDate>,
-    pub publish_year: Option<i64>,
+    pub publish_year: Option<i16>,
     pub publish_date: Option<NaiveDate>
 }
 

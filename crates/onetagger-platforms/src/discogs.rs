@@ -302,7 +302,7 @@ pub struct ReleaseMaster {
     pub id: i64,
     pub styles: Option<Vec<String>>,
     pub genres: Vec<String>,
-    pub year: Option<i64>,
+    pub year: Option<i16>,
     pub artists: Vec<Artist>,
     #[serde(rename = "extraartists")]
     pub extra_artists: Option<Vec<ExtraArtist>>,

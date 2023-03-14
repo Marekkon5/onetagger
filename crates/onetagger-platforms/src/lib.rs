@@ -13,3 +13,6 @@ pub mod bpmsupreme;
 pub mod deezer;
 pub mod bandcamp;
 mod bandcamp_genres;
+
+// Blocked
+//pub mod rateyourmusic;

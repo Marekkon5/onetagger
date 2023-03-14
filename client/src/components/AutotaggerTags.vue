@@ -180,7 +180,8 @@ const SUPPORTED_TAGS: Record<string, string[]> = {
     bpmsupreme: ['key', 'other', 'trackId', 'mood', 'bpm'],
     itunes: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'trackTotal'],
     bandcamp: ['trackTotal', 'trackId', 'style', 'album', 'releaseDate', 'releaseId'],
-    deezer: ['trackNumber', 'trackTotal', 'duration', 'trackId', 'releaseId', 'isrc', 'bpm', 'albumArtists']
+    deezer: ['trackNumber', 'trackTotal', 'duration', 'trackId', 'releaseId', 'isrc', 'bpm', 'albumArtists'],
+    rateyourmusic: ['trackNumber', 'trackTotal', 'duration', 'releaseId', 'albumArtist', 'album', 'style']
 }
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
