@@ -698,7 +698,7 @@ function wsCallback(e: any) {
 
 const tagFormat = computed(() => {
     if (!file.value) return null;
-    if (file.value.format == 'flac') return 'vorbis';
+    if (file.value.format == 'flac' || file.value.format == 'ogg') return 'vorbis';
     if (file.value.format == 'mp4') return 'mp4';
     return 'id3';
 });

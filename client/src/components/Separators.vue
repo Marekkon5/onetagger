@@ -11,7 +11,7 @@
         <q-input
             v-model='vorbis'
             filled
-            label='FLAC (empty is default)'
+            label='Vorbis (FLAC + OGG + OPUS, default is empty)'
             class='col-4 q-px-sm'
             @update:model-value='save'
         ></q-input>

@@ -51,7 +51,7 @@ interface QuickTagCustomValue {
 
 interface QuickTagFile {
     path: string;
-    format: 'flac' | 'aiff' | 'mp3' | 'mp4' | 'wav';
+    format: 'flac' | 'aiff' | 'mp3' | 'mp4' | 'wav' | 'ogg';
     title: string;
     artists: string[];
     genres: string[];
@@ -72,7 +72,7 @@ interface CustomTagInfo {
 class QTTrack implements QuickTagFile {
     // QuickTagFile
     path!: string;
-    format!: "flac" | "aiff" | "mp3" | "mp4" | "wav";
+    format!: "flac" | "aiff" | "mp3" | "mp4" | "wav" | "ogg";
     title!: string;
     artists!: string[];
     genres!: string[];

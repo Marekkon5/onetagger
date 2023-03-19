@@ -50,6 +50,7 @@ class FrameName {
             case 'wav':
                 return this.id3;
             case 'flac':
+            case 'ogg':
             case 'vorbis':
                 return this.vorbis;
             case 'mp4':

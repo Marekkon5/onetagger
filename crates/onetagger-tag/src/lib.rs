@@ -16,16 +16,20 @@ pub mod flac;
 #[cfg(feature = "tag")]
 pub mod mp4;
 #[cfg(feature = "tag")]
+pub mod vorbis;
+#[cfg(feature = "tag")]
 mod wav;
 
 // Supported extensions
-pub static EXTENSIONS : [&'static str; 7] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", ".mp4", ".wav"];
+pub static EXTENSIONS : [&'static str; 11] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", 
+    ".mp4", ".wav", ".ogg", ".opus", ".spx", ".oga"];
 
 #[cfg(feature = "tag")]
 pub enum Tag {
     FLAC(flac::FLACTag),
     ID3(id3::ID3Tag),
-    MP4(mp4::MP4Tag)
+    MP4(mp4::MP4Tag),
+    Vorbis(vorbis::VorbisTag)
 }
 
 #[cfg(feature = "tag")]
@@ -38,6 +42,11 @@ impl Tag {
         // MP4
         if path.to_lowercase().ends_with(".m4a") || path.to_lowercase().ends_with(".mp4") {
             return Ok(Tag::MP4(mp4::MP4Tag::load_file(path)?));
+        }
+
+        // Vorbis
+        if path.to_lowercase().ends_with(".ogg") || path.to_lowercase().ends_with(".opus") || path.to_lowercase().ends_with(".oga") || path.to_lowercase().ends_with(".spx") {
+            return Ok(Tag::Vorbis(vorbis::VorbisTag::load_file(path)?));
         }
 
         // ID3
@@ -55,6 +64,7 @@ impl Tag {
             Tag::FLAC(tag) => tag.set_separator(separators.vorbis.as_ref().unwrap_or(&String::new())),
             Tag::ID3(tag) => tag.set_separator(&separators.id3),
             Tag::MP4(tag) => tag.set_separator(&separators.mp4),
+            Tag::Vorbis(tag) => tag.set_separator(separators.vorbis.as_ref().unwrap_or(&String::new())),
         }
     }
 
@@ -64,6 +74,7 @@ impl Tag {
             Tag::FLAC(tag) => Box::new(tag),
             Tag::ID3(tag) => Box::new(tag),
             Tag::MP4(tag) => Box::new(tag),
+            Tag::Vorbis(tag) => Box::new(tag),
         }
     }
     pub fn tag_mut(&mut self) -> Box<&mut dyn TagImpl> {
@@ -71,6 +82,7 @@ impl Tag {
             Tag::FLAC(tag) => Box::new(tag),
             Tag::ID3(tag) => Box::new(tag),
             Tag::MP4(tag) => Box::new(tag),
+            Tag::Vorbis(tag) => Box::new(tag)
         }
     }
 
@@ -84,6 +96,7 @@ impl Tag {
                 id3::ID3AudioFormat::AIFF => AudioFileFormat::AIFF,
                 id3::ID3AudioFormat::WAV => AudioFileFormat::WAV
             },
+            Tag::Vorbis(_) => AudioFileFormat::OGG
         }
     }
 }
@@ -152,7 +165,7 @@ impl Default for TagSeparators {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AudioFileFormat {
-    FLAC, AIFF, MP3, MP4, WAV
+    FLAC, AIFF, MP3, MP4, WAV, OGG
 }
 
 impl AudioFileFormat {
@@ -202,6 +215,7 @@ impl FrameName {
             AudioFileFormat::WAV => self.id3.to_string(),
             AudioFileFormat::FLAC => self.vorbis.to_string(),
             AudioFileFormat::MP4 => self.mp4.to_string(),
+            AudioFileFormat::OGG => self.vorbis.to_string()
         }
     }
 }
@@ -297,6 +311,7 @@ impl Field {
             AudioFileFormat::WAV => self.id3(),
             AudioFileFormat::MP3 => self.id3(),
             AudioFileFormat::MP4 => self.mp4(),
+            AudioFileFormat::OGG => self.vorbis(),
         }
     }
 
