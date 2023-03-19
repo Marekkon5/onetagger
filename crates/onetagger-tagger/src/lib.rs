@@ -783,7 +783,7 @@ impl MatchingUtils {
     /// Default track matching algo (v2 with exact match fallabck)
     pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
         // Exact fallback match
-        if let Some(track) = Self::match_track_exact_fallback(info, tracks, config, match_artist) {
+        if let Some(track) = MatchingUtils::match_track_exact_fallback(info, tracks, config, match_artist) {
             return Some((1.0, track));
         }
 

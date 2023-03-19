@@ -363,7 +363,7 @@ impl Field {
             Field::Version => "desc",
             Field::TrackNumber => "trkn",
             Field::Remixer => "com.apple.iTunes:REMIXER",
-            Field::Key => "com.apple.iTunes:KEY",
+            Field::Key => "com.apple.iTunes:initialkey",
             Field::Style => "com.apple.iTunes:STYLE",
             Field::Duration => "com.apple.iTunes:LENGTH",
             Field::Mood => "com.apple.iTunes:MOOD",
