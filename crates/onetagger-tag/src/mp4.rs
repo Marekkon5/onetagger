@@ -274,6 +274,9 @@ impl TagImpl for MP4Tag {
         if field == Field::DiscNumber {
             return self.tag.disc_number().map(|v| vec![v.to_string()]);
         }
+        if field == Field::BPM {
+            return self.tag.bpm().map(|b| vec![b.to_string()]);
+        }
 
         self.raw_by_ident(&MP4Tag::field_to_ident(field))
     }
