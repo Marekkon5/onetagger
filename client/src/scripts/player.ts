@@ -102,6 +102,12 @@ class Player {
                 path
             }));
         });
+
+        // Auto play on unix systems (on Windows it causes errors, because file is read twice)
+        if ($1t.info.value.os != 'windows' && $1t.settings.value.continuePlayback && this.wasPlaying) {
+            this.play();
+            this.wasPlaying = false;
+        }
     }
 
     // Start playback
