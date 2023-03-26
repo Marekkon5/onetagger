@@ -10,7 +10,7 @@ function httpUrl(): string {
 
 // Returns the Spotify redirect URL
 function spotifyUrl(): string {
-    return `http://${window.location.hostname}:36914/spotify`;
+    return `http://127.0.0.1:36914/spotify`;
 }
 
 // Tag value separators
