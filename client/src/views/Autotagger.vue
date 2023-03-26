@@ -91,6 +91,10 @@
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
+                <div class='q-mt-md text-subtitle1 text-bold text-primary'>PROFILES</div>
+                <div class='text-subtitle2 text-grey-6'>Save, create, delete profiles</div>
+                <AutotaggerProfile class='full-width q-mt-md'></AutotaggerProfile>
+                <div class='q-my-lg'></div>
                 <div class='q-mt-md text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
                 <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>

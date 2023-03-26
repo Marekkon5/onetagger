@@ -6,6 +6,7 @@
             outlined
             v-model='$1t.settings.value.autoTaggerProfile'
             label='Profile'
+            class='col'
             @update:model-value="loadProfile"
         ></q-select>
 
