@@ -65,12 +65,22 @@
     </q-stepper>
 
     <!-- Stepper bar -->
-    <div class='at-stepper-bar row justify-center content-center' v-if='!$1t.settings.value.autoTaggerSinglePage'>
-        <div>
-            <q-btn push color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
-                Next
-            </q-btn>
+    <div class='at-stepper-bar row' v-if='!$1t.settings.value.autoTaggerSinglePage'>
+        <div class='col-3 row content-center'>
+            <div class='q-mx-md'>
+                <AutotaggerProfile></AutotaggerProfile>
+            </div>
         </div>
+
+        <div class='col-6 row align-center items-center justify-center content-center'>
+            <div>
+                <q-btn push color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
+                    Next
+                </q-btn>
+            </div>
+        </div>
+
+        <div class='col-3'></div>
     </div>
 
     <!-- Single page -->
@@ -136,6 +146,7 @@ import AutotaggerPlatforms from '../components/AutotaggerPlatforms.vue';
 import AutotaggerTags from '../components/AutotaggerTags.vue';
 import AutotaggerPlatformSpecific from '../components/AutotaggerPlatformSpecific.vue';
 import AutotaggerAdvanced from '../components/AutotaggerAdvanced.vue';
+import AutotaggerProfile from '../components/AutotaggerProfile.vue';
 import CliDialog from '../components/CliDialog.vue';
 
 const $1t = get1t();

@@ -1,3 +1,4 @@
+import { AutotaggerConfig, AutotaggerProfile } from "./autotagger";
 import { EnergyTag, QuickTagCustom, QuickTagGenre, QuickTagMood } from "./quicktag";
 import { FrameName, Keybind, Separators } from "./utils";
 
@@ -5,6 +6,8 @@ class Settings {
     path?: string;
     autoTaggerConfig: any = {};
     autoTaggerSinglePage: boolean = false;
+    autoTaggerProfiles: AutotaggerProfile[] = [];
+    autoTaggerProfile: string = 'Default';
     primaryColor: string = '#00D2BF';
     volume: number = 0.05;
     helpButton: boolean = true;
@@ -30,6 +33,16 @@ class Settings {
         settings.audioFeatures = AudioFeaturesSettings.fromJson(data.audioFeatures);
         settings.quickTag = QuickTagSettings.fromJson(data.quickTag);
         return settings;
+    }
+
+    /// Save new AT profile
+    saveATProfile(name: string, config: AutotaggerConfig) {
+        let i = this.autoTaggerProfiles.findIndex(p => p.name == name);
+        if (i == -1) {
+            this.autoTaggerProfiles.push({ name, config: JSON.parse(JSON.stringify(config)) });
+            return;
+        }
+        this.autoTaggerProfiles[i] = { name, config: JSON.parse(JSON.stringify(config)) };
     }
 }
 

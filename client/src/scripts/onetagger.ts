@@ -2,9 +2,9 @@ import { Dialog, Notify, setCssVar } from 'quasar';
 import { ref, Ref } from 'vue';
 import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger';
 import { Player } from './player';
-import { QTTrack, QuickTag, QuickTagFile, QuickTagSettings } from './quicktag';
+import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
-import { FrameName, Keybind, Playlist, Separators, Spotify, wsUrl } from './utils';
+import { Keybind, Playlist, Spotify, wsUrl } from './utils';
 import router from './router';
 
 class OneTagger {
@@ -339,6 +339,7 @@ class OneTagger {
 
     // Save settings to file
     saveSettings(notif = true) {
+        this.settings.value.saveATProfile(this.settings.value.autoTaggerProfile, this.config.value);
         // Very dirty way to clone a dict, but eh
         this.settings.value.autoTaggerConfig = JSON.parse(JSON.stringify(this.config.value));
         this.settings.value.volume = this.player.value.volume;
@@ -360,10 +361,7 @@ class OneTagger {
         this.settings.value = Settings.fromJson(data);
         
         // AT config (nested)
-        let config = Object.assign(new AutotaggerConfig(), this.config.value, this.settings.value.autoTaggerConfig);
-        this.config.value = config;
-        this.config.value.stylesCustomTag = Object.assign(FrameName.same('STYLE'), config.stylesCustomTag);
-        this.config.value.separators = Object.assign(new Separators(), config.separators);
+        this.config.value.loadSettings(this.settings.value.autoTaggerConfig);
  
         // Restore specific
         this.player.value.volume = this.settings.value.volume??0.5;
@@ -380,6 +378,17 @@ class OneTagger {
                 this.settings.value.quickTag.genres[i]['subgenres'] = [];
             }
         }
+    }
+
+    // Load autotagger profile
+    loadATProfile(name: string) {
+        let profile = this.settings.value.autoTaggerProfiles.find(p => p.name == name);
+        if (profile == null) throw Error('Invalid profile');
+
+        this.config.value.loadSettings(profile.config);
+        this.settings.value.autoTaggerProfile = name;
+        // Update custom values in case
+        this.send('defaultCustomPlatformSettings');
     }
 
     // Load quicktag track

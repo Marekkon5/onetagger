@@ -32,6 +32,11 @@ type CustomPlatformValue =
     | { type: "option", values: string[], value: string }
 
 
+interface AutotaggerProfile {
+    name: string,
+    config: AutotaggerConfig
+}
+
 class AutotaggerConfig {
     platforms: string[] = ['beatport'];
     path?: string;
@@ -103,6 +108,13 @@ class AutotaggerConfig {
 
     // autotagger or audiofeatures, not actually serialized, dynamically changed
     type?: string;
+
+    /// Load settings from JSON
+    loadSettings(data: any) {
+        Object.assign(this, data);
+        this.stylesCustomTag = Object.assign(FrameName.same('STYLE'), data.stylesCustomTag);
+        this.separators = Object.assign(new Separators(), data.separators);
+    }
 }
 
 interface SpotifyConfig {
@@ -148,5 +160,5 @@ interface TaggingStatus {
 
 
 
-export type { AutotaggerPlatform, PlatformInfo };
+export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile };
 export { AutotaggerConfig, TaggerStatus };

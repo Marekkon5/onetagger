@@ -1,13 +1,16 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import Index from '../views/Index.vue';
-import Autotagger from '../views/Autotagger.vue';
 import AutotaggerStatus from '../views/AutotaggerStatus.vue';
 import QuickTag from '../views/QuickTag.vue';
 import AudioFeatures from '../views/AudioFeatures.vue';
 import TagEditor from '../views/TagEditor.vue';
 import Renamer from '../views/Renamer.vue';
 
+// Required for hot reload, idk why it broke
+const Autotagger = () => import('../views/Autotagger.vue');
+
+const history = createWebHashHistory();
 
 const routes = [
     {
@@ -45,7 +48,7 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHashHistory(),
+    history,
     routes
 });
 
