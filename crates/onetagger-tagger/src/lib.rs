@@ -222,7 +222,7 @@ pub struct Track {
     pub url: String,
     pub label: Option<String>,
     pub catalog_number: Option<String>,
-    //  Tag name, Value
+    // Tag name, Value
     pub other: Vec<(FrameName, Vec<String>)>,
     pub track_id: Option<String>,
     pub release_id: String,
@@ -240,7 +240,7 @@ pub struct Track {
     pub release_year: Option<i16>,
     pub release_date: Option<NaiveDate>,
     pub publish_year: Option<i16>,
-    pub publish_date: Option<NaiveDate>
+    pub publish_date: Option<NaiveDate>,
 }
 
 impl Track {

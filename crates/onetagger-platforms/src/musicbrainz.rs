@@ -138,18 +138,32 @@ pub struct Recording {
 
 impl Into<Track> for Recording {
     fn into(self) -> Track {
+        // Find release with priority to not use compilations
+        let mut release = None;
+        if let Some(releases) = self.releases.as_ref() {
+            for r in releases {
+                if !r.release_group.secondary_types.as_ref().unwrap_or(&vec![]).contains(&"compilation".to_string()) {
+                    release = Some(r);
+                    break;
+                }
+            }
+            if release.is_none() {
+                release = releases.first();
+            }
+        }
+
         Track {
             platform: "musicbrainz".to_string(),
             title: self.title,
             version: None,
             artists: self.artist_credit.unwrap_or(Vec::new()).into_iter().map(|a| a.name).collect(),
-            album_artists: self.releases.as_ref().unwrap_or(&Vec::new()).first()
+            album_artists: release
                 .map(|r| r.artist_credit.as_ref().map(|a| a.into_iter().map(|artist| artist.name.to_string()).collect()))
                 .flatten().unwrap_or(vec![]),
-            album: self.releases.as_ref().unwrap_or(&Vec::new()).first().map(|a| a.title.to_string()),
+            album: release.map(|a| a.title.to_string()),
             url: format!("https://musicbrainz.org/recording/{}", self.id),
             track_id: Some(self.id),
-            release_id: self.releases.unwrap_or(vec![]).first().map(|r| r.id.to_string()).unwrap_or(String::new()),
+            release_id: release.map(|r| r.id.to_string()).unwrap_or(String::new()),
             duration: self.length.map(|l| Duration::from_millis(l)).unwrap_or(Duration::ZERO),
             release_year: self.first_release_date.clone().map(|d| (d.len() >= 4).then(|| d[0..4].parse().ok()).flatten()).flatten(),
             release_date: self.first_release_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok()).flatten(),
