@@ -6,7 +6,7 @@ use regex::Regex;
 use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
-use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
 
 pub struct JunoDownload {
     client: Client
@@ -198,6 +198,8 @@ impl AutotaggerSourceBuilder for JunoDownloadBuilder {
             max_threads: 4,
             version: "1.0.0".to_string(),
             custom_options: Default::default(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, BPM, Genre, Label, ReleaseDate, AlbumArt, URL, CatalogNumber, ReleaseId, TrackNumber, TrackTotal, Duration)
         }
     }
 }

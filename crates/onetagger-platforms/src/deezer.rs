@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
-use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber};
+use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber, supported_tags};
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 
@@ -276,6 +276,8 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
             version: "1.0.0".to_string(),
             icon: include_bytes!("../assets/deezer.png"),
             max_threads: 2,
+            requires_auth: false, 
+            supported_tags: supported_tags!(Title, Version, Album, AlbumArtist, Artist, AlbumArt, URL, CatalogNumber, TrackId, ReleaseId, Duration, Genre, TrackTotal, Label, ISRC, ReleaseDate, TrackNumber, DiscNumber),
             custom_options: PlatformCustomOptions::new()
                 .add("art_resolution", "Album Art Resolution", PlatformCustomOptionValue::Number { min: 100, max: 1600, step: 100, value: 1200 }),
         }

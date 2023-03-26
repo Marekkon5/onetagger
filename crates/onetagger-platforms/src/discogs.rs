@@ -10,7 +10,7 @@ use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, 
-    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
+    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
 
 pub struct Discogs {
     client: Client,
@@ -441,6 +441,8 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
             icon: include_bytes!("../assets/discogs.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
+            requires_auth: true,
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, Genre, Style, AlbumArt, URL, Label, ReleaseDate, CatalogNumber, ReleaseId, Duration, TrackNumber, DiscNumber, TrackTotal),
             custom_options: PlatformCustomOptions::new()
                 // Discogs token
                 .add_tooltip("token", "Token", 

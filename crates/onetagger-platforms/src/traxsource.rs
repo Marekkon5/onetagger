@@ -2,7 +2,7 @@ use std::error::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
 
 pub struct Traxsource {
     client: Client
@@ -231,6 +231,8 @@ impl AutotaggerSourceBuilder for TraxsourceBuilder {
             max_threads: 0,
             version: "1.0.0".to_string(),
             custom_options: Default::default(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Version, Artist, BPM, Key, Title, URL, Label, ReleaseDate, Genre, TrackId, Duration, Album, ReleaseId, CatalogNumber, AlbumArtist, TrackNumber, TrackTotal, AlbumArt)
         }
     }
 }

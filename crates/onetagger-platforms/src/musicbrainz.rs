@@ -5,7 +5,7 @@ use rand::Rng;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
 
 pub struct MusicBrainz {
     client: Client
@@ -284,6 +284,8 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
             max_threads: 4,
             version: "1.0.0".to_string(),
             custom_options: Default::default(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, URL, ReleaseId, TrackId, Duration, ISRC, Label, CatalogNumber, TrackNumber, Genre),
         }
     }
 }

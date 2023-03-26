@@ -528,6 +528,36 @@ pub struct PlatformInfo {
     pub max_threads: u16,
     /// For showing custom options in UI
     pub custom_options: PlatformCustomOptions,
+    /// Which fields does this platform support
+    pub supported_tags: Vec<SupportedTag>,
+    /// Does this platform require authentication
+    pub requires_auth: bool,
+}
+
+/// All the different tags a platform can support
+#[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[repr(C)]
+pub enum SupportedTag {
+    Title, Artist, Album, Key, Genre, Style, ReleaseDate, PublishDate,
+    AlbumArt, OtherTags, CatalogNumber, TrackId, ReleaseId, Version,
+    Duration, AlbumArtist, Remixer, TrackNumber, TrackTotal, DiscNumber,
+    Mood, SyncedLyrics, UnsyncedLyrics, Label,
+    #[serde(rename = "bpm")]
+    BPM,
+    #[serde(rename = "url")]
+    URL,
+    #[serde(rename = "isrc")]
+    ISRC
+} 
+
+/// Generate supported tags list quickly
+/// Use: `supported_tags!(Title, Artist, Album...)`
+#[macro_export]
+macro_rules! supported_tags {
+    ($($a:tt),*) => {
+        vec![$(::onetagger_tagger::SupportedTag::$a, )*]
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -922,4 +952,3 @@ impl MatchingUtils {
         Ok(Duration::from_secs(seconds))
     }
 }
-

@@ -1,6 +1,7 @@
-use std::{error::Error, time::Duration};
+use std::error::Error;
+use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
-use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils};
+use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils, supported_tags};
 use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
@@ -101,6 +102,8 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
             icon: include_bytes!("../assets/bandcamp.png"),
             max_threads: 4,
             custom_options: Default::default(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Title, Artist, ReleaseDate, Album, Artist, Label, AlbumArt, Style, Genre, TrackId, URL, ReleaseId, TrackTotal)
         }
     }
 }

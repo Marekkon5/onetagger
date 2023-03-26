@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 use chrono::{DateTime, Utc};
-use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils};
+use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags};
 use regex::Regex;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
@@ -210,6 +210,8 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
             version: "1.0.0".to_string(),
             icon: include_bytes!("../assets/bpmsupreme.png"),
             max_threads: 1,
+            requires_auth: true,
+            supported_tags: supported_tags!(Artist, Title, BPM, AlbumArt, Genre, Key, Label, ReleaseDate, TrackId, Mood, URL),
             custom_options: PlatformCustomOptions::new()
                 .add("email", "Email", PlatformCustomOptionValue::String { 
                     value: String::new(), hidden: Some(false) 

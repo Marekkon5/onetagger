@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
+use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -419,6 +419,8 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
             icon: include_bytes!("../assets/beatport.png"),
             max_threads: 0,
             version: "1.0.0".to_string(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Title, Version, Artist, AlbumArtist, Album, BPM, Genre, Style, Label, URL, ReleaseDate, PublishDate, Key, AlbumArt, OtherTags, TrackId, ReleaseId, Duration, Remixer, CatalogNumber, TrackTotal, ISRC, TrackNumber),
             custom_options: PlatformCustomOptions::new()
                 // Album art resolution
                 .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {

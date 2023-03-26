@@ -7,7 +7,7 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
 
 pub struct Beatsource {
     client: Client,
@@ -236,6 +236,8 @@ impl AutotaggerSourceBuilder for BeatsourceBuilder {
             icon: include_bytes!("../assets/beatsource.png"),
             max_threads: 0,
             version: "1.0.0".to_string(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Title, Version, Artist, Album, Key, BPM, Genre, AlbumArt, URL, Label, CatalogNumber, TrackId, ReleaseId, Duration, Remixer, ReleaseDate, ISRC),
             custom_options: PlatformCustomOptions::new()
                 .add_tooltip("art_resolution", "Album art resolution", "Select album art resolution", PlatformCustomOptionValue::Number {
                     min: 100, max: 1600, step: 100, value: 500

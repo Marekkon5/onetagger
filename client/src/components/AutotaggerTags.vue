@@ -37,15 +37,15 @@
     </div>
     
     <!-- Tags -->
-    <q-separator class='q-mx-auto custom-separator' style='margin-top: 16px;' inset color="dark"/>
+    <q-separator class='q-mx-auto custom-separator' :style='"margin-top: 16px;"' inset color="dark"/>
     <div class='text-subtitle1 q-mt-lg text-primary text-bold' style='margin-top: 35px;'>SELECT TAGS</div>
     <div class='text-subtitle2 q-mb-sm text-grey-6'>Check the box to fetch stated tag</div>
     
-    <div class='q-pt-xs q-mb-md' style='max-width: 550px; margin:auto;'>
+    <div class='q-pt-xs q-mb-md' :style='"max-width: 550px; margin: auto;"'>
         <div class='row justify-between q-ml-xl tags wrap'>
             <!-- Album art -->
-            <q-checkbox class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.value.albumArt'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+            <q-checkbox :disable='!isSupported("albumArt")' class='tag checkbox text-grey-4' label='Album Art' v-model='$1t.config.value.albumArt'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2' >
                     <q-tooltip>Resolution is platform dependent</q-tooltip>
                 </q-icon>
             </q-checkbox>
@@ -54,63 +54,63 @@
             <!-- Album artist -->
             <q-checkbox :disable='!isSupported("albumArtist")' class='tag checkbox text-grey-4' label='Album Artist' v-model='$1t.config.value.albumArtist'></q-checkbox>
             <!-- Artist -->
-            <q-checkbox class='tag checkbox text-grey-4' label='Artist' v-model='$1t.config.value.artist'></q-checkbox>
+            <q-checkbox :disable='!isSupported("artist")' class='tag checkbox text-grey-4' label='Artist' v-model='$1t.config.value.artist'></q-checkbox>
             <!-- Title -->
-            <q-checkbox class='tag checkbox text-grey-4' label='Title' v-model='$1t.config.value.title'></q-checkbox>
+            <q-checkbox :disable='!isSupported("title")' class='tag checkbox text-grey-4' label='Title' v-model='$1t.config.value.title'></q-checkbox>
             <!-- Version -->
             <q-checkbox :disable='!isSupported("version")' class='tag checkbox text-grey-4' label='Version' v-model='$1t.config.value.version'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                 </q-icon>                
             </q-checkbox>
             <!-- Remixers -->
             <q-checkbox :disable='!isSupported("remixers")' class='tag checkbox text-grey-4' label='Remixers' v-model='$1t.config.value.remixer'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport & Beatsource</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Genre -->
-            <q-checkbox class='tag checkbox' label='Genre' v-model='$1t.config.value.genre'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+            <q-checkbox :disable='!isSupported("genre")' class='tag checkbox' label='Genre' v-model='$1t.config.value.genre'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Spotify will populate multiple genres based on artist</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Style/Subgenre -->
             <q-checkbox :disable='!isSupported("style")' class='tag checkbox text-grey-4' label='Style/Subgenre' v-model='$1t.config.value.style'>            
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Style is available from Discogs & Bandcamp, Subgenre from Beatport only</q-tooltip>
                 </q-icon>            
             </q-checkbox>   
             <!-- Label -->                
-            <q-checkbox class='tag checkbox text-grey-4' label='Label' v-model='$1t.config.value.label'></q-checkbox>
+            <q-checkbox :disable='!isSupported("label")' class='tag checkbox text-grey-4' label='Label' v-model='$1t.config.value.label'></q-checkbox>
             <!-- Release ID -->
             <q-checkbox :disable='!isSupported("releaseId")' class='tag checkbox text-grey-4' label='Release ID' v-model='$1t.config.value.releaseId'></q-checkbox>
             <!-- Track ID -->
             <q-checkbox :disable='!isSupported("trackId")' class='tag checkbox text-grey-4' label='Track ID' v-model='$1t.config.value.trackId'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='other-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- BPM -->
             <q-checkbox :disable='!isSupported("bpm")' class='tag checkbox text-grey-4' label='BPM' v-model='$1t.config.value.bpm'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport, Beatsource, Juno Download & Traxsource</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Key -->
             <q-checkbox :disable='!isSupported("key")' class='tag checkbox text-grey-4' label='Key' v-model='$1t.config.value.key'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport, Beatsource & Traxsource</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Mood -->
             <q-checkbox :disable='!isSupported("mood")' class='tag checkbox text-grey-4' label='Mood' v-model='$1t.config.value.mood'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from BPM Supreme</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Catalog number -->
-            <q-checkbox class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.value.catalogNumber'></q-checkbox>
+            <q-checkbox :disable='!isSupported("catalogNumber")' class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.value.catalogNumber'></q-checkbox>
             <!-- Track number -->
             <q-checkbox :disable='!isSupported("trackNumber")' class='tag checkbox text-grey-4' label='Track Number' v-model='$1t.config.value.trackNumber'></q-checkbox>
             <!-- Disc number -->
@@ -121,36 +121,36 @@
             <q-checkbox :disable='!isSupported("trackTotal") || !$1t.config.value.trackNumber' class='tag checkbox text-grey-4' label='Track Total' v-model='$1t.config.value.trackTotal'></q-checkbox>
             <!-- ISRC -->
             <q-checkbox :disable='!isSupported("isrc")' class='tag checkbox text-grey-4' label='ISRC' v-model='$1t.config.value.isrc'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport, Beatsource, MusicBrainz & Spotify</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Publish Date -->
             <q-checkbox :disable='!isSupported("publishDate")' class='tag checkbox text-grey-4' label='Publish Date' v-model='$1t.config.value.publishDate'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Available from Beatport only</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- Release Date -->
-            <q-checkbox class='tag checkbox text-grey-4' label='Release Date' v-model='$1t.config.value.releaseDate'></q-checkbox>
+            <q-checkbox :disable='!isSupported("releaseDate")' class='tag checkbox text-grey-4' label='Release Date' v-model='$1t.config.value.releaseDate'></q-checkbox>
             <!-- URLs -->
-            <q-checkbox class='tag checkbox text-grey-4' label='URLs' v-model='$1t.config.value.url'></q-checkbox>
+            <q-checkbox :disable='!isSupported("url")' class='tag checkbox text-grey-4' label='URLs' v-model='$1t.config.value.url'></q-checkbox>
             <!-- Other -->
-            <q-checkbox :disable='!isSupported("other")' class='tag checkbox text-grey-4' label='Other' v-model='$1t.config.value.otherTags'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+            <q-checkbox :disable='!isSupported("otherTags")' class='tag checkbox text-grey-4' label='Other' v-model='$1t.config.value.otherTags'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Specific tags only for some platforms (Beatport, Discogs)</q-tooltip>
                 </q-icon>
             </q-checkbox>
             <!-- One Tagger Tag -->
             <q-checkbox class='tag checkbox text-grey-4' label='One Tagger Tag' v-model='$1t.config.value.metaTags'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs' style='margin-top: -2px;'>
+                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
                     <q-tooltip>Adds 1T_TAGGEDDATE tag with timestamp</q-tooltip>
                 </q-icon>
             </q-checkbox>
 
             <!-- Lyrics -->
-            <q-checkbox class='tag checkbox text-grey-4' label='Unsynced Lyrics' v-model='$1t.config.value.unsyncedLyrics'></q-checkbox>
-            <q-checkbox class='tag checkbox text-grey-4' label='Synced Lyrics' v-model='$1t.config.value.syncedLyrics'></q-checkbox>
+            <q-checkbox :disable='!isSupported("unsyncedLyrics")' class='tag checkbox text-grey-4' label='Unsynced Lyrics' v-model='$1t.config.value.unsyncedLyrics'></q-checkbox>
+            <q-checkbox :disable='!isSupported("syncedLyrics")' class='tag checkbox text-grey-4' label='Synced Lyrics' v-model='$1t.config.value.syncedLyrics'></q-checkbox>
 
         </div>
     </div>
@@ -169,24 +169,10 @@
 import { get1t } from '../scripts/onetagger';
 import PlaylistDropZone from './PlaylistDropZone.vue';
 
-const SUPPORTED_TAGS: Record<string, string[]> = {
-    beatport: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'style', 'remixers', 'trackId', 'version', 'bpm', 'key', 'publishDate', 'other', 'isrc', 'trackTotal'],
-    discogs: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'style', 'trackTotal', 'discNumber', 'other'],
-    traxsource: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'trackId', 'version', 'bpm', 'key', 'trackTotal'],
-    junodownload: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'bpm', 'trackTotal'],
-    beatsource: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'remixers', 'trackId', 'bpm', 'key', 'version', 'isrc'],
-    musicbrainz: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'isrc'],
-    spotify: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'isrc', 'key'],
-    bpmsupreme: ['key', 'other', 'trackId', 'mood', 'bpm'],
-    itunes: ['trackNumber', 'duration', 'releaseId', 'albumArtist', 'album', 'trackTotal'],
-    bandcamp: ['trackTotal', 'trackId', 'style', 'album', 'releaseDate', 'releaseId'],
-    deezer: ['trackNumber', 'trackTotal', 'duration', 'trackId', 'releaseId', 'isrc', 'bpm', 'albumArtists'],
-    rateyourmusic: ['trackNumber', 'trackTotal', 'duration', 'releaseId', 'albumArtist', 'album', 'style']
-}
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
     'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber', 'isrc', 'mood',
-    'trackTotal', 'discNumber'];
+    'trackTotal', 'discNumber', 'unsyncedLyrics', 'syncedLyrics'];
 
 const $1t = get1t();
 
@@ -196,11 +182,7 @@ function browse() {
 
 // Check if tag is supported on selected platforms
 function isSupported(tag: string) {
-    for (let platform of $1t.config.value.platforms) {
-        if (SUPPORTED_TAGS[platform] && SUPPORTED_TAGS[platform].includes(tag))
-            return true;
-    }
-    return false;
+    return ($1t.info.value.platforms.find(p => $1t.config.value.platforms.includes(p.id) && p.supportedTags.includes(tag))) != null;
 }
 
 // Enable/Disable/Toggle all tags
@@ -250,5 +232,9 @@ function toggleTags(mode: string) {
     .q-checkbox__bg {
         opacity: 0.4 !important;
     }
+}
+
+.mt-n2 {
+    margin-top: -2px;
 }
 </style>

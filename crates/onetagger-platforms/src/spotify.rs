@@ -11,7 +11,7 @@ use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
 use rouille::{Server, router};
 use onetagger_shared::Settings;
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -293,7 +293,9 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
             icon: include_bytes!("../assets/spotify.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
-            custom_options: Default::default()
+            custom_options: Default::default(),
+            requires_auth: true,
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, AlbumArt, URL, TrackId, ReleaseId, Duration, TrackNumber, ISRC, ReleaseDate, Genre, Key, Label)
         }
     }
 }

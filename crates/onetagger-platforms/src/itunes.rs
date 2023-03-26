@@ -4,7 +4,7 @@ use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
-use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue};
+use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
 
 pub struct ITunes {
     client: Client,
@@ -157,6 +157,8 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
             icon: include_bytes!("../assets/itunes.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
+            requires_auth: false,
+            supported_tags: supported_tags!(Title, Artist, Album, URL, TrackId, ReleaseId, Duration, Genre, ReleaseDate, TrackNumber, TrackTotal, AlbumArt),
             custom_options: PlatformCustomOptions::new()
                 // Album art resolution
                 .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {

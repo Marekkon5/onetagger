@@ -7,7 +7,7 @@ use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, 
 use image::{io::Reader as ImageReader, ImageOutputFormat};
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
-use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track};
+use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag};
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
@@ -84,6 +84,8 @@ impl AutotaggerPlatforms {
                     String::new()
                 }
             },
+            supported_tags: info.supported_tags.clone(),
+            requires_auth: info.requires_auth,
             platform: info,
             custom: None
         })
@@ -132,6 +134,8 @@ pub struct AutotaggerPlatform {
     pub platform: PlatformInfo,
     /// Encoded for UI
     pub icon: String,
+    pub requires_auth: bool,
+    pub supported_tags: Vec<SupportedTag>,
 
     /// For custom platforms
     #[serde(skip)]
@@ -194,6 +198,8 @@ impl CustomPlatform {
                     String::new()
                 },
             },
+            supported_tags: lib.info.supported_tags.clone(),
+            requires_auth: lib.info.requires_auth,
             custom: Some(lib),
         })
     }

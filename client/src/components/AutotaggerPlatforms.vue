@@ -22,6 +22,16 @@
                                             <span v-else>This platform allows unlimited concurrent searches</span>
                                         </q-tooltip>
                                     </span>
+
+                                    <!-- Auth info -->
+                                    <span v-if='platform.platform.requiresAuth'>
+                                        <span class='q-pl-xs text-grey-8'>
+                                            <q-icon name='mdi-lock' size='xs' class='q-pb-xs'></q-icon>
+                                        </span>
+                                        <q-tooltip>
+                                            <span>Platform requires an account</span>
+                                        </q-tooltip>
+                                    </span>
     
                                 </div>
                             </div>

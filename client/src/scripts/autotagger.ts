@@ -5,6 +5,8 @@ interface AutotaggerPlatform {
     builtIn: boolean;
     platform: PlatformInfo;
     icon: string;
+    requiresAuth: boolean;
+    supportedTags: string[];
 }
 
 interface PlatformInfo {

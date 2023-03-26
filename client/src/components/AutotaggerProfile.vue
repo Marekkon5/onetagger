@@ -13,17 +13,14 @@
         <div class='q-ml-sm'>
             <q-btn round flat icon='mdi-content-save' @click='saveProfile'></q-btn>
         </div>
-
         <!-- Save as -->
         <div>
             <q-btn round flat icon='mdi-content-save-edit' @click='saveAs'></q-btn>
         </div>
-
         <!-- New one -->
         <div>
             <q-btn round flat icon='mdi-plus' @click='newProfile'></q-btn>
         </div>
-
         <!-- Delete -->
         <div>
             <q-btn round flat icon='mdi-delete' color='red' @click='removeProfile'></q-btn>
