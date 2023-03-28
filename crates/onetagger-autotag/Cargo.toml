@@ -27,6 +27,10 @@ songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
 
 onetagger-tag = { path = "../onetagger-tag" }
 onetagger-tagger = { path = "../onetagger-tagger" }
-onetagger-player = { path = "../onetagger-player" }
+onetagger-player = { path = "../onetagger-player", default-features = false }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-platforms = { path = "../onetagger-platforms" }
+
+[features]
+default = ["aiff"]
+aiff = ["onetagger-player/aiff"]

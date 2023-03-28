@@ -459,7 +459,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
             .replace("%artists%", "(?P<artists>.+)");
         // Remove all remaining variables
         let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
-        template = re.replace(&template, "(.+)").to_string();
+        template = re.replace_all(&template, "(.+)").to_string();
         // Extension
         template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template);
         // Final regex
