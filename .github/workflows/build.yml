@@ -14,10 +14,12 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
+        sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 
     - name: Install NodeJS
       uses: actions/setup-node@v3
+      with:
+        node-version: 18
 
     - name: Install pnpm
       uses: pnpm/action-setup@v2
@@ -63,6 +65,8 @@ jobs:
       
     - name: Install NodeJS
       uses: actions/setup-node@v3
+      with:
+        node-version: 18
 
     - name: Install pnpm
       uses: pnpm/action-setup@v2
@@ -79,7 +83,6 @@ jobs:
         pnpm i
         pnpm run build
         cd ..
-        copy assets\sndfile.lib .
         cargo build --release
         
     - name: Bundle

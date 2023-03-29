@@ -33,12 +33,6 @@ https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-
 
 You can download latest binaries from [releases](https://github.com/Marekkon5/onetagger/releases)
 
-### Linux
-
-You might need to install additional dependencies to make One Tagger work:
-```
-sudo apt install libsndfile1-dev
-```
 
 ## Credits
 Bas Curtiz - UI, Idea, Help  
@@ -54,7 +48,7 @@ Mac version is cross compiled from linux, the build script is designed to run on
 
 **Install remaining dependencies**
 ```
-sudo apt install -y autogen libsndfile1-dev libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
+sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
 ```
 
 **Compile UI**
@@ -91,7 +85,6 @@ cd ..
 
 **Compile OneTagger:**
 ```
-copy assets\sndfile.lib .
 cargo build --release
 ```
 
