@@ -35,6 +35,9 @@ export MACOSX_DEPLOYMENT_TARGET=10.8
 export PKG_CONFIG_ALLOW_CROSS=1
 export PKG_CONFIG_PATH="$PATH:$(pwd)/target/SDK/MacOSX10.10.sdk/usr/lib/pkgconfig"
 cd ..
+# Use cross preset
+mv .cargo/config.toml .cargo/config.toml.bak
+cp assets/mac-cross.toml .cargo/config.toml
 # Compile 1t
 cargo install cargo-bundle
 cd crates/onetagger

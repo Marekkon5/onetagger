@@ -1,13 +1,11 @@
-# Mac cross-compile
+# Mac OS libraries
 [target.x86_64-apple-darwin]
-linker = "x86_64-apple-darwin14-clang"
-ar = "x86_64-apple-darwin14-ar"
 rustflags = ["-lz", "-lbz2", "-llzma", "-C", "link-args=-framework AudioUnit"]
 
 # Windows static build
 [target.stable-x86_64-pc-windows-msvc]
 rustflags = ["-Ctarget-feature=+crt-static"]
 
-[target.aarch64-unknown-linux-gnu]
-linker = "aarch64-linux-gnu-gcc"
-
+# aarch64 cross compile
+# [target.aarch64-unknown-linux-gnu]
+# linker = "aarch64-linux-gnu-gcc"
