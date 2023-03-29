@@ -3028,8 +3028,7 @@ dependencies = [
 [[package]]
 name = "pacmog"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56f9fd3caeef25b66372487353d6db8f50231dd07055b699e382f1266a8a967d"
+source = "git+https://github.com/Marekkon5/pacmog.git?branch=remove_assert#286f87d311f63f9a81f2ecbf461f5c8e79933bde"
 dependencies = [
  "anyhow",
  "arbitrary-int",

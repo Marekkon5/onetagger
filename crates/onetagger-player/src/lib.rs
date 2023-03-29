@@ -14,7 +14,6 @@ pub mod alac;
 pub mod flac;
 pub mod aiff;
 
-
 pub struct AudioPlayer {
     tx: Sender<PlayerAction>,
     rx: Receiver<bool>,
@@ -142,7 +141,6 @@ impl AudioSources {
             return Ok(Box::new(flac::FLACSource::new(path)?));
         }
         // AIFF
-        #[cfg(feature = "aiff")]
         if p.ends_with(".aiff") || p.ends_with(".aif") {
             return Ok(Box::new(aiff::AIFFSource::new(path)?));
         }

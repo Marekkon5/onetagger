@@ -12,7 +12,10 @@ hound = "3.5"
 rodio = "0.16"
 lofty = "0.11"
 redlux = "0.6"
-pacmog = "0.4"
 mp3-duration = "0.1"
 
 onetagger-shared = { path = "../onetagger-shared" }
+
+
+# https://github.com/AkiyukiOkayasu/pacmog/pull/28
+pacmog = { git = "https://github.com/Marekkon5/pacmog.git", branch = "remove_assert" }

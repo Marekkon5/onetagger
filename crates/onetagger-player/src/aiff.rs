@@ -61,7 +61,7 @@ impl AIFFDecoder {
         // Parse metadata (catch panic, because weird library)
         let reader = std::panic::catch_unwind(|| {
             PcmReader::new(&data)
-        }).map_err(|_| "Not an AIFF file")?;
+        }).map_err(|e| format!("Not an AIFF file: {e:?}"))?;
         let specs = reader.get_pcm_specs();
 
         // Decode the file (because the library is weeeird)
