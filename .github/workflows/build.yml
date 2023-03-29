@@ -22,7 +22,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
-        version: latest
+        version: 8
 
     - name: Run build script
       run: |
@@ -67,7 +67,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
-        version: latest
+        version: 8
 
     - name: Install Dependencies
       run: |
