@@ -12,15 +12,7 @@ hound = "3.5"
 rodio = "0.16"
 lofty = "0.11"
 redlux = "0.6"
+pacmog = "0.4"
 mp3-duration = "0.1"
 
 onetagger-shared = { path = "../onetagger-shared" }
-
-# Outdated ndarray for sndfile
-ndarray = { version = "0.13", optional = true }
-sndfile = { version = "0.1.1", features = ["ndarray_features"], optional = true }
-
-
-[features]
-default = ["aiff"]
-aiff = ["ndarray", "sndfile"]

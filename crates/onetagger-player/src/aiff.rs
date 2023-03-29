@@ -1,36 +1,30 @@
+use std::path::Path;
 use std::error::Error;
+use std::fs::File;
+use std::io::Read;
 use std::time::Duration;
-use std::io::SeekFrom;
-use ndarray::ArrayViewMut2;
+use lofty::AudioFile;
+use pacmog::PcmReader;
 use rodio::Source;
-use sndfile::{ReadOptions, SndFile, SndFileNDArrayIO};
+
 use crate::AudioSource;
 
 pub struct AIFFSource {
     path: String,
-    snd: SndFile,
-    len: u64,
-    buffer: Vec<i16>,
-    position: usize
+    duration: Duration
 }
 
 impl AIFFSource {
     // Load from path
     pub fn new(path: &str) -> Result<AIFFSource, Box<dyn Error>> { 
-        let mut snd = sndfile::OpenOptions::ReadOnly(ReadOptions::Auto).from_path(path)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{:?}", e)))?;
-        let len = snd.len().ok().ok_or("Invalid length")?;
-        snd.seek(SeekFrom::Start(0)).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{:?}", e)))?;
+        // Get duration
+        let file = lofty::read_from_path(&path)?;
+        let duration = file.properties().duration();
 
-
-        let aiff = AIFFSource {
+        Ok(AIFFSource {
             path: path.to_owned(),
-            snd,
-            len,
-            buffer: Vec::new(), 
-            position: 0
-        };
-        Ok(aiff)
+            duration
+        })
     }
 
 }
@@ -38,54 +32,86 @@ impl AIFFSource {
 impl AudioSource for AIFFSource {
     // Get duration
     fn duration(&self) -> u128 {
-        (self.len as u128 / self.snd.get_samplerate() as u128) * 1000
+        self.duration.as_millis()
+
     }
 
     // Get rodio source
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
-        Ok(Box::new(AIFFSource::new(&self.path)?))
+        let source = AIFFDecoder::load(&self.path)?;
+        Ok(Box::new(source.convert_samples()))
     }
 }
 
-impl Source for AIFFSource {
+struct AIFFDecoder {
+    channels: u32,
+    samples: u32,
+    sample_rate: u32,
+    index: usize,
+    buffer: Vec<i16>
+}
+
+impl AIFFDecoder {
+    /// Load file into memory
+    pub fn load(path: impl AsRef<Path>) -> Result<AIFFDecoder, Box<dyn Error>> {
+        // Load file
+        let mut data = vec![];
+        File::open(path)?.read_to_end(&mut data)?;
+
+        // Parse metadata (catch panic, because weird library)
+        let reader = std::panic::catch_unwind(|| {
+            PcmReader::new(&data)
+        }).map_err(|_| "Not an AIFF file")?;
+        let specs = reader.get_pcm_specs();
+
+        // Decode the file (because the library is weeeird)
+        let mut samples = vec![0i16; specs.num_channels as usize * specs.num_samples as usize];
+        let mut i = 0;
+        for sample in 0..specs.num_samples {
+            for channel in 0..specs.num_channels {
+                let s = reader.read_sample(channel as u32, sample).map_err(|e| format!("Failed decoding AIFF: {e}"))?;
+                samples[i] = (s * i16::MAX as f32) as i16;
+                i += 1;
+            }
+        }
+
+        Ok(AIFFDecoder {
+            channels: specs.num_channels as u32,
+            samples: specs.num_samples,
+            sample_rate: specs.sample_rate,
+            index: 0,
+            buffer: samples,
+        })
+    }
+}
+
+impl Source for AIFFDecoder {
     fn current_frame_len(&self) -> Option<usize> {
         None
     }
 
     fn channels(&self) -> u16 {
-        self.snd.get_channels() as u16
+        self.channels as u16
     }
 
     fn sample_rate(&self) -> u32 {
-        self.snd.get_samplerate() as u32
+        self.sample_rate
     }
 
     fn total_duration(&self) -> Option<Duration> {
-        None
+        Some(Duration::from_secs_f32(self.samples as f32 / self.sample_rate as f32))
     }
 }
 
-impl Iterator for AIFFSource {
+impl Iterator for AIFFDecoder {
     type Item = i16;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Load more data
-        if self.position >= self.buffer.len() {
-            // Read to ndarray, because reading to slice produced bad data
-            let mut buffer = vec![0; 2048];
-            let nd_buffer = ArrayViewMut2::<i16>::from_shape((1024, 2), &mut buffer).ok()?;
-            let read = self.snd.read_to_ndarray(nd_buffer).ok()?;
-            if read == 0 {
-                return None;
-            }
-
-            self.buffer = buffer;
-            self.position = 0;
+        if self.index >= self.buffer.len() {
+            return None;
         }
-
-        // Get sample
-        let s = self.buffer[self.position];
-        self.position += 1;
-        Some(s)
+        let sample = self.buffer[self.index];
+        self.index += 1;
+        Some(sample)
     }
 }

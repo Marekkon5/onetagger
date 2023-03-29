@@ -12,8 +12,6 @@ pub mod wav;
 pub mod ogg;
 pub mod alac;
 pub mod flac;
-
-#[cfg(feature = "aiff")]
 pub mod aiff;
 
 
