@@ -1,10 +1,12 @@
-use std::{error::Error, ffi::c_void};
+use std::error::Error;
+use std::ffi::c_void;
 use std::path::PathBuf;
 use std::io::Cursor;
 use base64::Engine;
 use libloading::{Library, Symbol};
-use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp, deezer};
-use image::{io::Reader as ImageReader, ImageOutputFormat};
+use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp, deezer, musixmatch};
+use image::io::Reader as ImageReader;
+use image::ImageOutputFormat;
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
 use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag};
@@ -36,6 +38,7 @@ impl AutotaggerPlatforms {
         AutotaggerPlatforms::add_builtin::<bpmsupreme::BPMSupremeBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<bandcamp::BandcampBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<deezer::DeezerBuilder>(&mut output);
+        AutotaggerPlatforms::add_builtin::<musixmatch::MusixmatchBuilder>(&mut output);
 
         // Custom
         let mut platforms = AutotaggerPlatforms(output);
@@ -62,6 +65,7 @@ impl AutotaggerPlatforms {
                 "bpmsupreme" => Box::new(bpmsupreme::BPMSupremeBuilder::new()),
                 "bandcamp" => Box::new(bandcamp::BandcampBuilder::new()),
                 "deezer" => Box::new(deezer::DeezerBuilder::new()),
+                "musixmatch" => Box::new(musixmatch::MusixmatchBuilder::new()),
                 _ => unreachable!()
             };
             Some(platform)
