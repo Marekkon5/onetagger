@@ -169,7 +169,11 @@ impl AutotaggerSource for Discogs {
         }
         
         // Search
-        let query = format!("{} {}", MatchingUtils::clean_title(info.title()?), info.artist()?);
+        let query = format!(
+            "{} {}", 
+            MatchingUtils::clean_title(info.title()?), 
+            MatchingUtils::clean_artist_searching(info.artist()?)
+        );
         debug!("Discogs query: {query}");
         let mut results = self.search(Some("release,master"), Some(&query), None, None)?;
         // Fallback

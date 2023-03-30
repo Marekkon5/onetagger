@@ -734,6 +734,14 @@ impl MatchingUtils {
         Self::clean_title_step7(&input)
     }
 
+    /// Clean artist for searching on platforms
+    pub fn clean_artist_searching(input: &str) -> String {
+        let out = Self::clean_title_step1(&input.to_lowercase());
+        // Remove potential feat.
+        let out = Self::clean_title_step5(&out);
+        out.trim().to_string()
+    }
+
     /// Match atleast 1 artist
     pub fn match_artist(a: &Vec<String>, b: &Vec<String>, strictness: f64) -> bool {
         // Exact match atleast 1 artist
