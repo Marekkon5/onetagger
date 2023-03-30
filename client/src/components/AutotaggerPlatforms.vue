@@ -32,6 +32,16 @@
                                             <span>Platform requires an account</span>
                                         </q-tooltip>
                                     </span>
+
+                                    <!-- Lyrics icon -->
+                                    <span v-if='hasLyrics(platform)'>
+                                        <span class='q-pl-xs text-grey-8'>
+                                            <q-icon name='mdi-subtitles' size='xs' class='q-pb-xs'></q-icon>
+                                        </span>
+                                        <q-tooltip>
+                                            <span>Platform can fetch lyrics</span>
+                                        </q-tooltip>
+                                    </span>
     
                                 </div>
                             </div>
@@ -56,6 +66,7 @@
 import { onMounted } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
+import { AutotaggerPlatform } from '../scripts/autotagger';
 
 
 const { dense } = defineProps({
@@ -80,6 +91,11 @@ function isEnabled(platform: string) {
 // Sync platforms order to config
 function syncPlatforms() {
     $1t.config.value.platforms = $1t.info.value.platforms.map((p) => p.id).filter((p) => $1t.config.value.platforms.includes(p));
+}
+
+/// Does the platform have lyrics
+function hasLyrics(platform: AutotaggerPlatform) {
+    return platform.supportedTags.includes('unsyncedLyrics') || platform.supportedTags.includes('syncedLyrics');
 }
 
 onMounted(() => {
