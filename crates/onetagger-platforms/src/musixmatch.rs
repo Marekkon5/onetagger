@@ -297,9 +297,9 @@ impl AutotaggerSourceBuilder for MusixmatchBuilder {
         PlatformInfo {
             id: "musixmatch".to_string(),
             name: "Musixmatch".to_string(),
-            description: "Musixmatch lyrics".to_string(),
+            description: "Fetch lyrics from the largest lyrics platform in the world".to_string(),
             version: "1.0.0".to_string(),
-            icon: &[],
+            icon: include_bytes!("../assets/musixmatch.png"),
             max_threads: 1,
             custom_options: PlatformCustomOptions::new(),
             supported_tags: supported_tags!(SyncedLyrics, UnsyncedLyrics),

@@ -36,7 +36,7 @@
                                     <!-- Lyrics icon -->
                                     <span v-if='hasLyrics(platform)'>
                                         <span class='q-pl-xs text-grey-8'>
-                                            <q-icon name='mdi-subtitles' size='xs' class='q-pb-xs'></q-icon>
+                                            <q-icon name='mdi-microphone' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
                                             <span>Platform can fetch lyrics</span>
