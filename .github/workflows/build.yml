@@ -142,12 +142,6 @@ jobs:
       run: |
         export ANDROID_NDK_HOME="${{ steps.setup-ndk.outputs.ndk-path }}"
 
-    - name: Install dependencies
-      run: |
-        rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
-        cargo install flutter_rust_bridge_codegen
-        cargo install cargo-ndk
-
     - name: Setup signing
       env:
         KEY_JKS: ${{ secrets.KEY_JKS }}
@@ -158,6 +152,17 @@ jobs:
         echo "$KEY_JKS" | base64 -d > android/android/key.jks
         echo "storePassword=$STORE_PASSWORD\nkeyPassword=$KEY_PASSWORD\nkeyAlias=$KEY_ALIAS\nstoreFile=`pwd`/android/android/key.jks\n" > android/android/key.properties
     
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+
+    - name: Install dependencies
+      run: |
+        rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+        cargo install flutter_rust_bridge_codegen
+        cargo install cargo-ndk
+
     - name: Build dependencies
       run: |
         cd android
