@@ -409,7 +409,10 @@ class _AutoTaggerPlatformSpecificScreenState extends State<AutoTaggerPlatformSpe
 
   /// Get the platforms
   List<AutoTaggerPlatform> platforms() {
-    return autoTaggerConfig.platforms.map((p) => autoTaggerPlatforms.firstWhere((pl) => pl.id == p)).toList(growable: false);
+    return autoTaggerConfig.platforms
+      .map((p) => autoTaggerPlatforms.firstWhere((pl) => pl.id == p))
+      .where((p) => p.id == 'spotify' || p.platform.customOptions.options.isNotEmpty)
+      .toList(growable: false);
   }
 
   @override
@@ -441,7 +444,10 @@ class _AutoTaggerPlatformSpecificScreenState extends State<AutoTaggerPlatformSpe
               Container(height: 16.0),
               const Divider()
             ],
-          )
+          ),
+
+        // Padding for FAB
+        Container(height: 48.0),
       ],
     );
   }
@@ -726,7 +732,7 @@ class _AutoTaggerAdvancedScreenState extends State<AutoTaggerAdvancedScreen> {
           ),
         ),
         TagSeparatorsWidget(autoTaggerConfig.separators, (TagSeparators separators) => autoTaggerConfig.separators = separators),
-        Container(height: 8.0),
+        Container(height: 48.0),
       ],
     );
   }
@@ -904,7 +910,7 @@ class _SpotifyConfigWidgetState extends State<SpotifyConfigWidget> {
               TextSpan(
                 text: 'Spotify Developer',
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
-                recognizer: TapGestureRecognizer()..onTap = () => launchUrl(Uri.parse('https://developer.spotify.com/dashboard'), mode: LaunchMode.externalApplication)
+                recognizer: TapGestureRecognizer()..onTap = () => launchUrl(Uri.parse('https://developer.spotify.com/'), mode: LaunchMode.externalApplication)
               ),
               const TextSpan(text: ' account & create an app\n'),
               const TextSpan(text: '2. In settings set the Callback URL to: '),

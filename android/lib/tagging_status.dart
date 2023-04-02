@@ -28,10 +28,6 @@ class TaggerStatus {
     }
     statuses.insert(0, statusWrap);
     progress = statusWrap.progress;
-    if (progress >= 1.0) {
-      done = true;
-      doneTime = DateTime.now();
-    }
   }
 
   // Count by state
@@ -87,6 +83,18 @@ class _TaggingStatusScreenState extends State<TaggingStatusScreen> {
         var statusWrap = TaggingStatusWrap.fromJson(jsonDecode(statusJson));
         status.addStatus(statusWrap);
       }
+
+      // Check if is done
+      if (!status.done && await onetaggerAndroid.isDone()) {
+        status.done = true;
+        status.doneTime = DateTime.now();
+        timer.cancel();
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Tagging finished!'),
+        ));
+      }
+
       setState(() {});
     });
   }

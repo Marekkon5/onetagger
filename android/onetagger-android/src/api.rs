@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::Result;
@@ -13,7 +14,7 @@ use onetagger_tagger::{TaggerConfig, AudioFileInfo};
 lazy_static::lazy_static! {
     static ref STATUS_CHANNEL: (Sender<TaggingStatusWrap>, Receiver<TaggingStatusWrap>) = unbounded();
     static ref LOG: Arc<Mutex<Vec<LogMessage>>> = Arc::new(Mutex::new(vec![]));
-
+    static ref IS_DONE: AtomicBool = AtomicBool::new(false);
 }
 
 static LOGGER: CustomLogger = CustomLogger;
@@ -94,6 +95,7 @@ pub fn logs() -> Vec<LogMessage> {
 
 /// Start autotagger
 pub fn start_at(path: String, config_json: String) -> Result<()> {
+    IS_DONE.store(false, Ordering::SeqCst);
     let config: TaggerConfig = serde_json::from_str(&config_json)?;
     let files = AudioFileInfo::get_file_list(&path, config.include_subfolders);
     std::thread::spawn(move || {
@@ -101,6 +103,7 @@ pub fn start_at(path: String, config_json: String) -> Result<()> {
         for status in rx {
             STATUS_CHANNEL.0.send(status).ok();
         }
+        IS_DONE.store(true, Ordering::SeqCst);
     });
     Ok(())
 }
@@ -111,6 +114,11 @@ pub fn get_statuses() -> Vec<String> {
         .try_iter()
         .map(|s| serde_json::to_string(&s).unwrap())
         .collect()
+}
+
+/// Is tagging done
+pub fn is_done() -> bool {
+    IS_DONE.load(Ordering::SeqCst)
 }
 
 /// Get default custom platform options
