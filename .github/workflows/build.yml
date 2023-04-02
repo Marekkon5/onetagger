@@ -131,6 +131,23 @@ jobs:
       with: 
         flutter-version: '3.7.x'
 
+    - name: Setup Android NDK
+      id: setup-ndk
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25
+        add-to-path: true
+    
+    - name: Add NDK to ENV
+      run: |
+        export ANDROID_NDK_HOME = ${{ steps.setup-ndk.outputs.ndk-path }}
+
+    - name: Install dependencies
+      run: |
+        rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+        cargo install flutter_rust_bridge_codegen
+        cargo install cargo-ndk
+
     - name: Setup signing
       env:
         KEY_JKS: ${{ secrets.KEY_JKS }}
