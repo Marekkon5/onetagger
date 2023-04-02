@@ -143,8 +143,8 @@ jobs:
     
     - name: Build dependencies
       run: |
-        flutter pub get
         cd android
+        flutter pub get
         chmod +x build.sh
         ./build.sh
         cd ..
