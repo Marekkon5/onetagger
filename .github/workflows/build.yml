@@ -9,7 +9,7 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install dependencies
       run: |
@@ -61,7 +61,7 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       
     - name: Install NodeJS
       uses: actions/setup-node@v3
@@ -118,7 +118,7 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Setup Java
       uses: actions/setup-java@v3
@@ -156,7 +156,7 @@ jobs:
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       run: |
         echo "$KEY_JKS" | base64 -d > android/android/key.jks
-        echo "storePassword=$STORE_PASSWORD\nkeyPassword=$KEY_PASSWORD\nkeyAlias=$KEY_ALIAS\nstoreFile=../key.jks" > android/android/key.properties
+        echo "storePassword=$STORE_PASSWORD\nkeyPassword=$KEY_PASSWORD\nkeyAlias=$KEY_ALIAS\nstoreFile=`pwd`/android/android/key.jks\n" > android/android/key.properties
     
     - name: Build dependencies
       run: |
