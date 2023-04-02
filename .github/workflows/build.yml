@@ -140,7 +140,7 @@ jobs:
     
     - name: Add NDK to ENV
       run: |
-        export ANDROID_NDK_HOME = ${{ steps.setup-ndk.outputs.ndk-path }}
+        export ANDROID_NDK_HOME="${{ steps.setup-ndk.outputs.ndk-path }}"
 
     - name: Install dependencies
       run: |
