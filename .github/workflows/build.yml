@@ -150,12 +150,10 @@ jobs:
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       run: |
         echo "$KEY_JKS" | base64 -d > android/android/key.jks
-        echo "storePassword=$STORE_PASSWORD\nkeyPassword=$KEY_PASSWORD\nkeyAlias=$KEY_ALIAS\nstoreFile=`pwd`/android/android/key.jks\n" > android/android/key.properties
-    
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        limit-access-to-actor: true
+        echo "storePassword=$STORE_PASSWORD" >> android/android/key.properties
+        echo "keyPassword=$KEY_PASSWORD" >> android/android/key.properties
+        echo "keyAlias=$KEY_ALIAS" >> android/android/key.properties
+        echo "storeFile=`pwd`/android/android/key.jks" >> android/android/key.properties
 
     - name: Install dependencies
       run: |
