@@ -161,6 +161,12 @@ impl Settings {
 
     /// Get app data folder
     pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
+        // Android data dir override
+        #[cfg(target_os = "android")]
+        if let Ok(dir) = std::env::var("__ANDROID_DATA_DIR") {
+            return Ok(PathBuf::from(dir));
+        }
+
         let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
         if !root.preference_dir().exists() {
             std::fs::create_dir_all(root.preference_dir())?;

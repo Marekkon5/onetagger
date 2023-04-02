@@ -12,6 +12,8 @@ members = [
     "crates/onetagger-platforms",
 ]
 
+exclude = ["android", "android/onetagger-android"]
+
 # Optimize for size
 [profile.release]
 opt-level = 3

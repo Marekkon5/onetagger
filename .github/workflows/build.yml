@@ -111,3 +111,64 @@ jobs:
         name: onetagger-win-cli
         path: dist/OneTagger-windows-cli.exe
       
+  build-android:
+    name: Android
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with: 
+        flutter-version: '3.7.x'
+
+    - name: Setup signing
+      env:
+        KEY_JKS: ${{ secrets.KEY_JKS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      run: |
+        echo "$KEY_JKS" | base64 -d > android/android/key.jks
+        echo "storePassword=$STORE_PASSWORD\nkeyPassword=$KEY_PASSWORD\nkeyAlias=$KEY_ALIAS\nstoreFile=../key.jks" > android/android/key.properties
+    
+    - name: Build dependencies
+      run: |
+        flutter pub get
+        cd android
+        chmod +x build.sh
+        ./build.sh
+        cd ..
+    
+    - name: Build APK
+      run: |
+        cd android
+        flutter build apk --release --split-per-abi
+        cd ..
+    
+    - name: Upload arm64
+      uses: actions/upload-artifact@v3
+      with:
+        name: onetagger-android-arm64
+        path: android/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+    - name: Upload arm32
+      uses: actions/upload-artifact@v3
+      with:
+        name: onetagger-android-arm32
+        path: android/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+
+    - name: Upload x86_64
+      uses: actions/upload-artifact@v3
+      with:
+        name: onetagger-android-x86_64
+        path: android/build/app/outputs/flutter-apk/app-x86_64-release.apk
