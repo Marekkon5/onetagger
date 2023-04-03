@@ -1,3 +1,25 @@
+# 1.6.0
+**(TBA)**
+
+### OneTagger:
+- Support for WAV (ID3) and OGG files
+
+### Auto Tag:
+- **Android version**
+- Added Bandcamp
+- Added Musixmatch
+- Added Deezer
+- Lyrics support
+- Logging in custom platforms
+- Stop button
+- Better platform info (supported tags, whether auth is required)
+- Profiles (multiple configurations)
+
+### Other
+- Many bug fixes in all sections
+- Dropped dependency on libsndfile, so compilling 1T should be less painful and more portable
+
+
 # 1.5.1
 **(31.10.2022)**
 
