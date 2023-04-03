@@ -88,6 +88,7 @@ class _TaggingStatusScreenState extends State<TaggingStatusScreen> {
       if (!status.done && await onetaggerAndroid.isDone()) {
         status.done = true;
         status.doneTime = DateTime.now();
+        status.progress = 1.0;
         timer.cancel();
 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

@@ -37,6 +37,7 @@ class _AutoTaggerScreenState extends State<AutoTaggerScreen> {
   /// Start tagging
   void start() async {
     // Save settings
+    autoTaggerConfig.spotify = settings.spotifyConfig;
     settings.autoTaggerConfig = autoTaggerConfig;
     await settings.save();
     // Start
@@ -228,7 +229,7 @@ class _AutoTaggerInputTagsState extends State<AutoTaggerInputTags> {
   /// Try to browse for a path
   Future<String> browseFolder() async {
     // Get storage permission
-    if (!await Permission.manageExternalStorage.request().isGranted) {
+    if (!await Permission.storage.request().isGranted && !await Permission.manageExternalStorage.request().isGranted) {
       throw Exception("Storage permission not granted");
     }
     // Get path from SAF
