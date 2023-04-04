@@ -177,6 +177,7 @@ impl AudioFileFormat {
             "mp3" => Some(AudioFileFormat::MP3),
             "m4a" | "mp4" => Some(AudioFileFormat::MP4),
             "wav" => Some(AudioFileFormat::WAV),
+            "ogg" | "opus" | "spx" | "oga" => Some(AudioFileFormat::OGG),
             _ => None
         }
     }
