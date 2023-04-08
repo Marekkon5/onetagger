@@ -73,7 +73,7 @@ impl Musixmatch {
     }
 
     /// Fetch the lyrics
-    pub fn fetch_lyrics(&self, title: &str, artist: &str) -> Result<MusixmatchMacroCallsBody<MusixmatchBody>, Box<dyn Error>> {
+    pub fn fetch_lyrics(&self, title: &str, artist: &str, retry_count: u32) -> Result<MusixmatchMacroCallsBody<MusixmatchBody>, Box<dyn Error>> {
         let r: MusixmatchResponse<MusixmatchMacroCallsBody<MusixmatchBody>> = 
             self.get("macro.subtitles.get", &[
                 ("format", "json"),
@@ -83,6 +83,20 @@ impl Musixmatch {
                 ("q_artist", artist),
                 ("q_track", title),
             ])?;
+
+        // Captcha, retry
+        if r.message.header.status_code == 401 {
+            if retry_count >= 3 {
+                error!("Musixmatch captcha too many retries reached!");
+                self.fetch_token()?;
+                return Err("Too many retries!".into());
+            }
+            let delay = 2u64.pow(retry_count + 3);
+            warn!("Musixmatch captcha, waiting for {delay}s...");
+            std::thread::sleep(Duration::from_secs(delay));
+            return self.fetch_lyrics(title, artist, retry_count + 1);
+        }
+
         Ok(r.message.body.ok_or("Missing response body")?)
     }
 }
@@ -94,7 +108,7 @@ impl AutotaggerSource for Musixmatch {
             return Ok(None);
         }
         let _ = info.artist()?;
-        let lyrics = self.fetch_lyrics(info.title()?, &info.artists.join(","))?;
+        let lyrics = self.fetch_lyrics(info.title()?, &info.artists.join(","), 0)?;
         // Output
         let mut track = Track {
             platform: "musixmatch".to_string(),
@@ -145,6 +159,8 @@ impl AutotaggerSource for Musixmatch {
             }
         }
 
+        // debug!("{:?}", lyrics);
+
         Ok(None)
     }
 }
@@ -156,8 +172,13 @@ pub struct MusixmatchResponse<B> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MusixmatchHeader<B> {
-    pub header: Value,
+    pub header: MusixmatchHeaderInner,
     pub body: Option<B>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MusixmatchHeaderInner {
+    pub status_code: i32
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
