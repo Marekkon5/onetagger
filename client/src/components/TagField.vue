@@ -17,6 +17,7 @@
         @input='onInput'
         @input-value='onInputValue'
         @filter='onFilter'
+        popup-content-class='no-shadow'
     ></q-select>
 
 

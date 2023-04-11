@@ -8,6 +8,7 @@
             label='Profile'
             class='col'
             @update:model-value="loadProfile"
+            popup-content-class='no-shadow'
         ></q-select>
 
         <!-- Save current profile -->

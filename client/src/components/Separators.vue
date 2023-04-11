@@ -4,14 +4,14 @@
         <q-input
             v-model='id3'
             filled
-            label='ID3 (MP3 + AIFF)'
+            label='ID3 (MP3/AIFF/WAV)'
             class='col-4 q-pr-sm'
             @update:model-value='save'
         ></q-input>
         <q-input
             v-model='vorbis'
             filled
-            label='Vorbis (FLAC + OGG + OPUS, default is empty)'
+            label='Vorbis (FLAC/OGG/OPUS)'
             class='col-4 q-px-sm'
             @update:model-value='save'
         ></q-input>

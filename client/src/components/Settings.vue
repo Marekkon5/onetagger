@@ -74,7 +74,8 @@
                     label='Tag type'
                     :options='["rating", "symbol"]'
                     class='q-mb-lg'
-                    style='margin-bottom: 40px;'                    
+                    style='margin-bottom: 40px;'     
+                    popup-content-class='no-shadow'               
                 ></q-select>
                 
                 <div v-if='$1t.settings.value.quickTag.energyTag.type != "rating"' class='row'>
@@ -121,6 +122,7 @@
                                     :label-color='$1t.settings.value.quickTag.moods[i].color'
                                     :color='$1t.settings.value.quickTag.moods[i].color'
                                     class='col-5 q-pr-md'
+                                    popup-content-class='no-shadow'
                                 ></q-select>
                                 <KeybindVue
                                     class='col-2 text-center' 
@@ -133,7 +135,7 @@
                     <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Add new mood</div>
                     <div class='row'>
                         <q-input v-model='newMood.mood' filled dense class='col-5 q-pr-md q-mb-lg'></q-input>
-                        <q-select v-model='newMood.color' :options='colors' filled dense class='col-5 q-pr-md'></q-select>
+                        <q-select v-model='newMood.color' :options='colors' filled dense class='col-5 q-pr-md' popup-content-class='no-shadow'></q-select>
                         <div class='col-1'>
                         <q-btn flat round icon='mdi-plus' @click='addMood' color='primary'></q-btn>  
                         </div>                      
@@ -300,6 +302,11 @@
                 <q-checkbox
                     v-model='$1t.settings.value.autoTaggerSinglePage'
                     label="Show as single page"
+                    class='checkbox'
+                ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.value.showAutoTaggerProfiles'
+                    label="Show profiles"
                     class='checkbox'
                 ></q-checkbox><br>
                 <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Quick Tag</div>

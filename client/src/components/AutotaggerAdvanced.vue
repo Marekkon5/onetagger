@@ -149,6 +149,7 @@
         v-model='$1t.config.value.multipleMatches' 
         :options='multipleMatches'
         label='Multiple matches ordering'
+        popup-content-class='no-shadow'
     ></q-select>    
 
     
@@ -266,6 +267,7 @@
             label='Genres/Styles tag'
             style='margin-bottom: 48px;'
             @update:model-value='updateStyleOption'
+            popup-content-class='no-shadow'
         ></q-select>
         <!-- Styles custom tag -->
         <div v-if='$1t.config.value.stylesOptions == "customTag"'>

@@ -12,7 +12,7 @@
                 {{genre.genre}}
 
                 <!-- Subgenres -->
-                <q-menu v-if='genre.subgenres' :model-value='mouseOver == i'>
+                <q-menu v-if='genre.subgenres' :model-value='mouseOver == i' class='no-shadow'>
                     <q-list @mouseleave="mouseOver = -1" class='bg-darker'>
                         <div v-for='(subgenre, j) in genre.subgenres' :key='"sg"+j'>
                             <q-item clickable @click='setGenre(subgenre)'>

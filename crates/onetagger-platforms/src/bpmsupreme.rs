@@ -141,7 +141,7 @@ impl BPMSupremeSong {
             release_date: self.created_at.map(|c| c.naive_utc().date()),
             track_id: Some(self.id.to_string()),
             mood: self.depth_analysis.map(|da| da.mood),
-            url: format!("https://app.bpmsupreme.com/share/{}", self.id),
+            url: format!("https://app.bpmsupreme.com/d/album/{}", self.id),
             catalog_number: Some(self.id.to_string()),
             ..Default::default()
         };

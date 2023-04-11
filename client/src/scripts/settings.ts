@@ -8,6 +8,7 @@ class Settings {
     autoTaggerSinglePage: boolean = false;
     autoTaggerProfiles: AutotaggerProfile[] = [];
     autoTaggerProfile: string = 'Default';
+    showAutoTaggerProfiles: boolean = false;
     primaryColor: string = '#00D2BF';
     volume: number = 0.05;
     helpButton: boolean = true;

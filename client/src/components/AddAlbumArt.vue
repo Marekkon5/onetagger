@@ -10,6 +10,7 @@
                 label='Type'
                 :options='types'
                 v-model='type'
+                popup-content-class='no-shadow'
             ></q-select>
             <q-input
                 filled

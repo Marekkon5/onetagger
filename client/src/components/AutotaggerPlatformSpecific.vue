@@ -47,6 +47,7 @@
                     :options='option.value.values'
                     class='select'
                     :label='option.label'
+                    popup-content-class='no-shadow'
                 ></q-select>
             </div>
 

@@ -105,9 +105,6 @@
             </q-checkbox>
             <!-- Mood -->
             <q-checkbox :disable='!isSupported("mood")' class='tag checkbox text-grey-4' label='Mood' v-model='$1t.config.value.mood'>
-                <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2'>
-                    <q-tooltip>Available from BPM Supreme</q-tooltip>
-                </q-icon>
             </q-checkbox>
             <!-- Catalog number -->
             <q-checkbox :disable='!isSupported("catalogNumber")' class='tag checkbox text-grey-4' label='Catalog Number' v-model='$1t.config.value.catalogNumber'></q-checkbox>
