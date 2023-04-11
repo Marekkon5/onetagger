@@ -151,9 +151,21 @@ impl TagImpl for FLACTag {
 
     // Set/Get album art
     fn set_art(&mut self, kind: CoverType, mime: &str, _description: Option<&str>, data: Vec<u8>) {
+        // https://en.wikipedia.org/wiki/Vorbis_comment
+        // FLAC has a smaller limit of 24-bit in a METADATA_BLOCK_VORBIS_COMMENT, 
+        // because it stores thumbnails and cover art in binary big-endian METADATA_BLOCK_PICTUREs 
+        // outside of the FLAC tags.
+        // 
+        // Cap it at 16M exactly, instead of 2^24, because the entire BLOCK is 24bits, not just the image
+        if data.len() >= 16_000_000 {
+            error!("Cannot add FLAC art, because of the 24bit limit");
+            return;
+        }
+
         self.tag.remove_picture_type(self.picture_type(&kind));
         self.tag.add_picture(mime, self.picture_type(&kind), data);
     }
+
     fn get_art(&self) -> Vec<crate::Picture> {
         self.tag.pictures().map(
             |p| crate::Picture {
