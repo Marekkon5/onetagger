@@ -377,6 +377,7 @@
                 <q-color 
                     v-model='$1t.settings.value.primaryColor'
                     @change='colorChange'
+                    flat
                 ></q-color>
                 <q-btn
                     @click='$1t.settings.value.primaryColor = "#00d2bf"; colorChange()'
