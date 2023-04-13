@@ -21,7 +21,11 @@ impl TemplateParser {
         let mut output = String::new();
         for token in &self.tokens {
             if let Some(data) = token.token().get_value(None, info, config) {
-                output.push_str(&data.to_string(&config.separator));
+                match token {
+                    // Do not sanitize constants
+                    TokenType::Constant(_) => output.push_str(&data.to_string(&config.separator)),
+                    _ => output.push_str(&data.sanitize().to_string(&config.separator))
+                }
             }
         }
         output
@@ -458,8 +462,7 @@ impl TokenVariable {
 
 impl Token for TokenVariable {
     fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
-        // Get sanitized value
-        Some(self.get_raw_value(info)?.sanitize())
+        Some(self.get_raw_value(info)?)
     }
 }
 
