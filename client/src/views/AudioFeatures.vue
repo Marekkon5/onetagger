@@ -134,17 +134,20 @@
                 </div>
 
                 <!-- Start FAB -->
-                <q-btn 
-                    fab push
-                    icon='mdi-play' 
-                    color='primary'
-                    :disable='!config.path && !playlist.data'
-                    @click='start'                
-                >
-                <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                    <span class='text-weight-bold'>START</span>
-                </q-tooltip>
-                </q-btn>
+                <div>
+                    <q-btn 
+                        fab 
+                        push
+                        icon='mdi-play' 
+                        color='primary'
+                        :disable='!config.path && !playlist.data'
+                        @click='start'                
+                    >
+                        <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                            <span class='text-weight-bold'>START</span>
+                        </q-tooltip>
+                    </q-btn>
+                </div>
             </div>
         </q-page-sticky>
     </div>

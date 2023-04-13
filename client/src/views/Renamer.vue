@@ -127,19 +127,23 @@
     </div>
 
     <!-- Start FAB -->
-    <q-page-sticky position='bottom-right' :offset='[36, 24]'>
-        <q-btn 
-            fab 
-            push
-            icon='mdi-play' 
-            color='primary'
-            :disabled='!startable'
-            @click='start(false)'>
-
-            <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                <span class='text-weight-bold'>START</span>
-            </q-tooltip>
-        </q-btn>
+    <q-page-sticky position='bottom-right' :offset='[36, 26]'>
+        <div class='row'>
+            <div>
+                <q-btn 
+                    fab 
+                    push
+                    icon='mdi-play' 
+                    color='primary'
+                    :disabled='!startable'
+                    @click='start(false)'>
+        
+                    <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
+                        <span class='text-weight-bold'>START</span>
+                    </q-tooltip>
+                </q-btn>
+            </div>
+        </div>
     </q-page-sticky>
 
     <!-- Loading -->
