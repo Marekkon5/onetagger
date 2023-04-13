@@ -2171,6 +2171,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "lofty"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd1b8e18439c8fabf316e0a87e9cdca9667e90bcf5a080946a264fd60bbed5e8"
+dependencies = [
+ "base64 0.21.0",
+ "byteorder",
+ "flate2",
+ "lofty_attr",
+ "log",
+ "ogg_pager",
+ "once_cell",
+ "paste",
+]
+
+[[package]]
 name = "lofty_attr"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2937,7 +2953,7 @@ version = "0.1.0"
 dependencies = [
  "alac",
  "hound",
- "lofty",
+ "lofty 0.11.0",
  "mp3-duration",
  "mp4 0.13.0",
  "onetagger-shared",
@@ -2992,7 +3008,7 @@ dependencies = [
  "base64 0.21.0",
  "chrono",
  "id3",
- "lofty",
+ "lofty 0.12.1",
  "log",
  "metaflac",
  "mp4ameta",

@@ -22,7 +22,7 @@ static ID3_RIFF: Lazy<HashMap<&'static str, ChunkId>> = Lazy::new(|| {
     m.insert("TPE1", ChunkId::new("IART").unwrap());
     m.insert("COMM", ChunkId::new("ICMT").unwrap());
     m.insert("TCON", ChunkId::new("IGNR").unwrap());
-    m.insert("ISRC", ChunkId::new("ISRC").unwrap());
+    m.insert("TSRC", ChunkId::new("ISRC").unwrap());
     m
 });
 

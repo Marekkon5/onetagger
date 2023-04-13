@@ -54,7 +54,7 @@ impl VorbisTag {
                 true => format!("{}-{:02}-{:02}", date.year, date.month.unwrap(), date.day.unwrap()),
                 false => date.year.to_string()
             };
-            self.tag.insert(tag.to_string(), v, true);
+            self.tag.insert(tag.to_string(), v);
         }
     }
 
@@ -208,12 +208,12 @@ impl TagImpl for VorbisTag {
         if overwrite || self.tag.get(&tag).is_none() || self.tag.get_all(tag).next().is_none() {
             // Separator override
             if let Some(separator) = &self.separator {
-                self.tag.insert(tag.to_string(), value.join(separator), true);
+                self.tag.insert(tag.to_string(), value.join(separator));
                 return;
             }
             
             for value in value {
-                self.tag.insert(tag.to_string(), value, false);
+                self.tag.push(tag.to_string(), value);
             }
         }
     }
@@ -244,7 +244,7 @@ impl TagImpl for VorbisTag {
         if !overwrite || self.get_raw("LYRICS").is_some() {
             return;
         }
-        self.tag.insert("LYRICS".to_string(), lyrics.text(), true);
+        self.tag.insert("LYRICS".to_string(), lyrics.text());
     }
 
     fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool) {
