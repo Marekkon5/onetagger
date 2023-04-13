@@ -144,7 +144,7 @@
     </div>
 
     <!-- Stop FAB -->
-    <q-page-sticky position="bottom-right" :offset='[16, 32]' v-if='$1t.lock.value.locked'>
+    <q-page-sticky position="bottom-right" :offset='[36, 24]' v-if='$1t.lock.value.locked'>
         <q-btn @click='stop' fab icon='mdi-stop' color='red' :loading='stopping' :disabled='stopping'></q-btn>
     </q-page-sticky>
 
