@@ -127,7 +127,7 @@
     </div>
 
     <!-- Start FAB -->
-    <q-page-sticky position='bottom-right' :offset='[36, 26]'>
+    <q-page-sticky position='bottom-right' :offset='[36, 34]'>
         <div class='row'>
             <div>
                 <q-btn 

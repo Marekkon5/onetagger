@@ -122,7 +122,7 @@
         <div class='q-my-xl'></div>
 
         <!-- Start -->
-        <q-page-sticky position='bottom-right' :offset='[36, 24]'>
+        <q-page-sticky position='bottom-right' :offset='[36, 32]'>
             <div class='row'>
                 <!-- CLI FAB -->
                 <div class='q-mr-md q-mt-md'>
