@@ -1,5 +1,5 @@
 # 1.6.0
-**(TBA)**
+**(14.04.2023)**
 
 ### OneTagger:
 - Support for WAV (ID3) and OGG files
