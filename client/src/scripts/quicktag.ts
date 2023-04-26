@@ -300,7 +300,8 @@ class QTTrack implements QuickTagFile {
                 // Original tag data
                 if (existingIndex == -1) {
                     values = this.tags[field]??[];
-                    values = values.filter(v => !this.settings.custom[i].values.find(t => t.val == v));
+                    values = values
+                        .filter(v => v.trim() && !this.settings.custom[i].values.find(t => t.val == v));
                 }
 
                 // Multiple changes for the same tag
