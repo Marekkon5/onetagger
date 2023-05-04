@@ -263,7 +263,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         url: format!("https://open.spotify.com/track/{}", track.id.as_ref().map(|i| i.id()).unwrap_or("")),
         track_id: track.id.map(|i| i.id().to_string()),
         release_id: track.album.id.map(|i| i.id().to_string()).unwrap_or(String::new()),
-        duration: track.duration,
+        duration: track.duration.to_std().unwrap(),
         track_number: Some(TrackNumber::Number(track.track_number as i32)),
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
         release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),

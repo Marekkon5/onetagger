@@ -212,6 +212,7 @@ impl TagImpl for VorbisTag {
                 return;
             }
             
+            self.tag.remove(tag).for_each(|_| {});
             for value in value {
                 self.tag.push(tag.to_string(), value);
             }
