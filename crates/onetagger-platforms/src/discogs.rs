@@ -446,7 +446,7 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
             max_threads: 1,
             version: "1.0.0".to_string(),
             requires_auth: true,
-            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, Genre, Style, AlbumArt, URL, Label, ReleaseDate, CatalogNumber, ReleaseId, Duration, TrackNumber, DiscNumber, TrackTotal),
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, Genre, Style, AlbumArt, URL, Label, ReleaseDate, CatalogNumber, ReleaseId, Duration, TrackNumber, DiscNumber, TrackTotal, OtherTags),
             custom_options: PlatformCustomOptions::new()
                 // Discogs token
                 .add_tooltip("token", "Token", 
