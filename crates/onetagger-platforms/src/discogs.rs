@@ -157,7 +157,11 @@ impl AutotaggerSource for Discogs {
                 let release = self.full_release(ReleaseType::Release, id)?;
                 // Exact track number match
                 if let Some(track_number) = info.track_number {
-                    return Ok(Some((1.0, release.get_track(track_number as usize - 1, &discogs_config))))
+                    if track_number as usize <= release.tracks.len() {
+                        return Ok(Some((1.0, release.get_track(track_number as usize - 1, &discogs_config))))
+                    } else {
+                        warn!("Track number out of bounds, searching normally...");
+                    }
                 }
                 // Match inside release
                 let mut tracks = vec![];
