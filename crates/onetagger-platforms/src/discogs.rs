@@ -168,7 +168,10 @@ impl AutotaggerSource for Discogs {
                 for i in 0..release.tracks.len() {
                     tracks.push(release.get_track(i, &discogs_config));
                 }
-                return Ok(MatchingUtils::match_track(&info, &tracks, &config, false));
+                match MatchingUtils::match_track(&info, &tracks, &config, false) {
+                    Some(o) => return Ok(Some(o)),
+                    None => warn!("Falling back to normal search..."),
+                }
             }
         }
         

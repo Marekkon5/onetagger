@@ -206,13 +206,14 @@ impl TagImpl for VorbisTag {
 
     fn set_raw(&mut self, tag: &str, value: Vec<String>, overwrite: bool) {
         if overwrite || self.tag.get(&tag).is_none() || self.tag.get_all(tag).next().is_none() {
+            self.tag.remove(tag).for_each(|_| {});
+            
             // Separator override
             if let Some(separator) = &self.separator {
-                self.tag.insert(tag.to_string(), value.join(separator));
+                self.tag.push(tag.to_string(), value.join(separator));
                 return;
             }
             
-            self.tag.remove(tag).for_each(|_| {});
             for value in value {
                 self.tag.push(tag.to_string(), value);
             }
