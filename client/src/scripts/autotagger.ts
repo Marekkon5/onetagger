@@ -102,6 +102,7 @@ class AutotaggerConfig {
     moveFailedPath?: string;
     writeLrc: boolean = false;
     enhancedLrc: boolean = false;
+    capitalizeGenres: boolean = false;
 
     spotify?: SpotifyConfig;
 

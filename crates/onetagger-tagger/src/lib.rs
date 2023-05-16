@@ -95,6 +95,7 @@ pub struct TaggerConfig {
     pub move_failed_path: Option<String>,
     pub write_lrc: bool,
     pub enhanced_lrc: bool,
+    pub capitalize_genres: bool,
     /// Tag the same track on multiple platforms
     pub multiplatform: bool,
 
@@ -178,6 +179,7 @@ impl Default for TaggerConfig {
             move_failed_path: None,
             write_lrc: false,
             enhanced_lrc: false,
+            capitalize_genres: false,
         }
     }
 }

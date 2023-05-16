@@ -125,15 +125,22 @@ impl TrackImpl for Track {
             tag.set_field(Field::Label, vec![self.label.as_ref().unwrap().to_string()], config.overwrite);
         }
         if config.genre && !self.genres.is_empty() {
-            if config.merge_genres {
+            let mut genres = if config.merge_genres {
                 // Merge with existing ones
                 let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
                 let mut genres = self.genres.clone().into_iter().filter(|g| !current.iter().any(|i| i.to_lowercase() == g.to_lowercase())).collect();
                 current.append(&mut genres);
-                tag.set_field(Field::Genre, current, config.overwrite); 
+                current
             } else {
-                tag.set_field(Field::Genre, self.genres.clone(), config.overwrite);
+                self.genres.clone()
+            };
+
+            // Capitalize genres
+            if config.capitalize_genres {
+                genres = genres.into_iter().map(|g| capitalize(&g)).collect();
             }
+
+            tag.set_field(Field::Genre, genres, config.overwrite);
         }
         if config.style && !self.styles.is_empty() {
             if config.styles_options == StylesOptions::CustomTag && config.styles_custom_tag.is_some() {
@@ -903,4 +910,16 @@ impl Tagger {
 pub struct TaggerFinishedData {
     pub failed_file: String,
     pub success_file: String
+}
+
+/// Capitalize every word
+/// https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust/38406885#38406885
+fn capitalize(input: &str) -> String {
+    input.split(" ").map(|w| {
+        let mut c = w.trim().chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str()
+        }
+    }).collect::<Vec<_>>().join(" ")
 }

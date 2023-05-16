@@ -137,6 +137,12 @@
             v-model='$1t.config.value.enhancedLrc'
         ></AdvancedSettingsToggle>
 
+        <AdvancedSettingsToggle 
+            label='Capitalize Genres'
+            tooltip='Capitalize all of the genres'
+            v-model='$1t.config.value.capitalizeGenres'
+        ></AdvancedSettingsToggle>
+
     </q-list>
 
     <!-- Multiple matches ordering -->
