@@ -327,6 +327,7 @@ class QTTrack implements QuickTagFile {
             path: this.path,
             separators: this.settings.separators,
             id3v24: this.settings.id3v24,
+            id3CommLang: this.settings.id3CommLang,
         };
     }
 

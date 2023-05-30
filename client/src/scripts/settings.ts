@@ -79,6 +79,7 @@ class QuickTagSettings {
     trackIndex: number = -1;
     separators: Separators = new Separators();
     noteTag: NoteTagSettings = new NoteTagSettings();
+    id3CommLang?: string;
 
     moods: QuickTagMood[] = [
         {mood: 'Happy', color: 'amber'},

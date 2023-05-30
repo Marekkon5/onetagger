@@ -422,7 +422,8 @@ pub struct TagChanges {
     changes: Vec<TagChange>,
     pub path: String,
     separators: TagSeparators,
-    id3v24: bool
+    id3v24: bool,
+    id3_comm_lang: Option<String>
 }
 
 #[cfg(feature = "tag")]
@@ -437,6 +438,12 @@ impl TagChanges {
         // Format specific changes
         if let Tag::ID3(id3) = &mut tag_wrap {
             id3.set_id3v24(self.id3v24);
+            if let Some(lang) = self.id3_comm_lang.as_ref() {
+                if !lang.is_empty() {
+                    id3.set_comm_lang(lang.to_string());
+                }
+            }
+
             for change in self.changes.clone() {
                 match change {
                     TagChange::ID3Comments {comments} => id3.set_comments(&comments),

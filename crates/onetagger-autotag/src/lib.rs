@@ -75,9 +75,15 @@ impl TrackImpl for Track {
         let mut tag_wrap = Tag::load_file(&info.path, true)?;
         tag_wrap.set_separators(&config.separators);
         let format = tag_wrap.format();
+
         // Configure format specific
         if let Tag::ID3(t) = &mut tag_wrap {
             t.set_id3v24(config.id3v24);
+            if let Some(lang) = config.id3_comm_lang.as_ref() {
+                if !lang.is_empty() {
+                    t.set_comm_lang(lang.to_string());
+                }
+            }
         }
         // MP4 Album art override
         if let Tag::MP4(mp4) = &mut tag_wrap {

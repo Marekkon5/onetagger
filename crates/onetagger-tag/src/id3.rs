@@ -398,6 +398,7 @@ impl TagImpl for ID3Tag {
                         text: String::new()
                     }
                 };
+                comment.lang = self.comm_lang.to_owned();
                 // Add value
                 self.tag.remove("COMM");
                 if !value.is_empty() {

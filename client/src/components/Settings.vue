@@ -204,6 +204,19 @@
                 </div>
                 <q-separator class='custom-separator q-my-lg' inset color="darker"/>
 
+                <!-- Advanced -->
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-sm q-mb-sm text-center'>Advanced</div>
+                <div class='text-center' style='margin-bottom: 40px;'>
+                    <q-input 
+                        v-model='$1t.settings.value.quickTag.id3CommLang' 
+                        filled 
+                        label='ID3 COMM Language'
+                        class='input'
+                        :rules="[val => !val || val.length == 3]"
+                    ></q-input>
+                </div>
+                <q-separator class='custom-separator q-my-lg' inset color="darker"/>
+
                 <!-- Note tag -->
                 <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-sm text-center' style='margin-top: 35px;'>Custom note</div>
                     <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>

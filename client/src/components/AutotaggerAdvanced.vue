@@ -235,13 +235,24 @@
     <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
     <div class='text-subtitle1 text-center text-bold text-primary q-mt-md' style='margin-top: 31px;'>TAG OPTIONS</div>
     <div class='row q-pb-xs justify-center half-width'>
-    <q-input 
-        v-model.number='$1t.config.value.trackNumberLeadingZeroes' 
-        filled 
-        type='number'
-        label='Track number leading zeroes'
-        class='input'
-    ></q-input>
+        <q-input 
+            v-model.number='$1t.config.value.trackNumberLeadingZeroes' 
+            filled 
+            type='number'
+            label='Track number leading zeroes'
+            class='input'
+        ></q-input>
+    </div>
+
+    <!-- ID3 Lang -->
+    <div class='row q-pb-xs justify-center half-width'>
+        <q-input 
+            v-model='$1t.config.value.id3CommLang' 
+            filled 
+            label='ID3 COMM Language'
+            class='input'
+            :rules="[val => !val || val.length == 3]"
+        ></q-input>
     </div>
 
     <!-- Separators -->

@@ -103,6 +103,7 @@ class AutotaggerConfig {
     writeLrc: boolean = false;
     enhancedLrc: boolean = false;
     capitalizeGenres: boolean = false;
+    id3CommLang?: string;
 
     spotify?: SpotifyConfig;
 
