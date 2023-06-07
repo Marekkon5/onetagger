@@ -46,6 +46,7 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
         }
         // Save chunks
         for child in chunk.iter(&mut file) {
+            let child = child?;
             if chunk.id() == LIST_ID {
                 list_chunks.push(child);
             } else {
@@ -63,6 +64,7 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
         // Resolve LIST chunks
         if chunk.id() == LIST_ID {
             for child in chunk.iter(&mut file) {
+                let child = child?;
                 if child.id() != RIFF_ID && child.id() != LIST_ID {
                     list_chunks.push(child);
                 }
@@ -72,6 +74,7 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
         // Resolve nested (because of SOME apps)
         if chunk.id() == RIFF_ID {
             for child in chunk.iter(&mut file) {
+                let child = child?;
                 if child.id() != RIFF_ID && child.id() != LIST_ID {
                     resolved_riff_chunks.push(child);
                 }
@@ -145,7 +148,7 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Box<dyn Error>> {
             continue;
         }
         for child in chunk.iter(&mut file) {
-            chunks.push(child);
+            chunks.push(child?);
         }
         offset += chunk.len() as u64;
     }
@@ -157,7 +160,7 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Box<dyn Error>> {
         // Resolve nested
         if chunk.id() == RIFF_ID || chunk.id() == LIST_ID {
             for c in chunk.iter(&mut file) {
-                new_chunks.push(c);
+                new_chunks.push(c?);
             }
             continue;
         }
