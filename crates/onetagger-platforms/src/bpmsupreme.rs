@@ -12,14 +12,16 @@ use serde_json::json;
 
 struct BPMSupreme {
     client: Client,
+    library: BPMMusicLibrary
 }
 
 impl BPMSupreme {
     /// Create new instance
-    pub fn new(token: &str) -> BPMSupreme {
+    pub fn new(token: &str, library: BPMMusicLibrary) -> BPMSupreme {
         let mut header_map = HeaderMap::new();
         header_map.append("Cookie", HeaderValue::from_str(&format!("bpm_session={token}")).unwrap());
         BPMSupreme {
+            library,
             client: Client::builder()
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36.")
                 .default_headers(header_map)
@@ -72,14 +74,15 @@ impl BPMSupreme {
     }
 
     /// Search for tracks
-    pub fn search(&self, query: &str) -> Result<Vec<BPMSupremeSong>, Box<dyn Error>> {
+    pub fn search(&self, query: &str, library: BPMMusicLibrary) -> Result<Vec<BPMSupremeSong>, Box<dyn Error>> {
+        debug!("Library: {library:?}");
         let res: BPMSupremeResponse<Vec<BPMSupremeSong>> = self.get(
             "https://api.download.bpmsupreme.com/v1/albums",
             &[
                 ("term", query),
                 ("limit", "100"),
                 ("skip", "0"),
-                ("library", "music"),
+                ("library", library.library()),
                 ("hide_remix", "0")
             ]
         )?;
@@ -95,7 +98,7 @@ impl AutotaggerSource for BPMSupreme {
         let title = re.replace(&title, "");
         let query = format!("{title} {}", MatchingUtils::clean_title(info.artist()?));
         debug!("{query}");
-        let tracks = self.search(&query)?.into_iter().map(|t| t.into_tracks()).flatten().collect::<Vec<Track>>();
+        let tracks = self.search(&query, self.library)?.into_iter().map(|t| t.into_tracks()).flatten().collect::<Vec<Track>>();
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
 }
@@ -177,13 +180,31 @@ struct BPMSupremeMedia {
     name: String
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialEq, Eq, Default)]
+pub enum BPMMusicLibrary {
+    #[default]
+    Supreme,
+    Latino
+}
+
+impl BPMMusicLibrary {
+    /// Get the library parameter of this library
+    pub fn library(&self) -> &'static str {
+        match self {
+            BPMMusicLibrary::Supreme => "music",
+            BPMMusicLibrary::Latino => "latin",
+        }
+    }
+}
+
 pub struct BPMSupremeBuilder {
-    token: Option<String>
+    token: Option<String>,
+    library: BPMMusicLibrary
 }
 
 impl AutotaggerSourceBuilder for BPMSupremeBuilder {
     fn new() -> Self {
-        BPMSupremeBuilder { token: None }
+        BPMSupremeBuilder { token: None, library: BPMMusicLibrary::Supreme }
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
@@ -195,11 +216,12 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
                 let custom: BPMSupremeConfig = config.get_custom("bpmsupreme")?;
                 let token = BPMSupreme::login(&custom.email, &custom.password)?;
                 self.token = Some(token.to_string());
+                self.library = custom.library;
                 token
             }
         };
         
-        Ok(Box::new(BPMSupreme::new(&token)))
+        Ok(Box::new(BPMSupreme::new(&token, self.library)))
     }
 
     fn info(&self) -> PlatformInfo {
@@ -218,6 +240,9 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
                 })
                 .add("password", "Password", PlatformCustomOptionValue::String {
                     value: String::new(), hidden: Some(true)
+                })
+                .add("library", "Library", PlatformCustomOptionValue::Option { 
+                    values: vec!["Supreme".to_string(), "Latino".to_string()], value: "Supreme".to_string()
                 }),
         }
     }
@@ -226,5 +251,6 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BPMSupremeConfig {
     pub email: String,
-    pub password: String
+    pub password: String,
+    pub library: BPMMusicLibrary
 }
