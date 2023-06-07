@@ -13,6 +13,7 @@ class Player {
     title?: string;
     artists: string[] = [];
     audio: HTMLAudioElement = new Audio();
+    path?: string;
 
     // Using _ instead of private because of reactivity proxy
     _waveformLock: boolean[] = [];
@@ -113,13 +114,23 @@ class Player {
     // Start playback
     play() {
         const $1t = get1t();
+
+        // External
+        if ($1t.settings.value.externalAudioPlayer) {
+            $1t.send('openFile', { path: this.path });
+            return;
+        }
+            
+        // Client side player
         if ($1t.settings.value.clientSidePlayer) {
             this.playing = false;
             this.audio.play();
-        } else {
-            $1t.send("playerPlay");
-            this.playing = true;
-        }      
+            return;
+        }
+
+        // Normal
+        $1t.send("playerPlay");
+        this.playing = true;
     }
 
     // Pause playback
@@ -164,13 +175,14 @@ class Player {
                 this.playing = !this.audio.paused;
                 this.position = Math.round(this.audio.currentTime * 1000);
             }
-            // this.player.audio.addEventListener('play', cb);
             this.audio.addEventListener('playing', cb);
         }
 
         // Server side
         $1t.send("playerLoad", { path });
         this.generateWaveform(path);
+
+        this.path = path;
     }
 }
 

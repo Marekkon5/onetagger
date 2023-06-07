@@ -39,6 +39,7 @@ enum Action {
     Browser { url: String },
     OpenSettingsFolder,
     OpenFolder { path: String },
+    OpenFile { path: String },
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
@@ -235,6 +236,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::Browser { url } => { webbrowser::open(&url)?; },
         Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
         Action::OpenFolder { path } => { opener::open(&path).ok(); },
+        Action::OpenFile { path } => { opener::open(&path).ok(); },
         Action::StartTagging { config, playlist } => {
             config.debug_print();
 

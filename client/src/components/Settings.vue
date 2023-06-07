@@ -348,6 +348,11 @@
                     label='Use ID3v2.4 for MP3 and AIFF'
                     class='checkbox'
                 ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.value.externalAudioPlayer'
+                    label='Use external audio player'
+                    class='checkbox'
+                ></q-checkbox><br>
 
                 <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Edit Tags</div>
                 <q-checkbox
