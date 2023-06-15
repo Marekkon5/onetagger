@@ -43,11 +43,11 @@ const $1t = get1t();
 const mouseOver = ref(-1);
 
 function isSelected(genre: string) {
-    return $1t.quickTag.value.track!.genres.includes(genre);
+    return $1t.quickTag.value.track.genres.includes(genre);
 }
 
 function setGenre(genre: string) {
-    $1t.quickTag.value.track!.toggleGenre(genre);
+    $1t.quickTag.value.track.toggleGenre(genre);
 }
 
 // Stay open if subgenres are present

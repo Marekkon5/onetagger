@@ -42,10 +42,9 @@
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
         
         <!-- Tracklist -->
-        <div v-for='(item, i) in tracks' :key='i'>
+        <div v-for='(item, i) in tracks' :key='item.path'>
             <q-intersection style='height: 116px;' @click.native='trackClick(item)' once>
-                <QuickTagTile :track='$1t.quickTag.value.track' v-if='$1t.quickTag.value.track && item.path == $1t.quickTag.value.track.path'></QuickTagTile>
-                <QuickTagTile :track='item' v-if='!$1t.quickTag.value.track || item.path != $1t.quickTag.value.track.path'></QuickTagTile>
+                <QuickTagTile :track='item'></QuickTagTile>
             </q-intersection>
         </div>
 
@@ -139,7 +138,7 @@
 
 <script lang='ts' setup>
 import { scroll, useQuasar } from 'quasar';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { Ref, computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 
@@ -161,7 +160,7 @@ const failedDialog = ref(false);
 // Click on track card
 function trackClick(track: QTTrack) {
     // Prevent clicking on same track
-    if ($1t.quickTag.value.track && track.path == $1t.quickTag.value.track.path) return;
+    if ($1t.quickTag.value.track.isSelected(track)) return;
     $1t.loadQTTrack(track);
 }
 
@@ -205,15 +204,10 @@ function sort(option: string) {
     }
 }
 
-// Scroll to track index
-const tracklist = ref<HTMLElement | undefined>();
-function scrollToIndex(index: number) {
-    setVerticalScrollPosition(tracklist.value!, index * 116 - 154, 250);
-    // this.$refs.tracklist.scrollTop = index * 140 - 140;
-}
-
-const tracks = computed(() => {
+/// Filter tracks with search and sorting
+function filterTracks(): QTTrack[] {
     let tracks = $1t.quickTag.value.tracks;
+
     if (filter.value) {
         let newFilter = filter.value.toLowerCase();
         // title, artist or track or tags
@@ -242,7 +236,6 @@ const tracks = computed(() => {
                 vb = (b as any)[sortOption.value]??''.toLowerCase();
                 break;
         }
-        
 
         // Compare
         if (va < vb) {
@@ -256,6 +249,19 @@ const tracks = computed(() => {
     if (sortDescending.value) tracks.reverse();
 
     return tracks;
+}
+
+// Scroll to track index
+const tracklist = ref<HTMLElement | undefined>();
+function scrollToIndex(index: number) {
+    setVerticalScrollPosition(tracklist.value!, index * 116 - 154, 250);
+    // this.$refs.tracklist.scrollTop = index * 140 - 140;
+}
+
+// Update track list
+let tracks: Ref<QTTrack[]> = ref([]);
+watch(() => $1t.quickTag.value.tracks, () => {
+    tracks.value = filterTracks();
 });
 
 const saveButton = ref<any>();
@@ -264,7 +270,7 @@ onMounted(() => {
         switch (action) {
             // Save dialog
             case 'onUnsavedChanges':
-                //Autosave enabled
+                // Autosave enabled
                 if ($1t.settings.value.quickTag.autosave) {
                     saveDialogCallback(true);
                     return;
@@ -273,22 +279,37 @@ onMounted(() => {
                 saveDialog.value = true;
                 setTimeout(() => {
                     saveButton.value?.$el.focus()
-                }, 100)
+                }, 100);
                 break;
+
             // Note tag updated
             case 'onNoteTag':
                 noteDialog.value = true;
                 break;
+
             // Change track position relatively
             case 'changeTrack':
                 var offset = data.offset;
-                var i = tracks.value.findIndex((t) => t.path == $1t.quickTag.value.track!.path);
+
+                // Get largest index from selected tracks
+                var finalIndex = -1;
+                for (let i=0; i < $1t.quickTag.value.track.tracks.length; i++) {
+                    let index = tracks.value.findIndex(t => t.path == $1t.quickTag.value.track.tracks[i].path);
+                    if (index > finalIndex) {
+                        finalIndex = index;
+                    }
+                }
+                var i = finalIndex;
+
+                // Load next track
                 if (i != -1 && (i + offset) != tracks.value.length && (i + offset) >= 0) {
                     $1t.loadQTTrack(tracks.value[i + offset], data.force??false);
                 }
                 break;
+
             case 'focusSearch':
                 break
+
             case 'quickTagLoad':
                 if ($1t.settings.value.quickTag.trackIndex == -1 || $1t.quickTag.value.tracks.length == 0 || $1t.lock.value.locked) return;
                 // Reload last opened track track
@@ -298,6 +319,7 @@ onMounted(() => {
                 }, 50);
 
                 break;
+                
             default:
                 console.log(`Unknown QT Event: ${action} ${data}`);
                 break;
@@ -313,18 +335,17 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    // Save track index
-    if ($1t.quickTag.value.track)
-        $1t.settings.value.quickTag.trackIndex = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
-    else
-        $1t.settings.value.quickTag.trackIndex = -1;
+    // TODO: Save track index
+
     // Save sorting
     $1t.settings.value.quickTag.sortOption = sortOption.value;
     $1t.settings.value.quickTag.sortDescending = sortDescending.value;
 });
 
-watch(() => $1t.quickTag.value.track, () => {
-    let index = tracks.value.findIndex((t) => $1t.quickTag.value.track!.path == t.path);
+/// Scroll to position
+watch($1t.quickTag.value.track, () => {
+    if ($1t.quickTag.value.track.tracks.length != 1) return;
+    let index = tracks.value.findIndex((t) => $1t.quickTag.value.track.tracks[0].path == t.path);
     scrollToIndex(index);
 });
 </script>

@@ -4,8 +4,10 @@ import { FrameName, Keybind, Separators } from "./utils";
 
 class QuickTag {
     tracks: QTTrack[] = [];
-    track?: QTTrack;
+    track: QTMultiTrack = new QTMultiTrack();
     failed: QuickTagFailed[] = [];
+
+    constructor() {}
 }
 
 interface QuickTagFailed {
@@ -67,6 +69,165 @@ interface CustomTagInfo {
     value: string,
     type: 'custom' | 'note';
     index: number
+}
+
+
+/// Replacement for QTTrack to support multiple tracks at once
+class QTMultiTrack {
+
+    // Selected tracks
+    tracks: QTTrack[] = [];
+
+    constructor() {}
+
+    /// Get selected track by path
+    getTrack(path: string): QTTrack | undefined {
+        return this.tracks.find(t => t.path == path);
+    }
+
+    /// Whether are tracks selected
+    hasTracks(): boolean {
+        return this.tracks.length > 0;
+    }
+
+    /// Remove all tracks and replace with single one
+    loadSingle(track: QTTrack) {
+        this.tracks.length = 0;
+        this.tracks.push(track);
+    }
+
+    /// Is the track selected
+    isSelected(track: QTTrack): boolean {
+        return this.tracks.find(t => t.path == track.path) !== undefined;
+    }
+
+    /// Get mood of selected tracks (set / get for compatibility)
+    get mood(): string | undefined {
+        if (this.tracks.length == 0) return;
+        // All tracks have same mood
+        let mood = this.tracks[0].mood;
+        if (this.tracks.every(t => t.mood == mood)) return mood;
+        // Different moods = no mood selected
+        return;
+    }
+
+    /// Set the mood in selected tracks, (setter for compatibility)
+    set mood(mood: string | undefined) {
+        for (let i=0; i<this.tracks.length; i++) {
+            this.tracks[i].mood = mood;
+        }
+    }
+
+    /// Get energy of selected tracks (set / get for compatibility)
+    get energy(): number {
+        if (this.tracks.length == 0) return 0;
+        // All tracks have same energy
+        let energy = this.tracks[0].energy;
+        if (this.tracks.every(t => t.energy == energy)) return energy;
+        // Different energies = 0
+        return 0;
+    }
+
+    /// Set the energy of selected tracks (set / get for compatibility)
+    set energy(energy: number) {
+        for (let i=0; i<this.tracks.length; i++) {
+            this.tracks[i].energy = energy;
+        }
+    }
+
+    /// Get genres present in all songs (get for compatibility)
+    get genres(): string[] {
+        if (this.tracks.length == 0) return [];
+        return this.tracks[0].genres.filter(g => this.tracks.every(t => t.genres.includes(g)));
+    }
+
+    /// Get note (if all tracks have the same one)
+    getNote(): string {
+        if (this.tracks.length == 0) return '';
+        let note = this.tracks[0].note;
+        if (this.tracks.every(t => t.note == note)) return note;
+        return '';
+    }
+
+    /// Set note on all tracks
+    setNote(note: string) {
+        for (let i=0; i<this.tracks.length; i++) {
+            this.tracks[i].note = note;
+        }
+    }
+
+    /// Toggle genere on all selected tracks
+    toggleGenre(genre: string) {
+        // Remove genre
+        if (this.tracks.find(t => t.genres.includes(genre))) {
+            for (let i=0; i<this.tracks.length; i++) {
+                let j = this.tracks[i].genres.indexOf(genre);
+                if (j != -1) {
+                    this.tracks[i].genres.splice(j, 1);
+                }
+            }
+            return;
+        }
+        // Add genre
+        for (let i=0; i<this.tracks.length; i++) {
+            if (!this.tracks[i].genres.includes(genre)) {
+                this.tracks[i].genres.push(genre);
+            }
+        }
+    }
+
+    /// Check if custom tag is selected
+    getCustom(tag: number, value: string) {
+        if (this.tracks.length == 0) return false;
+        return this.tracks.every(t => (t.custom[tag]??[]).includes(value));
+    }
+
+    /// Sort custom tags according to settings
+    sortCustom() {
+        for (let i=0; i<this.tracks.length; i++) {
+            for (let j=0; j<this.tracks[i].custom.length; j++) {
+                this.tracks[i].sortCustom(j);
+            }
+        }
+    }
+
+    /// Toggle custom value on all tracks
+    toggleCustom(tag: number, value: string) {
+        // New value
+        for (let i=0; i<this.tracks.length; i++) {
+            if (!this.tracks[i].custom[tag]) this.tracks[i].custom[tag] = [];
+        }
+
+        // Remove existing
+        if (this.tracks.find(t => t.custom[tag].includes(value))) {
+            for (let i=0; i<this.tracks.length; i++) {
+                this.tracks[i].removeCustom(tag, value);
+            }
+            return;
+        }
+
+        // Add new
+        for (let i=0; i<this.tracks.length; i++) {
+            this.tracks[i].addCustom(tag, value);
+        }
+    }
+
+    /// Is any of the tracks changed
+    isChanged(): boolean {
+        return this.tracks.find(t => t.isChanged()) !== undefined;
+    }
+
+    /// Get all tracks changes
+    getOutputs(): object[] {
+        let output = [];
+        for (let i=0; i<this.tracks.length; i++) {
+            let out = this.tracks[i].getOutput();
+            if (out.changes.length > 0) {
+                output.push(out);
+            }
+        }
+        return output;
+    }
 }
 
 class QTTrack implements QuickTagFile {
@@ -169,7 +330,7 @@ class QTTrack implements QuickTagFile {
         return 0;
     }
 
-    // Add or remove genre
+    /// Add or remove genre
     toggleGenre(genre: string) {
         let i = this.genres.indexOf(genre);
         if (i == -1) {
@@ -179,19 +340,23 @@ class QTTrack implements QuickTagFile {
         }
     }
 
-    // Enable or disable custom value
-    toggleCustom(tag: number, value: string) {
+    /// Add new custom value
+    addCustom(tag: number, value: string) {
         // newly added custom value
         if (!this.custom[tag]) this.custom[tag] = [];
+        if (this.custom[tag].includes(value)) return;
+        // Add
+        this.custom[tag].push(value);
+        this.sortCustom(tag);
+    } 
 
-        let i = this.custom[tag].indexOf(value);
-        // Add or remove
-        if (i == -1) {
-            this.custom[tag].push(value);
-            this.sortCustom(tag);
-        } else {
-            this.custom[tag].splice(i, 1);
-        }
+    /// Remove custom value
+    removeCustom(tag: number, value: string) {
+        // newly added custom value
+        if (!this.custom[tag]) this.custom[tag] = [];
+        if (!this.custom[tag].includes(value)) return;
+        // Remove
+        this.custom[tag].splice(this.custom[tag].indexOf(value), 1);
     }
 
     // Properly order the values
@@ -331,7 +496,7 @@ class QTTrack implements QuickTagFile {
         };
     }
 
-    // Wether the track has changes
+    // Whether the track has changes
     isChanged() {
         return this.getOutput().changes.length > 0
     }

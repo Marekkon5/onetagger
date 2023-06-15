@@ -59,21 +59,17 @@ const newTagValue = ref<string | undefined>(undefined);
 
 // If the value is present in tag
 function selected(tag: number, value: string) {
-    if (!$1t.quickTag.value.track) return false;
-    return ($1t.quickTag.value.track.custom[tag]??[]).includes(value);
+    return $1t.quickTag.value.track.getCustom(tag, value);
 }
 
 // Tag value click
 function valueClick(tag: number, value: string) {
-    if (!$1t.quickTag.value.track) return false;
     $1t.quickTag.value.track.toggleCustom(tag, value);           
 }
 
 // Sort values inside of tag
 function sortValues() {
-    for (let i=0; i<$1t.quickTag.value.track!.custom.length; i++) {
-        $1t.quickTag.value.track!.sortCustom(i);
-    }
+    $1t.quickTag.value.track.sortCustom();
 }
 
 // Show add new tag input

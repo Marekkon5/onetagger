@@ -36,19 +36,12 @@
                         ></q-chip>
                     </div>
                     <div class='col-3 qt-tile-col'>
-                        <!-- Not current track rating -->
+                        <!-- Track rating -->
                         <q-rating 
                             size='1.4em' 
                             v-model='track.energy'
                             no-reset
-                            readonly
-                            v-if='!selected'
-                        ></q-rating>
-                        <!-- Current track rating -->
-                        <q-rating 
-                            size='1.4em' 
-                            v-model='$1t.quickTag.value.track!.energy'
-                            v-if='selected'
+                            :readonly='!selected'
                         ></q-rating>
                     </div>
 
@@ -101,7 +94,7 @@
 </template>
 
 <script lang='ts' setup>
-import { computed, ref } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';
@@ -175,10 +168,10 @@ const CAMELOT_KEYS: Record<string, string> = {
 
 const $1t = get1t();
 const mouseOver = ref(false);
-const { track } = defineProps({
+const props = defineProps({
     track: { required: true, type: QTTrack }
 });
-
+const inputTrack = toRef(props, 'track');
 
 // Get mood by name
 function getMood(name?: string) {
@@ -189,19 +182,17 @@ function getMood(name?: string) {
         mood.outline = false;
         return mood;
     }
-    return {mood: name, color: 'white', outline: true};
+    return { mood: name, color: 'white', outline: true };
 }
 
 function removeMood(mood?: string) {
-    console.log(selected.value);
-
     if (!mood || !selected.value) return;
-    $1t.quickTag.value.track!.mood = undefined;
+    track.value.mood = undefined;
 }
 
 // Remove genre from track
 function removeGenre(genre: string) {
-    $1t.quickTag.value.track?.toggleGenre(genre);
+    track.value.toggleGenre(genre);
 }
 
 // Get color for musical key
@@ -225,17 +216,23 @@ function removeCustom(tag: CustomTagInfo) {
     if (!selected.value) return;
 
     if (tag.type === 'custom') {
-        $1t.quickTag.value.track!.toggleCustom(tag.index, tag.value);
-    } else {
-        // Note
-        $1t.quickTag.value.track!.setNote(
-            $1t.quickTag.value.track!.getNote().split(",").filter((i) => i != tag.value).join(",")
-        );
-    }
+        track.value.removeCustom(tag.index, tag.value);
+        return;
+    }    
+    // Note
+    track.value.setNote(track.value.getNote().split(",").filter((i) => i != tag.value).join(","));
 }
 
-const selected = computed(() => $1t.quickTag.value.track && track.path == $1t.quickTag.value.track.path);
-const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.path)}`);
+
+/// If selected, use selected track, else input track
+const track = computed(() => {
+    let track = $1t.quickTag.value.track.getTrack(inputTrack.value.path);
+    if (!track) track = inputTrack.value;
+    return track;
+});
+
+const selected = computed(() => $1t.quickTag.value.track.isSelected(track.value));
+const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.value.path)}`);
 
 </script>
 

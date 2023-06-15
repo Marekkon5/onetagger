@@ -222,13 +222,9 @@ class OneTagger {
             case 'quickTagSaved':
                 let i = this.quickTag.value.tracks.findIndex((t) => t.path == json.path);
                 if (i != -1) {
-                    this.quickTag.value.tracks[i] = new QTTrack(json.file, this.settings.value.quickTag)
+                    this.quickTag.value.tracks[i] = new QTTrack(json.file, this.settings.value.quickTag);
                 } else {
                     // this.onError('quickTagSaved: Invalid track');
-                }
-                // Force reload current track
-                if (this.quickTag.value.track && json.path == this.quickTag.value.track.path) {
-                    this.onQuickTagEvent('changeTrack', { offset: 0, force: true });
                 }
 
                 break;
@@ -394,13 +390,15 @@ class OneTagger {
     // Load quicktag track
     loadQTTrack(track?: QTTrack, force = false) {
         // Check for unsaved changes
-        if (!this.quickTag.value.track || force || !this.quickTag.value.track.isChanged()) {
+        if (force || !this.quickTag.value.track.isChanged()) {
             if (!track)
                 track = this.nextQTTrack;
+
             // For autoplay
             if (this.player.value.playing)
                 this.player.value.wasPlaying = true;
-            this.quickTag.value.track = new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag);
+
+            this.quickTag.value.track.loadSingle(new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag));
             this.player.value.loadTrack(track!.path);
             this.nextQTTrack = undefined;
             return;
@@ -412,9 +410,9 @@ class OneTagger {
 
     // Save quickTagTrack
     async saveQTTrack() {
-        if (this.quickTag.value.track) {
-            let changes = this.quickTag.value.track.getOutput();
-            this.send('quickTagSave', {changes});
+        let changes = this.quickTag.value.track.getOutputs();
+        for (const change of changes) {
+            this.send('quickTagSave', { changes: change });
         }
     }
 
@@ -456,7 +454,7 @@ class OneTagger {
     // Handle keydown event for keyboard bindings
     handleKeyDown(event: KeyboardEvent) {
         // QT Keybinds
-        if (this.quickTag.value.track) {
+        if (this.quickTag.value.track.hasTracks()) {
             // Arrow keys
             if (event.key.startsWith('Arrow')) {
                 // Seek audio
@@ -475,17 +473,17 @@ class OneTagger {
                     else
                         this.player.value.seek(pos);
                 }
-                // Get track index
-                let i = this.quickTag.value.tracks.findIndex((t) => t.path == this.quickTag.value.track?.path);
+
                 // Skip tracks using arrow keys
-                if (event.key == 'ArrowUp' && i > 0) {
-                    this.onQuickTagEvent('changeTrack', {offset: -1});
+                if (event.key == 'ArrowUp') {
+                    this.onQuickTagEvent('changeTrack', { offset: -1 });
                 }
-                if (event.key == 'ArrowDown' && i >= 0 && i < this.quickTag.value.tracks.length - 1) {
-                    this.onQuickTagEvent('changeTrack', {offset: 1});
+                if (event.key == 'ArrowDown') {
+                    this.onQuickTagEvent('changeTrack', { offset: 1 });
                 }
                 return true;
             }
+            
             // Play pause
             if (event.code == "Space") {
                 if (this.player.value.playing)

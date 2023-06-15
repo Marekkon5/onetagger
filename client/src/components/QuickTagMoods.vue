@@ -26,13 +26,11 @@ const moodHover = ref(-1);
 
 // If mood is in track data
 function moodSelected(mood: QuickTagMood) {
-    return $1t.quickTag.value.track && $1t.quickTag.value.track.mood == mood.mood
+    return $1t.quickTag.value.track.mood == mood.mood;
 }
 
 // Set mood
 function moodSelect(mood: QuickTagMood) {
-    if (!$1t.quickTag.value.track) return;
-    // toggle
     if ($1t.quickTag.value.track.mood == mood.mood) $1t.quickTag.value.track.mood = undefined;
     else $1t.quickTag.value.track.mood = mood.mood;
 }
