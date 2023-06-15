@@ -17,7 +17,7 @@
             <div class='q-mt-sm'>
 
                 <!-- Filter -->
-                <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='(v) => applyFilter(v as string)' v-model='filter'></q-input>
+                <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='(v: any) => applyFilter(v as string)' v-model='filter'></q-input>
 
                 <!-- Parent -->
                 <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
@@ -726,8 +726,8 @@ onMounted(() => {
     loadFiles();
 
     // Load QT track
-    if ($1t.quickTag.value.track) {
-        loadFile($1t.quickTag.value.track.path);
+    if ($1t.quickTag.value.track.tracks.length == 1) {
+        loadFile($1t.quickTag.value.track.tracks[0].path);
     }
 })
 

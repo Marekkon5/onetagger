@@ -138,7 +138,7 @@
 
 <script lang='ts' setup>
 import { scroll, useQuasar } from 'quasar';
-import { Ref, computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { Ref, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 

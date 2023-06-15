@@ -4,7 +4,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:onetagger_android/settings.dart';
 import 'package:onetagger_android/tagging_status.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_storage/saf.dart';
+import 'package:shared_storage/shared_storage.dart';
 import 'package:external_path/external_path.dart';
 import 'package:flutter/material.dart';
 import 'package:onetagger_android/api.dart';

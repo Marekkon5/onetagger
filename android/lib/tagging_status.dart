@@ -210,7 +210,7 @@ class TaggingStatusWidget extends StatelessWidget {
       case TaggingState.error:
         return const Icon(Icons.error, color: Colors.red);
       case TaggingState.skipped:
-        return const Icon(MdiIcons.debugStepOver, color: Colors.yellow);
+        return Icon(MdiIcons.debugStepOver, color: Colors.yellow);
     }
   }
 
