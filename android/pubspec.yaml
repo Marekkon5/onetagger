@@ -41,7 +41,7 @@ dependencies:
   external_path: ^1.0.3
   path_provider: ^2.0.14
   shared_storage: ^0.8.0
-  json_annotation: ^4.8.0
+  json_annotation: ^4.8.1
   freezed_annotation: ^2.2.0
   permission_handler: ^10.2.0
   flutter_rust_bridge: ^1.77.1
@@ -53,7 +53,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  ffigen: ^7.2.11
+  ffigen: ^8.0.2
   freezed: ^2.3.2
   build_runner: ^2.4.5
   json_serializable: ^6.7.0
