@@ -80,6 +80,12 @@ class QTMultiTrack {
 
     constructor() {}
 
+    /// Add new track
+    addTrack(track: QTTrack) {
+        if (this.tracks.find(t => t.path == track.path)) return;
+        this.tracks.push(track);
+    }
+
     /// Get selected track by path
     getTrack(path: string): QTTrack | undefined {
         return this.tracks.find(t => t.path == path);

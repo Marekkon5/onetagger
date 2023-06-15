@@ -408,6 +408,11 @@ class OneTagger {
         this.onQuickTagEvent('onUnsavedChanges');
     }
 
+    /// Add a new track to the multitrack
+    addQTTrack(track: QTTrack) {
+        this.quickTag.value.track.addTrack(new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag));
+    }
+
     // Save quickTagTrack
     async saveQTTrack() {
         let changes = this.quickTag.value.track.getOutputs();

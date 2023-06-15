@@ -43,7 +43,7 @@
         
         <!-- Tracklist -->
         <div v-for='(item, i) in tracks' :key='item.path'>
-            <q-intersection style='height: 116px;' @click.native='trackClick(item)' once>
+            <q-intersection style='height: 116px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                 <QuickTagTile :track='item'></QuickTagTile>
             </q-intersection>
         </div>
@@ -158,7 +158,14 @@ const failedDialog = ref(false);
 
 
 // Click on track card
-function trackClick(track: QTTrack) {
+function trackClick(track: QTTrack, event: MouseEvent) {
+    // Add track to list
+    if (event.shiftKey) {
+        $1t.addQTTrack(track);
+        return;
+        return;
+    }
+
     // Prevent clicking on same track
     if ($1t.quickTag.value.track.isSelected(track)) return;
     $1t.loadQTTrack(track);
@@ -251,6 +258,30 @@ function filterTracks(): QTTrack[] {
     return tracks;
 }
 
+/// Find index of selected track in tracklist
+function findIndex(highest: boolean = true) {
+    var finalIndex = -1;
+    for (let i=0; i < $1t.quickTag.value.track.tracks.length; i++) {
+        let index = tracks.value.findIndex(t => t.path == $1t.quickTag.value.track.tracks[i].path);
+        // Get at least some index
+        if (finalIndex == -1 && index != -1) {
+            finalIndex = index;
+            continue;
+        }
+        // Highest index
+        if (highest && index > finalIndex) {
+            finalIndex = index;
+            continue;
+        }
+        // Lowest index
+        if (!highest && index != -1 && index < finalIndex) {
+            finalIndex = index;
+            continue;
+        }
+    }
+    return finalIndex;
+}
+
 // Scroll to track index
 const tracklist = ref<HTMLElement | undefined>();
 function scrollToIndex(index: number) {
@@ -290,17 +321,8 @@ onMounted(() => {
             // Change track position relatively
             case 'changeTrack':
                 var offset = data.offset;
-
                 // Get largest index from selected tracks
-                var finalIndex = -1;
-                for (let i=0; i < $1t.quickTag.value.track.tracks.length; i++) {
-                    let index = tracks.value.findIndex(t => t.path == $1t.quickTag.value.track.tracks[i].path);
-                    if (index > finalIndex) {
-                        finalIndex = index;
-                    }
-                }
-                var i = finalIndex;
-
+                var i = findIndex(true);
                 // Load next track
                 if (i != -1 && (i + offset) != tracks.value.length && (i + offset) >= 0) {
                     $1t.loadQTTrack(tracks.value[i + offset], data.force??false);
