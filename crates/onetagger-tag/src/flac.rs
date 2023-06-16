@@ -103,7 +103,11 @@ impl TagImpl for FLACTag {
         let mut out = HashMap::new();
         if let Some(vorbis) = self.tag.vorbis_comments() {
             // Get value of tag with proper separators
-            vorbis.comments.iter().for_each(|(k, _)| { out.insert(k.to_string(), self.get_raw(k).unwrap()); } );
+            vorbis.comments.iter().for_each(|(k, _)| { 
+                if let Some(v) = self.get_raw(k) {
+                    out.insert(k.to_string(), v);
+                }
+            });
         }
         out
     }

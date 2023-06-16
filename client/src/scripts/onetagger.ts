@@ -226,6 +226,7 @@ class OneTagger {
                 } else {
                     // this.onError('quickTagSaved: Invalid track');
                 }
+                this.quickTag.value.saving -= 1;
 
                 break;
             // Browser folder
@@ -391,8 +392,10 @@ class OneTagger {
     loadQTTrack(track?: QTTrack, force = false) {
         // Check for unsaved changes
         if (force || !this.quickTag.value.track.isChanged()) {
+            if (!track && !this.nextQTTrack)
+                return;
             if (!track)
-                track = this.nextQTTrack;
+                track = this.quickTag.value.tracks.find(t => t.path == this.nextQTTrack!.path);
 
             // For autoplay
             if (this.player.value.playing)
@@ -408,8 +411,12 @@ class OneTagger {
         this.onQuickTagEvent('onUnsavedChanges');
     }
 
-    /// Add a new track to the multitrack
-    addQTTrack(track: QTTrack) {
+    /// Add or remove a track to the multitrack
+    toggleQTTrack(track: QTTrack) {
+        if (this.quickTag.value.track.getTrack(track.path)) {
+            this.quickTag.value.track.removeTrack(track);
+            return;
+        }
         this.quickTag.value.track.addTrack(new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag));
     }
 
@@ -417,8 +424,10 @@ class OneTagger {
     async saveQTTrack() {
         let changes = this.quickTag.value.track.getOutputs();
         for (const change of changes) {
+            this.quickTag.value.saving += 1;
             this.send('quickTagSave', { changes: change });
         }
+        await this.quickTag.value.waitForSave();
     }
 
 
@@ -481,10 +490,10 @@ class OneTagger {
 
                 // Skip tracks using arrow keys
                 if (event.key == 'ArrowUp') {
-                    this.onQuickTagEvent('changeTrack', { offset: -1 });
+                    this.onQuickTagEvent(event.shiftKey ? 'addTrack' : 'changeTrack', { offset: -1 });
                 }
                 if (event.key == 'ArrowDown') {
-                    this.onQuickTagEvent('changeTrack', { offset: 1 });
+                    this.onQuickTagEvent(event.shiftKey ? 'addTrack' : 'changeTrack', { offset: 1 });
                 }
                 return true;
             }

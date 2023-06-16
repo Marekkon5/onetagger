@@ -7,7 +7,17 @@ class QuickTag {
     track: QTMultiTrack = new QTMultiTrack();
     failed: QuickTagFailed[] = [];
 
+    /// Number of tracks to save
+    saving: number = 0;
+
     constructor() {}
+
+    /// Wait for saving to finish
+    async waitForSave() {
+        while (this.saving > 0) {
+            await new Promise((r, _) => setTimeout(() => r(null), 10));
+        }
+    }
 }
 
 interface QuickTagFailed {
@@ -84,6 +94,19 @@ class QTMultiTrack {
     addTrack(track: QTTrack) {
         if (this.tracks.find(t => t.path == track.path)) return;
         this.tracks.push(track);
+    }
+
+    /// Remove track from the multitrack
+    removeTrack(track: QTTrack) {
+        let i = this.tracks.findIndex(t => t.path == track.path);
+        if (i != -1) {
+            this.tracks.splice(i, 1);
+        }
+    }
+
+    /// Remove all tracks
+    removeAll() {
+        this.tracks.length = 0;
     }
 
     /// Get selected track by path

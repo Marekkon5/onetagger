@@ -8,6 +8,7 @@
             v-model='filter'
             :label-slot="true"
             class='q-px-md q-pt-md'
+            @update:model-value='filterTracks()'
         >
             <template v-slot:label>
                 <q-icon name="mdi-magnify" size="sm"></q-icon>
@@ -133,6 +134,7 @@
         </q-card>
     </q-dialog>
 
+
 </div>
 </template>
 
@@ -160,14 +162,15 @@ const failedDialog = ref(false);
 // Click on track card
 function trackClick(track: QTTrack, event: MouseEvent) {
     // Add track to list
-    if (event.shiftKey) {
-        $1t.addQTTrack(track);
-        return;
+    if (event.ctrlKey) {
+        selectionCursor = tracks.value.findIndex(t => t.path == track.path);
+        $1t.toggleQTTrack(track);
         return;
     }
 
     // Prevent clicking on same track
     if ($1t.quickTag.value.track.isSelected(track)) return;
+    selectionCursor = tracks.value.findIndex(t => t.path == track.path);
     $1t.loadQTTrack(track);
 }
 
@@ -209,53 +212,64 @@ function sort(option: string) {
     } else {
         sortDescending.value = !sortDescending.value;
     }
+    // Unselect first
+    $1t.quickTag.value.track.removeAll();
+    filterTracks();
 }
 
 /// Filter tracks with search and sorting
-function filterTracks(): QTTrack[] {
-    let tracks = $1t.quickTag.value.tracks;
+function filterTracks() {
+    let t = (() => {
+        let tracks = $1t.quickTag.value.tracks;
 
-    if (filter.value) {
-        let newFilter = filter.value.toLowerCase();
-        // title, artist or track or tags
-        tracks = $1t.quickTag.value.tracks.filter((t) => 
-            t.title.toLowerCase().includes(newFilter) || t.path.toLowerCase().includes(newFilter) ||
-            t.artists.filter((a: any) => a.toLowerCase().includes(newFilter)).length > 0 ||
-            (t.mood??'').toLowerCase().includes(newFilter) ||
-            t.getAllCustom().some((i: CustomTagInfo) => i.value.toLowerCase().includes(newFilter)) ||
-            (t.genres??[]).some((i: any) => i.toLowerCase().includes(newFilter)) 
-        );
+        if (filter.value) {
+            let newFilter = filter.value.toLowerCase();
+            // title, artist or track or tags
+            tracks = $1t.quickTag.value.tracks.filter((t) => 
+                t.title.toLowerCase().includes(newFilter) || t.path.toLowerCase().includes(newFilter) ||
+                t.artists.filter((a: any) => a.toLowerCase().includes(newFilter)).length > 0 ||
+                (t.mood??'').toLowerCase().includes(newFilter) ||
+                t.getAllCustom().some((i: CustomTagInfo) => i.value.toLowerCase().includes(newFilter)) ||
+                (t.genres??[]).some((i: any) => i.toLowerCase().includes(newFilter)) 
+            );
+        }
+        if (!sortOption.value) return tracks;
+
+        // Sort
+        tracks.sort((a, b) => {
+            let va, vb;
+            switch (sortOption.value) {
+                // Arrays
+                case 'artist':
+                case 'genre':
+                    va = a[`${sortOption.value}s`].join(', ').toLowerCase();
+                    vb = b[`${sortOption.value}s`].join(', ').toLowerCase();
+                    break;
+                default:
+                    va = (a as any)[sortOption.value]??''.toLowerCase();
+                    vb = (b as any)[sortOption.value]??''.toLowerCase();
+                    break;
+            }
+
+            // Compare
+            if (va < vb) {
+                return -1;
+            }
+            if (va > vb) {
+                return 1;
+            }
+            return 0;
+        });
+        if (sortDescending.value) tracks.reverse();
+
+        return tracks;
+    })();
+
+    // Unselect
+    if (tracks.value.length != t.length) {
+        $1t.quickTag.value.track.removeAll();
     }
-    if (!sortOption.value) return tracks;
-    
-    // Sort
-    tracks.sort((a, b) => {
-        let va, vb;
-        switch (sortOption.value) {
-            // Arrays
-            case 'artist':
-            case 'genre':
-                va = a[`${sortOption.value}s`].join(', ').toLowerCase();
-                vb = b[`${sortOption.value}s`].join(', ').toLowerCase();
-                break;
-            default:
-                va = (a as any)[sortOption.value]??''.toLowerCase();
-                vb = (b as any)[sortOption.value]??''.toLowerCase();
-                break;
-        }
-
-        // Compare
-        if (va < vb) {
-            return -1;
-        }
-        if (va > vb) {
-            return 1;
-        }
-        return 0;
-    });
-    if (sortDescending.value) tracks.reverse();
-
-    return tracks;
+    tracks.value = t;
 }
 
 /// Find index of selected track in tracklist
@@ -291,9 +305,11 @@ function scrollToIndex(index: number) {
 
 // Update track list
 let tracks: Ref<QTTrack[]> = ref([]);
-watch(() => $1t.quickTag.value.tracks, () => {
-    tracks.value = filterTracks();
-});
+watch(() => $1t.quickTag.value.tracks, () => filterTracks());
+
+/// Index of track for selection cursor
+let selectionCursor = -1;
+let selectionDirection = 0;
 
 const saveButton = ref<any>();
 onMounted(() => {
@@ -320,12 +336,41 @@ onMounted(() => {
 
             // Change track position relatively
             case 'changeTrack':
-                var offset = data.offset;
+                var offset = data.offset as number;
                 // Get largest index from selected tracks
-                var i = findIndex(true);
+                var i = findIndex(offset > 0);
                 // Load next track
                 if (i != -1 && (i + offset) != tracks.value.length && (i + offset) >= 0) {
                     $1t.loadQTTrack(tracks.value[i + offset], data.force??false);
+                }
+                break;
+
+            // Add track to selection
+            case 'addTrack':
+                var offset = data.offset as number;
+                
+                // Update cursor
+                if (offset == 0 || $1t.quickTag.value.track.tracks.length == 0) {
+                    break;
+                }
+                if ($1t.quickTag.value.track.tracks.length == 1) {
+                    selectionCursor = findIndex();
+                }
+                var i = selectionCursor;
+
+                // Save directions and offsets to make the shift select working
+                var normOffset = Math.min(Math.max(offset, -1), 1);
+                if ($1t.quickTag.value.track.tracks.length > 1 && selectionDirection != 0 && selectionDirection != normOffset) {
+                    offset = 0;
+                }
+
+                // Load next track
+                if (i != -1 && (i + offset) != tracks.value.length && (i + offset) >= 0) {
+                    // Save correct direction and offset
+                    selectionCursor = i + offset;
+                    selectionDirection = normOffset;
+
+                    $1t.toggleQTTrack(tracks.value[i + offset]);
                 }
                 break;
 
@@ -357,7 +402,12 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    // TODO: Save track index
+    // Save track index if single
+    if ($1t.quickTag.value.track.tracks.length == 1) {
+        $1t.settings.value.quickTag.trackIndex = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track.tracks[0].path == t.path);
+    } else {
+        $1t.settings.value.quickTag.trackIndex = -1;
+    }
 
     // Save sorting
     $1t.settings.value.quickTag.sortOption = sortOption.value;
@@ -370,6 +420,7 @@ watch($1t.quickTag.value.track, () => {
     let index = tracks.value.findIndex((t) => $1t.quickTag.value.track.tracks[0].path == t.path);
     scrollToIndex(index);
 });
+
 </script>
 
 <style lang='scss'>
