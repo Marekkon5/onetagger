@@ -353,6 +353,11 @@
                     label='Use external audio player'
                     class='checkbox'
                 ></q-checkbox><br>
+                <q-checkbox
+                    v-model='$1t.settings.value.quickTag.thinTracks'
+                    label='Thin, dense tracks'
+                    class='checkbox'
+                ></q-checkbox><br>
 
                 <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Edit Tags</div>
                 <q-checkbox

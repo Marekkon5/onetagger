@@ -43,9 +43,15 @@
     <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
         
         <!-- Tracklist -->
-        <div v-for='(item, i) in tracks' :key='item.path'>
+        <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
             <q-intersection style='height: 116px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                 <QuickTagTile :track='item'></QuickTagTile>
+            </q-intersection>
+        </div>
+        <!-- Thin tracks -->
+        <div v-for='item in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
+            <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
+                <QuickTagTileThin :track='item'></QuickTagTileThin>
             </q-intersection>
         </div>
 
@@ -145,6 +151,7 @@ import { get1t } from '../scripts/onetagger.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 
 import QuickTagTile from '../components/QuickTagTile.vue';
+import QuickTagTileThin from '../components/QuickTagTileThin.vue';
 
 const { setVerticalScrollPosition } = scroll;
 

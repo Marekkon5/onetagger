@@ -81,6 +81,7 @@ class QuickTagSettings {
     separators: Separators = new Separators();
     noteTag: NoteTagSettings = new NoteTagSettings();
     id3CommLang?: string;
+    thinTracks: boolean = false;
 
     moods: QuickTagMood[] = [
         {mood: 'Happy', color: 'amber'},
