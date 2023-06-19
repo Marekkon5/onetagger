@@ -2,11 +2,11 @@
     <div class='selected-bar-thin bg-primary' v-if='selected'></div>
 
     <q-card class='qt-tile-thin row items-center' :class='{"qt-tile-thin-selected": selected, "qt-tile-thin-odd": odd}'>
-        <div class='q-px-sm col-2 text-no-wrap ellipsis'>{{ track.title }}</div>
-        <div class='q-px-sm col-2 text-no-wrap ellipsis'>{{ track.artists.join(", ") }}</div>
+        <div class='q-px-sm text-no-wrap ellipsis' style='width: 12vw;'>{{ track.title }}</div>
+        <div class='q-px-sm text-no-wrap ellipsis' style='width: 12vw;'>{{ track.artists.join(", ") }}</div>
 
         <!-- Mood -->
-        <div class='q-px-sm col-1 text-center'>
+        <div class='q-px-sm text-center' style='width: 6vw;'>
             <q-chip 
                 dense 
                 v-if='getMood(track.mood)' 
@@ -28,7 +28,7 @@
         </div>
 
         <!-- Genres -->
-        <div class='col-2 text-no-wrap ellipsis'>
+        <div class='text-no-wrap ellipsis' style='width: 12vw;'>
             <span v-if='selected'>
                 <span 
                     v-for='(genre, i) in track.genres' 
@@ -50,7 +50,7 @@
         </div>
 
         <!-- Custom -->
-        <div class='col no-wrap text-no-wrap ellipsis row q-pl-sm'>
+        <div class='col no-wrap text-no-wrap row q-px-sm'>
             <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'  @click='removeCustom(tag)'>
                 <q-chip 
                     icon='mdi-close'

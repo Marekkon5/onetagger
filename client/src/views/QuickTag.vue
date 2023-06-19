@@ -49,10 +49,12 @@
             </q-intersection>
         </div>
         <!-- Thin tracks -->
-        <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
-            <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
-                <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
-            </q-intersection>
+        <div :style='`width: ${tracklistWidth}`'>
+            <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
+                <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once >
+                    <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
+                </q-intersection>
+            </div>
         </div>
 
         <!-- No results -->
@@ -146,7 +148,7 @@
 
 <script lang='ts' setup>
 import { scroll, useQuasar } from 'quasar';
-import { Ref, onMounted, onUnmounted, ref, watch } from 'vue';
+import { Ref, computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 
@@ -277,6 +279,9 @@ function filterTracks() {
         $1t.quickTag.value.track.removeAll();
     }
     tracks.value = t;
+
+    // Fix width
+    fixTracklistWidth();
 }
 
 /// Find index of selected track in tracklist
@@ -308,6 +313,17 @@ const tracklist = ref<HTMLElement | undefined>();
 function scrollToIndex(index: number) {
     setVerticalScrollPosition(tracklist.value!, index * 116 - 154, 250);
     // this.$refs.tracklist.scrollTop = index * 140 - 140;
+}
+
+/// Update tracklist width to fit
+const tracklistWidth = ref('100%');
+function fixTracklistWidth() {
+    tracklistWidth.value = '100%';
+    setTimeout(() => {
+        if (tracklist.value) {
+            tracklistWidth.value = `${tracklist.value!.scrollWidth}px`;
+        }
+    }, 20);
 }
 
 // Update track list
