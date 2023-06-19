@@ -49,9 +49,9 @@
             </q-intersection>
         </div>
         <!-- Thin tracks -->
-        <div v-for='item in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
+        <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
             <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
-                <QuickTagTileThin :track='item'></QuickTagTileThin>
+                <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
             </q-intersection>
         </div>
 

@@ -1,6 +1,7 @@
 <template>
-    <q-card class='qt-tile-thin row items-center' :class='{"qt-tile-thin-selected": selected}'>
+    <div class='selected-bar-thin bg-primary' v-if='selected'></div>
 
+    <q-card class='qt-tile-thin row items-center' :class='{"qt-tile-thin-selected": selected, "qt-tile-thin-odd": odd}'>
         <div class='q-px-sm col-2 text-no-wrap ellipsis'>{{ track.title }}</div>
         <div class='q-px-sm col-2 text-no-wrap ellipsis'>{{ track.artists.join(", ") }}</div>
 
@@ -73,10 +74,12 @@ import { CAMELOT_KEYS, CustomTagInfo, KEY_COLORS, QTTrack } from '../scripts/qui
 
 const $1t = get1t();
 const props = defineProps({
-    track: { required: true, type: QTTrack }
+    track: { required: true, type: QTTrack },
+    odd: { required: false, type: Boolean, default: false }
 });
 const inputTrack = toRef(props, 'track');
-
+// Is this track odd (highlight)
+const odd = props.odd;
 
 /// Get mood by name
 function getMood(name?: string) {
@@ -141,8 +144,25 @@ const selected = computed(() => $1t.quickTag.value.track.isSelected(track.value)
     margin-right: 4px;
 }
 
+// .qt-tile-thin-odd {
+//     background-color: #303030;
+// }
+
+.qt-tile-thin:hover {
+    background: #1A1A1A;
+}
+
 .qt-tile-thin-selected {
-    outline: var(--q-primary) 1px solid;
+    background: #1A1A1A;
+}
+
+.selected-bar-thin {
+    position: absolute;
+    width: 5px;
+    height: 28px;
+    border-radius: 4px;
+    left: 4px;
+    z-index: 3;
 }
 
 </style>

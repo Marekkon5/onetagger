@@ -1,6 +1,6 @@
 <template>
-<div @mouseleave='mouseOver = false' @mouseenter="mouseOver = true">
-    <q-card flat class='q-mx-md qt-tile' :class='{"bg-onetagger-icon": selected || mouseOver}'>
+<div>
+    <q-card flat class='q-mx-md qt-tile' :class='{"bg-onetagger-icon": selected}'>
         <div class='row qt-tile'>
             <div class='selected-bar bg-primary' v-if='selected'></div>
             <div class='row q-pt-md q-pl-md full-width full-height'>
@@ -101,7 +101,6 @@ import { httpUrl } from '../scripts/utils.js';
 
 
 const $1t = get1t();
-const mouseOver = ref(false);
 const props = defineProps({
     track: { required: true, type: QTTrack }
 });
@@ -197,6 +196,11 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.v
     min-height: 104px;
     max-height: 104px;
 }
+
+.qt-tile:hover {
+    background: #1A1A1A;
+}
+
 .title-span {
     text-overflow: ellipsis;
     overflow: hidden;
