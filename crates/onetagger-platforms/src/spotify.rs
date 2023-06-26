@@ -251,6 +251,7 @@ impl AutotaggerSource for Spotify {
    
 }
 
+/// Convert rspotify FullTrack into 1T Track
 fn full_track_to_track(track: FullTrack) -> Track {
     Track {
         platform: "spotify".to_string(),
@@ -267,6 +268,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         track_number: Some(TrackNumber::Number(track.track_number as i32)),
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
         release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
+        explicit: Some(track.explicit),
         ..Default::default()
     }
 }
@@ -295,7 +297,7 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
             version: "1.0.0".to_string(),
             custom_options: Default::default(),
             requires_auth: true,
-            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, AlbumArt, URL, TrackId, ReleaseId, Duration, TrackNumber, ISRC, ReleaseDate, Genre, Key, Label)
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, AlbumArt, URL, TrackId, ReleaseId, Duration, TrackNumber, ISRC, ReleaseDate, Genre, Key, Label, Explicit)
         }
     }
 }

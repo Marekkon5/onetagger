@@ -157,6 +157,8 @@ struct DeezerTrack {
     pub rank: i64,
     pub artist: DeezerArtist,
     pub album: DeezerAlbum,
+    pub explicit_lyrics: Option<bool>,
+    pub explicit_content_lyrics: Option<i8>
 }
 
 impl Into<Track> for DeezerTrack {
@@ -174,6 +176,7 @@ impl Into<Track> for DeezerTrack {
             track_id: Some(self.id.to_string()),
             release_id: self.album.id.to_string(),
             duration: Duration::from_secs(self.duration as u64),
+            explicit: self.explicit_lyrics.or(self.explicit_content_lyrics.map(|i| i == 1)),
             ..Default::default()
         }
     }
@@ -277,7 +280,7 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
             icon: include_bytes!("../assets/deezer.png"),
             max_threads: 2,
             requires_auth: false, 
-            supported_tags: supported_tags!(Title, Version, Album, AlbumArtist, Artist, AlbumArt, URL, CatalogNumber, TrackId, ReleaseId, Duration, Genre, TrackTotal, Label, ISRC, ReleaseDate, TrackNumber, DiscNumber),
+            supported_tags: supported_tags!(Title, Version, Album, AlbumArtist, Artist, AlbumArt, URL, CatalogNumber, TrackId, ReleaseId, Duration, Genre, TrackTotal, Label, ISRC, ReleaseDate, TrackNumber, DiscNumber, Explicit),
             custom_options: PlatformCustomOptions::new()
                 .add("art_resolution", "Album Art Resolution", PlatformCustomOptionValue::Number { min: 100, max: 1600, step: 100, value: 1200 }),
         }

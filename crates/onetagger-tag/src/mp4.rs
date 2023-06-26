@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use mp4ameta::{Tag, Data, Img, ImgFmt};
+use mp4ameta::{Tag, Data, Img, ImgFmt, AdvisoryRating};
 use mp4ameta::ident::DataIdent;
 use chrono::{DateTime, NaiveDate, Utc, Datelike, NaiveTime};
 
@@ -347,5 +347,14 @@ impl TagImpl for MP4Tag {
         self.tag.remove_lyrics();
         self.tag.set_lyrics(lyrics.text());
     }
+
+    fn set_explicit(&mut self, explicit: bool) {
+        self.tag.set_advisory_rating(match explicit {
+            true => AdvisoryRating::Explicit,
+            false => AdvisoryRating::Clean,
+        });
+    }
+
+    
     
 }

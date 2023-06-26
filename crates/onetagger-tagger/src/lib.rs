@@ -57,6 +57,7 @@ pub struct TaggerConfig {
     pub mood: bool,
     pub synced_lyrics: bool,
     pub unsynced_lyrics: bool,
+    pub explicit: bool,
     /// 1T meta tags
     pub meta_tags: bool,
 
@@ -147,6 +148,7 @@ impl Default for TaggerConfig {
             isrc: false, 
             synced_lyrics: false,
             unsynced_lyrics: false,
+            explicit: false,
             meta_tags: false, 
             separators: TagSeparators::default(), 
             id3v24: true, 
@@ -212,7 +214,7 @@ impl Default for MultipleMatchesSort {
 pub struct Track {
     // Use platform id
     pub platform: String,
-    // Short title
+    /// Short title
     pub title: String,
     pub version: Option<String>,
     pub artists: Vec<String>,
@@ -237,6 +239,8 @@ pub struct Track {
     pub disc_number: Option<u16>,
     pub isrc: Option<String>,
     pub mood: Option<String>,
+    /// None = unknown
+    pub explicit: Option<bool>,
 
     pub lyrics: Option<Lyrics>,
     
@@ -546,7 +550,7 @@ pub enum SupportedTag {
     Title, Artist, Album, Key, Genre, Style, ReleaseDate, PublishDate,
     AlbumArt, OtherTags, CatalogNumber, TrackId, ReleaseId, Version,
     Duration, AlbumArtist, Remixer, TrackNumber, TrackTotal, DiscNumber,
-    Mood, SyncedLyrics, UnsyncedLyrics, Label,
+    Mood, SyncedLyrics, UnsyncedLyrics, Label, Explicit,
     #[serde(rename = "bpm")]
     BPM,
     #[serde(rename = "url")]

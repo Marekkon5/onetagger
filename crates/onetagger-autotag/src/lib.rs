@@ -267,6 +267,10 @@ impl TrackImpl for Track {
         if config.unsynced_lyrics && self.lyrics.is_some() {
             tag.set_lyrics(self.lyrics.as_ref().unwrap(), false, config.overwrite);
         }
+        // Explicit
+        if config.explicit && self.explicit.is_some() {
+            tag.set_explicit(self.explicit.unwrap());
+        }
 
         // Album art
         if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {

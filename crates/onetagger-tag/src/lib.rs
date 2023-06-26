@@ -143,6 +143,9 @@ pub trait TagImpl {
     /// Set track number (because formats like MP3 and M4A use custom format)
     /// Track number is string because of platforms like discogs
     fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool);
+
+    /// Set whether the track is explicit
+    fn set_explicit(&mut self, explicit: bool);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

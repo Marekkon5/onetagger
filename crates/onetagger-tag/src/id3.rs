@@ -537,6 +537,12 @@ impl TagImpl for ID3Tag {
             text: lyrics.text()
         });
     }
+
+    fn set_explicit(&mut self, explicit: bool) {
+        self.set_raw("ITUNESADVISORY", vec![
+            match explicit { true => "1", false => "2" }.to_string()
+        ], true)
+    }
     
     
 }

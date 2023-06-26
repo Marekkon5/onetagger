@@ -40,7 +40,7 @@
 
 
     <!-- Tracks -->
-    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}'>
+    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='fixTracklistWidth(true)'>
         
         <!-- Tracklist -->
         <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
@@ -311,13 +311,22 @@ function findIndex(highest: boolean = true) {
 // Scroll to track index
 const tracklist = ref<HTMLElement | undefined>();
 function scrollToIndex(index: number) {
+    if ($1t.settings.value.quickTag.thinTracks) {
+        setVerticalScrollPosition(tracklist.value!, index * 34 - (tracklist.value!.clientHeight / 68) * 34, 250);
+        return;
+    }
     setVerticalScrollPosition(tracklist.value!, index * 116 - 154, 250);
-    // this.$refs.tracklist.scrollTop = index * 140 - 140;
 }
 
 /// Update tracklist width to fit
 const tracklistWidth = ref('100%');
-function fixTracklistWidth() {
+function fixTracklistWidth(force = false) {
+    if (force) {
+        if (tracklist.value) {
+            tracklistWidth.value = `${tracklist.value!.scrollWidth}px`;
+        }
+        return;
+    }
     tracklistWidth.value = '100%';
     setTimeout(() => {
         if (tracklist.value) {
@@ -325,6 +334,8 @@ function fixTracklistWidth() {
         }
     }, 20);
 }
+let resizeListener = () => fixTracklistWidth();
+window.addEventListener('resize', resizeListener);
 
 // Update track list
 let tracks: Ref<QTTrack[]> = ref([]);
@@ -435,6 +446,9 @@ onUnmounted(() => {
     // Save sorting
     $1t.settings.value.quickTag.sortOption = sortOption.value;
     $1t.settings.value.quickTag.sortDescending = sortDescending.value;
+
+    // Unregister listener
+    window.removeEventListener('resize', resizeListener);
 });
 
 /// Scroll to position

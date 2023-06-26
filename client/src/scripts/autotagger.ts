@@ -69,6 +69,7 @@ class AutotaggerConfig {
     mood: boolean = false;
     syncedLyrics: boolean = false;
     unsyncedLyrics: boolean = false;
+    explicit: boolean = false;
     metaTags: boolean = false;
     separators: Separators = new Separators();
     id3v24: boolean = true;

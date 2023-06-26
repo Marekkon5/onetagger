@@ -271,6 +271,15 @@ impl TagImpl for FLACTag {
         self.tag.set_vorbis("LYRICS", vec![lyrics.text()]);
     }
 
+    fn set_explicit(&mut self, explicit: bool) {
+        self.tag.remove_vorbis_pair("COMMENT", "Explicit");
+        if explicit {
+            let mut values = self.get_raw("COMMENT").unwrap_or(vec![]);
+            values.push("Explicit".to_string());
+            self.set_raw("COMMENT", values, true);
+        }
+    }
+
     
 
 }

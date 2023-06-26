@@ -206,3 +206,7 @@ code {
 ::-webkit-scrollbar-thumb:horizontal:hover {
     background-color: #404040;
 }
+
+::-webkit-scrollbar-corner {
+    background-color: transparent !important;
+}

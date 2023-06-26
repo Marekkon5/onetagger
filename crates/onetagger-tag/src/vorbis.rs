@@ -255,4 +255,14 @@ impl TagImpl for VorbisTag {
             self.set_field(Field::TrackTotal, vec![total.to_string()], overwrite);
         }
     }
+
+    fn set_explicit(&mut self, explicit: bool) {
+        let mut comments: Vec<_> = self.get_raw("COMMENT").unwrap_or(vec![]).into_iter().filter(|i| i != "Explicit").collect();
+        if explicit {
+            comments.push("Explicit".to_string());
+        }
+        self.set_raw("COMMENT", comments, true);
+    }
+
+    
 }

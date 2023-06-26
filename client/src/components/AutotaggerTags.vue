@@ -148,6 +148,9 @@
             <!-- Lyrics -->
             <q-checkbox :disable='!isSupported("unsyncedLyrics")' class='tag checkbox text-grey-4' label='Unsynced Lyrics' v-model='$1t.config.value.unsyncedLyrics'></q-checkbox>
             <q-checkbox :disable='!isSupported("syncedLyrics")' class='tag checkbox text-grey-4' label='Synced Lyrics' v-model='$1t.config.value.syncedLyrics'></q-checkbox>
+            
+            <!-- Explicit -->
+            <q-checkbox :disable='!isSupported("explicit")' class='tag checkbox text-grey-4' label='Explicit' v-model='$1t.config.value.explicit'></q-checkbox>
 
         </div>
     </div>
@@ -169,7 +172,7 @@ import PlaylistDropZone from './PlaylistDropZone.vue';
 const ALL_TAGS = ['title', 'artist', 'albumArtist', 'album', 'key', 'bpm', 'genre', 'style', 
     'label', 'duration', 'releaseDate', 'publishDate', 'albumArt', 'otherTags', 'url', 'trackId', 
     'releaseId', 'version', 'remixer', 'trackNumber', 'metaTags', 'catalogNumber', 'isrc', 'mood',
-    'trackTotal', 'discNumber', 'unsyncedLyrics', 'syncedLyrics'];
+    'trackTotal', 'discNumber', 'unsyncedLyrics', 'syncedLyrics', 'explicit'];
 
 const $1t = get1t();
 
