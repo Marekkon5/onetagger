@@ -18,165 +18,89 @@ late List<AutoTaggerPlatform> autoTaggerPlatforms;
 @JsonSerializable(explicitToJson: true)
 class AutoTaggerConfig {
   AutoTaggerConfig({
-    required this.album,
-    required this.albumArt,
+    required this.tags,
     required this.albumArtFile,
-    required this.albumArtist,
-    required this.artist,
-    required this.bpm,
     required this.camelot,
-    required this.catalogNumber,
     required this.custom,
-    required this.discNumber,
-    required this.duration,
     required this.enableShazam,
     required this.enhancedLrc,
     required this.filenameTemplate,
     required this.forceShazam,
-    required this.genre,
     required this.id3v24,
     required this.includeSubfolders,
-    required this.isrc,
-    required this.key,
-    required this.label,
     required this.matchById,
     required this.matchDuration,
     required this.maxDurationDifference,
     required this.mergeGenres,
-    required this.metaTags,
-    required this.mood,
     required this.moveFailed,
     required this.moveSuccess,
     required this.multiplatform,
     required this.multipleMatches,
     required this.onlyYear,
-    required this.otherTags,
     required this.overwrite,
     required this.parseFilename,
     required this.path,
     required this.platforms,
-    required this.publishDate,
-    required this.releaseDate,
-    required this.releaseId,
-    required this.remixer,
     required this.separators,
     required this.shortTitle,
     required this.skipTagged,
     required this.strictness,
-    required this.style,
     required this.stylesCustomTag,
     required this.stylesOptions,
-    required this.syncedLyrics,
     required this.threads,
-    required this.title,
-    required this.trackId,
-    required this.trackNumber,
     required this.trackNumberLeadingZeroes,
-    required this.trackTotal,
-    required this.unsyncedLyrics,
-    required this.url,
-    required this.version,
     required this.writeLrc,
+    required this.capitalizeGenres,
     this.titleRegex,
     this.moveFailedPath,
-    this.moveSuccessPath
+    this.moveSuccessPath,
+    this.id3CommLang,
   });
 
-  bool album;
-  bool albumArt;
+  List<SupportedTag> tags;
   bool albumArtFile;
-  bool albumArtist;
-  bool artist;
-  bool bpm;
   bool camelot;
-  bool catalogNumber;
   Map<String, Map<String, dynamic>> custom;
-  bool discNumber;
-  bool duration;
   bool enableShazam;
   bool enhancedLrc;
   String? filenameTemplate;
   bool forceShazam;
-  bool genre;
   bool id3v24;
   bool includeSubfolders;
-  bool isrc;
-  bool key;
-  bool label;
   bool matchById;
   bool matchDuration;
   int maxDurationDifference;
   bool mergeGenres;
-  bool metaTags;
-  bool mood;
   bool moveFailed;
   bool moveSuccess;
   bool multiplatform;
   String multipleMatches;
   bool onlyYear;
-  bool otherTags;
   bool overwrite;
   bool parseFilename;
   String path;
   List<String> platforms;
-  bool publishDate;
-  bool releaseDate;
-  bool releaseId;
-  bool remixer;
   TagSeparators separators;
   bool shortTitle;
   bool skipTagged;
   double strictness;
-  bool style;
   FrameName? stylesCustomTag;
   String stylesOptions;
-  bool syncedLyrics;
   int threads;
-  bool title;
-  bool trackId;
-  bool trackNumber;
   int trackNumberLeadingZeroes;
-  bool trackTotal;
-  bool unsyncedLyrics;
-  bool url;
-  bool version;
   bool writeLrc;
   String? titleRegex;
   String? moveSuccessPath;
   String? moveFailedPath;
   SpotifyConfig? spotify;
+  bool capitalizeGenres;
+  String? id3CommLang;
+
 
   factory AutoTaggerConfig.defaultConfig() => AutoTaggerConfig(
+    tags: [SupportedTag.bpm, SupportedTag.genre, SupportedTag.style, SupportedTag.label],
     platforms: ["beatport"],
     path: "",
-    title: false,
-    artist: false,
-    album: false,
-    key: false,
-    bpm: true,
-    genre: true,
-    style: true,
-    label: true,
-    releaseDate: true,
-    publishDate: false,
-    albumArt: false,
-    otherTags: false,
-    catalogNumber: false,
-    url: false,
-    trackId: false,
-    releaseId: false,
-    version: false,
-    duration: false,
-    albumArtist: false,
-    remixer: false,
-    trackNumber: false,
-    trackTotal: false,
-    discNumber: false,
-    isrc: false,
-    mood: false,
-    syncedLyrics: false,
-    unsyncedLyrics: false,
-    metaTags: false,
     separators: TagSeparators(),
     id3v24: true,
     overwrite: true,
@@ -209,6 +133,7 @@ class AutoTaggerConfig {
     enhancedLrc: false,
     multiplatform: false,
     custom: {},
+    capitalizeGenres: false,
   );
 
   /// Apply custom config
@@ -310,7 +235,7 @@ class AutoTaggerPlatform {
   bool builtIn;
   PlatformInfo platform;
   bool requiresAuth;
-  List<String> supportedTags;
+  List<SupportedTag> supportedTags;
 
   @JsonKey(fromJson: AutoTaggerPlatform.decodeBase64Icon)
   Uint8List icon;
@@ -390,4 +315,73 @@ enum PlatformCustomOptionValueType {
   @JsonValue("string") string,
   @JsonValue("tag") tag,
   @JsonValue("option") option,
+}
+
+enum SupportedTag {
+  @JsonValue("title") title,
+  @JsonValue("artist") artist,
+  @JsonValue("album") album,
+  @JsonValue("key") key,
+  @JsonValue("genre") genre,
+  @JsonValue("style") style,
+  @JsonValue("releaseDate") releaseDate,
+  @JsonValue("publishDate") publishDate,
+  @JsonValue("albumArt") albumArt,
+  @JsonValue("otherTags") otherTags,
+  @JsonValue("catalogNumber") catalogNumber,
+  @JsonValue("trackId") trackId,
+  @JsonValue("releaseId") releaseId,
+  @JsonValue("version") version,
+  @JsonValue("duration") duration,
+  @JsonValue("albumArtist") albumArtist,
+  @JsonValue("remixer") remixer,
+  @JsonValue("trackNumber") trackNumber,
+  @JsonValue("trackTotal") trackTotal,
+  @JsonValue("discNumber") discNumber,
+  @JsonValue("mood") mood,
+  @JsonValue("syncedLyrics") syncedLyrics,
+  @JsonValue("unsyncedLyrics") unsyncedLyrics,
+  @JsonValue("label") label,
+  @JsonValue("explicit") explicit,
+  @JsonValue("metaTags") metaTags,
+  @JsonValue("bpm") bpm,
+  @JsonValue("url") url,
+  @JsonValue("isrc") isrc
+}
+
+extension SupportedTagExt on SupportedTag {
+  static const labels = {
+    SupportedTag.albumArt: 'Album Art',
+    SupportedTag.album: 'Album',
+    SupportedTag.albumArtist: 'Album Artist',
+    SupportedTag.artist: 'Artist',
+    SupportedTag.title: 'Title',
+    SupportedTag.version: 'Version',
+    SupportedTag.remixer: 'Remixers',
+    SupportedTag.genre: 'Genre',
+    SupportedTag.style: 'Style / Subgenre',
+    SupportedTag.label: 'Label',
+    SupportedTag.releaseId: 'Release ID',
+    SupportedTag.trackId: 'Track ID',
+    SupportedTag.bpm: 'BPM',
+    SupportedTag.key: 'Key',
+    SupportedTag.mood: 'Mood',
+    SupportedTag.catalogNumber: 'Catalog Number',
+    SupportedTag.trackNumber: 'Track Number',
+    SupportedTag.discNumber: 'Disc Number',
+    SupportedTag.duration: 'Duration',
+    SupportedTag.trackTotal: 'Track Total',
+    SupportedTag.isrc: 'ISRC',
+    SupportedTag.publishDate: 'Publish Date',
+    SupportedTag.releaseDate: 'Release Date',
+    SupportedTag.url: 'URL',
+    SupportedTag.otherTags: 'Other Tags',
+    SupportedTag.metaTags: 'OneTagger Tags',
+    SupportedTag.unsyncedLyrics: 'Unsynced Lyrics',
+    SupportedTag.syncedLyrics: 'Synced Lyrics',
+    SupportedTag.explicit: 'Explicit',
+  };
+
+  /// Get label for this tag
+  String get label => labels[this]!;
 }

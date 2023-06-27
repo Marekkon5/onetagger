@@ -66,7 +66,7 @@
 import { onMounted } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
-import { AutotaggerPlatform } from '../scripts/autotagger';
+import { AutotaggerPlatform, SupportedTag } from '../scripts/autotagger';
 
 
 const { dense } = defineProps({
@@ -95,7 +95,7 @@ function syncPlatforms() {
 
 /// Does the platform have lyrics
 function hasLyrics(platform: AutotaggerPlatform) {
-    return platform.supportedTags.includes('unsyncedLyrics') || platform.supportedTags.includes('syncedLyrics');
+    return platform.supportedTags.includes(SupportedTag.UnsyncedLyrics) || platform.supportedTags.includes(SupportedTag.SyncedLyrics);
 }
 
 onMounted(() => {

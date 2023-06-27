@@ -263,7 +263,7 @@ class _AutoTaggerInputTagsState extends State<AutoTaggerInputTags> {
   }
 
   /// Is the tag enabled
-  bool isEnabled(String tag) {
+  bool isEnabled(SupportedTag tag) {
     for (var id in autoTaggerConfig.platforms) {
       var platform = autoTaggerPlatforms.firstWhere((p) => p.id == id);
       if (platform.supportedTags.contains(tag)) {
@@ -345,34 +345,13 @@ class _AutoTaggerInputTagsState extends State<AutoTaggerInputTags> {
           childAspectRatio: (MediaQuery.of(context).size.width / 2.0) / 56.0,
           shrinkWrap: true,
           children: [
-            AutoTaggerTag("Album Art", autoTaggerConfig.albumArt, (v) => setState(() => autoTaggerConfig.albumArt = v), isEnabled('albumArt')),
-            AutoTaggerTag("Album", autoTaggerConfig.album, (v) => setState(() => autoTaggerConfig.album = v), isEnabled('album')),
-            AutoTaggerTag("Album Artist", autoTaggerConfig.albumArtist, (v) => setState(() => autoTaggerConfig.albumArtist = v), isEnabled('albumArtist')),
-            AutoTaggerTag("Artist", autoTaggerConfig.artist, (v) => setState(() => autoTaggerConfig.artist = v), isEnabled('artist')),
-            AutoTaggerTag("Title", autoTaggerConfig.title, (v) => setState(() => autoTaggerConfig.title = v), isEnabled('title')),
-            AutoTaggerTag("Version", autoTaggerConfig.version, (v) => setState(() => autoTaggerConfig.version = v), isEnabled('version')),
-            AutoTaggerTag("Remixer", autoTaggerConfig.remixer, (v) => setState(() => autoTaggerConfig.remixer = v), isEnabled('remixer')),
-            AutoTaggerTag("Genre", autoTaggerConfig.genre, (v) => setState(() => autoTaggerConfig.genre = v), isEnabled('genre')),
-            AutoTaggerTag("Style", autoTaggerConfig.style, (v) => setState(() => autoTaggerConfig.style = v), isEnabled('style')),
-            AutoTaggerTag("Label", autoTaggerConfig.label, (v) => setState(() => autoTaggerConfig.label = v), isEnabled('label')),
-            AutoTaggerTag("Release ID", autoTaggerConfig.releaseId, (v) => setState(() => autoTaggerConfig.releaseId = v), isEnabled('releaseId')),
-            AutoTaggerTag("Track ID", autoTaggerConfig.trackId, (v) => setState(() => autoTaggerConfig.trackId = v), isEnabled('trackId')),
-            AutoTaggerTag("BPM", autoTaggerConfig.bpm, (v) => setState(() => autoTaggerConfig.bpm = v), isEnabled('bpm')),
-            AutoTaggerTag("Key", autoTaggerConfig.key, (v) => setState(() => autoTaggerConfig.key = v), isEnabled('key')),
-            AutoTaggerTag("Mood", autoTaggerConfig.mood, (v) => setState(() => autoTaggerConfig.mood = v), isEnabled('mood')),
-            AutoTaggerTag("Catalog Number", autoTaggerConfig.catalogNumber, (v) => setState(() => autoTaggerConfig.catalogNumber = v), isEnabled('catalogNumber')),
-            AutoTaggerTag("Track Number", autoTaggerConfig.trackNumber, (v) => setState(() => autoTaggerConfig.trackNumber = v), isEnabled('trackNumber')),
-            AutoTaggerTag("Disc Number", autoTaggerConfig.discNumber, (v) => setState(() => autoTaggerConfig.discNumber = v), isEnabled('discNumber')),
-            AutoTaggerTag("Duration", autoTaggerConfig.duration, (v) => setState(() => autoTaggerConfig.duration = v), isEnabled('duration')),
-            AutoTaggerTag("Track Total", autoTaggerConfig.trackTotal, (v) => setState(() => autoTaggerConfig.trackTotal = v), isEnabled('trackTotal')),
-            AutoTaggerTag("ISRC", autoTaggerConfig.isrc, (v) => setState(() => autoTaggerConfig.isrc = v), isEnabled('isrc')),
-            AutoTaggerTag("Publish Date", autoTaggerConfig.publishDate, (v) => setState(() => autoTaggerConfig.publishDate = v), isEnabled('publishDate')),
-            AutoTaggerTag("Release Date", autoTaggerConfig.releaseDate, (v) => setState(() => autoTaggerConfig.releaseDate = v), isEnabled('releaseDate')),
-            AutoTaggerTag("URLs", autoTaggerConfig.url, (v) => setState(() => autoTaggerConfig.url = v), isEnabled('url')),
-            AutoTaggerTag("Other", autoTaggerConfig.otherTags, (v) => setState(() => autoTaggerConfig.otherTags = v), isEnabled('otherTags')),
-            AutoTaggerTag("OneTagger Tag", autoTaggerConfig.metaTags, (v) => setState(() => autoTaggerConfig.metaTags = v), true),
-            AutoTaggerTag("Unsynced Lyrics", autoTaggerConfig.unsyncedLyrics, (v) => setState(() => autoTaggerConfig.unsyncedLyrics = v), isEnabled('unsyncedLyrics')),
-            AutoTaggerTag("Synced Lyrics", autoTaggerConfig.syncedLyrics, (v) => setState(() => autoTaggerConfig.syncedLyrics = v), isEnabled('syncedLyrics')),
+            for (SupportedTag tag in SupportedTag.values)
+              AutoTaggerTag(
+                tag.label,
+                autoTaggerConfig.tags.contains(tag),
+                (v) => setState(() => v ? autoTaggerConfig.tags.add(tag) : autoTaggerConfig.tags.remove(tag)),
+                isEnabled(tag)
+              ),
           ]
         )
       ],
