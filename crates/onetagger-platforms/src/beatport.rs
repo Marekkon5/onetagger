@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
+use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -348,7 +348,7 @@ impl AutotaggerSource for Beatport {
                     if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
                         let i = tracks.iter().position(|t| t == &track).unwrap();
                         // Data from release
-                        if config.catalog_number || config.album_artist || config.track_total {
+                        if config.any_tag_enabled(&supported_tags!(CatalogNumber, AlbumArtist, TrackTotal))  {
                             info!("Fetching full release for extra metadata.");
                             match self.fetch_release(&res.tracks[i].release.slug, res.tracks[i].release.id) {
                                 Ok(r) => {
@@ -360,7 +360,7 @@ impl AutotaggerSource for Beatport {
                             }
                         }
                         // Get style info
-                        if config.style && track.styles.is_empty() {
+                        if config.tag_enabled(SupportedTag::Style) && track.styles.is_empty() {
                             info!("Fetching full track for subgenres!");
                             match self.fetch_track(&res.tracks[i].slug, res.tracks[i].id) {
                                 Ok(t) => {
@@ -371,7 +371,7 @@ impl AutotaggerSource for Beatport {
                             }
                         }
                         // Data from API for track number
-                        if config.track_number || config.isrc {
+                        if config.any_tag_enabled(&supported_tags!(TrackNumber, ISRC)) {
                             info!("Fetching track info from API for track number!");
                             match self.fetch_track_embed(res.tracks[i].id) {
                                 Ok(t) => {

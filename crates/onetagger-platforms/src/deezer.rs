@@ -65,7 +65,7 @@ impl AutotaggerSource for Deezer {
             track.art = Some(Self::image_url("cover", track.art.as_ref().unwrap(), self.config.art_resolution));
 
             // Extend with full track data
-            if config.track_number || config.disc_number || config.bpm || config.isrc || config.release_date {
+            if config.any_tag_enabled(&supported_tags!(TrackNumber, DiscNumber, BPM, ISRC, ReleaseDate)) {
                 let id = track.track_id.as_ref().unwrap().parse().unwrap();
                 match self.track(id) {
                     Ok(t) => {
@@ -84,7 +84,7 @@ impl AutotaggerSource for Deezer {
             }
 
             // Extend with album data
-            if config.genre || config.track_total || config.label || config.album_artist {
+            if config.any_tag_enabled(&supported_tags!(Genre, TrackTotal, Label, AlbumArtist)) {
                 let id = track.release_id.parse().unwrap();
                 match self.album(id) {
                     Ok(album) => {

@@ -104,7 +104,7 @@ impl Musixmatch {
 impl AutotaggerSource for Musixmatch {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
         // Fetch
-        if !config.synced_lyrics && !config.unsynced_lyrics {
+        if !config.any_tag_enabled(&supported_tags!(UnsyncedLyrics, SyncedLyrics)) {
             return Ok(None);
         }
         let _ = info.artist()?;

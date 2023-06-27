@@ -29,37 +29,7 @@ pub struct TaggerConfig {
     pub platforms: Vec<String>,
     pub path: Option<String>,
 
-    // Tags
-    pub title: bool,
-    pub artist: bool,
-    pub album: bool,
-    pub key: bool,
-    pub bpm: bool,
-    pub genre: bool,
-    pub style: bool,
-    pub label: bool,
-    pub release_date: bool,
-    pub publish_date: bool,
-    pub album_art: bool,
-    pub other_tags: bool,
-    pub catalog_number: bool,
-    pub url: bool,
-    pub track_id: bool,
-    pub release_id: bool,
-    pub version: bool,
-    pub duration: bool,
-    pub album_artist: bool,
-    pub remixer: bool,
-    pub track_number: bool,
-    pub track_total: bool,
-    pub disc_number: bool,
-    pub isrc: bool,
-    pub mood: bool,
-    pub synced_lyrics: bool,
-    pub unsynced_lyrics: bool,
-    pub explicit: bool,
-    /// 1T meta tags
-    pub meta_tags: bool,
+    pub tags: Vec<SupportedTag>,
 
     /// Advanced
     pub separators: TagSeparators,
@@ -112,6 +82,16 @@ impl TaggerConfig {
         let config = self.custom.get(platform_id).ok_or(format!("Missing {platform_id} custom config!"))?;
         Ok(serde_json::from_value(config.to_owned())?)
     }
+
+    /// Is tag enabled
+    pub fn tag_enabled(&self, tag: SupportedTag) -> bool {
+        self.tags.contains(&tag)
+    }
+
+    /// Is any of the following tags enabled
+    pub fn any_tag_enabled(&self, tags: &[SupportedTag]) -> bool {
+        tags.iter().any(|t| self.tags.contains(t))
+    }
 }
 
 impl Default for TaggerConfig {
@@ -121,35 +101,9 @@ impl Default for TaggerConfig {
             threads: 16, 
             strictness: 0.7, 
             path: None, 
-            track_total: false,
-            title: false, 
-            artist: false, 
-            album: false, 
-            key: false, 
-            bpm: true, 
-            genre: true, 
-            mood: false,
-            style: true, 
-            label: true, 
-            release_date: true, 
-            publish_date: false, 
-            album_art: false, 
-            disc_number: false,
-            other_tags: false, 
-            catalog_number: false, 
-            url: false, 
-            track_id: false, 
-            release_id: false,
-            version: false, 
-            duration: false, 
-            album_artist: false, 
-            remixer: false, 
-            track_number: false,
-            isrc: false, 
-            synced_lyrics: false,
-            unsynced_lyrics: false,
-            explicit: false,
-            meta_tags: false, 
+            tags: vec![
+                SupportedTag::Genre, SupportedTag::BPM, SupportedTag::Style, SupportedTag::Label, SupportedTag::ReleaseDate, 
+            ],
             separators: TagSeparators::default(), 
             id3v24: true, 
             only_year: false,
@@ -550,7 +504,7 @@ pub enum SupportedTag {
     Title, Artist, Album, Key, Genre, Style, ReleaseDate, PublishDate,
     AlbumArt, OtherTags, CatalogNumber, TrackId, ReleaseId, Version,
     Duration, AlbumArtist, Remixer, TrackNumber, TrackTotal, DiscNumber,
-    Mood, SyncedLyrics, UnsyncedLyrics, Label, Explicit,
+    Mood, SyncedLyrics, UnsyncedLyrics, Label, Explicit, MetaTags,
     #[serde(rename = "bpm")]
     BPM,
     #[serde(rename = "url")]

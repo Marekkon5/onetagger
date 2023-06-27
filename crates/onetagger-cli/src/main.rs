@@ -5,12 +5,13 @@ use std::error::Error;
 use std::fs::File;
 use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
+use convert_case::{Casing, Case};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_renamer::{RenamerConfig, Renamer, TemplateParser};
 use onetagger_shared::{VERSION, COMMIT};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_autotag::{Tagger, TaggerConfigExt, AudioFileInfoImpl};
-use onetagger_tagger::{TaggerConfig, AudioFileInfo};
+use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
 
 
 fn main() {
@@ -304,16 +305,6 @@ enum Actions {
     }
 }
 
-/// For easily generating the tags string to config
-macro_rules! contains_tag_config {
-    ($override:expr, $target:expr, $source:expr, $t:tt) => {
-        $target.$t = $override || $source.contains(&stringify!($t))
-    };
-    ($override:expr, $target:expr, $source:expr, $($t:tt),+) => {
-        $(contains_tag_config!($override, $target, $source, $t);)+
-    }
-}
-
 /// For easily generating CLI -> config
 macro_rules! config_option {
     ($target:expr, $t:tt) => {
@@ -350,11 +341,19 @@ impl Actions {
                 }
                 // Tags
                 if let Some(tags) = tags {
-                    let tags: Vec<_> = tags.split(",").collect();
-                    // first arg = all tags true
-                    contains_tag_config!(tags.contains(&"all"), config, tags, title, artist, album, key, bpm, genre, style, label, release_date, 
-                        publish_date, album_art, other_tags, catalog_number, url, track_id, release_id, version, duration, 
-                        album_artist, remixer, track_number, isrc, meta_tags, track_total);
+                    let tags: Vec<SupportedTag> = tags
+                        .split(",")
+                        .filter_map(|t| {
+                            match serde_json::from_str(&format!("\"{}\"", t.to_case(Case::Camel))) {
+                                Ok(tag) => Some(tag),
+                                Err(_) => {
+                                    warn!("Invalid tag: {t}");
+                                    None
+                                },
+                            }
+                        })
+                        .collect();
+                    config.tags = tags;
                 }
                 // Boolean options
                 config_option!(config, id3v24, overwrite, album_art_file, merge_genres, camelot, short_title, match_duration,

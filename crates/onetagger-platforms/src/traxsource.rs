@@ -199,8 +199,8 @@ impl AutotaggerSource for Traxsource {
         // Match
         if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
             // Extend track if requested tags
-            if config.album_art || config.album || config.catalog_number || config.release_id || config.album_artist || config.track_number || config.track_total {
-                match self.extend_track(&mut track, config.catalog_number || config.track_number || config.album_art || config.track_total || config.album_artist) {
+            if config.any_tag_enabled(&supported_tags!(AlbumArt, Album, CatalogNumber, ReleaseId, AlbumArtist, TrackNumber, TrackTotal)) {
+                match self.extend_track(&mut track, config.any_tag_enabled(&supported_tags!(CatalogNumber, TrackNumber, AlbumArt, TrackTotal, AlbumArtist))) {
                     Ok(_) => {},
                     Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
                 }

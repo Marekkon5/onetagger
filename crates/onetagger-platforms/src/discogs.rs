@@ -10,7 +10,7 @@ use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, 
-    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
+    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag};
 
 pub struct Discogs {
     client: Client,
@@ -208,7 +208,7 @@ impl AutotaggerSource for Discogs {
             }
             if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
                 // Get catalog number if enabled from release rather than master
-                if ((config.catalog_number && track.catalog_number.is_none()) || (config.label && track.label.is_none())) && (release.labels.is_none() && release.main_release.is_some()) {
+                if ((config.tag_enabled(SupportedTag::CatalogNumber) && track.catalog_number.is_none()) || (config.tag_enabled(SupportedTag::Label) && track.label.is_none())) && (release.labels.is_none() && release.main_release.is_some()) {
                     info!("Discogs fetching release for catalog number/label...");
                     match self.full_release(ReleaseType::Release, release.main_release.unwrap()) {
                         // Get CN, label from release

@@ -6,7 +6,7 @@ interface AutotaggerPlatform {
     platform: PlatformInfo;
     icon: string;
     requiresAuth: boolean;
-    supportedTags: string[];
+    supportedTags: SupportedTag[];
 }
 
 interface PlatformInfo {
@@ -42,35 +42,7 @@ interface AutotaggerProfile {
 class AutotaggerConfig {
     platforms: string[] = ['beatport'];
     path?: string;
-    title: boolean = false;
-    artist: boolean = false;
-    albumArtist: boolean = false;
-    album: boolean = false;
-    key: boolean = false;
-    bpm: boolean = true;
-    genre: boolean = true;
-    style: boolean = true;
-    label: boolean = true;
-    duration: boolean = false;
-    releaseDate: boolean = true;
-    publishDate: boolean = false;
-    albumArt: boolean = false;
-    otherTags: boolean = false;
-    url: boolean = false;
-    trackId: boolean = false;
-    releaseId: boolean = false;
-    version: boolean = false;
-    remixer: boolean = false;
-    trackNumber: boolean = false;
-    trackTotal: boolean = false;
-    discNumber: boolean = false;
-    catalogNumber: boolean = false;
-    isrc: boolean = false;
-    mood: boolean = false;
-    syncedLyrics: boolean = false;
-    unsyncedLyrics: boolean = false;
-    explicit: boolean = false;
-    metaTags: boolean = false;
+    tags: SupportedTag[] = [SupportedTag.Genre, SupportedTag.Style, SupportedTag.BPM, SupportedTag.ReleaseDate, SupportedTag.Label];
     separators: Separators = new Separators();
     id3v24: boolean = true;
     overwrite: boolean = true;
@@ -163,7 +135,38 @@ interface TaggingStatus {
     usedShazam: boolean
 }
 
+enum SupportedTag {
+    Title = "title",
+    Artist = "artist",
+    Album = "album",
+    Key = "key",
+    Genre = "genre",
+    Style = "style",
+    ReleaseDate = "releaseDate",
+    PublishDate = "publishDate",
+    AlbumArt = "albumArt",
+    OtherTags = "otherTags",
+    CatalogNumber = "catalogNumber",
+    TrackId = "trackId",
+    ReleaseId = "releaseId",
+    Version = "version",
+    Duration = "duration",
+    AlbumArtist = "albumArtist",
+    Remixer = "remixer",
+    TrackNumber = "trackNumber",
+    TrackTotal = "trackTotal",
+    DiscNumber = "discNumber",
+    Mood = "mood",
+    SyncedLyrics = "syncedLyrics",
+    UnsyncedLyrics = "unsyncedLyrics",
+    Label = "label",
+    Explicit = "explicit",
+    MetaTags = "metaTags",
+    BPM = "bpm",
+    URL = "url",
+    ISRC = "isrc"
+}
 
 
 export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile };
-export { AutotaggerConfig, TaggerStatus };
+export { AutotaggerConfig, TaggerStatus, SupportedTag };

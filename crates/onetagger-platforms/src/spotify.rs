@@ -11,7 +11,7 @@ use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
 use rouille::{Server, router};
 use onetagger_shared::Settings;
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -174,7 +174,7 @@ impl Spotify {
     /// Extend track for autotagger
     fn extend_track(&self, track: &mut Track, results: &Vec<FullTrack>, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
         // Fetch album
-        if config.label {
+        if config.tag_enabled(SupportedTag::Label) {
             match self.album(&AlbumId::from_id(&track.release_id)?) {
                 Ok(album) => {
                     track.label = album.label;
@@ -183,7 +183,7 @@ impl Spotify {
             }
         }
         // Fetch artist
-        if config.genre {
+        if config.tag_enabled(SupportedTag::Genre) {
             // Get artist id
             let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id().to_string()) == track.track_id).unwrap();
             if let Some(artist_id) = t.artists.first().map(|a| a.id.clone()).flatten() {
@@ -199,7 +199,7 @@ impl Spotify {
             
         }
         // Fetch audio features
-        if config.key {
+        if config.tag_enabled(SupportedTag::Key) {
             let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id()) == track.track_id.as_ref().map(|s| s.as_str())).unwrap();
             if let Some(track_id) = t.id.as_ref() {
                 match self.audio_features(track_id) {

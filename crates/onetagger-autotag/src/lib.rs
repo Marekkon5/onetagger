@@ -13,7 +13,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
-use onetagger_tagger::{FileTaggedStatus, LyricsExt};
+use onetagger_tagger::{FileTaggedStatus, LyricsExt, SupportedTag};
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -88,33 +88,33 @@ impl TrackImpl for Track {
         // MP4 Album art override
         if let Tag::MP4(mp4) = &mut tag_wrap {
             // Has art
-            if (config.overwrite || mp4.get_art().is_empty()) && self.art.is_some() && config.album_art {
+            if (config.overwrite || mp4.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
                 mp4.remove_all_artworks();
             }
         }
         
         let tag = tag_wrap.tag_mut();
         // Set tags
-        if config.title {
+        if config.tag_enabled(SupportedTag::Title) {
             match config.short_title {
                 true => tag.set_field(Field::Title, vec![self.title.to_string()], config.overwrite),
                 false => tag.set_field(Field::Title, vec![self.full_title()], config.overwrite)
             }
         }
         // Version
-        if config.version && self.version.is_some() {
+        if config.tag_enabled(SupportedTag::Version) && self.version.is_some() {
             tag.set_field(Field::Version, vec![self.version.as_ref().unwrap().to_string()], config.overwrite);
         }
-        if config.artist {
+        if config.tag_enabled(SupportedTag::Artist) {
             tag.set_field(Field::Artist, self.artists.clone(), config.overwrite);
         }
-        if config.album_artist && !self.album_artists.is_empty() {
+        if config.tag_enabled(SupportedTag::AlbumArtist) && !self.album_artists.is_empty() {
             tag.set_field(Field::AlbumArtist, self.album_artists.clone(), config.overwrite);
         }
-        if self.album.is_some() && config.album  {
+        if self.album.is_some() && config.tag_enabled(SupportedTag::Album)  {
             tag.set_field(Field::Album, vec![self.album.as_ref().unwrap().to_string()], config.overwrite);
         }
-        if config.key && self.key.is_some() {
+        if config.tag_enabled(SupportedTag::Key) && self.key.is_some() {
             let mut value = self.key.as_ref().unwrap().to_string();
             // Convert to camelot
             if config.camelot {
@@ -124,13 +124,13 @@ impl TrackImpl for Track {
             }
             tag.set_field(Field::Key, vec![value], config.overwrite);
         }
-        if config.bpm && self.bpm.is_some() {
+        if config.tag_enabled(SupportedTag::BPM) && self.bpm.is_some() {
             tag.set_field(Field::BPM, vec![self.bpm.unwrap().to_string()], config.overwrite);
         }
-        if config.label && self.label.is_some() {
+        if config.tag_enabled(SupportedTag::Label) && self.label.is_some() {
             tag.set_field(Field::Label, vec![self.label.as_ref().unwrap().to_string()], config.overwrite);
         }
-        if config.genre && !self.genres.is_empty() {
+        if config.tag_enabled(SupportedTag::Genre) && !self.genres.is_empty() {
             let mut genres = if config.merge_genres {
                 // Merge with existing ones
                 let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
@@ -148,7 +148,7 @@ impl TrackImpl for Track {
 
             tag.set_field(Field::Genre, genres, config.overwrite);
         }
-        if config.style && !self.styles.is_empty() {
+        if config.tag_enabled(SupportedTag::Style) && !self.styles.is_empty() {
             if config.styles_options == StylesOptions::CustomTag && config.styles_custom_tag.is_some() {
                 // Custom style tag
                 let ui_tag = config.styles_custom_tag.as_ref().unwrap();
@@ -167,7 +167,7 @@ impl TrackImpl for Track {
             }
         }
         // Release dates
-        if config.release_date {
+        if config.tag_enabled(SupportedTag::ReleaseDate) {
             if let Some(date) = self.release_date {
                 tag.set_date(&TagDate {
                     year: date.year() as i32,
@@ -189,7 +189,7 @@ impl TrackImpl for Track {
             }
         }
         // Publish date
-        if config.publish_date {
+        if config.tag_enabled(SupportedTag::PublishDate) {
             if let Some(date) = self.publish_date {
                 tag.set_publish_date(&TagDate {
                     year: date.year() as i32,
@@ -211,69 +211,69 @@ impl TrackImpl for Track {
             }
         }
         // URL
-        if config.url {
+        if config.tag_enabled(SupportedTag::URL) {
             tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite);
         }
         // Other tags
-        if config.other_tags {
+        if config.tag_enabled(SupportedTag::OtherTags) {
             for (t, value) in &self.other {
                 tag.set_raw(&t.by_format(&format), value.to_owned(), config.overwrite);
             }
         }
         // IDs
-        if config.track_id && self.track_id.is_some() {
+        if config.tag_enabled(SupportedTag::TrackId) && self.track_id.is_some() {
             let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite);
         }
-        if config.release_id && !self.release_id.is_empty() {
+        if config.tag_enabled(SupportedTag::ReleaseId) && !self.release_id.is_empty() {
             let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.release_id.to_string()], config.overwrite);
         }
         // Catalog number
-        if config.catalog_number && self.catalog_number.is_some() {
+        if config.tag_enabled(SupportedTag::CatalogNumber) && self.catalog_number.is_some() {
             tag.set_field(Field::CatalogNumber, vec![self.catalog_number.as_ref().unwrap().to_string()], config.overwrite);
         }
         // Duration
-        if config.duration && self.duration.as_secs() > 0 {
+        if config.tag_enabled(SupportedTag::Duration) && self.duration.as_secs() > 0 {
             tag.set_field(Field::Duration, vec![self.duration.as_secs().to_string()], config.overwrite);
         }
         // Remixers
-        if config.remixer && !self.remixers.is_empty() {
+        if config.tag_enabled(SupportedTag::Remixer) && !self.remixers.is_empty() {
             tag.set_field(Field::Remixer, self.remixers.clone(), config.overwrite);
         }
         // ISRC
-        if config.isrc && self.isrc.is_some() {
+        if config.tag_enabled(SupportedTag::ISRC) && self.isrc.is_some() {
             tag.set_field(Field::ISRC, vec![self.isrc.clone().unwrap()], config.overwrite);
         }
         // Mood
-        if config.mood && self.mood.is_some() {
+        if config.tag_enabled(SupportedTag::Mood) && self.mood.is_some() {
             tag.set_field(Field::Mood, vec![self.mood.clone().unwrap()], config.overwrite);
         }
         // Disc number
-        if config.disc_number && self.disc_number.is_some() {
+        if config.tag_enabled(SupportedTag::DiscNumber) && self.disc_number.is_some() {
             tag.set_field(Field::DiscNumber, vec![self.disc_number.clone().unwrap().to_string()], config.overwrite);
         }
         // Track number
-        if config.track_number && self.track_number.is_some() {
-            match config.track_total {
+        if config.tag_enabled(SupportedTag::TrackNumber) && self.track_number.is_some() {
+            match config.tag_enabled(SupportedTag::TrackTotal) {
                 true => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), self.track_total.clone(), config.overwrite),
                 false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), None, config.overwrite),
             }
         }
         // Lyrics
-        if config.synced_lyrics && self.lyrics.is_some() {
+        if config.tag_enabled(SupportedTag::SyncedLyrics) && self.lyrics.is_some() {
             tag.set_lyrics(self.lyrics.as_ref().unwrap(), true, config.overwrite);
         }
-        if config.unsynced_lyrics && self.lyrics.is_some() {
+        if config.tag_enabled(SupportedTag::UnsyncedLyrics) && self.lyrics.is_some() {
             tag.set_lyrics(self.lyrics.as_ref().unwrap(), false, config.overwrite);
         }
         // Explicit
-        if config.explicit && self.explicit.is_some() {
+        if config.tag_enabled(SupportedTag::Explicit) && self.explicit.is_some() {
             tag.set_explicit(self.explicit.unwrap());
         }
 
         // Album art
-        if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.album_art {
+        if (config.overwrite || tag.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
             info!("Downloading art: {:?}", self.art);
             match self.download_art(self.art.as_ref().unwrap()) {
                 Ok(data) => {
@@ -298,7 +298,7 @@ impl TrackImpl for Track {
         }
 
         // Meta tags (date / success)
-        if config.meta_tags {
+        if config.tag_enabled(SupportedTag::MetaTags) {
             let time = Local::now();
             tag.set_raw("1T_TAGGEDDATE", vec![format!("{}_AT", time.format("%Y-%m-%d %H:%M:%S"))], true);
         }
