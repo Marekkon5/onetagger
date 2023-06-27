@@ -1599,14 +1599,14 @@ dependencies = [
 
 [[package]]
 name = "lofty"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cb2b21027aa98f860de475b3ee8b10f36df689121b5752efeb7a64bec1f4d45"
+checksum = "ddd367f21a745a75e8e92b7ce8b83411cf12bf84a23978e671764ef823a6b3b4"
 dependencies = [
  "base64 0.21.2",
  "byteorder",
  "flate2",
- "lofty_attr 0.7.0",
+ "lofty_attr 0.8.0",
  "log",
  "ogg_pager",
  "once_cell",
@@ -1626,9 +1626,9 @@ dependencies = [
 
 [[package]]
 name = "lofty_attr"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9482ad911db377f8362c658aff576aac289c84cf5c25ca058e2c49d9bc3301dc"
+checksum = "e992e1fc7c53fec81c09a605b990b0f5ff3b82fb9d5c26389ec3c9fbc9773ab2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2259,7 +2259,7 @@ dependencies = [
  "base64 0.21.2",
  "chrono",
  "id3",
- "lofty 0.13.0",
+ "lofty 0.14.0",
  "log",
  "metaflac",
  "mp4ameta",
@@ -2764,8 +2764,9 @@ dependencies = [
 
 [[package]]
 name = "riff"
-version = "1.0.1"
-source = "git+https://github.com/Marekkon5/riff.git#4aa24108635a9185056b4eb2712d9ddc96d6e5b6"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c601484456988d75017d86700d3743b949c21cdc7399f940c75e34680d185c5"
 
 [[package]]
 name = "ring"

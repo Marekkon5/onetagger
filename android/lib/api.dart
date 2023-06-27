@@ -19,6 +19,7 @@ late List<AutoTaggerPlatform> autoTaggerPlatforms;
 class AutoTaggerConfig {
   AutoTaggerConfig({
     required this.tags,
+    required this.overwriteTags,
     required this.albumArtFile,
     required this.camelot,
     required this.custom,
@@ -58,6 +59,7 @@ class AutoTaggerConfig {
   });
 
   List<SupportedTag> tags;
+  List<SupportedTag> overwriteTags;
   bool albumArtFile;
   bool camelot;
   Map<String, Map<String, dynamic>> custom;
@@ -100,6 +102,7 @@ class AutoTaggerConfig {
   factory AutoTaggerConfig.defaultConfig() => AutoTaggerConfig(
     tags: [SupportedTag.bpm, SupportedTag.genre, SupportedTag.style, SupportedTag.label],
     platforms: ["beatport"],
+    overwriteTags: [],
     path: "",
     separators: TagSeparators(),
     id3v24: true,

@@ -8,6 +8,31 @@
             v-model='$1t.config.value.overwrite'
         ></AdvancedSettingsToggle>
 
+        <!-- Overwrite select -->
+        <div v-if='!$1t.config.value.overwrite' class='q-pb-md'>
+            <q-select
+                dark
+                standout='text-grey-4 bg-dark'
+                class='row select q-ma-auto q-mt-xl'
+                :model-value='SUPPORTED_TAGS.filter(t => $1t.config.value.overwriteTags.includes(t.tag))'
+                @update:model-value='(v) => $1t.config.value.overwriteTags = v.map((v: any)=> v.tag)'
+                :options='SUPPORTED_TAGS'
+                use-chips
+                multiple
+                label='Select which tags to overwrite'
+            >
+                <template v-slot:selected-item='scope'>
+                    <q-chip 
+                        color='primary' 
+                        :label='scope.opt.label' 
+                        class='text-black'
+                        removable
+                        @remove='scope.removeAtIndex(scope.index)'
+                    ></q-chip>
+                </template>
+            </q-select>
+        </div>
+
         <AdvancedSettingsToggle 
             label='ID3v2.4'
             tooltip='Use ID3v2.4 instead of IDv2.3 for MP3/AIFF files'
@@ -318,6 +343,7 @@ import { FrameName } from '../scripts/utils';
 import Separators from './Separators.vue';
 import AdvancedSettingsToggle from './AdvancedSettingsToggle.vue';
 import TagFields from './TagFields.vue';
+import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 
 const $1t = get1t();
 const multipleMatches = ['Default', 'Oldest', 'Newest'];

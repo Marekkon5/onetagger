@@ -43,6 +43,7 @@ class AutotaggerConfig {
     platforms: string[] = ['beatport'];
     path?: string;
     tags: SupportedTag[] = [SupportedTag.Genre, SupportedTag.Style, SupportedTag.BPM, SupportedTag.ReleaseDate, SupportedTag.Label];
+    overwriteTags: SupportedTag[] = [];
     separators: Separators = new Separators();
     id3v24: boolean = true;
     overwrite: boolean = true;
@@ -167,6 +168,39 @@ enum SupportedTag {
     ISRC = "isrc"
 }
 
+/// All supported tags with labels and tooltips
+const SUPPORTED_TAGS = [
+    { tag: SupportedTag.AlbumArt, label: 'Album Art', tooltip: 'Resolution is platform dependent' },
+    { tag: SupportedTag.Album, label: 'Album' },
+    { tag: SupportedTag.AlbumArtist, label: 'Album Artist' },
+    { tag: SupportedTag.Artist, label: 'Artist' },
+    { tag: SupportedTag.Title, label: 'Title' },
+    { tag: SupportedTag.Version, label: 'Version' },
+    { tag: SupportedTag.Remixer, label: 'Remixers', tooltip: 'Available from Beatport & Beatsource' },
+    { tag: SupportedTag.Genre, label: 'Genre', tooltip: 'Spotify will populate multiple genres based on artist' },
+    { tag: SupportedTag.Style, label: 'Style / Subgenre', tooltip: 'Style is available from Discogs & Bandcamp, Subgenre from Beatport only'},
+    { tag: SupportedTag.Label, label: 'Label' },
+    { tag: SupportedTag.ReleaseId, label: 'Release ID' },
+    { tag: SupportedTag.TrackId, label: 'Track ID' },
+    { tag: SupportedTag.BPM, label: 'BPM' },
+    { tag: SupportedTag.Key, label: 'Key' },
+    { tag: SupportedTag.Mood, label: 'Mood' },
+    { tag: SupportedTag.CatalogNumber, label: 'Catalog Number' },
+    { tag: SupportedTag.TrackNumber, label: 'Track Number' },
+    { tag: SupportedTag.DiscNumber, label: 'Disc Number' },
+    { tag: SupportedTag.Duration, label: 'Duration' },
+    { tag: SupportedTag.TrackTotal, label: 'Track Total' },
+    { tag: SupportedTag.ISRC, label: 'ISRC' },
+    { tag: SupportedTag.PublishDate, label: 'Publish Date', tooltip: 'Available from Beatport only' },
+    { tag: SupportedTag.ReleaseDate, label: 'Release Date' },
+    { tag: SupportedTag.URL, label: 'URL' },
+    { tag: SupportedTag.OtherTags, label: 'Other Tags', tooltip: 'Specific tags only for some platforms (Beatport, Discogs)' },
+    { tag: SupportedTag.MetaTags, label: 'OneTagger Tags', tooltip: 'Adds 1T_TAGGEDDATE tag with timestamp' },
+    { tag: SupportedTag.UnsyncedLyrics, label: 'Unsynced Lyrics' },
+    { tag: SupportedTag.SyncedLyrics, label: 'Synced Lyrics' },
+    { tag: SupportedTag.Explicit, label: 'Explicit' },
+];
+
 
 export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile };
-export { AutotaggerConfig, TaggerStatus, SupportedTag };
+export { AutotaggerConfig, TaggerStatus, SupportedTag, SUPPORTED_TAGS };

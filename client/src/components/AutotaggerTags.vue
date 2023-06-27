@@ -45,7 +45,7 @@
         <div class='row justify-between q-ml-xl tags wrap'>
 
             <!-- All tags -->
-            <div v-for='tag in TAGS'>
+            <div v-for='tag in SUPPORTED_TAGS'>
                 <q-checkbox 
                     :disable='!isSupported(tag.tag)'
                     class='tag checkbox text-grey-4' 
@@ -74,40 +74,9 @@
 
 <script lang='ts' setup>
 import { get1t } from '../scripts/onetagger';
-import { SupportedTag } from '../scripts/autotagger';
+import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 import PlaylistDropZone from './PlaylistDropZone.vue';
 
-const TAGS = [
-    { tag: SupportedTag.AlbumArt, label: 'Album Art', tooltip: 'Resolution is platform dependent' },
-    { tag: SupportedTag.Album, label: 'Album' },
-    { tag: SupportedTag.AlbumArtist, label: 'Album Artist' },
-    { tag: SupportedTag.Artist, label: 'Artist' },
-    { tag: SupportedTag.Title, label: 'Title' },
-    { tag: SupportedTag.Version, label: 'Version' },
-    { tag: SupportedTag.Remixer, label: 'Remixers', tooltip: 'Available from Beatport & Beatsource' },
-    { tag: SupportedTag.Genre, label: 'Genre', tooltip: 'Spotify will populate multiple genres based on artist' },
-    { tag: SupportedTag.Style, label: 'Style / Subgenre', tooltip: 'Style is available from Discogs & Bandcamp, Subgenre from Beatport only'},
-    { tag: SupportedTag.Label, label: 'Label' },
-    { tag: SupportedTag.ReleaseId, label: 'Release ID' },
-    { tag: SupportedTag.TrackId, label: 'Track ID' },
-    { tag: SupportedTag.BPM, label: 'BPM' },
-    { tag: SupportedTag.Key, label: 'Key' },
-    { tag: SupportedTag.Mood, label: 'Mood' },
-    { tag: SupportedTag.CatalogNumber, label: 'Catalog Number' },
-    { tag: SupportedTag.TrackNumber, label: 'Track Number' },
-    { tag: SupportedTag.DiscNumber, label: 'Disc Number' },
-    { tag: SupportedTag.Duration, label: 'Duration' },
-    { tag: SupportedTag.TrackTotal, label: 'Track Total' },
-    { tag: SupportedTag.ISRC, label: 'ISRC' },
-    { tag: SupportedTag.PublishDate, label: 'Publish Date', tooltip: 'Available from Beatport only' },
-    { tag: SupportedTag.ReleaseDate, label: 'Release Date' },
-    { tag: SupportedTag.URL, label: 'URL' },
-    { tag: SupportedTag.OtherTags, label: 'Other Tags', tooltip: 'Specific tags only for some platforms (Beatport, Discogs)' },
-    { tag: SupportedTag.MetaTags, label: 'OneTagger Tags', tooltip: 'Adds 1T_TAGGEDDATE tag with timestamp' },
-    { tag: SupportedTag.UnsyncedLyrics, label: 'Unsynced Lyrics' },
-    { tag: SupportedTag.SyncedLyrics, label: 'Synced Lyrics' },
-    { tag: SupportedTag.Explicit, label: 'Explicit' },
-];
 
 const $1t = get1t();
 
@@ -135,13 +104,13 @@ function toggleTag(tag: SupportedTag) {
 function toggleTags(mode: string) {
     switch (mode) {
         case 'enableAll':
-            $1t.config.value.tags = TAGS.map(t => t.tag);
+            $1t.config.value.tags = SUPPORTED_TAGS.map(t => t.tag);
             break;
         case 'disableAll':
             $1t.config.value.tags.length = 0;
             break;
         case 'toggle':
-            $1t.config.value.tags = TAGS.map(t => t.tag).filter(t => !$1t.config.value.tags.includes(t));
+            $1t.config.value.tags = SUPPORTED_TAGS.map(t => t.tag).filter(t => !$1t.config.value.tags.includes(t));
             break;
     }
 }

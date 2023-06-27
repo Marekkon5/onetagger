@@ -34,7 +34,12 @@ pub struct TaggerConfig {
     /// Advanced
     pub separators: TagSeparators,
     pub id3v24: bool,
+
+    /// Overwrite all tags
     pub overwrite: bool,
+    /// Which tags to overwrite
+    pub overwrite_tags: Vec<SupportedTag>,
+
     pub threads: u16,
     /// From 0 to 1
     pub strictness: f64,
@@ -92,6 +97,14 @@ impl TaggerConfig {
     pub fn any_tag_enabled(&self, tags: &[SupportedTag]) -> bool {
         tags.iter().any(|t| self.tags.contains(t))
     }
+
+    /// Should this track be overwritten
+    pub fn overwrite_tag(&self, tag: SupportedTag) -> bool {
+        if self.overwrite {
+            return true;
+        }
+        self.overwrite_tags.contains(&tag)
+    }
 }
 
 impl Default for TaggerConfig {
@@ -108,6 +121,7 @@ impl Default for TaggerConfig {
             id3v24: true, 
             only_year: false,
             overwrite: true, 
+            overwrite_tags: vec![],
             merge_genres: false, 
             album_art_file: false, 
             camelot: false, 
