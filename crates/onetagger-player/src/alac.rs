@@ -6,7 +6,7 @@ use rodio::Source;
 use alac::{Reader, Samples, StreamInfo};
 
 pub struct ALACSource {
-    samples: Samples<BufReader<File>, i16>,
+    samples: Samples<BufReader<File>, i32>,
     stream_info: StreamInfo
 }
 
@@ -49,7 +49,7 @@ impl Iterator for ALACSource {
         // Wrapper against samples
         if let Some(r) = self.samples.next() {
             if let Ok(s) = r {
-                return Some(s);
+                return Some((s >> 16) as i16);
             }
         }
         None

@@ -14,7 +14,7 @@
         :label='label'
         :error-message='error'
         :error='error?true:false'
-        @input='onInput'
+        @update:model-value='onInput'
         @input-value='onInputValue'
         @filter='onFilter'
         popup-content-class='no-shadow'
@@ -81,7 +81,7 @@ function removeHelper() {
 
 // Clear helpers
 function onInput(v: any) {
-    console.log(v)
+    // console.log(v)
     value.value = v;
     removeHelper();
 }
