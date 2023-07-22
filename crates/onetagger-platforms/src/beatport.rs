@@ -1,14 +1,14 @@
 use std::sync::{Arc, Mutex};
 use std::error::Error;
 use std::time::Duration;
-use std::collections::HashMap;
-use regex::{Regex, Captures};
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
+use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag};
+use serde_json::Value;
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -31,7 +31,7 @@ impl Beatport {
     }
 
     /// Search for tracks on beatport
-    pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportSearchResults, Box<dyn Error>> {
+    pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportTrackResults, Box<dyn Error>> {
         let response = self.client.get("https://www.beatport.com/search/tracks")
             .query(&[
                 ("q", query), 
@@ -42,48 +42,17 @@ impl Beatport {
             .text()?;
         
         // Parse JSON
-        let json = self.get_playables(&response)?;
-        let results: BeatportSearchResults = serde_json::from_str(&json)?;
+        let results: BeatportTrackResults = self.get_next_data(&response)?;
         Ok(results)
     }
-
-    /// Get JSON data from website
-    fn get_playables(&self, response: &str) -> Result<String, Box<dyn Error>> {
+    
+    /// Extract next hydratation data from html
+    fn get_next_data<T: DeserializeOwned>(&self, response: &str) -> Result<T, Box<dyn Error>> {
         let document = Html::parse_document(&response);
-        let selector = Selector::parse("script#data-objects").unwrap();
-        let script = document.select(&selector).next().ok_or("No data found")?.text().collect::<Vec<_>>().join("");
-        let start = script.find("window.Playables =").ok_or("No data found")? + 18;
-        let end = script.find("window.Sliders =").unwrap_or_else(|| script.len());
-        let mut data = script[start..end].trim().to_owned();
-        // Remove trailing characters
-        while !data.ends_with('}') {
-            data.pop();
-        }
-        Ok(data)
-    }
-
-    /// Get full release info
-    pub fn fetch_release(&self, slug: &str, id: i64) -> Result<BeatportRelease, Box<dyn Error>> {
-        let response = self.client.get(format!("https://www.beatport.com/release/{}/{}", slug, id))
-            .send()?
-            .text()?;
-        // Parse
-        let json = self.get_playables(&response)?;
-        let results: BeatportSearchResults = serde_json::from_str(&json)?;
-        let mut release = results.releases.first().ok_or("Missing release!")?.to_owned();
-        // Find track count
-        let track_total = results.tracks.iter().filter(|t| t.release.id == release.id).count();
-        release.track_total = Some(track_total as u16);
-        Ok(release)
-    }
-
-    /// Get full track details
-    pub fn fetch_track(&self, slug: &str, id: i64) -> Result<BeatportTrack, Box<dyn Error>> {
-        let response = self.client.get(format!("https://www.beatport.com/track/{}/{}", slug, id))
-            .send()?.text()?;
-        let json = self.get_playables(&response)?;
-        let results: BeatportSearchResults = serde_json::from_str(&json)?;
-        Ok(results.tracks.first().ok_or("Missing track data!")?.to_owned())
+        let selector = Selector::parse("script#__NEXT_DATA__").unwrap();
+        let script = document.select(&selector).next().ok_or("Missing __NEXT_DATA__")?.text().collect::<String>();
+        let value: Value = serde_json::from_str(&script)?;
+        Ok(serde_json::from_value(value["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"].to_owned())?)
     }
 
     /// Update embed auth token
@@ -106,15 +75,38 @@ impl Beatport {
         Ok(t.access_token)
     }
 
-    /// Fetch track using private embed API
-    pub fn fetch_track_embed(&self, id: i64) -> Result<BeatportAPITrack, Box<dyn Error>> {
+    /// Fetch track using API
+    pub fn track(&self, id: i64) -> Result<BeatportTrack, Box<dyn Error>> {
         let token = self.update_token()?;
-        let response: BeatportAPITrack = self.client.get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
+        let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
             .bearer_auth(token)
             .send()?.json()?;
         Ok(response)
     }
+
+    /// Fetch release using API
+    pub fn release(&self, id: i64) -> Result<BeatportRelease, Box<dyn Error>> {
+        let token = self.update_token()?;
+        let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
+            .bearer_auth(token)
+            .send()?.json()?;
+        Ok(response)
+    }
+
+    /// Extend the track with release info
+    pub fn extend_track(&self, track: &mut Track) -> Result<(), Box<dyn Error>> {
+        debug!("Extending track...");
+        let release = self.release(track.release_id.parse()?)?;
+        track.track_total = release.track_count;
+        track.album_artists = match release.artists {
+            Some(a) => a.into_iter().map(|a| a.name).collect(),
+            None => vec![],
+        };
+        Ok(())
+    }
+
 }
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportOAuth {
@@ -122,196 +114,145 @@ pub struct BeatportOAuth {
     pub expires_in: u128
 }
 
+/// When searching for tracks
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportSearchResults {
-    pub tracks: Vec<BeatportTrack>,
-    pub releases: Vec<BeatportRelease>
+pub struct BeatportTrackResults {
+    pub data: Vec<BeatportTrackResult>
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportTrackResult {
+    pub track_id: i64,
+    pub track_name: String,
+    pub artists: Vec<BeatportArtist>,
+    pub isrc: Option<String>,
+    pub length: Option<u64>,
+    pub mix_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportArtist {
+    pub artist_id: i64,
+    pub artist_name: String,
+    pub artist_type_name: String,
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportTrack {
-    pub artists: Vec<BeatportSmall>,
+    pub artists: Vec<BeatportGeneric>,
     pub bpm: Option<i64>,
-    pub date: BeatportDate,
-    pub genres: Vec<BeatportSmall>,
+    pub catalog_number: Option<String>,
+    pub exclusive: bool,
+    pub genre: BeatportGeneric,
     pub id: i64,
-    pub images: HashMap<String, BeatportImage>,
-    pub key: Option<String>,
-    pub label: Option<BeatportSmall>,
-    pub mix: Option<String>,
+    pub image: BeatportImage,
+    pub isrc: Option<String>,
+    pub key: Option<BeatportGeneric>,
+    pub length_ms: u64,
+    pub mix_name: String,
     pub name: String,
-    pub release: BeatportSmall,
+    pub number: Option<i64>,
+    pub publish_date: Option<String>,
+    pub release: BeatportRelease,
+    pub remixers: Vec<BeatportGeneric>,
     pub slug: String,
-    pub title: Option<String>,
-    pub duration: BeatportDuration,
-    pub sub_genres: Option<Vec<BeatportSmall>>,
-    pub remixers: Option<Vec<BeatportSmall>>,
-    pub exclusive: Option<bool>
+    pub sub_genre: Option<BeatportGeneric>,
+    pub new_release_date: Option<String>
 }
 
-// Track from private API has different data!
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportAPITrack {
-    pub slug: String,
+pub struct BeatportGeneric {
     pub id: i64,
-    pub number: i32,
-    pub isrc: Option<String>
-}
-
-impl BeatportAPITrack {
-    /// Get track number struct
-    pub fn track_number(&self) -> TrackNumber {
-        if self.number == 0 {
-            TrackNumber::Number(1)
-        } else {
-            TrackNumber::Number(self.number)
-        }
-    }
-}
-
-impl BeatportTrack {
-    pub fn to_track(&self, art_resolution: u32) -> Track {
-        let mut t = Track {
-            platform: "beatport".to_string(),
-            title: self.name.to_string(),
-            version: self.mix.as_ref().map(String::from),
-            artists: self.artists.iter().map(|a| a.name.to_string()).collect(),
-            album_artists: vec![],
-            album: Some(self.release.name.to_string()),
-            bpm: self.bpm.clone(),
-            genres: self.genres.iter().map(|g| g.name.to_string()).collect(),
-            styles: self.sub_genres.as_ref().unwrap_or(&Vec::new()).iter().map(|g| g.name.to_string()).collect(),
-            label: self.label.as_ref().map(|l| l.name.to_string()),
-            url: format!("https://beatport.com/track/{}/{}", &self.slug, &self.id),
-            // Parse year only if 4 digits
-            release_year: if let Some(date) = &self.date.released {
-                if date.len() == 4 { date.parse().ok() } else { None }
-            } else { None },
-            publish_year: if let Some(date) = &self.date.published {
-                if date.len() == 4 { date.parse().ok() } else { None }
-            } else { None },
-            // Dates
-            release_date: self.date.released.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-            publish_date: self.date.published.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-            // Key
-            key: self.key.as_ref().map(|k| k
-                .replace("♭", "b")
-                .replace("♯", "#")
-                .replace("min", "m")
-                .replace("maj", "")
-                .replace(" ", "")
-                .to_owned()
-            ),
-            catalog_number: None,
-            art: self.get_image().map(|i| i.get_url(art_resolution)).flatten(),
-            other: vec![
-                (FrameName::same("UNIQUEFILEID"), vec![format!("https://beatport.com|{}", &self.id)])
-            ],
-            track_id: Some(self.id.to_string()),
-            release_id: self.release.id.to_string(),
-            duration: self.duration.to_duration(),
-            remixers: self.remixers.clone().unwrap_or(vec![]).into_iter().map(|r| r.name).collect(),
-            ..Default::default()
-        };
-
-        // Exclusive beatport tag
-        if self.exclusive.is_some() && self.exclusive.unwrap() {
-            t.other.push((FrameName::same("BEATPORT_EXCLUSIVE"), vec!["1".to_string()]));
-        }
-        t
-    }
-
-    // Get dynamic or first image
-    fn get_image(&self) -> Option<&BeatportImage> {
-        // Prioritize dynamic image
-        if let Some(image) = self.images.get("dynamic") {
-            if !image.url.contains(INVALID_ART) {
-                return Some(image);
-            }
-        }
-        self.images.iter().filter(|(k, v)| {
-            *k != "dynamic" && !v.url.contains(INVALID_ART)
-        }).map(|(_k, v)| v).next()
-    }
-}
-
-// Generic container 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportSmall {
-    pub id: i64,
-    pub name: String,
-    pub slug: String
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportDate {
-    pub published: Option<String>,
-    pub released: Option<String>
+    pub name: String
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportImage {
     pub id: i64,
-    pub url: String
+    pub dynamic_uri: String,
 }
 
-// Currently only used for catalog number
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct BeatportRelease {
     pub id: i64,
-    pub slug: String,
-    pub catalog: Option<String>,
-    pub artists: Vec<BeatportSmall>,
-    // Injected in fetch_release
-    #[serde(skip)]
-    pub track_total: Option<u16>
+    pub name: String,
+    pub label: BeatportGeneric,
+    pub image: BeatportImage,
+    pub upc: Option<String>,
+    pub track_count: Option<u16>,
+    pub artists: Option<Vec<BeatportGeneric>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportDuration {
-    pub milliseconds: Option<u64>,
-    pub minutes: Option<String>
-}
-
-impl BeatportDuration {
-    pub fn to_duration(&self) -> Duration {
-        if let Some(ms) = self.milliseconds {
-            return Duration::from_millis(ms);
+impl BeatportTrackResult {
+    pub fn to_track(self) -> Track {
+        Track {
+            platform: "beatport".to_string(),
+            title: self.track_name,
+            track_id: Some(self.track_id.to_string()),
+            artists: self.artists.into_iter().map(|a| a.artist_name).collect(),
+            version: self.mix_name,
+            duration: Duration::from_millis(self.length.unwrap_or(0)),
+            isrc: self.isrc,
+            ..Default::default()
         }
-        if let Some(m) = self.minutes.as_ref() {
-            return MatchingUtils::parse_duration(&m).unwrap_or(Duration::ZERO);
-        }
-        Duration::ZERO
     }
 }
 
-impl BeatportImage {
-    pub fn get_url(&self, resolution: u32) -> Option<String> {
-        if self.url.contains("ab2d1d04-233d-4b08-8234-9782b34dcab8") {
+impl BeatportTrack {
+    pub fn to_track(self, art_resolution: u32) -> Track {
+        let art = self.get_art(art_resolution);
+
+        let mut track = Track {
+            platform: "beatport".to_string(),
+            title: self.name,
+            version: Some(self.mix_name),
+            artists: self.artists.into_iter().map(|a| a.name).collect(),
+            album: Some(self.release.name),
+            key: self.key.map(|k| k.name.replace(" Major", "").replace(" Minor", "m")),
+            bpm: self.bpm,
+            genres: vec![self.genre.name],
+            styles: match self.sub_genre {
+                Some(s) => vec![s.name],
+                None => vec![],
+            },
+            art,
+            url: format!("https://www.beatport.com/track/{}/{}", self.slug, self.id),
+            label: Some(self.release.label.name),
+            catalog_number: self.catalog_number,
+            other: vec![
+                (FrameName::same("UNIQUEFILEID"), vec![format!("https://beatport.com|{}", &self.id)])
+            ],
+            track_id: Some(self.id.to_string()),
+            release_id: self.release.id.to_string(),
+            duration: Duration::from_millis(self.length_ms),
+            remixers: self.remixers.into_iter().map(|r| r.name).collect(),
+            track_number: self.number.map(|n| TrackNumber::Number(n as i32)),
+            isrc: self.isrc,
+            release_year: self.new_release_date.as_ref().map(|d| d.chars().take(4).collect::<String>().parse().ok()).flatten(),
+            publish_year: self.publish_date.as_ref().map(|d| d.chars().take(4).collect::<String>().parse().ok()).flatten(),
+            release_date: self.new_release_date.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+            publish_date: self.publish_date.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+            ..Default::default()
+        };
+
+        // Exclusive
+        if self.exclusive {
+            track.other.push((FrameName::same("BEATPORT_EXCLUSIVE"), vec!["1".to_string()]));
+        }
+
+        track
+    }
+
+    /// Get album art URL
+    pub fn get_art(&self, art_resolution: u32) -> Option<String> {
+        if self.release.image.dynamic_uri.contains(&INVALID_ART) {
             return None;
         }
-
-        let r = resolution.to_string();
-        let dynamic = &self.url;
-        // Normal dynamic
-        if dynamic.contains("{w}") || dynamic.contains("{x}") {
-            return Some(dynamic
-                .replace("{w}", &r)
-                .replace("{h}", &r)
-                .replace("{x}", &r)
-                .replace("{y}", &r)
-                .to_owned());
-        }
-        // Undocumented dynamic
-        if dynamic.contains("/image_size/") {
-            let re = Regex::new(r"/image_size/\d+x\d+/").unwrap();
-            return Some(re.replace(&dynamic, |_: &Captures| format!("/image_size/{}x{}/", r, r)).to_string());
-        }
-        Some(dynamic.to_owned())
+        let r = art_resolution.to_string();
+        Some(self.release.image.dynamic_uri.replace("{w}", &r).replace("{h}", &r).replace("{x}", &r).replace("{y}", &r))
     }
 }
-
 
 // Match track
 impl AutotaggerSource for Beatport {
@@ -322,13 +263,15 @@ impl AutotaggerSource for Beatport {
         // Fetch by ID
         if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
             info!("Fetching by ID: {}", id);
-            // TODO: Serialize properly the private API response, rather than double request
-            match self.fetch_track_embed(id) {
+            match self.track(id) {
                 Ok(api_track) => {
-                    let bp_track = self.fetch_track(&api_track.slug, api_track.id)?;
-                    let mut track = bp_track.to_track(custom_config.art_resolution);
-                    track.isrc = api_track.isrc.clone();
-                    track.track_number = Some(api_track.track_number());
+                    let mut track = api_track.to_track(custom_config.art_resolution);
+                    // Extend
+                    if config.tag_enabled(SupportedTag::AlbumArtist) || config.tag_enabled(SupportedTag::TrackTotal) {
+                        if let Err(e) = self.extend_track(&mut track) {
+                            warn!("Failed extending track: {e}");
+                        }
+                    }
                     return Ok(Some((1.0, track)));
                 },
                 Err(e) => {
@@ -342,46 +285,17 @@ impl AutotaggerSource for Beatport {
         for page in 1..custom_config.max_pages+1 {
             match self.search(&query, page, 25) {
                 Ok(res) => {
-                    // Convert tracks
-                    let tracks = res.tracks.iter().map(|t| t.to_track(custom_config.art_resolution)).collect();
                     // Match
-                    if let Some((f, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
-                        let i = tracks.iter().position(|t| t == &track).unwrap();
-                        // Data from release
-                        if config.any_tag_enabled(&supported_tags!(CatalogNumber, AlbumArtist, TrackTotal))  {
-                            info!("Fetching full release for extra metadata.");
-                            match self.fetch_release(&res.tracks[i].release.slug, res.tracks[i].release.id) {
-                                Ok(r) => {
-                                    track.catalog_number = r.catalog;
-                                    track.album_artists = r.artists.into_iter().map(|a| a.name).collect();
-                                    track.track_total = r.track_total;
-                                },
-                                Err(e) => warn!("Beatport failed fetching release for catalog number! {}", e)
+                    let tracks = res.data.into_iter().map(|t| t.to_track()).collect();
+                    if let Some((f, track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
+                        let id = track.track_id.unwrap().parse().unwrap();
+                        let mut track = self.track(id)?.to_track(custom_config.art_resolution);
+                        // Extend
+                        if config.tag_enabled(SupportedTag::AlbumArtist) || config.tag_enabled(SupportedTag::TrackTotal) {
+                            if let Err(e) = self.extend_track(&mut track) {
+                                warn!("Failed extending track: {e}");
                             }
                         }
-                        // Get style info
-                        if config.tag_enabled(SupportedTag::Style) && track.styles.is_empty() {
-                            info!("Fetching full track for subgenres!");
-                            match self.fetch_track(&res.tracks[i].slug, res.tracks[i].id) {
-                                Ok(t) => {
-                                    debug!("New subgenres: {:?}", t.sub_genres);
-                                    track.styles = t.sub_genres.unwrap_or(Vec::new()).into_iter().map(|g| g.name).collect();
-                                },
-                                Err(e) => warn!("Beatport failed fetching full track data for subgenres! {}", e)
-                            }
-                        }
-                        // Data from API for track number
-                        if config.any_tag_enabled(&supported_tags!(TrackNumber, ISRC)) {
-                            info!("Fetching track info from API for track number!");
-                            match self.fetch_track_embed(res.tracks[i].id) {
-                                Ok(t) => {
-                                    track.track_number = Some(t.track_number());
-                                    track.isrc = t.isrc;
-                                },
-                                Err(e) => warn!("Beatport failed fetching full API track data for track number! {}", e)
-                            }
-                        }
-                                                
                         return Ok(Some((f, track)));
                     }
                 },
