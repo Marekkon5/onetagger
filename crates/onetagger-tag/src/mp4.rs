@@ -136,6 +136,13 @@ impl TagImpl for MP4Tag {
             match data {
                 Data::Utf8(d) => values = d.split(&self.separator).map(String::from).collect(),
                 Data::Utf16(d) => values = d.split(&self.separator).map(String::from).collect(),
+                Data::BeSigned(i) => {
+                    let mut i = i.to_owned();
+                    while i.len() < 8 {
+                        i.insert(0, 0);
+                    }
+                    values = vec![i64::from_be_bytes(i[..8].try_into().unwrap()).to_string()]
+                }
                 _ => {}
             }
             if !values.is_empty() {

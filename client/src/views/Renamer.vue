@@ -8,7 +8,7 @@
             <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' label='Input folder' v-model='config.path'>
+                <q-input filled class='col-10' label='Input folder' v-model='config.path' @update:model-value="updatePreview()">
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(false)'></q-btn>
                     </template>
@@ -16,7 +16,7 @@
             </div>
     
             <div class='q-pt-lg row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir'>
+                <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir' @update:model-value="updatePreview()">
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
                     </template>
@@ -318,6 +318,11 @@ function injectTemplate(index: number, text: string) {
     config.value.template = templateInputElem.value!.value;
 }
 
+/// Update the preview
+function updatePreview() {
+    $1t.send('renamerPreview', { config: config.value });
+}
+
 // Start renaming
 function start(force = false) {
     // Dialog
@@ -363,6 +368,8 @@ onMounted(() => {
                     config.value.outDir = json.path
                 else 
                     config.value.path = json.path;
+
+                updatePreview();
                 break;
             // Syntax highlight
             case 'renamerSyntaxHighlight':
@@ -444,7 +451,7 @@ watch(() => config.value.template, () => {
     let cur = config.value.template;
     setTimeout(() => {
         if (cur != config.value.template || !config.value.template || !startable.value) return;
-        $1t.send('renamerPreview', { config: config.value });
+        updatePreview();
     }, 400);
 });
 </script>
