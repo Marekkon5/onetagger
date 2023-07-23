@@ -280,6 +280,28 @@ impl AutotaggerSource for Beatport {
             }
         }
 
+        // Fetch by ISRC
+        if let Some(isrc) = info.isrc.as_ref() {
+            match self.search(isrc, 1, 25) {
+                Ok(results) => {
+                    if !results.data.is_empty() {
+                        info!("Matched track by ISRC");
+                        let mut track = self.track(results.data[0].track_id)?.to_track(custom_config.art_resolution);
+                        // Extend
+                        if config.tag_enabled(SupportedTag::AlbumArtist) || config.tag_enabled(SupportedTag::TrackTotal) {
+                            if let Err(e) = self.extend_track(&mut track) {
+                                warn!("Failed extending track: {e}");
+                            }
+                        }
+                        return Ok(Some((1.0, track)));
+                    }
+                },
+                Err(e) => {
+                    warn!("Failed fetching track by ISRC: {e}");
+                },
+            }
+        }
+
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         for page in 1..custom_config.max_pages+1 {
