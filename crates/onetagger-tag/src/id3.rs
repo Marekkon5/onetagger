@@ -543,6 +543,10 @@ impl TagImpl for ID3Tag {
             match explicit { true => "1", false => "2" }.to_string()
         ], true)
     }
+
+    fn get_separator(&self) -> Option<String> {
+        Some(self.id3_separator.clone())
+    }
     
     
 }

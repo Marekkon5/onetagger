@@ -387,8 +387,12 @@ impl AudioFileInfoImpl for AudioFileInfo {
     fn load_file(path: &str, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag();
+        let separator = tag.get_separator().unwrap_or(" ".to_string());
         // Get title artist from tag
-        let mut title = tag.get_field(Field::Title).map(|t| t.first().map(|t| t.to_owned())).flatten();
+        let mut title = tag.get_field(Field::Title).map(|t| match t.is_empty() {
+            true => None,
+            false => Some(t.join(&separator))
+        }).flatten();
         let mut artists = tag.get_field(Field::Artist)
             .map(|a| AudioFileInfo::parse_artist_tag(a.iter().map(|a| a.as_str()).collect()));
 

@@ -648,7 +648,7 @@ impl MatchingUtils {
 
     /// Step 2: Remove initial a/an/the
     fn clean_title_step2(input: &str) -> String {
-        let re = Regex::new(r"^((a|an|the) )").unwrap();
+        let re = Regex::new(r"^( (a|an|the) )").unwrap();
         re.replace(input, "").into_owned()
     }
 

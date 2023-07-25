@@ -280,6 +280,10 @@ impl TagImpl for FLACTag {
         }
     }
 
+    fn get_separator(&self) -> Option<String> {
+        self.separator.clone()
+    }
+
     
 
 }

@@ -108,6 +108,8 @@ pub trait TagImpl {
 
     /// Since all formats right now support separators
     fn set_separator(&mut self, separator: &str);
+    /// Get the separator
+    fn get_separator(&self) -> Option<String>;
 
     /// Get all string tags
     fn all_tags(&self) -> HashMap<String, Vec<String>>;

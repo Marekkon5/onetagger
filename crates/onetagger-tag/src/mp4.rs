@@ -362,6 +362,8 @@ impl TagImpl for MP4Tag {
         });
     }
 
-    
+    fn get_separator(&self) -> Option<String> {
+        Some(self.separator.clone())
+    }
     
 }

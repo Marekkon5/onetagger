@@ -264,5 +264,9 @@ impl TagImpl for VorbisTag {
         self.set_raw("COMMENT", comments, true);
     }
 
+    fn get_separator(&self) -> Option<String> {
+        self.separator.clone()
+    }
+
     
 }
