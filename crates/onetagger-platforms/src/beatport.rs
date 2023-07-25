@@ -24,6 +24,7 @@ impl Beatport {
     pub fn new(access_token: Arc<Mutex<Option<BeatportOAuth>>>) -> Beatport {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
+            .timeout(Duration::from_secs(60))
             .build()
             .unwrap();
         Beatport {
@@ -33,9 +34,10 @@ impl Beatport {
 
     /// Search for tracks on beatport
     pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportTrackResults, Box<dyn Error>> {
+        let query = Self::clear_search_query(query);
         let response = self.client.get("https://www.beatport.com/search/tracks")
             .query(&[
-                ("q", query), 
+                ("q", &query), 
                 ("page", &page.to_string()),
                 ("per-page", &results_per_page.to_string())
             ])
@@ -112,6 +114,22 @@ impl Beatport {
         Ok(())
     }
 
+
+    /// Beatport returns 403 if you have more than single () pair
+    pub fn clear_search_query(query: &str) -> String {
+        let mut open = 0;
+        let mut closed = 0;
+
+        query.chars().filter(|c| {
+            match c {
+                '(' if open > 0 => false,
+                '(' => { open += 1; true },
+                ')' if closed > 0 => false,
+                ')' => { closed += 1; true },
+                _ => true
+            }
+        }).collect()
+    }
 }
 
 
