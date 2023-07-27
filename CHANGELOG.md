@@ -1,3 +1,27 @@
+# 1.7.0
+**TBA**
+
+### Auto Tag:
+- Updated Beatport to support the new site
+- Improved match rates
+- Selectable overwrite
+- Internal refactor to how tags work
+- Explicit tag
+- BPMSupreme > Latino
+
+### Quick Tag:
+- **Multiple files mode**
+- Thin view mode
+- External player support
+
+### Renamer:
+- Fixed input updating
+- BPM in MP4
+
+### Other:
+- Various bug fixes and improvements in all sections
+
+
 # 1.6.0
 **(14.04.2023)**
 

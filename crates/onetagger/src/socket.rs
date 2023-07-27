@@ -157,7 +157,7 @@ pub fn start_socket_server(context: StartContext) {
             // Websocket loop
             let mut websocket = accept(stream.unwrap()).unwrap();
             loop {
-                match websocket.read_message() {
+                match websocket.read() {
                     Ok(msg) => {
                         if msg.is_text() {
                             let text = msg.to_text().unwrap();
@@ -166,10 +166,10 @@ pub fn start_socket_server(context: StartContext) {
                                 Err(err) => {
                                     // Send error to UI
                                     error!("Websocket: {:?}, Data: {}", err, text);
-                                    websocket.write_message(Message::from(json!({
+                                    send_socket(&mut websocket, json!({
                                         "action": "error",
                                         "message": &format!("{}", err)
-                                    }).to_string())).ok();
+                                    })).ok();
                                 }
                             }
                         }
@@ -189,6 +189,23 @@ pub fn start_socket_server(context: StartContext) {
     }
 }
 
+/// Serialize and send to socket with warning intercept
+fn send_socket<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Box<dyn Error>> {
+    match send_socket_inner(ws, json) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            warn!("Failed sending to socket: {e}");
+            Err(e)
+        },
+    }
+}
+
+/// Serialize and send to socket
+fn send_socket_inner<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Box<dyn Error>> {
+    ws.write(Message::from(serde_json::to_string(&json)?))?;
+    ws.flush()?;
+    Ok(())
+}
 
 fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Box<dyn Error>> {
     // Parse JSON
@@ -196,27 +213,25 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
     match action {
         // Get initial info
         Action::Init => {
-            websocket.write_message(Message::from(
-                serde_json::to_string(&InitData::new(context.start_context.clone())).unwrap()
-            )).ok();
+            send_socket(websocket, InitData::new(context.start_context.clone())).ok();
         },
         Action::SaveSettings { settings } => Settings::from_ui(&settings).save()?,
         Action::LoadSettings => match Settings::load() {
             Ok(settings) => {
-                websocket.write_message(Message::from(json!({
+                send_socket(websocket, json!({
                     "action": "loadSettings",
                     "settings": settings.ui
-                }).to_string())).ok();
+                })).ok();
             }
             // Ignore settings if they don't exist (might be initial load)
             Err(e) => error!("Failed loading settings, using defaults. {}", e)
         },
         // Get the default custom platform options
         Action::DefaultCustomPlatformSettings => {
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "defaultCustomPlatformSettings",
                 "custom": TaggerConfig::custom_default().custom
-            }).to_string())).ok();
+            })).ok();
         }
         // Browse for folder
         Action::Browse { path, context } => {
@@ -225,11 +240,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 initial = ".".to_string()
             }
             if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", &initial) {
-                websocket.write_message(Message::from(json!({
+                send_socket(websocket, json!({
                     "action": "browse",
                     "path": path,
                     "context": context
-                }).to_string())).ok();
+                })).ok();
             }
         },
         // Open URL in external browser
@@ -276,25 +291,25 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
 
             // Start
             let start = timestamp!();
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "startTagging",
                 "files": file_count,
                 "type": tagger_type
-            }).to_string())).ok();
+            })).ok();
             // Tagging
             for status in rx {
-                websocket.write_message(Message::from(json!({
+                send_socket(websocket, json!({
                     "action": "taggingProgress",
                     "status": status
-                }).to_string())).ok();
+                })).ok();
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             // Done
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "taggingDone",
                 "path": folder_path,
                 "data": *tagger_finished.lock().unwrap()
-            }).to_string())).ok();
+            })).ok();
         },
         Action::StopTagging => {
             onetagger_autotag::STOP_TAGGING.store(true, Ordering::SeqCst);
@@ -304,20 +319,20 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             let (waveform_rx, cancel_tx) = source.generate_waveform(180)?;
             // Streamed
             for wave in waveform_rx {
-                websocket.write_message(Message::from(json!({
+                send_socket(websocket, json!({
                     "action": "waveformWave",
                     "wave": wave
-                }).to_string())).ok();
+                })).ok();
                 // Check reply
-                websocket.read_message().ok();
+                websocket.read().ok();
                 if !websocket.can_write() {
                     cancel_tx.send(true).ok();
                 }
             }
             // Done
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "waveformDone",
-            }).to_string())).ok();
+            })).ok();
         },
         // Load player file
         Action::PlayerLoad { path } => {
@@ -327,12 +342,12 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             let title = tag.tag().get_field(Field::Title).map(|i| i.first().map(String::from)).flatten();
             let artists = tag.tag().get_field(Field::Artist).unwrap_or(vec![]);
             // Send to UI
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "playerLoad",
                 "title": title,
                 "artists": artists,
                 "duration": source.duration() as u64
-            }).to_string())).ok();
+            })).ok();
             // Load
             context.player.load_file(source);
         },
@@ -340,10 +355,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::PlayerPlay => context.player.play(),
         Action::PlayerPause => context.player.pause(),
         Action::PlayerSeek { pos } => {
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "playerSync",
                 "playing": context.player.seek(pos)
-            }).to_string())).ok();
+            })).ok();
         },
         Action::PlayerVolume { volume } => context.player.volume(volume),
         // Load quicktag files or playlist
@@ -361,28 +376,28 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     data = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
                 }
             }
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "quickTagLoad",
                 "data": data
-            }).to_string())).ok();
+            })).ok();
         },
         // Save quicktag changes
         Action::QuickTagSave { changes } => {
             let tag = changes.commit()?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "quickTagSaved",
                 "path": &changes.path,
                 "file": QuickTagFile::from_tag(&changes.path, &tag)?
-            }).to_string())).ok();
+            })).ok();
         },
         // List dir
         Action::QuickTagFolder { path, subdir } => {
             let (new_path, files) = FileBrowser::list_dir_or_default(path.clone().map(|p| PathBuf::from(p)), subdir, true, false, false)?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "quickTagFolder",
                 "files": files,
                 "path": new_path,
-            }).to_string())).ok();
+            })).ok();
         }
         Action::SpotifyAuthorize { client_id, client_secret } => {
             // Authorize cached
@@ -395,80 +410,80 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 let spotify = Spotify::auth_server(client, context.start_context.expose)?;
                 context.spotify = Some(spotify);
             }
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "spotifyAuthorized",
                 "value": true
-            }).to_string())).ok();
+            })).ok();
             debug!("Spotify Authorized!");
         },
         // Check if authorized
         Action::SpotifyAuthorized => {
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "spotifyAuthorized",
                 "value": context.spotify.is_some()
-            }).to_string())).ok();
+            })).ok();
         },
         Action::TagEditorFolder { path, subdir, recursive } => {
             let recursive = recursive.unwrap_or(false);
             let (new_path, files) = FileBrowser::list_dir_or_default(path.clone().map(|p| PathBuf::from(p)), subdir, true, true, recursive)?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "tagEditorFolder",
                 "files": files,
                 "path": new_path,
                 // Stateless
                 "recursive": recursive
-            }).to_string())).ok();
+            })).ok();
         },
         // Load tags of file
         Action::TagEditorLoad { path } => {
             let data = TagEditor::load_file(&path)?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "tagEditorLoad",
                 "data": data
-            }).to_string())).ok();
+            })).ok();
         },
         // Save changes
         Action::TagEditorSave { changes } => {
             let _tag = changes.commit()?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "tagEditorSave"
-            }).to_string())).ok();
+            })).ok();
         },
         // Syntax highlight for renamer
         Action::RenamerSyntaxHighlight { template } => {
             let renamer = Renamer::new(TemplateParser::parse(&template));
             let html = renamer.generate_html(&template);
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "renamerSyntaxHighlight",
                 "html": html
-            }).to_string())).ok();
+            })).ok();
         },
         // Autocomplete data
         Action::RenamerAutocomplete { template } => {
             let ac = Autocomplete::parse(&template);
             let suggestions = ac.suggest_html();
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "renamerAutocomplete",
                 "suggestions": suggestions,
                 "offset": ac.suggestion_offset()
-            }).to_string())).ok();
+            })).ok();
         },
         // Generate new names but don't rename
         Action::RenamerPreview { config } => {
             let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
             let files = renamer.generate(&config, 3)?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "renamerPreview",
                 "files": files,
-            }).to_string())).ok();
+            })).ok();
         },
         // Start renamer
         Action::RenamerStart { config } => {
             let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
             renamer.rename(&config)?;
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "renamerDone",
-            }).to_string())).ok();
+            })).ok();
         },
         // File browser list dir
         Action::FolderBrowser { path, child , base } => {
@@ -488,12 +503,12 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 false => FolderBrowser::list_dir(&path)?
             };
 
-            websocket.write_message(Message::from(json!({
+            send_socket(websocket, json!({
                 "action": "folderBrowser",
                 "entry": e,
                 "base": base,
                 "path": path
-            }).to_string())).ok();
+            })).ok();
         },
         
         
