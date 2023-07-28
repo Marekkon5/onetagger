@@ -69,7 +69,9 @@ impl AIFFDecoder {
         let mut i = 0;
         for sample in 0..specs.num_samples {
             for channel in 0..specs.num_channels {
-                let s = reader.read_sample(channel as u32, sample).map_err(|e| format!("Failed decoding AIFF: {e}"))?;
+                let s = std::panic::catch_unwind(|| {
+                    reader.read_sample(channel as u32, sample)
+                }).map_err(|e| format!("Failed decoding AIFF: {e:?}"))?.map_err(|e| format!("Failed decoding AIFF: {e}"))?;
                 samples[i] = (s * i16::MAX as f32) as i16;
                 i += 1;
             }

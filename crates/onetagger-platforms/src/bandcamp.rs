@@ -139,12 +139,12 @@ impl Into<Track> for BandcampSearchResult {
 struct BandcampTrack {
     pub name: String,
     pub description: Option<String>,
-    pub duration: String,
+    pub duration: Option<String>,
     pub date_published: String,
     pub in_album: BandcampAlbumSmall,
     pub by_artist: BandcampArtistSmall,
     pub publisher: BandcampPublisherSmall,
-    pub keywords: Vec<String>,
+    pub keywords: Option<Vec<String>>,
     pub image: String,
     #[serde(rename = "@id")]
     pub id: String
@@ -171,7 +171,7 @@ impl Into<Track> for BandcampTrack {
             artists: vec![self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
             label: Some(self.publisher.name),
             art: Some(self.image),
-            styles: self.keywords.into_iter()
+            styles: self.keywords.unwrap_or(vec![]).into_iter()
                 .filter(|k| 
                     Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && 
                     crate::bandcamp_genres::GENRES.contains(&k.to_lowercase().trim())

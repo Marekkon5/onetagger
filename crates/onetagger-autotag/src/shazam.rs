@@ -30,7 +30,8 @@ impl Shazam {
             .unwrap()
             .join()
             .unwrap();
-        let response: ShazamResponse = serde_json::from_value(songrec::recognize_song_from_signature(&signature)?)?;
+        let response = songrec::recognize_song_from_signature(&signature)?;
+        let response: ShazamResponse = serde_json::from_value(response)?;
         let track = response.track.ok_or("Shazam returned no matches!")?;
         Ok((track, duration))
     }

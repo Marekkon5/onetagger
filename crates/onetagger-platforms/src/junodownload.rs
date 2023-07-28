@@ -106,59 +106,64 @@ impl JunoDownload {
         let track_total = elem.select(&track_selector).count() as u16;
         for (track_index, track_elem) in elem.select(&track_selector).enumerate() {
             let text = track_elem.text().collect::<Vec<_>>();
-            let full = text[0].replace("\u{a0}", " ");
-            // Duration
-            let re = Regex::new(r" - \((\d+:\d\d)\) ?$").unwrap();
-            let duration = if let Some(captures) = re.captures(&full) {
-                if let Some(m) = captures.get(1) {
-                    MatchingUtils::parse_duration(m.as_str()).unwrap_or(Duration::ZERO)
-                } else { Duration::ZERO }
-            } else { Duration::ZERO };
-            //  Remove duration
-            let no_duration = re.replace(&full, "");
-            // Check if title or artist - title
-            let split: Vec<&str> = no_duration.split(" - \"").collect();
-            let mut track_artists = vec![];
-            // Only title
-            let track_title = if split.len() == 1 {
-                split[0].to_string()
+            if let Some(full) = text.get(0) {
+                let full = full.replace("\u{a0}", " ");
+                // Duration
+                let re = Regex::new(r" - \((\d+:\d\d)\) ?$").unwrap();
+                let duration = if let Some(captures) = re.captures(&full) {
+                    if let Some(m) = captures.get(1) {
+                        MatchingUtils::parse_duration(m.as_str()).unwrap_or(Duration::ZERO)
+                    } else { Duration::ZERO }
+                } else { Duration::ZERO };
+                //  Remove duration
+                let no_duration = re.replace(&full, "");
+                // Check if title or artist - title
+                let split: Vec<&str> = no_duration.split(" - \"").collect();
+                let mut track_artists = vec![];
+                // Only title
+                let track_title = if split.len() == 1 {
+                    split[0].to_string()
+                } else {
+                    // Artists - "Title"
+                    track_artists = split[0].split(" & ").collect();
+                    split[1].replace("\"", "")
+                };
+                // BPM
+                let bpm: Option<i64> = if text.len() >= 2 && text[1].contains("BPM") {
+                    Some(text[1].replace("\u{a0}BPM", "").parse::<i64>().ok()?)
+                } else {
+                    None
+                };
+                // Get artists for track
+                if track_artists.len() == 0 {
+                    track_artists = artists.clone();
+                }
+                // Generate track
+                out.push(Track {
+                    platform: "junodownload".to_string(),
+                    title: track_title,
+                    artists: track_artists.into_iter().map(|a| a.to_string()).collect(),
+                    album_artists: artists.clone().into_iter().map(String::from).collect(),
+                    album: Some(title.to_owned()),
+                    bpm,
+                    genres: genres.to_owned(),
+                    label: Some(label.to_string()),
+                    styles: vec![],
+                    release_date: Some(release_date),
+                    art: Some(album_art.to_string()),
+                    url: format!("https://www.junodownload.com{}", url),
+                    catalog_number: catalog_number.clone(),
+                    other: vec![],
+                    release_id: release_id.clone(),
+                    duration,
+                    track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
+                    track_total: Some(track_total),
+                    ..Default::default()
+                });
             } else {
-                // Artists - "Title"
-                track_artists = split[0].split(" & ").collect();
-                split[1].replace("\"", "")
-            };
-            // BPM
-            let bpm: Option<i64> = if text.len() >= 2 && text[1].contains("BPM") {
-                Some(text[1].replace("\u{a0}BPM", "").parse::<i64>().ok()?)
-            } else {
-                None
-            };
-            // Get artists for track
-            if track_artists.len() == 0 {
-                track_artists = artists.clone();
+                warn!("Failed to get track info, skipping, index: {}", track_index);
             }
-            // Generate track
-            out.push(Track {
-                platform: "junodownload".to_string(),
-                title: track_title,
-                artists: track_artists.into_iter().map(|a| a.to_string()).collect(),
-                album_artists: artists.clone().into_iter().map(String::from).collect(),
-                album: Some(title.to_owned()),
-                bpm,
-                genres: genres.to_owned(),
-                label: Some(label.to_string()),
-                styles: vec![],
-                release_date: Some(release_date),
-                art: Some(album_art.to_string()),
-                url: format!("https://www.junodownload.com{}", url),
-                catalog_number: catalog_number.clone(),
-                other: vec![],
-                release_id: release_id.clone(),
-                duration,
-                track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
-                track_total: Some(track_total),
-                ..Default::default()
-            });
+            
         }
 
         Some(out)
