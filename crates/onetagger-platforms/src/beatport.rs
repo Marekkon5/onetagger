@@ -210,13 +210,16 @@ pub struct BeatportRelease {
 }
 
 impl BeatportTrackResult {
-    pub fn to_track(self) -> Track {
+    pub fn to_track(self, include_version: bool) -> Track {
         Track {
             platform: "beatport".to_string(),
             title: self.track_name,
             track_id: Some(self.track_id.to_string()),
             artists: self.artists.unwrap_or(vec![]).into_iter().map(|a| a.artist_name).collect(),
-            version: self.mix_name,
+            version: match include_version {
+                true => self.mix_name,
+                false => None
+            },
             duration: Duration::from_millis(self.length.unwrap_or(0)),
             isrc: self.isrc,
             ..Default::default()
@@ -340,7 +343,7 @@ impl AutotaggerSource for Beatport {
             match self.search(&query, page, 25) {
                 Ok(res) => {
                     // Match
-                    let mut tracks = res.data.into_iter().map(|t| t.to_track()).collect();
+                    let mut tracks = res.data.into_iter().map(|t| t.to_track(!custom_config.ignore_version)).collect();
 
                     // Fallback with restricted
                     let (acc, mut track) = loop {
@@ -414,6 +417,10 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
                 .add_tooltip("max_pages", "Max pages", "How many pages of search results to scan for tracks", PlatformCustomOptionValue::Number {
                     min: 1, max: 10, step: 1, value: 1
                 })
+                // Ignore version
+                .add_tooltip("ignore_version", "Ignore version when matching", "Ignores (Extended Mix), (Original Mix) and such", PlatformCustomOptionValue::Boolean { 
+                    value: false
+                })
         }
     }
 }
@@ -423,4 +430,5 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
 struct BeatportConfig {
     pub art_resolution: u32,
     pub max_pages: i32,
+    pub ignore_version: bool
 }
