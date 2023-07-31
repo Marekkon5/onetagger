@@ -66,7 +66,7 @@ impl JunoDownload {
         // Artists
         let mut selector = Selector::parse("div.juno-artist").unwrap();
         let artist_element = elem.select(&selector).next()?;
-        let artists = artist_element.text().filter(|a| a != &"/").collect::<Vec<_>>();
+        let artists = artist_element.text().map(|a| a.trim()).filter(|a| a != &"/").collect::<Vec<_>>();
         // Release title
         selector = Selector::parse("a.juno-title").unwrap();
         let title_elem = elem.select(&selector).next()?;
