@@ -442,7 +442,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
         Ok(AudioFileInfo {
             format: tag_wrap.format(),
             title,
-            artists: artists.unwrap_or(vec![]),
+            artists: artists.ok_or("Missing artist tag!")?,
             path: path.to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
