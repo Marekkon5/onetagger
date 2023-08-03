@@ -1,5 +1,5 @@
 # 1.7.0
-**TBA**
+**(03.08.2023)**
 
 ### Auto Tag:
 - Updated Beatport to support the new site
