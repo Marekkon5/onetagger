@@ -109,6 +109,12 @@
             v-model='$1t.config.value.multiplatform'
         ></AdvancedSettingsToggle>
 
+        <AdvancedSettingsToggle 
+            label='Remove all covers if overwriting'
+            tooltip='Removes all existing covers if overwriting album art'
+            v-model='$1t.config.value.removeAllCovers'
+        ></AdvancedSettingsToggle>
+
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 
             label='Parse metadata from filename'

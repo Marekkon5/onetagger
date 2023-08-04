@@ -73,6 +73,7 @@ pub struct TaggerConfig {
     pub enhanced_lrc: bool,
     pub capitalize_genres: bool,
     pub id3_comm_lang: Option<String>,
+    pub remove_all_covers: bool,
     /// Tag the same track on multiple platforms
     pub multiplatform: bool,
 
@@ -151,6 +152,7 @@ impl Default for TaggerConfig {
             write_lrc: false,
             enhanced_lrc: false,
             capitalize_genres: false,
+            remove_all_covers: false,
             id3_comm_lang: None,
         }
     }

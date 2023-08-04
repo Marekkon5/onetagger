@@ -78,6 +78,7 @@ class AutotaggerConfig {
     enhancedLrc: boolean = false;
     capitalizeGenres: boolean = false;
     id3CommLang?: string;
+    removeAllCovers: boolean = false;
 
     spotify?: SpotifyConfig;
 

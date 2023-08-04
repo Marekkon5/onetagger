@@ -279,6 +279,13 @@ impl TrackImpl for Track {
                 Ok(data) => {
                     match data {
                         Some(data) => {
+                            // Remove covers
+                            if config.remove_all_covers {
+                                for t in CoverType::types() {
+                                    tag.remove_art(t);
+                                }
+                            }
+
                             tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
                             // Save to file
                             if config.album_art_file {
