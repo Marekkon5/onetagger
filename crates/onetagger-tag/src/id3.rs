@@ -343,6 +343,16 @@ impl TagImpl for ID3Tag {
         self.tag.pictures().next().is_some()
     }
     fn remove_art(&mut self, kind: CoverType) { 
+        // Remove all undefined kinds
+        if kind == CoverType::Undefined {
+            self.tag.pictures()
+                .filter(|p| matches!(p.picture_type, PictureType::Undefined(_)))
+                .map(|p| p.picture_type)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .for_each(|t| self.tag.remove_picture_by_type(t));
+            return;
+        }
         self.tag.remove_picture_by_type(self.picture_type(&kind));
     }
 

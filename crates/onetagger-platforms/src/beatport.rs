@@ -339,6 +339,7 @@ impl AutotaggerSource for Beatport {
 
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
+        debug!("BP Query: {}", query);
         for page in 1..custom_config.max_pages+1 {
             match self.search(&query, page, 25) {
                 Ok(res) => {
