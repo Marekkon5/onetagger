@@ -174,6 +174,10 @@ const failedDialog = ref(false);
 function trackClick(track: QTTrack, event: MouseEvent) {
     // Add track to list
     if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
         selectionCursor = tracks.value.findIndex(t => t.path == track.path);
         $1t.toggleQTTrack(track);
         return;
