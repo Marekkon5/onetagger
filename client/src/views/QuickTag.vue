@@ -74,12 +74,14 @@
             <div class='text-center text-subtitle1 text-bold text-primary q-my-sm'>NO FOLDER SELECTED</div>
             <div class='text-center text-subtitle1 text-grey-6'>Click here to select folder</div>
             <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
-                Play/Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
-                Seek -10s: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon><br>
-                Seek +30s: <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon><br>
+                Play / Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
+                Seek back / forwards: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon> / <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon> <br>
                 Change tracks: <q-icon name='mdi-chevron-up' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon> <br>
-                Save: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>S</span><br>
-                Confirm save: <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon><br>
+                Select multiple: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>CLICK</span><br>
+                Save: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>S</span><br>                
+                Delete: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>DEL</span><br>
+                Confirm: <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon><br>
+                
             </div>
         </div>
     </div>
