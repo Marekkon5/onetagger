@@ -41,6 +41,10 @@ SongRec (Shazam support) - https://github.com/marin-m/SongRec
 ## Support
 You can support this project by donating on [PayPal](https://paypal.me/marekkon5) or [Patreon](https://www.patreon.com/onetagger)
 
+## Custom Platforms
+You can create custom Auto Tagger platforms for One Tagger. Instructions and template: 
+[Template](https://github.com/Marekkon5/onetagger-platform-template/)
+
 ## Compilling
 
 ### Linux & Mac
