@@ -555,7 +555,7 @@ class OneTagger {
             });
 
             // Delete tracks
-            if ((event.code == "Delete" && (event.ctrlKey || event.metaKey)) || (event.code == 'Backspace' && event.metaKey)) {
+            if ((event.code == "Delete" && (event.ctrlKey || event.metaKey)) || (event.code == 'Backspace' && (event.ctrlKey || event.metaKey))) {
                 this.onQuickTagEvent('onDeleteTrack');
             }
 
