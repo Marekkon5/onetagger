@@ -173,7 +173,7 @@ const failedDialog = ref(false);
 // Click on track card
 function trackClick(track: QTTrack, event: MouseEvent) {
     // Add track to list
-    if (event.ctrlKey) {
+    if (event.ctrlKey || event.metaKey) {
         selectionCursor = tracks.value.findIndex(t => t.path == track.path);
         $1t.toggleQTTrack(track);
         return;
