@@ -420,6 +420,29 @@ onMounted(() => {
                 }, 50);
 
                 break;
+
+            case 'onDeleteTrack':
+                // Confirm dialog
+                $q.dialog({
+                    title: 'Delete Files',
+                    message: 'Do you really want to delete selected files?',
+                    persistent: false,
+                    ok: {
+                        color: 'red'
+                    },
+                    cancel: {
+                        color: 'primary'
+                    }
+                }).onOk(() => {
+                    $1t.player.value.stop();
+                    $1t.send('deleteFiles', { paths: $1t.quickTag.value.track.tracks.map(t => t.path) });
+                    setTimeout(() => {
+                        $1t.quickTag.value.track.removeAll();
+                        $1t.loadQuickTag();
+                    }, 50);
+                });
+
+                break;
                 
             default:
                 console.log(`Unknown QT Event: ${action} ${data}`);

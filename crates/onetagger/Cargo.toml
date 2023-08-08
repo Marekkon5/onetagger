@@ -10,6 +10,7 @@ categories = ["multimedia::audio"]
 log = "0.4"
 mime = "0.3"
 dunce = "1.0"
+trash = "3.0"
 image = "0.24"
 opener = "0.6"
 base64 = "0.21"

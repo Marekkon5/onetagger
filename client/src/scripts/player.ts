@@ -37,6 +37,18 @@ class Player {
         }, 150);
     }
 
+    // Stop & reset player
+    stop() {
+        this.pause();
+        const $1t = get1t();
+        $1t.send('playerStop');
+        this.position = 0;
+        this.duration = 1;
+        this.title = undefined;
+        this.artists = [];
+        this.generateDefaultWaveform();
+    }
+
     // Fill waveform array with empty data
     generateDefaultWaveform() {
         for (let i=0; i < WAVES; i++) {

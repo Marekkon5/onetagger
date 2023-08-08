@@ -554,6 +554,11 @@ class OneTagger {
                 }
             });
 
+            // Delete tracks
+            if (event.code == "Delete" && (event.ctrlKey || event.metaKey)) {
+                this.onQuickTagEvent('onDeleteTrack');
+            }
+
             return true;
         }
 

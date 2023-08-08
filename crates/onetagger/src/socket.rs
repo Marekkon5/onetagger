@@ -40,6 +40,7 @@ enum Action {
     OpenSettingsFolder,
     OpenFolder { path: String },
     OpenFile { path: String },
+    DeleteFiles { paths: Vec<String> },
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
@@ -50,6 +51,7 @@ enum Action {
     PlayerPause,
     PlayerSeek { pos: u64 },
     PlayerVolume { volume: f32 },
+    PlayerStop,
 
     QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators },
     QuickTagSave { changes: TagChanges },
@@ -252,6 +254,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
         Action::OpenFolder { path } => { opener::open(&path).ok(); },
         Action::OpenFile { path } => { opener::open(&path).ok(); },
+        Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; }
         Action::StartTagging { config, playlist } => {
             config.debug_print();
 
@@ -361,6 +364,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             })).ok();
         },
         Action::PlayerVolume { volume } => context.player.volume(volume),
+        Action::PlayerStop => context.player.stop(),
         // Load quicktag files or playlist
         Action::QuickTagLoad { path, playlist, recursive, separators } => {
             let mut data = QuickTagData::default();

@@ -40,6 +40,9 @@ impl AudioPlayer {
                         sink.set_volume(v);
                         volume = v;
                     },
+                    PlayerAction::Stop => {
+                        sink.stop();
+                    }
                     PlayerAction::Play => sink.play(),
                     PlayerAction::Pause => sink.pause(),
                     // Play new source
@@ -115,6 +118,10 @@ impl AudioPlayer {
     pub fn volume(&self, volume: f32) {
         self.tx.send(PlayerAction::Volume(volume)).ok();
     }
+
+    pub fn stop(&self) {
+        self.tx.send(PlayerAction::Stop).ok();
+    }
 }
 
 enum PlayerAction {
@@ -124,7 +131,8 @@ enum PlayerAction {
     /// ms
     Seek(u64),
     /// 0.0 - 1.0
-    Volume(f32)
+    Volume(f32),
+    Stop,
 }
 
 /// Wrapper for getting audio sources
