@@ -39,13 +39,20 @@ impl Renamer {
         output_dir.as_ref().join(format!("{name}.{ext}"))
     }
 
+
     /// Generate names - output: [(from, to),...]
     pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
-        if !Path::new(&config.path).exists() {
+        let input_path = dunce::canonicalize(&config.path)?;
+        if !input_path.exists() {
             return Err("Invalid path!".into());
         }
         
-        let out_dir = config.out_dir.clone().unwrap_or(config.path.to_string());
+        // Get output path
+        let mut out_dir = config.out_dir.clone().unwrap_or(config.path.to_string());
+        if out_dir.trim().is_empty() {
+            out_dir = config.path.to_string();
+        }
+
         let files = AudioFileInfo::get_file_list(&config.path, config.subfolders);
         let mut output = vec![];
         for (i, file) in files.iter().enumerate() {
@@ -56,7 +63,25 @@ impl Renamer {
                     continue;
                 }
             };
-            let new_name = self.generate_name(&out_dir, &info, config);
+
+            // Get output dir
+            let mut output_dir = Path::new(&out_dir).to_owned();
+            if config.keep_subfolders {
+                // Try to strip prefix and join with original or else fallback to parent
+                output_dir = dunce::canonicalize(file)
+                    .ok()
+                    .map(|p| p.strip_prefix(&input_path).map(|p| p.parent().map(|p| p.to_owned())).ok().flatten())
+                    .flatten()
+                    .map(|p| output_dir.join(p))
+                    .or_else(|| dunce::canonicalize(file)
+                        .ok()
+                        .map(|p| p.parent().map(|p| p.to_owned()))
+                        .flatten()
+                    )
+                    .unwrap_or(output_dir);
+            }
+
+            let new_name = self.generate_name(output_dir, &info, config);
             output.push((file.to_string(), new_name));
             if limit != 0 && i >= limit {
                 break
@@ -142,6 +167,7 @@ pub struct RenamerConfig {
     pub subfolders: bool,
     pub overwrite: bool,
     pub separator: String,
+    pub keep_subfolders: bool,
 }
 
 /// HTML generation test

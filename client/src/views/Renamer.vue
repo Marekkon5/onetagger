@@ -111,6 +111,8 @@
             <br>
             <q-toggle v-model='config.overwrite' label='Overwrite existing target files'></q-toggle>
             <br>
+            <q-toggle v-model='config.keepSubfolders' label='Keep original subfolders'></q-toggle>
+            <br>
 
             <div class='row justify-center q-my-sm'>
                 <q-input
@@ -175,6 +177,7 @@ class RenamerConfig {
     subfolders = true;
     overwrite = false;
     separator = ', ';
+    keepSubfolders = false;
 }
 
 const $1t = get1t();
@@ -413,6 +416,7 @@ onMounted(() => {
     // Restore settings
     if ($1t.settings.value.renamer) {
         config.value = Object.assign({}, config.value, $1t.settings.value.renamer);
+        console.log(config.value);
         if (config.value.template) {
             $1t.send('renamerSyntaxHighlight', { template: config.value.template });
             // @ts-ignore

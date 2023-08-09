@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 pad = "0.1"
+dunce = "1.0"
 regex = "1.7"
 lazy_static = "1.4"
 pulldown-cmark = "0.9"
