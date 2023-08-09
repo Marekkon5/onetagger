@@ -52,7 +52,7 @@ Mac version is cross compiled from linux, the build script is designed to run on
 
 **Install remaining dependencies**
 ```
-sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
+sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 ```
 
 **Compile UI**

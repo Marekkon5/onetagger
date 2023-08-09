@@ -4,7 +4,7 @@ set -e
 # Intended for Github Actions
 # Requires Ubuntu, rustup and nodejs, pnpm installed
 # sudo apt update
-# sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.0-dev
+# sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 # Compile UI
 cd client
 pnpm i
