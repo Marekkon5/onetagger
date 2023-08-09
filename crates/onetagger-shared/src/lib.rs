@@ -180,3 +180,16 @@ impl Settings {
         Ok(path.to_str().ok_or("Error converting path to string!")?.to_string())
     }
 }
+
+
+/// Capitalize every word
+/// https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust/38406885#38406885
+pub fn capitalize(input: &str) -> String {
+    input.split(" ").map(|w| {
+        let mut c = w.trim().chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str()
+        }
+    }).collect::<Vec<_>>().join(" ")
+}

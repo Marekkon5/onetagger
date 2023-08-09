@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::{thread, fs};
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::time::Duration;
@@ -143,7 +142,7 @@ impl TrackImpl for Track {
 
             // Capitalize genres
             if config.capitalize_genres {
-                genres = genres.into_iter().map(|g| capitalize(&g)).collect();
+                genres = genres.into_iter().map(|g| onetagger_shared::capitalize(&g)).collect();
             }
 
             tag.set_field(Field::Genre, genres, config.overwrite_tag(SupportedTag::Genre));
@@ -599,7 +598,7 @@ impl Tagger {
         // Create thread
         let (tx, rx) = unbounded();
         let config = cfg.clone();
-        thread::spawn(move || {
+        std::thread::spawn(move || {
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
                 // For progress
@@ -691,7 +690,7 @@ impl Tagger {
                 let time = timestamp!();
                 let folder = PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
                 if !folder.exists() {
-                    fs::create_dir_all(&folder)?;
+                    std::fs::create_dir_all(&folder)?;
                 }
                 let failed_file = folder.join(format!("failed-{}.m3u", time));
                 let success_file = folder.join(format!("success-{}.m3u", time));
@@ -721,7 +720,7 @@ impl Tagger {
                         let command = command
                             .replace("$failed", &failed_file)
                             .replace("$success", &success_file);
-                        thread::spawn(|| {
+                        std::thread::spawn(|| {
                             info!("Executing command: {}", command);
                             let mut command = execute::shell(command);
                             let result = command.execute().ok().flatten();
@@ -748,11 +747,8 @@ impl Tagger {
         rx
     }
 
-    // Tag single track
-    pub fn tag_track<T>(path: &str, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
-    where T: AutotaggerSource + ?Sized
-    {
-        info!("Tagging: {}", path);
+    /// Load track, shazam, prepare output
+    pub fn load_track(path: &str, config: &TaggerConfig) -> (Option<AudioFileInfo>, TaggingStatus) {
         // Output
         let mut out = TaggingStatus {
             status: TaggingState::Error,
@@ -783,7 +779,7 @@ impl Tagger {
                 Err(e) => {
                     out.status = TaggingState::Skipped;
                     out.message = Some(format!("Error Shazaming file: {}", e));
-                    return out;
+                    return (None, out);
                 }
             }
         } else {
@@ -801,14 +797,14 @@ impl Tagger {
                             Err(e) => {
                                 out.status = TaggingState::Skipped;
                                 out.message = Some(format!("Error loading file: {}", e));
-                                return out;
+                                return (None, out);
                             }
                         }
                     } else {
                         out.status = TaggingState::Skipped;
                         warn!("Error loading file: {}", e);
                         out.message = Some(format!("Error loading file: {}", e));
-                        return out;
+                        return (None, out);
                     }
                 }
             }
@@ -819,13 +815,29 @@ impl Tagger {
             info!("Skipping (already tagged): {path}");
             out.status = TaggingState::Skipped;
             out.message = Some("Already tagged".to_string());
-            return out;
+            return (None, out);
         }
 
         // Load duration for matching
         if config.match_duration {
             info.load_duration();
         }
+
+        (Some(info), out)
+    }
+
+    /// Tag single track
+    pub fn tag_track<T>(path: &str, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
+    where T: AutotaggerSource + ?Sized
+    {
+        info!("Tagging: {}", path);
+        // Load track
+        let (info, mut out) = Self::load_track(path, config);
+        let info = match info {
+            Some(info) => info,
+            None => return out,
+        };
+       
         // Match track
         let result = tagger.match_track(&info, &config);
         match result {
@@ -928,16 +940,4 @@ impl Tagger {
 pub struct TaggerFinishedData {
     pub failed_file: String,
     pub success_file: String
-}
-
-/// Capitalize every word
-/// https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust/38406885#38406885
-fn capitalize(input: &str) -> String {
-    input.split(" ").map(|w| {
-        let mut c = w.trim().chars();
-        match c.next() {
-            None => String::new(),
-            Some(f) => f.to_uppercase().collect::<String>() + c.as_str()
-        }
-    }).collect::<Vec<_>>().join(" ")
 }

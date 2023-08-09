@@ -57,7 +57,7 @@ native-dialog = "0.6.3"
 
 
 [package.metadata.bundle]
-name = "OneTagger"
+name = "One Tagger"
 identifier = "com.marekkon5.onetagger"
 icon = ["../../assets/32x32.png", "../../assets/128x128.png", "../../assets/128x128@2x.png", 
     "../../assets/icon.icns", "../../assets/icon.ico"]
