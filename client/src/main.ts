@@ -12,13 +12,10 @@ import './style/app.scss';
 import App from './App.vue';
 
 
-// Handle Windows webview messages
+// Handle WebView events
 // @ts-ignore
-if (window.chrome && window.chrome.webview) {
-    // @ts-ignore
-    window.chrome.webview.addEventListener('message', e => {
-        get1t().onOSMessage(JSON.parse(e.data));
-    });
+window.onWebviewEvent = (e) => {
+    get1t().onOSMessage(e);
 }
 
 

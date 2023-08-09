@@ -77,6 +77,7 @@ Section "One Tagger" OneTagger
 	File "..\target\release\onetagger.exe"
 	File "..\assets\icon.ico"
 	File "..\vc_redist.x64.exe"
+	File "..\MicrosoftEdgeWebview2Setup.exe"
 	; Uninstaller
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
 	CreateDirectory "$SMPROGRAMS\OneTagger"
@@ -94,8 +95,9 @@ Section "One Tagger" OneTagger
 		"InstallLocation" "$INSTDIR"
 	; Dependencies
 	ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart'
-	ExecWait '"$INSTDIR\onetagger.exe" --bootstrap-webview2'
+	ExecWait '"$INSTDIR\MicrosoftEdgeWebview2Setup.exe'
 	Delete "$INSTDIR\vc_redist.x64.exe"
+	Delete "$INSTDIR\MicrosoftEdgeWebview2Setup.exe"
 SectionEnd
 
 ;-------------------------------------------------------------------------------

@@ -1,8 +1,15 @@
+use std::error::Error;
+use std::path::PathBuf;
 use std::time::Duration;
 use include_dir::Dir;
 use onetagger_player::AudioSources;
 use rouille::{router, Response};
 use serde::{Serialize, Deserialize};
+use wry::application::dpi::{Size, PhysicalSize};
+use wry::application::event::{StartCause, Event, WindowEvent};
+use wry::application::event_loop::{EventLoop, ControlFlow};
+use wry::application::window::{WindowBuilder, Theme};
+use wry::webview::{WebViewBuilder, FileDropEvent};
 
 use crate::quicktag::QuickTagFile;
 
@@ -18,22 +25,67 @@ pub struct StartContext {
     pub browser: bool,
 }
 
-// Start webview window
-#[cfg(not(target_os = "windows"))]
-pub fn start_webview() {
-    // Normal webview
-    let webview = web_view::builder()
-        .invoke_handler(|_, __| Ok(()))
-        .content(web_view::Content::Url("http://127.0.0.1:36913"))
-        .user_data(())
-        .title("One Tagger")
-        .size(1280, 750)
-        .min_size(1150, 550)
-        .resizable(true)
-        .debug(true)
-        .build()
-        .unwrap();
-    webview.run().unwrap();
+/// Start webview window
+pub fn start_webview() -> Result<(), Box<dyn Error>> {
+    // Setup wry
+    let event_loop = EventLoop::with_user_event();
+    let proxy = event_loop.create_proxy();
+    let window = WindowBuilder::new()
+        .with_title("One Tagger")
+        .with_min_inner_size(Size::Physical(PhysicalSize::new(1150, 550)))
+        .with_inner_size(Size::Physical(PhysicalSize::new(1280, 720)))
+        .with_resizable(true)
+        .with_theme(Some(Theme::Dark))
+        .build(&event_loop)?;
+    let webview = WebViewBuilder::new(window)?
+        .with_url("http://127.0.0.1:36913")?
+        // Handle dropped folders
+        .with_file_drop_handler(move |_window, event| {
+            match event {
+                FileDropEvent::Dropped { mut paths, .. } => {
+                    if paths.len() > 1 || paths.is_empty() {
+                        warn!("Drop only 1 path!");
+                        return true;
+                    }
+                    let path = paths.remove(0);
+                    if path.is_dir() {
+                        proxy.send_event(CustomWindowEvent::DropFolder(path)).ok();
+                        return true;
+                    }
+                    if path.is_file() {
+                        return false;
+                    }
+                },
+                _ => {}
+            }
+
+            true
+        })
+        .build()?;
+
+
+    // Event loop
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        match event {
+            Event::NewEvents(StartCause::Init) => debug!("Started webview!"),
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => *control_flow = ControlFlow::Exit,
+            // Drop folder to client
+            Event::UserEvent(CustomWindowEvent::DropFolder(path)) => {
+                match webview.evaluate_script(&format!("window.onWebviewEvent({{\"action\": \"browse\", \"path\": `{}`}})", path.to_string_lossy().replace("`", "\\`"))) {
+                    Ok(_) => {},
+                    Err(e) => error!("Failed executing JS on webview: {e}"),
+                }
+            }
+            _ => ()
+        }
+
+    });
+}
+
+enum CustomWindowEvent {
+    DropFolder(PathBuf)
 }
 
 // Start WebSocket server
@@ -135,192 +187,6 @@ pub fn start_all(context: StartContext) {
 
     start_webserver_thread(&context);
     start_socket_thread(context);
-    start_webview();
+    start_webview().expect("Failed to start webview");
 }
 
-
-// Windows webview
-#[cfg(target_os = "windows")]
-pub fn start_webview() {
-    use std::mem;
-    use std::rc::Rc;
-    use std::path::Path;
-    use once_cell::sync::OnceCell;
-    use winit::event_loop::{ControlFlow, EventLoop};
-    use winit::event::{Event, WindowEvent};
-    use winit::dpi::Size;
-    use winit::window::{WindowBuilder, Icon};
-    use winit::platform::windows::WindowExtWindows;
-    use winapi::shared::windef::{HWND, RECT};
-    use winapi::um::winuser::GetClientRect;
-    use webview2::Environment;
-    use serde_json::json;
-    use urlencoding::decode;
-    use onetagger_shared::Settings;
-
-    // Install webview2 runtime
-    bootstrap_webview2_wrap();
-    
-    // winit
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_title("One Tagger")
-        .with_inner_size(Size::Logical((1280, 750).into()))
-        .with_min_inner_size(Size::Logical((1150, 550).into()))
-        .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
-        .build(&event_loop)
-        .unwrap();
-    
-    // webview2
-    let controller = Rc::new(OnceCell::new());
-    {
-        let controller_clone = controller.clone();
-        let hwnd = window.hwnd() as HWND;
-        let data_dir = Settings::get_folder().unwrap().join("webview2");
-
-        // Build webview2
-        Environment::builder()
-            .with_user_data_folder(data_dir.as_path())    
-            .build(move |env| {
-                env.unwrap().create_controller(hwnd, move |controller| {
-                    let controller = controller?;
-                    let w = controller.get_webview()?;
-
-                    w.get_settings().map(|settings| {
-                        settings.put_is_status_bar_enabled(false).ok();
-                        settings.put_are_default_context_menus_enabled(false).ok();
-                        settings.put_is_zoom_control_enabled(false).ok();
-                    })?;
-
-                    unsafe {
-                        let mut rect = mem::zeroed();
-                        GetClientRect(hwnd, &mut rect);
-                        controller.put_bounds(rect)?;
-                    }
-
-                    // Start webview
-                    w.navigate("http://127.0.0.1:36913")?;
-                    w.add_new_window_requested(|w, a| {
-                        let uri = a.get_uri().unwrap();
-                        if uri.starts_with("file://") {
-                            // Windowsify
-                            let uri = uri.replace("file:///", "");
-                            let decoded = decode(&uri).unwrap().replace("/", "\\");
-                            let path = Path::new(&decoded);
-                            if path.exists() && path.is_dir() {
-                                // Send to UI
-                                w.post_web_message_as_string(&json!({
-                                    "action": "browse",
-                                    "path": decoded
-                                }).to_string())?;
-                            }
-                        }
-
-                        // Drag and drop don't create new window
-                        a.put_new_window(w)
-                    })?;
-                    w.add_navigation_starting(|_w, n| {
-                        let uri = n.get_uri()?;
-                        // Cancel redirect on dropping a file
-                        if uri.starts_with("file://") {
-                            n.put_cancel(true)?;
-                        }
-                        Ok(())
-                    })?;
-
-                    controller_clone.set(controller).unwrap();
-                    Ok(())
-                }
-            )
-        })
-    }.unwrap();
-
-    // winit EventLoop
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
-
-        match event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested => {
-                    if let Some(webview) = controller.get() {
-                        webview.close().unwrap();
-                    }
-                    *control_flow = ControlFlow::Exit;
-                }
-                WindowEvent::Moved(_) => {
-                    if let Some(webview) = controller.get() {
-                        webview.notify_parent_window_position_changed().ok();
-                    }
-                }
-                WindowEvent::Resized(new_size) => {
-                    if let Some(webview) = controller.get() {
-                        let r = RECT { 
-                            left: 0,
-                            top: 0,
-                            right: new_size.width as i32,
-                            bottom: new_size.height as i32
-                        };
-                        webview.put_bounds(r).ok();
-                    }
-                }
-                _ => {}
-            }
-            Event::MainEventsCleared => {
-                // Updates here
-                window.request_redraw();
-            }
-            Event::RedrawRequested(_) => {}
-            _ => {}
-        }
-    });
-}
-
-// Wrapper for exitting and logging
-#[cfg(target_os = "windows")]
-pub fn bootstrap_webview2_wrap() {
-    use std::process::exit;
-    match bootstrap_webview2() {
-        Ok(r) => match r {
-            true => {}
-            false => {
-                error!("webview2 bootstrap installation was successful, however webview2 failed to detect it.");
-                exit(2);
-            }
-        },
-        Err(e) => {
-            error!("Failed bootstrapping webview2: {}", e);
-            exit(1);
-        }
-    }
-}
-
-// Install evergreen webview2 for Windows
-#[cfg(target_os = "windows")]
-fn bootstrap_webview2() -> Result<bool, Box<dyn std::error::Error>> {
-    use tempfile::tempdir;
-    use std::process::Command;
-    use std::fs::File;
-    
-    // Already installed
-    if webview2::get_available_browser_version_string(None).is_ok() {
-        return Ok(true);
-    }
-
-    info!("Bootstrapping webview2...");
-    // Download
-    let dir = tempdir()?;
-    let path = dir.path().join("evergreen.exe");
-    {
-        let mut file = File::create(&path)?;
-        let mut res = reqwest::blocking::get("https://go.microsoft.com/fwlink/p/?LinkId=2124703")?;
-        std::io::copy(&mut res, &mut file)?;
-    }
-
-    // Run
-    Command::new(path.to_str().ok_or("Invalid path")?)
-        .status()?;
-    dir.close().ok();
-
-    // Verify
-    Ok(webview2::get_available_browser_version_string(None).is_ok())
-}

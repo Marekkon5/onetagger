@@ -21,17 +21,6 @@ fn main() {
     onetagger_shared::setup();
     let cli = Cli::parse();
 
-    // Windows Webview2 Bootstrap
-    if cli.bootstrap_webview2 {
-        #[cfg(target_os = "windows")]
-        {
-            ui::bootstrap_webview2_wrap();
-            return;
-        }
-        #[cfg(not(target_os = "windows"))]
-        panic!("Windows only install option!");
-    }
-
     info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
     
     // MacOS
@@ -63,10 +52,6 @@ struct Cli {
     /// Path to music files
     #[clap(short, long)]
     path: Option<String>,
-    
-    /// Windows only installer option
-    #[clap(long)]
-    bootstrap_webview2: bool,
 
     /// Open in browser
     #[clap(long)]
