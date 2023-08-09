@@ -70,7 +70,17 @@ pub fn start_webview() -> Result<(), Box<dyn Error>> {
 
         match event {
             Event::NewEvents(StartCause::Init) => debug!("Started webview!"),
-            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => *control_flow = ControlFlow::Exit,
+            // Check for unsaved progress
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                match webview.evaluate_script("window.onWebviewEvent({\"action\": \"exit\"})") {
+                    Ok(_) => {},
+                    Err(e) => {
+                        warn!("Failed to ask for exit: {e}");
+                        *control_flow = ControlFlow::Exit;
+                    }
+                }
+
+            },
             // Drop folder to client
             Event::UserEvent(CustomWindowEvent::DropFolder(path)) => {
                 match webview.evaluate_script(&format!("window.onWebviewEvent({{\"action\": \"browse\", \"path\": `{}`}})", path.to_string_lossy().replace("`", "\\`"))) {

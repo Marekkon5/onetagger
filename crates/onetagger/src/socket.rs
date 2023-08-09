@@ -32,6 +32,7 @@ use crate::browser::{FileBrowser, FolderBrowser};
 #[serde(tag = "action", rename_all = "camelCase")]
 enum Action {
     Init,
+    Exit,
     SaveSettings { settings: Value },
     LoadSettings,
     DefaultCustomPlatformSettings,
@@ -217,6 +218,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::Init => {
             send_socket(websocket, InitData::new(context.start_context.clone())).ok();
         },
+        Action::Exit => std::process::exit(0),
         Action::SaveSettings { settings } => Settings::from_ui(&settings).save()?,
         Action::LoadSettings => match Settings::load() {
             Ok(settings) => {

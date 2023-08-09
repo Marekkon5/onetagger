@@ -5,6 +5,7 @@ import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
 import { Keybind, Playlist, Spotify, wsUrl } from './utils';
+import ExitDialog from '../components/ExitDialog.vue';
 import router from './router';
 
 class OneTagger {
@@ -262,11 +263,12 @@ class OneTagger {
 
     // Handle message from Webview/OS
     onOSMessage(json: any) {
+        let route = router.currentRoute.value.path.substring(1).split('/')[0].toLowerCase();
+
         switch (json.action) {
             // Drag and drop path
             case 'browse':
                 // Callback by route
-                let route = router.currentRoute.value.path.substring(1).split('/')[0];
                 switch (route) {
                     case 'autotagger':
                         this.config.value.path = json.path;
@@ -287,6 +289,38 @@ class OneTagger {
                     default:
                         this.settings.value.path = json.path;
                         break;
+                }
+                break;
+
+            // Exit app
+            case 'exit':
+                // QT pending changes
+                if (route == 'quicktag' && this.quickTag.value.track.isChanged()) {
+                    Dialog.create({
+                        component: ExitDialog,
+                        componentProps: {
+                            isQt: true
+                        },
+                        persistent: true,
+                        ok: false,
+                        cancel: false,
+                    });
+                }
+                // AT
+                else if (this.lock.value.locked && !this.taggerStatus.value.done) {
+                    Dialog.create({
+                        component: ExitDialog,
+                        componentProps: {
+                            isQt: false
+                        },
+                        persistent: true,
+                        ok: false,
+                        cancel: false,
+                    });
+                }
+                // Exit anyway
+                else {
+                    this.send('exit');
                 }
                 break;
             default:
