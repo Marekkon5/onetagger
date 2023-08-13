@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 use wry::application::dpi::{Size, PhysicalSize};
 use wry::application::event::{StartCause, Event, WindowEvent};
 use wry::application::event_loop::{EventLoop, ControlFlow};
-use wry::application::window::{WindowBuilder, Theme};
+use wry::application::window::{WindowBuilder, Theme, Icon};
 use wry::webview::{WebViewBuilder, FileDropEvent, WebContext};
 
 use crate::quicktag::QuickTagFile;
@@ -36,8 +36,10 @@ pub fn start_webview() -> Result<(), Box<dyn Error>> {
         .with_min_inner_size(Size::Physical(PhysicalSize::new(1150, 550)))
         .with_inner_size(Size::Physical(PhysicalSize::new(1280, 720)))
         .with_resizable(true)
+        .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
         .with_theme(Some(Theme::Dark))
         .build(&event_loop)?;
+    window.set_inner_size(Size::Physical(PhysicalSize::new(1280, 720)));
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
     let webview = WebViewBuilder::new(window)?
         .with_url("http://127.0.0.1:36913")?
