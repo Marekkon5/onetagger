@@ -455,6 +455,8 @@ impl TokenVariable {
         // Built-ins
         match &self.var.to_lowercase()[..] {
             "filename" => Some(Data::String(Path::new(&info.path).file_stem().unwrap().to_string_lossy().to_string())),
+            "path" => Some(Data::String(info.path.to_owned())),
+            "abspath" => Some(Data::String(dunce::canonicalize(&info.path).ok()?.to_string_lossy().to_string())),
             _ => None
         }
     }
@@ -746,6 +748,40 @@ impl Token for TokenFunction {
                     Data::Array(a) => Some(Data::String(a.join(c)))
                 }
             },
+            // Path parent
+            "parent" => {
+                match data {
+                    Data::String(s) => {
+                        let s = s.replace("\\", "/");
+                        let parts = s.split("/").collect::<Vec<_>>();
+                        if parts.len() < 2 {
+                            return None;
+                        }
+                        let count = parts.len() - 1;
+                        Some(Data::String(parts.into_iter().take(count).collect::<Vec<_>>().join("/")))
+                    },
+                    Data::Array(a) => {
+                        if a.len() < 2 {
+                            return None;
+                        }
+                        Some(Data::Array(a.iter().take(a.len() - 1).map(String::from).collect()))
+                    }
+                }
+            },
+            // Path file/folder name
+            "filename" => {
+                match data {
+                    Data::String(s) => {
+                        let s = s.replace("\\", "/");
+                        let parts = s.split("/").collect::<Vec<_>>();
+                        Some(Data::String(parts.last()?.to_string()))
+                    },
+                    // Same as array.last()
+                    Data::Array(a) => {
+                        Some(Data::String(a.last()?.to_string()))
+                    },
+                }
+            }
             f => {
                 error!("Invalid function: {f}!");
                 None

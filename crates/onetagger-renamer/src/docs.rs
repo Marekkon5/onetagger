@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::ac::{SymbolDoc, DocParameter};
 
 lazy_static! {
-    pub static ref VARIABLES: [SymbolDoc; 28] = [
+    pub static ref VARIABLES: [SymbolDoc; 30] = [
         SymbolDoc::var("title", "Get the Title frame from tag.\n\n  Used tags:<br> **MP3**: `TIT2`<br> **FLAC**: `TITLE`<br> **MP4**: `©nam`"),
         SymbolDoc::var("artist", "Get the first Artist from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
         SymbolDoc::var("artists", "Get the Artists frame from tag.\n\n  Used tags:<br> **MP3**: `TPE1`<br> **FLAC**: `ARTIST`<br> **MP4**: `©ART`"),
@@ -32,6 +32,9 @@ lazy_static! {
         SymbolDoc::var("disknumber", "Get the Disc Number frame from tag.\n\n  Used tags:<br> **MP3**: `TPOS`<br> **FLAC**: `DISCNUMBER`<br> **MP4**: `disk`"),
         SymbolDoc::var("disc", "Get the Disc Number frame from tag.\n\n  Used tags:<br> **MP3**: `TPOS`<br> **FLAC**: `DISCNUMBER`<br> **MP4**: `disk`"),
         SymbolDoc::var("discnumber", "Get the Disc Number frame from tag.\n\n  Used tags:<br> **MP3**: `TPOS`<br> **FLAC**: `DISCNUMBER`<br> **MP4**: `disk`"),
+        SymbolDoc::var("path", "Path to the file"),
+        SymbolDoc::var("abspath", "Absolute path to the file"),
+
     ];
 
     pub static ref PROPERTIES: [SymbolDoc; 2] = [
@@ -39,7 +42,7 @@ lazy_static! {
         SymbolDoc::prop("last", "Get the last item in an array"),
     ];
 
-    pub static ref FUNCTIONS: [SymbolDoc; 12] = [
+    pub static ref FUNCTIONS: [SymbolDoc; 14] = [
         SymbolDoc::f("lower", "Convert all to lowercase", vec![]),
         SymbolDoc::f("lowercase", "Convert all to lowercase", vec![]),
         SymbolDoc::f("upper", "Convert all to uppercase", vec![]),
@@ -52,6 +55,9 @@ lazy_static! {
         SymbolDoc::f("sort", "Sort the array alphabetically", vec![]),
         SymbolDoc::f("reverse", "Reverse the array", vec![]),
         SymbolDoc::f("join", "Join array into string with custom separator", vec![DocParameter::s("separator", true)]),
+        SymbolDoc::f("parent", "Get parent folder of path", vec![]),
+        SymbolDoc::f("filename", "Get file/folder name of path", vec![]),
+
     ];
 }
 
