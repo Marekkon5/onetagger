@@ -3,13 +3,14 @@ use std::path::PathBuf;
 use std::time::Duration;
 use include_dir::Dir;
 use onetagger_player::AudioSources;
+use onetagger_shared::Settings;
 use rouille::{router, Response};
 use serde::{Serialize, Deserialize};
 use wry::application::dpi::{Size, PhysicalSize};
 use wry::application::event::{StartCause, Event, WindowEvent};
 use wry::application::event_loop::{EventLoop, ControlFlow};
 use wry::application::window::{WindowBuilder, Theme};
-use wry::webview::{WebViewBuilder, FileDropEvent};
+use wry::webview::{WebViewBuilder, FileDropEvent, WebContext};
 
 use crate::quicktag::QuickTagFile;
 
@@ -37,8 +38,10 @@ pub fn start_webview() -> Result<(), Box<dyn Error>> {
         .with_resizable(true)
         .with_theme(Some(Theme::Dark))
         .build(&event_loop)?;
+    let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
     let webview = WebViewBuilder::new(window)?
         .with_url("http://127.0.0.1:36913")?
+        .with_web_context(&mut context)
         // Handle dropped folders
         .with_file_drop_handler(move |_window, event| {
             match event {
@@ -62,7 +65,6 @@ pub fn start_webview() -> Result<(), Box<dyn Error>> {
             true
         })
         .build()?;
-
 
     // Event loop
     event_loop.run(move |event, _, control_flow| {
