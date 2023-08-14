@@ -1,3 +1,5 @@
+#[macro_use] extern crate log;
+
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
@@ -69,6 +71,15 @@ pub fn get_files_from_m3u(m3u: &str, base_path: Option<PathBuf>) -> Vec<String> 
     let mut out = vec![];
     for entry in entries {
         if !entry.starts_with("#") && !entry.starts_with("http://") && !entry.is_empty() {
+            // Decode
+            let entry = match urlencoding::decode(entry) {
+                Ok(e) => e.to_string(),
+                Err(e) => {
+                    warn!("Failed URLDecode: {e}");
+                    entry.to_string()
+                }
+            };
+
             if base_path.is_none() {
                 out.push(entry.trim().to_string());
             } else {
