@@ -8,7 +8,7 @@ categories = ["multimedia::audio"]
 
 [dependencies]
 log = "0.4"
-wry = "0.30"
+wry = "0.31"
 mime = "0.3"
 dunce = "1.0"
 trash = "3.0"

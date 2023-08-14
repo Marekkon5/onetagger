@@ -81,6 +81,7 @@ function getType(mime: string) {
     switch (mime.toLowerCase()) {
         case 'audio/mpegurl':
         case 'audio/x-mpegurl':
+        case 'application/x-mpegurl':
             return 'm3u';
         default: 
             return;
