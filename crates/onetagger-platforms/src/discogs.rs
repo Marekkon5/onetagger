@@ -448,7 +448,7 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
         PlatformInfo {
             id: "discogs".to_string(),
             name: "Discogs".to_string(),
-            description: "Slow due rate limits (~25 tracks / min) & requires a free account".to_string(),
+            description: "Slow due to rate limits (~25 tracks / min) & requires a free account".to_string(),
             icon: include_bytes!("../assets/discogs.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
