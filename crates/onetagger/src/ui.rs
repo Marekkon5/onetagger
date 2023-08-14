@@ -52,7 +52,8 @@ pub fn start_webview() -> Result<(), Box<dyn Error>> {
         let handle_url = move |url: String| -> bool {
             debug!("Navigation/NewWindow to: {url}");
             if url.starts_with("file://") {
-                let path = url.replace("file:///", "").replace("/", "\\");
+                let url = url.replace("file:///", "");
+                let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
                 proxy.send_event(CustomWindowEvent::DropFolder(path.into())).ok();
                 return false;
             }
