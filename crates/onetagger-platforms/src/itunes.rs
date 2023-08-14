@@ -153,7 +153,7 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
         PlatformInfo {
             id: "itunes".to_string(),
             name: "iTunes".to_string(),
-            description: "Slow due rate limits (~20 tracks / min)".to_string(),
+            description: "Slow due to rate limits (~20 tracks / min)".to_string(),
             icon: include_bytes!("../assets/itunes.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
