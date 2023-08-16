@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::io::BufReader;
 use std::fs::File;
+use std::path::{PathBuf, Path};
 use rodio::Source;
 use redlux::Decoder;
 use mp4::Mp4Reader;
@@ -9,14 +10,14 @@ use crate::AudioSource;
 use crate::alac::ALACSource;
 
 pub struct MP4Source {
-    path: String,
+    path: PathBuf,
     duration: u128,
     alac: bool
 }
 
 impl MP4Source {
-    pub fn new(path: &str) -> Result<MP4Source, Box<dyn Error>> {
-        let file = File::open(path)?;
+    pub fn new(path: impl AsRef<Path>) -> Result<MP4Source, Box<dyn Error>> {
+        let file = File::open(&path)?;
         let metadata = file.metadata()?;
         let mp4 = Mp4Reader::read_header(BufReader::new(file), metadata.len())?;
         let track = mp4.tracks().values().next().ok_or("No tracks!")?;
@@ -24,7 +25,7 @@ impl MP4Source {
         let alac = track.audio_profile().is_err();
 
         Ok(MP4Source {
-            path: path.to_string(),
+            path: path.as_ref().to_owned(),
             duration: mp4.duration().as_millis(),
             alac
         })

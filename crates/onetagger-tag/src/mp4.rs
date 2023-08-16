@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::path::Path;
 use mp4ameta::{Tag, Data, Img, ImgFmt, AdvisoryRating};
 use mp4ameta::ident::DataIdent;
 use chrono::{DateTime, NaiveDate, Utc, Datelike, NaiveTime};
@@ -16,7 +17,7 @@ pub struct MP4Tag {
 }
 
 impl MP4Tag {
-    pub fn load_file(path: &str) -> Result<MP4Tag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<MP4Tag, Box<dyn Error>> {
         let tag = Tag::read_from_path(&path)?;
         Ok(MP4Tag {
             tag,
@@ -118,7 +119,7 @@ impl MP4Tag {
 }
 
 impl TagImpl for MP4Tag {
-    fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
         self.tag.write_to_path(path)?;
         Ok(())
     }

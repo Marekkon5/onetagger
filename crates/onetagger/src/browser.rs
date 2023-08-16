@@ -60,7 +60,7 @@ impl FileBrowser {
                 }
             }
         }
-        out.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
+        out.sort_by(|a, b| a.path.to_string_lossy().to_lowercase().cmp(&b.path.to_string_lossy().to_lowercase()));
         Ok(out)
     }
 
@@ -100,7 +100,7 @@ impl FileBrowser {
                     return None;
                 }
                 let extension = path.extension().unwrap().to_str()?.to_lowercase();
-                if !EXTENSIONS.iter().any(|e| e[1..] == extension) {
+                if !EXTENSIONS.iter().any(|e| *e == extension) {
                     return None;
                 }
             }
@@ -112,7 +112,7 @@ impl FileBrowser {
         Some(FolderEntry {
             dir,
             playlist,
-            path: path.to_str()?.to_string(),
+            path,
             filename
         })
     }
@@ -121,7 +121,7 @@ impl FileBrowser {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FolderEntry {
-    pub path: String,
+    pub path: PathBuf,
     pub filename: String,
     pub dir: bool,
     pub playlist: bool
@@ -151,7 +151,7 @@ impl FolderBrowser {
             Ok(e) => {
                 let path = e.path();
                 if path.is_dir() && path.file_name().is_some() {
-                    Some(path.to_string_lossy().to_string())
+                    Some(path)
                 } else {
                     None
                 }
@@ -159,11 +159,11 @@ impl FolderBrowser {
             Err(_) => None
         }).collect::<Vec<_>>();
         // Sort
-        folders.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+        folders.sort_by(|a, b| a.to_string_lossy().to_lowercase().cmp(&b.to_string_lossy().to_lowercase()));
         let children = folders.into_iter().map(|f| DirectoryEntry { path: f, children: None }).collect();
 
         Ok(DirectoryEntry {
-            children: Some(children), path: path.as_ref().to_string_lossy().to_string()
+            children: Some(children), path: path.as_ref().into()
         })
     }
 
@@ -191,7 +191,7 @@ impl FolderBrowser {
                         })
                         .collect()
                     ),
-                path: path.to_string_lossy().to_string(),
+                path: path.to_owned(),
             };
 
             // Go to parent
@@ -211,6 +211,6 @@ impl FolderBrowser {
 pub struct DirectoryEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children: Option<Vec<DirectoryEntry>>,
-    pub path: String,
+    pub path: PathBuf,
 }
 

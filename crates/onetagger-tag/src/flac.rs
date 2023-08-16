@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::SeekFrom;
+use std::path::Path;
 use metaflac::Tag;
 use metaflac::block::PictureType;
 use crate::Lyrics;
@@ -41,7 +42,7 @@ pub struct FLACTag {
 
 impl FLACTag {
     // Load from file
-    pub fn load_file(path: &str) -> Result<FLACTag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<FLACTag, Box<dyn Error>> {
         // Load header
         let mut file = BufReader::new(File::open(path)?);
         let mut header: [u8; 4] = [0; 4];
@@ -84,7 +85,7 @@ impl FLACTag {
 
 impl TagImpl for FLACTag {
     // Save to path
-    fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
         self.tag.write_to_path(path)?;
         Ok(())
     }

@@ -455,7 +455,7 @@ impl TokenVariable {
         // Built-ins
         match &self.var.to_lowercase()[..] {
             "filename" => Some(Data::String(Path::new(&info.path).file_stem().unwrap().to_string_lossy().to_string())),
-            "path" => Some(Data::String(info.path.to_owned())),
+            "path" => Some(Data::String(info.path.to_string_lossy().to_string())),
             "abspath" => Some(Data::String(dunce::canonicalize(&info.path).ok()?.to_string_lossy().to_string())),
             _ => None
         }

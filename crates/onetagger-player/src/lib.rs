@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::Cursor;
+use std::path::Path;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use hound::{WavSpec, SampleFormat, WavWriter};
@@ -138,30 +139,30 @@ enum PlayerAction {
 /// Wrapper for getting audio sources
 pub struct AudioSources {}
 impl AudioSources {
-    pub fn from_path(path: &str) -> Result<Box<dyn AudioSource + Send + 'static>, Box<dyn Error>> {
-        let p = path.to_lowercase();
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Box<dyn AudioSource + Send + 'static>, Box<dyn Error>> {
+        let p = path.as_ref().extension().ok_or("Missing extension")?.to_ascii_lowercase();
         // MP3
-        if p.ends_with(".mp3") {
+        if p == "mp3" {
             return Ok(Box::new(mp3::MP3Source::new(path)?));
         }
         // FLAC
-        if p.ends_with(".flac") {
+        if p == "flac" {
             return Ok(Box::new(flac::FLACSource::new(path)?));
         }
         // AIFF
-        if p.ends_with(".aiff") || p.ends_with(".aif") {
+        if p == "aif" || p == "aiff" {
             return Ok(Box::new(aiff::AIFFSource::new(path)?));
         }
         // MP4
-        if p.ends_with(".m4a") || p.ends_with(".mp4") {
+        if p == "m4a" || p == "mp4" {
             return Ok(Box::new(mp4::MP4Source::new(path)?));
         }
         // WAV
-        if p.ends_with(".wav") {
+        if p == "wav" {
             return Ok(Box::new(wav::WAVSource::new(path)?));
         }
         // OGG
-        if p.ends_with(".ogg") || p.ends_with(".opus") || p.ends_with(".oga") || p.ends_with(".spx") {
+        if p == "ogg" || p == "opus" || p == "oga" || p == "spx" {
             return Ok(Box::new(ogg::OGGSource::new(path)?));
         }
 

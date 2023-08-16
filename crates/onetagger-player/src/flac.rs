@@ -1,17 +1,19 @@
-use std::{error::Error, io::BufReader};
+use std::path::{PathBuf, Path};
+use std::error::Error;
+use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
 use crate::AudioSource;
 
 pub struct FLACSource {
-    path: String,
+    path: PathBuf,
     duration: u128
 }
 
 impl FLACSource {
-    pub fn new(path: &str) -> Result<FLACSource, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<FLACSource, Box<dyn Error>> {
         let mut flac = FLACSource {
-            path: path.to_string(),
+            path: path.as_ref().to_owned(),
             duration: 0
         };
         // Get duration from decoder

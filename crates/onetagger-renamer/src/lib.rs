@@ -35,22 +35,22 @@ impl Renamer {
         if cfg!(windows) {
             name = name.replace("/", "\\");
         }
-        let ext = info.path.split(".").last().unwrap_or("");
+        let ext = info.path.extension().unwrap_or_default().to_string_lossy();
         output_dir.as_ref().join(format!("{name}.{ext}"))
     }
 
 
     /// Generate names - output: [(from, to),...]
-    pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
+    pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(PathBuf, PathBuf)>, Box<dyn Error>> {
         let input_path = dunce::canonicalize(&config.path)?;
         if !input_path.exists() {
             return Err("Invalid path!".into());
         }
         
         // Get output path
-        let mut out_dir = config.out_dir.clone().unwrap_or(config.path.to_string());
-        if out_dir.trim().is_empty() {
-            out_dir = config.path.to_string();
+        let mut out_dir = config.out_dir.clone().unwrap_or(config.path.to_owned());
+        if out_dir.to_string_lossy().trim().is_empty() {
+            out_dir = config.path.to_owned();
         }
 
         let files = AudioFileInfo::get_file_list(&config.path, config.subfolders);
@@ -59,7 +59,7 @@ impl Renamer {
             let info = match AudioFileInfo::load_file(&file, None, None) {
                 Ok(info) => info,
                 Err(e) => {
-                    warn!("Failed loading: {file}. Skipping! {e}");
+                    warn!("Failed loading: {file:?}. Skipping! {e}");
                     continue;
                 }
             };
@@ -82,7 +82,7 @@ impl Renamer {
             }
 
             let new_name = self.generate_name(output_dir, &info, config);
-            output.push((file.to_string(), new_name));
+            output.push((file.to_owned(), new_name));
             if limit != 0 && i >= limit {
                 break
             }
@@ -110,7 +110,7 @@ impl Renamer {
             if config.copy {
                 match std::fs::copy(&from, &to) {
                     Ok(_) => info!("Copied: {to:?}"),
-                    Err(e) => error!("Failed copying {from} -> {to:?}: {e}"),
+                    Err(e) => error!("Failed copying {from:?} -> {to:?}: {e}"),
                 }
             // Move
             } else {
@@ -120,10 +120,10 @@ impl Renamer {
                         Ok(_) => {
                             info!("Copied: {to:?}");
                             if let Err(e) = std::fs::remove_file(&from) {
-                                warn!("Failed deleting {from}: {e}");
+                                warn!("Failed deleting {from:?}: {e}");
                             }
                         },
-                        Err(e) => error!("Failed copying {from} -> {to:?}: {e}"),
+                        Err(e) => error!("Failed copying {from:?} -> {to:?}: {e}"),
                     }
                 } else {
                     info!("Renamed: {to:?}");
@@ -160,8 +160,8 @@ impl Renamer {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RenamerConfig {
-    pub path: String,
-    pub out_dir: Option<String>,
+    pub path: PathBuf,
+    pub out_dir: Option<PathBuf>,
     pub template: String,
     pub copy: bool,
     pub subfolders: bool,

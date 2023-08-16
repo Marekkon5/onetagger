@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
@@ -10,19 +10,19 @@ use rodio::Source;
 use crate::AudioSource;
 
 pub struct AIFFSource {
-    path: String,
+    path: PathBuf,
     duration: Duration
 }
 
 impl AIFFSource {
     // Load from path
-    pub fn new(path: &str) -> Result<AIFFSource, Box<dyn Error>> { 
+    pub fn new(path: impl AsRef<Path>) -> Result<AIFFSource, Box<dyn Error>> { 
         // Get duration
         let file = lofty::read_from_path(&path)?;
         let duration = file.properties().duration();
 
         Ok(AIFFSource {
-            path: path.to_owned(),
+            path: path.as_ref().to_owned(),
             duration
         })
     }

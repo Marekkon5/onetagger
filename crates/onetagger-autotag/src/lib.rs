@@ -378,19 +378,19 @@ impl TrackImpl for Track {
 
 pub trait AudioFileInfoImpl {
     /// Load audio file info from path
-    fn load_file(path: &str, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>>;
+    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>>;
     /// Load duration from file
     fn load_duration(&mut self);
     /// Parse the filename template
     fn parse_template(template: &str) -> Option<Regex>;
     /// Load using shazam
-    fn shazam(path: &str) -> Result<AudioFileInfo, Box<dyn Error>>;
+    fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Box<dyn Error>>;
     /// Get list of all files in with supported extensions
-    fn get_file_list(path: &str, subfolders: bool) -> Vec<String>;
+    fn get_file_list(path: impl AsRef<Path>, subfolders: bool) -> Vec<PathBuf>;
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {
-    fn load_file(path: &str, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
+    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
         let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag();
         let separator = tag.get_separator().unwrap_or(" ".to_string());
@@ -404,8 +404,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
 
         // Parse filename
         if (title.is_none() || artists.is_none()) && filename_template.is_some() {
-            let p = Path::new(path);
-            let filename = p.file_name().ok_or("Missing filename!")?.to_str().ok_or("Missing filename")?;
+            let filename = path.as_ref().file_name().ok_or("Missing filename!")?.to_str().ok_or("Missing filename")?;
 
             if let Some(captures) = filename_template.unwrap().captures(filename) {
                 // Title
@@ -449,7 +448,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
             format: tag_wrap.format(),
             title,
             artists: artists.ok_or("Missing artist tag!")?,
-            path: path.to_owned(),
+            path: path.as_ref().to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
             track_number,
@@ -464,7 +463,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
         if let Ok(source) = AudioSources::from_path(&self.path) {
             self.duration = Some(Duration::from_millis(source.duration() as u64))
         } else {
-            warn!("Failed loading duration from file! {}", self.path);
+            warn!("Failed loading duration from file! {:?}", self.path);
         }
     }
 
@@ -491,16 +490,16 @@ impl AudioFileInfoImpl for AudioFileInfo {
     }
 
     // Recognize on Shazam
-    fn shazam(path: &str) -> Result<AudioFileInfo, Box<dyn Error>> {
-        info!("Recognizing on Shazam: {}", path);
-        match Shazam::recognize_from_file(path) {
+    fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Box<dyn Error>> {
+        info!("Recognizing on Shazam: {:?}", path.as_ref());
+        match Shazam::recognize_from_file(&path) {
             Ok((shazam_track, duration)) => {
-                info!("Recognized on Shazam: {}: {} - {}", path, shazam_track.title, shazam_track.subtitle);
+                info!("Recognized on Shazam: {:?}: {} - {}", path.as_ref(), shazam_track.title, shazam_track.subtitle);
                 return Ok(AudioFileInfo {
                     title: Some(shazam_track.title),
                     artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),
-                    format: AudioFileFormat::from_extension(path.split(".").last().unwrap()).unwrap(),
-                    path: path.to_string(),
+                    format: AudioFileFormat::from_extension(&path.as_ref().extension().unwrap_or_default().to_string_lossy()).unwrap(),
+                    path: path.as_ref().to_owned(),
                     isrc: shazam_track.isrc,
                     duration: Some(Duration::from_millis(duration as u64)),
                     track_number: None,
@@ -517,16 +516,18 @@ impl AudioFileInfoImpl for AudioFileInfo {
     }
 
     // Get list of all files in with supported extensions
-    fn get_file_list(path: &str, subfolders: bool) -> Vec<String> {
-        if path.is_empty() {
+    fn get_file_list(path: impl AsRef<Path>, subfolders: bool) -> Vec<PathBuf> {
+        if path.as_ref().to_string_lossy() == "" {
             return vec![];
         }
+
         if subfolders {
-            let files: Vec<String> = WalkDir::new(path).into_iter().filter(
-                |e| e.is_ok() && 
-                EXTENSIONS.iter().any(|&i| e.as_ref().unwrap().path().to_str().unwrap().to_lowercase().ends_with(i))
-            ).map(|e| e.unwrap().path().to_str().unwrap().to_owned()).collect();
-            files
+            WalkDir::new(path)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| EXTENSIONS.iter().any(|ext| e.path().extension().unwrap_or_default().to_ascii_lowercase() == *ext))
+                .map(|e| e.into_path())
+                .collect()
         } else {
             // No subfolders
             match std::fs::read_dir(path) {
@@ -534,8 +535,8 @@ impl AudioFileInfoImpl for AudioFileInfo {
                     readdir
                         .into_iter()
                         .filter_map(|e| e.ok())
-                        .map(|e| e.path().to_str().unwrap().to_string())
-                        .filter(|p| EXTENSIONS.iter().any(|i| p.to_lowercase().ends_with(i)))
+                        .filter(|p| EXTENSIONS.iter().any(|i| p.path().extension().unwrap_or_default().to_ascii_lowercase() == *i))
+                        .map(|e| e.path())
                         .collect()
                 },
                 Err(e) => {
@@ -558,7 +559,7 @@ pub enum TaggingState {
 #[serde(rename_all = "camelCase")]
 pub struct TaggingStatus {
     pub status: TaggingState,
-    pub path: String,
+    pub path: PathBuf,
     pub message: Option<String>,
     pub accuracy: Option<f64>,
     pub used_shazam: bool,
@@ -587,7 +588,7 @@ pub struct Tagger {}
 impl Tagger {
 
     // Returtns progress receiver, and file count
-    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<String>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
+    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
         
         let original_files = files.clone();
@@ -638,7 +639,7 @@ impl Tagger {
                 // Start tagging
                 info!("Starting {platform}");
                 for status in rx {
-                    info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {}", status.status, status.accuracy, status.path);
+                    info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}", status.status, status.accuracy, status.path);
                     processed += 1;
                     // Send to UI
                     tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
@@ -646,7 +647,7 @@ impl Tagger {
                     if status.status == TaggingState::Ok {
                         // Save good files
                         if !succesful_files.contains(&status.path) {
-                            succesful_files.push(status.path.to_string());
+                            succesful_files.push(status.path.to_owned());
                         }
                         // Fallback
                         if !config.multiplatform {
@@ -662,7 +663,7 @@ impl Tagger {
                 if config.move_success && config.move_success_path.is_some() {
                     match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
                         Ok(p) => successful_paths.push(p),
-                        Err(e) => warn!("Failed moving file: {file} {e}"),
+                        Err(e) => warn!("Failed moving file: {file:?} {e}"),
                     }
                 } else {
                     successful_paths.push(PathBuf::from(file));
@@ -676,7 +677,7 @@ impl Tagger {
                 if config.move_failed && config.move_failed_path.is_some() {
                     match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
                         Ok(p) => failed_paths.push(p),
-                        Err(e) => warn!("Failed moving file: {file} {e}"),
+                        Err(e) => warn!("Failed moving file: {file:?} {e}"),
                     }
                 } else {
                     failed_paths.push(PathBuf::from(file))
@@ -748,11 +749,11 @@ impl Tagger {
     }
 
     /// Load track, shazam, prepare output
-    pub fn load_track(path: &str, config: &TaggerConfig) -> (Option<AudioFileInfo>, TaggingStatus) {
+    pub fn load_track(path: impl AsRef<Path>, config: &TaggerConfig) -> (Option<AudioFileInfo>, TaggingStatus) {
         // Output
         let mut out = TaggingStatus {
             status: TaggingState::Error,
-            path: path.to_owned(),
+            path: path.as_ref().to_owned(),
             accuracy: None,
             message: None,
             used_shazam: false
@@ -771,7 +772,7 @@ impl Tagger {
 
         // Load audio file info by shazam or tags
         let mut info = if config.enable_shazam && config.force_shazam {
-            match AudioFileInfo::shazam(path) {
+            match AudioFileInfo::shazam(&path) {
                 Ok(i) => {
                     out.used_shazam = true;
                     i
@@ -783,12 +784,12 @@ impl Tagger {
                 }
             }
         } else {
-            match AudioFileInfo::load_file(path, template, title_regex) {
+            match AudioFileInfo::load_file(&path, template, title_regex) {
                 Ok(info) => info,
                 Err(e) => {
                     // Try shazam if enabled
                     if config.enable_shazam {
-                        match AudioFileInfo::shazam(path) {
+                        match AudioFileInfo::shazam(&path) {
                             Ok(info) => {
                                 out.used_shazam = true;
                                 info
@@ -812,7 +813,7 @@ impl Tagger {
 
         // Skip tagged
         if config.skip_tagged && info.tagged.at() {
-            info!("Skipping (already tagged): {path}");
+            info!("Skipping (already tagged): {:?}", path.as_ref());
             out.status = TaggingState::Skipped;
             out.message = Some("Already tagged".to_string());
             return (None, out);
@@ -827,12 +828,12 @@ impl Tagger {
     }
 
     /// Tag single track
-    pub fn tag_track<T>(path: &str, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
+    pub fn tag_track<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
     where T: AutotaggerSource + ?Sized
     {
-        info!("Tagging: {}", path);
+        info!("Tagging: {:?}", path.as_ref());
         // Load track
-        let (info, mut out) = Self::load_track(path, config);
+        let (info, mut out) = Self::load_track(&path, config);
         let info = match info {
             Some(info) => info,
             None => return out,
@@ -861,7 +862,7 @@ impl Tagger {
             },
             // Failed matching track
             Err(e) => {
-                error!("Matching error: {} ({})", e, path);
+                error!("Matching error: {} ({:?})", e, path.as_ref());
                 out.message = Some(format!("Error matching track: {}", e));
             }
         }
@@ -871,10 +872,10 @@ impl Tagger {
     }
 
     // Tag all files with threads specified in config
-    pub fn tag_dir(files: &Vec<String>, tagger: &mut Box<dyn AutotaggerSourceBuilder>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
+    pub fn tag_dir(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
         info!("Starting tagging: {} files, {} threads!", files.len(), threads);
         let (tx, rx) = unbounded();
-        let (file_tx, file_rx): (Sender<String>, Receiver<String>) = unbounded();
+        let (file_tx, file_rx): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
 
         let mut ok_sources = 0;
         for _ in 0..threads {
@@ -907,7 +908,7 @@ impl Tagger {
         }
         // Send files
         for f in files {
-            file_tx.send(f.to_string()).ok();
+            file_tx.send(f.to_owned()).ok();
         }
         Some(rx)
     }

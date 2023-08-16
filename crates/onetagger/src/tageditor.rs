@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Cursor;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use base64::Engine;
 use serde::{Serialize, Deserialize};
 use image::{GenericImageView, io::Reader as ImageReader};
@@ -13,9 +13,9 @@ pub struct TagEditor {}
 
 impl TagEditor {
     // Load tags from file
-    pub fn load_file(path: &str) -> Result<TagEditorFile, Box<dyn Error>> {
-        let filename = Path::new(path).file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename!")?;
-        let tag_wrap = Tag::load_file(path, true)?;
+    pub fn load_file(path: impl AsRef<Path>) -> Result<TagEditorFile, Box<dyn Error>> {
+        let filename = path.as_ref().file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename!")?;
+        let tag_wrap = Tag::load_file(&path, true)?;
         let id3_binary = ID3Binary::from_tag(&tag_wrap);
         // Load tags
         let tag = tag_wrap.tag();
@@ -35,7 +35,7 @@ impl TagEditor {
             tags,
             filename: filename.to_owned(),
             format: tag_wrap.format(),
-            path: path.to_owned(),
+            path: path.as_ref().to_owned(),
             images,
             id3: id3_binary
         })
@@ -57,7 +57,7 @@ impl TagEditor {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FolderEntry {
-    pub path: String,
+    pub path: PathBuf,
     pub filename: String,
     pub dir: bool,
     pub playlist: bool
@@ -68,7 +68,7 @@ pub struct TagEditorFile {
     pub tags: HashMap<String, String>,
     pub filename: String,
     pub format: AudioFileFormat,
-    pub path: String,
+    pub path: PathBuf,
     pub images: Vec<TagEditorImage>,
     pub id3: Option<ID3Binary>
 }

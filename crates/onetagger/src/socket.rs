@@ -39,15 +39,15 @@ enum Action {
     Browse { path: Option<String>, context: Option<String> },
     Browser { url: String },
     OpenSettingsFolder,
-    OpenFolder { path: String },
-    OpenFile { path: String },
+    OpenFolder { path: PathBuf },
+    OpenFile { path: PathBuf },
     DeleteFiles { paths: Vec<String> },
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
     
-    Waveform { path: String },
-    PlayerLoad { path: String },
+    Waveform { path: PathBuf },
+    PlayerLoad { path: PathBuf },
     PlayerPlay, 
     PlayerPause,
     PlayerSeek { pos: u64 },
@@ -63,7 +63,7 @@ enum Action {
     SpotifyAuthorized,
 
     TagEditorFolder { path: Option<String>, subdir: Option<String>, recursive: Option<bool>  },
-    TagEditorLoad { path: String },
+    TagEditorLoad { path: PathBuf },
     TagEditorSave { changes: TagChanges },
 
     RenamerSyntaxHighlight { template: String },
@@ -71,7 +71,7 @@ enum Action {
     RenamerPreview { config: RenamerConfig },
     RenamerStart { config: RenamerConfig },
 
-    FolderBrowser { path: String, child: String, base: bool }
+    FolderBrowser { path: PathBuf, child: String, base: bool }
 }
 
 
@@ -272,7 +272,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 TaggerConfigs::AutoTagger(c) => {
                     // Load file list
                     if files.is_empty() {
-                        let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or(String::new());
+                        let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or_default();
                         files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
                         file_count = files.len();
                         folder_path = Some(path);
@@ -282,7 +282,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 },
                 TaggerConfigs::AudioFeatures(c) => {
                     if files.is_empty() {
-                        let path = c.path.as_ref().unwrap_or(&String::new()).to_owned();
+                        let path = c.path.as_ref().map(|i| i.to_owned()).unwrap_or_default().to_owned();
                         files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
                         folder_path = Some(path);
                         file_count = files.len();
@@ -494,7 +494,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         // File browser list dir
         Action::FolderBrowser { path, child , base } => {
             // Windows root dir override
-            let path = if cfg!(windows) && path == "/" {
+            let path = if cfg!(windows) && path.to_string_lossy() == "/" {
                 if child.is_empty() {
                     PathBuf::from("/".to_string())
                 } else {

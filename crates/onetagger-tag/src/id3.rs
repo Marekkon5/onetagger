@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::path::Path;
 use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder, Frame, Encoding};
 use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText, SynchronisedLyrics, TimestampFormat, SynchronisedLyricsType};
 use serde::{Serialize, Deserialize};
@@ -44,9 +45,10 @@ pub struct ID3Tag {
 
 impl ID3Tag {
     // Read from file
-    pub fn load_file(path: &str) -> Result<ID3Tag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<ID3Tag, Box<dyn Error>> {
+        let ext = path.as_ref().extension().unwrap_or_default().to_ascii_lowercase();
         // MP3
-        if path.to_lowercase().ends_with(".mp3") {
+        if ext == "mp3" {
             let tag = Tag::read_from_path(path)?;
             let version = tag.version();
             return Ok(ID3Tag {
@@ -61,7 +63,7 @@ impl ID3Tag {
             }.into());
         }
         // AIFF
-        if path.to_lowercase().ends_with(".aif") || path.to_lowercase().ends_with(".aiff") {
+        if ext == "aif" || ext == "aiff" {
             let tag = Tag::read_from_aiff_path(path)?;
             let version = tag.version();
             return Ok(ID3Tag {
@@ -76,7 +78,7 @@ impl ID3Tag {
             }.into());
         }
         // WAV
-        if path.to_lowercase().ends_with(".wav") {
+        if ext == "wav" {
             let tag = crate::wav::read_wav(path)?;
             let version = tag.version();
             return Ok(ID3Tag { 
@@ -97,19 +99,20 @@ impl ID3Tag {
     }
 
     // Load tag from file or create new
-    pub fn load_or_new(path: &str) -> ID3Tag {
-        let format = if path.to_lowercase().ends_with(".mp3") {
+    pub fn load_or_new(path: impl AsRef<Path>) -> ID3Tag {
+        let ext = path.as_ref().extension().unwrap_or_default().to_ascii_lowercase();
+        let format = if ext == "mp3" {
             ID3AudioFormat::MP3
-        } else if path.to_lowercase().ends_with(".wav") {
+        } else if ext == "wav" {
             ID3AudioFormat::WAV
         } else {
             ID3AudioFormat::AIFF
         };
 
-        match ID3Tag::load_file(path) {
+        match ID3Tag::load_file(&path) {
             Ok(tag) => tag,
             Err(e) => {
-                warn!("Failed loading: {}, creating new tag. {:?}", path, e);
+                warn!("Failed loading: {:?}, creating new tag. {:?}", path.as_ref(), e);
                 ID3Tag {
                     tag: Tag::new(),
                     format,
@@ -186,7 +189,7 @@ impl ID3Tag {
 
 impl TagImpl for ID3Tag {
     // Write tag to file
-    fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
         let version = match self.id3v24 {
             true => Version::Id3v24,
             false => Version::Id3v23

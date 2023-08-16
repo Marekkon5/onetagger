@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::PathBuf;
 use std::collections::HashMap;
 use std::fs::read_dir;
 use std::path::Path;
@@ -14,9 +15,9 @@ pub struct QuickTag {}
 
 impl QuickTag {
     /// Load all files from folder
-    pub fn load_files_path(path: &str, recursive: bool, separators: &TagSeparators) -> Result<QuickTagData, Box<dyn Error>> {
+    pub fn load_files_path(path: impl AsRef<Path>, recursive: bool, separators: &TagSeparators) -> Result<QuickTagData, Box<dyn Error>> {
         // Check if path to playlist
-        if !Path::new(path).is_dir() {
+        if !path.as_ref().is_dir() {
             return QuickTag::load_files(get_files_from_playlist_file(path)?, separators);
         }
         
@@ -25,9 +26,7 @@ impl QuickTag {
         if recursive {
             for e in WalkDir::new(path) {
                 if let Ok(e) = e {
-                    if let Some(path) = e.path().to_str() {
-                        files.push(path.to_owned());
-                    }
+                    files.push(e.path().to_owned())
                 }
             }
         } else {
@@ -42,9 +41,7 @@ impl QuickTag {
                 if entry.path().is_dir() {
                     continue;
                 }
-                let path = entry.path();
-                let path = path.to_str().unwrap();
-                files.push(path.to_string());
+                files.push(entry.path());
             }
         }
         
@@ -57,16 +54,16 @@ impl QuickTag {
     }
 
     /// Check extension and load file
-    pub fn load_files(files: Vec<String>, separators: &TagSeparators) -> Result<QuickTagData, Box<dyn Error>> {
+    pub fn load_files(files: Vec<PathBuf>, separators: &TagSeparators) -> Result<QuickTagData, Box<dyn Error>> {
         let mut out = vec![];
         let mut failed = vec![];
         for path in files {
-            if EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
+            if EXTENSIONS.iter().any(|e| path.extension().unwrap_or_default().to_ascii_lowercase() == *e) {
                 match QuickTagFile::from_path(&path, separators) {
                     Ok(t) => out.push(t),
                     Err(e) => {
                         failed.push(QuickTagFailed::new(&path, e.to_string()));
-                        error!("Error loading file: {} {}", path, e);
+                        error!("Error loading file: {:?} {}", path, e);
                     }
                 }
             }
@@ -87,21 +84,21 @@ pub struct QuickTagData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuickTagFailed {
-    pub path: String,
+    pub path: PathBuf,
     pub error: String
 }
 
 impl QuickTagFailed {
     /// Create new instance
-    pub fn new(path: impl Into<String>, error: impl Into<String>) -> QuickTagFailed {
-        QuickTagFailed { path: path.into(), error: error.into() }
+    pub fn new(path: impl AsRef<Path>, error: impl Into<String>) -> QuickTagFailed {
+        QuickTagFailed { path: path.as_ref().into(), error: error.into() }
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QuickTagFile {
-    path: String,
+    path: PathBuf,
     format: AudioFileFormat,
     title: String,
     artists: Vec<String>,
@@ -115,14 +112,14 @@ pub struct QuickTagFile {
 
 impl QuickTagFile {
     /// Load tags from path
-    pub fn from_path(path: &str, separators: &TagSeparators) -> Result<QuickTagFile, Box<dyn Error>> {
-        let mut tag_wrap = Tag::load_file(path, false)?;
+    pub fn from_path(path: impl AsRef<Path>, separators: &TagSeparators) -> Result<QuickTagFile, Box<dyn Error>> {
+        let mut tag_wrap = Tag::load_file(&path, false)?;
         tag_wrap.set_separators(separators);
         Ok(QuickTagFile::from_tag(path, &tag_wrap)?)
     }
 
     /// Load tags from `Tag`
-    pub fn from_tag(path: &str, tag_wrap: &Tag) -> Result<QuickTagFile, Box<dyn Error>> {
+    pub fn from_tag(path: impl AsRef<Path>, tag_wrap: &Tag) -> Result<QuickTagFile, Box<dyn Error>> {
         let tag = tag_wrap.tag();
         let mut all_tags = tag.all_tags();
         // Insert overriden tags
@@ -137,7 +134,7 @@ impl QuickTagFile {
         let all_tags = all_tags.into_iter().map(|(k, v)| (k, v.into_iter().map(|v| v.replace("\0", "")).collect::<Vec<_>>())).collect();
 
         Ok(QuickTagFile {
-            path: path.to_string(),
+            path: path.as_ref().to_owned(),
             format: tag_wrap.format(),
             title: tag.get_field(Field::Title).ok_or("Missing title tag")?.first().ok_or("Missing title")?.to_string(),
             artists: tag.get_field(Field::Artist).ok_or("Missing artist tag")?,
@@ -154,7 +151,7 @@ impl QuickTagFile {
     }
 
     /// Load album art from tag and downscale
-    pub fn get_art(path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    pub fn get_art(path: impl AsRef<Path>) -> Result<Vec<u8>, Box<dyn Error>> {
         // Load
         let tag_wrap = Tag::load_file(path, false)?;
         let tag = tag_wrap.tag();

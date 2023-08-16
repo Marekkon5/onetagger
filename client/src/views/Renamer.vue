@@ -416,7 +416,7 @@ onMounted(() => {
     // Restore settings
     if ($1t.settings.value.renamer) {
         config.value = Object.assign({}, config.value, $1t.settings.value.renamer);
-        console.log(config.value);
+        // console.log(config.value);
         if (config.value.template) {
             $1t.send('renamerSyntaxHighlight', { template: config.value.template });
             // @ts-ignore

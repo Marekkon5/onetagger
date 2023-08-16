@@ -1,17 +1,19 @@
-use std::{error::Error, io::BufReader};
+use std::path::{PathBuf, Path};
+use std::error::Error;
+use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
 use crate::AudioSource;
 
 pub struct WAVSource {
-    path: String,
+    path: PathBuf,
     duration: u128
 }
 
 impl WAVSource {
-    pub fn new(path: &str) -> Result<WAVSource, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<WAVSource, Box<dyn Error>> {
         let mut wav = WAVSource {
-            path: path.to_string(),
+            path: path.as_ref().to_owned(),
             duration: 0
         };
         // Get duration from decoder

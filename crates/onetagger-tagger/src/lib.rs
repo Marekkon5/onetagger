@@ -4,6 +4,7 @@ use std::error::Error;
 use std::collections::HashMap;
 use std::any::Any;
 use std::cmp::Ordering;
+use std::path::PathBuf;
 use std::time::Duration;
 use chrono::NaiveDate;
 use regex::Regex;
@@ -27,7 +28,7 @@ pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field, Lyrics
 pub struct TaggerConfig {
     // Global
     pub platforms: Vec<String>,
-    pub path: Option<String>,
+    pub path: Option<PathBuf>,
 
     pub tags: Vec<SupportedTag>,
 
@@ -396,7 +397,7 @@ pub struct AudioFileInfo {
     pub title: Option<String>,
     pub artists: Vec<String>,
     pub format: AudioFileFormat,
-    pub path: String,
+    pub path: PathBuf,
     pub isrc: Option<String>,
     pub duration: Option<Duration>,
     pub track_number: Option<u16>,
@@ -408,7 +409,7 @@ impl AudioFileInfo {
     /// Get title (or error shorthand)
     pub fn title(&self) -> Result<&str, Box<dyn Error>> {
         if self.title.is_none() {
-            error!("Track is missing title tag. {}", self.path);
+            error!("Track is missing title tag. {:?}", self.path);
             return Err("Missing title tag!".into());
         }
         Ok(self.title.as_ref().unwrap().as_str())
@@ -417,7 +418,7 @@ impl AudioFileInfo {
     /// Get first artist (or error shorthand)
     pub fn artist(&self) -> Result<&str, Box<dyn Error>> {
         if self.artists.is_empty() {
-            error!("Track is missing artist tag. {}", self.path);
+            error!("Track is missing artist tag. {:?}", self.path);
             return Err("Missing artist tag!".into());
         }
         Ok(self.artists.first().unwrap().as_str())

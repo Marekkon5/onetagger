@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::Path;
 use std::thread::Builder;
 use rodio::source::UniformSourceIterator;
 use serde::{Serialize, Deserialize};
@@ -9,7 +10,7 @@ pub struct Shazam;
 
 impl Shazam {
     /// Recognize song on Shazam from path, returns Track, Duration
-    pub fn recognize_from_file(path: &str) -> Result<(ShazamTrack, u128), Box<dyn Error>> {
+    pub fn recognize_from_file(path: impl AsRef<Path>) -> Result<(ShazamTrack, u128), Box<dyn Error>> {
         // Load file
         let source = AudioSources::from_path(path)?;
         let duration = source.duration();

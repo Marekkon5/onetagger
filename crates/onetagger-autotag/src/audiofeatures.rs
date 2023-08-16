@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::{PathBuf, Path};
 use std::sync::atomic::Ordering;
 use std::thread;
 use chrono::Local;
@@ -17,7 +18,7 @@ use crate::{TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl, S
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioFeaturesConfig {
-    pub path: Option<String>,
+    pub path: Option<PathBuf>,
     pub main_tag: FrameName,
     pub separators: TagSeparators,
     pub properties: AFProperties,
@@ -165,7 +166,7 @@ impl AFRange {
 pub struct AudioFeatures {}
 impl AudioFeatures {
     // Returtns progress receiver, and file count
-    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<String>) -> Receiver<TaggingStatusWrap> {
+    pub fn start_tagging(config: AudioFeaturesConfig, spotify: Spotify, files: Vec<PathBuf>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
         let file_count = files.len();
         // Start
@@ -266,9 +267,9 @@ impl AudioFeatures {
     }
 
     // Write to path
-    fn write_to_path(path: &str, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
+    fn write_to_path(path: impl AsRef<Path>, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
         // Load tag
-        let mut tag_wrap = Tag::load_file(path, false)?;
+        let mut tag_wrap = Tag::load_file(&path, false)?;
         tag_wrap.set_separators(&config.separators);
 
         let format = tag_wrap.format();
@@ -296,7 +297,7 @@ impl AudioFeatures {
         }
 
         // Save
-        tag.save_file(path)?;
+        tag.save_file(path.as_ref())?;
         Ok(())
     }
 }

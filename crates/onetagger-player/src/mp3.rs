@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::io::BufReader;
 use std::fs::File;
@@ -5,16 +6,16 @@ use rodio::{Source, Decoder};
 use crate::AudioSource;
 
 pub struct MP3Source {
-    path: String,
+    path: PathBuf,
     duration: u128
 }
 impl MP3Source {
-    pub fn new(path: &str) -> Result<MP3Source, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<MP3Source, Box<dyn Error>> {
         // Get duration
-        let duration = mp3_duration::from_path(path)?.as_millis();
+        let duration = mp3_duration::from_path(&path)?.as_millis();
 
         Ok(MP3Source {
-            path: path.to_owned(),
+            path: path.as_ref().to_owned(),
             duration
         })
     }

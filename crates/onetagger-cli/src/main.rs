@@ -3,6 +3,7 @@
 
 use std::error::Error;
 use std::fs::File;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use convert_case::{Casing, Case};
@@ -92,8 +93,8 @@ fn main() {
         // Renamer
         Actions::Renamer { path, output, template, copy, no_subfolders, preview, overwrite, separator, keep_subfolders } => {
             let config = RenamerConfig {
-                path: path.to_string(),
-                out_dir: output.clone(),
+                path: path.to_owned(),
+                out_dir: output.to_owned(),
                 template: template.to_string(),
                 copy: *copy,
                 subfolders: !*no_subfolders,
@@ -107,7 +108,7 @@ fn main() {
             if *preview {
                 let names = renamer.generate(&config, 0).expect("Failed generating filenames!");
                 for (i, (from, to)) in names.iter().enumerate() {
-                    println!("{}. {} -> {:?}", i + 1, from, to);
+                    println!("{}. {:?} -> {:?}", i + 1, from, to);
                 }
                 return;
             }
@@ -141,11 +142,11 @@ enum Actions {
     Autotagger {
         /// Path to music files (overrides config)
         #[clap(short, long)]
-        path: String,
+        path: PathBuf,
 
         /// Specify a path to config file
         #[clap(short, long)]
-        config: Option<String>,
+        config: Option<PathBuf>,
 
         /// Comma separated list of platforms to use. For custom platforms use the library filename
         #[clap(short = 'P', long)]
@@ -235,7 +236,7 @@ enum Actions {
     Audiofeatures {
         /// Path to music files (overrides config)
         #[clap(short, long)]
-        path: String,
+        path: PathBuf,
 
         /// Specify a path to config file
         #[clap(short, long)]
@@ -274,11 +275,11 @@ enum Actions {
     Renamer {
         /// Path to input files
         #[clap(long, short)]
-        path: String,
+        path: PathBuf,
 
         /// Output directory
         #[clap(long, short)]
-        output: Option<String>,
+        output: Option<PathBuf>,
 
         /// New filename template
         #[clap(long, short)]
@@ -340,7 +341,7 @@ impl Actions {
                 };
 
                 // Overrides
-                config.path = Some(path.to_string());
+                config.path = Some(path.to_owned());
                 if let Some(platforms) = platforms {
                     config.platforms = platforms.split(",").map(String::from).collect();
                 }

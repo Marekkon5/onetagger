@@ -3,6 +3,7 @@
 #[macro_use] extern crate log;
 
 use serde::{Serialize, Deserialize};
+use std::path::{PathBuf, Path};
 use std::time::Duration;
 use std::error::Error;
 
@@ -21,8 +22,8 @@ pub mod vorbis;
 mod wav;
 
 // Supported extensions
-pub static EXTENSIONS : [&'static str; 11] = [".mp3", ".flac", ".aif", ".aiff", ".m4a", 
-    ".mp4", ".wav", ".ogg", ".opus", ".spx", ".oga"];
+pub static EXTENSIONS : [&'static str; 11] = ["mp3", "flac", "aif", "aiff", "m4a", 
+    "mp4", "wav", "ogg", "opus", "spx", "oga"];
 
 #[cfg(feature = "tag")]
 pub enum Tag {
@@ -34,18 +35,19 @@ pub enum Tag {
 
 #[cfg(feature = "tag")]
 impl Tag {
-    pub fn load_file(path: &str, allow_new: bool) -> Result<Tag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>, allow_new: bool) -> Result<Tag, Box<dyn Error>> {
+        let ext = path.as_ref().extension().ok_or("Missing extension")?.to_ascii_lowercase();
         // FLAC
-        if path.to_lowercase().ends_with(".flac") {
+        if ext == "flac" {
             return Ok(Tag::FLAC(flac::FLACTag::load_file(path)?));
         }
         // MP4
-        if path.to_lowercase().ends_with(".m4a") || path.to_lowercase().ends_with(".mp4") {
+        if ext == "m4a" || ext == "mp4" {
             return Ok(Tag::MP4(mp4::MP4Tag::load_file(path)?));
         }
 
         // Vorbis
-        if path.to_lowercase().ends_with(".ogg") || path.to_lowercase().ends_with(".opus") || path.to_lowercase().ends_with(".oga") || path.to_lowercase().ends_with(".spx") {
+        if ext == "ogg" || ext == "opus" || ext == "oga" || ext == "spx" {
             return Ok(Tag::Vorbis(vorbis::VorbisTag::load_file(path)?));
         }
 
@@ -103,8 +105,8 @@ impl Tag {
 
 #[cfg(feature = "tag")]
 pub trait TagImpl {
-    /// Write file to path
-    fn save_file(&mut self, path: &str) -> Result<(), Box<dyn Error>>;
+    /// Write file to path, using Path because of object safety
+    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>>;
 
     /// Since all formats right now support separators
     fn set_separator(&mut self, separator: &str);
@@ -425,7 +427,7 @@ pub enum TagChange {
 #[serde(rename_all = "camelCase")]
 pub struct TagChanges {
     changes: Vec<TagChange>,
-    pub path: String,
+    pub path: PathBuf,
     separators: TagSeparators,
     id3v24: bool,
     id3_comm_lang: Option<String>
@@ -491,7 +493,7 @@ impl TagChanges {
             }
         }
         // Save
-        tag.save_file(&self.path)?;
+        tag.save_file(self.path.as_path())?;
 
         Ok(tag_wrap)
     }
