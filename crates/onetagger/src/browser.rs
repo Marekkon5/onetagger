@@ -138,11 +138,11 @@ impl FolderBrowser {
             use sysinfo::{System, SystemExt, DiskExt};
             let sys = System::new_all();
             let disks = sys.disks().iter().map(|d| DirectoryEntry { 
-                path: d.mount_point().to_string_lossy().replace(":\\", ":"), children: None 
+                path: d.mount_point().to_string_lossy().replace(":\\", ":").into(), children: None 
             }).collect::<Vec<_>>();
             return Ok(DirectoryEntry {
                 children: Some(disks),
-                path: "/".to_string()
+                path: PathBuf::from("/".to_string())
             });
         }
 
