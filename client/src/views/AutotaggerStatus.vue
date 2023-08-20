@@ -110,18 +110,22 @@
                 <q-item :key='i'>
                     <q-item-section>
                         <q-item-label overline>
-                            <span>
-                                <span v-if='$1t.taggerStatus.value.type != "audioFeatures"' class='selectable text-white'>{{platformText(item.platform)}}</span>
+                            <span v-for='(i, index) in item'>
+                                <span v-if='$1t.taggerStatus.value.type != "audioFeatures"' class='selectable text-white'>{{platformText(i.platform)}}</span>
                                 <span v-if='$1t.taggerStatus.value.type == "audioFeatures"' class='selectable text-white'>AUDIO FEATURES</span>
-                                <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='item.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
-                                <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(item.status.status)' :color='statusColor(item.status.status)'>
-                                    <q-tooltip v-if='item.status.message'>
-                                        {{item.status.message}}
+                                <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='i.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
+                                <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(i.status.status)' :color='statusColor(i.status.status)'>
+                                    <q-tooltip v-if='i.status.message'>
+                                        {{i.status.message}}
+                                    </q-tooltip>
+                                    <q-tooltip v-if='i.status.status == "ok"'>
+                                        Accuracy: {{ (i.status.accuracy * 100).toFixed(2) }}%
                                     </q-tooltip>
                                 </q-icon>
+                                <span class='q-px-sm' v-if='index < item.length - 1'>|</span>
                             </span>
                         </q-item-label>
-                        <span class='selectable text-grey-5'>{{item.status.path}}</span>
+                        <span class='selectable text-grey-5'>{{item[0].status.path}}</span>
                     </q-item-section>
                 </q-item>
             </template>
@@ -156,6 +160,7 @@ import { useQuasar } from 'quasar';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { get1t } from '../scripts/onetagger.js';
+import { TaggingStatusWrap } from '../scripts/autotagger';
 
 const $q = useQuasar();
 const $1t = get1t();
@@ -187,8 +192,19 @@ function statusColor(s: string) {
     }
 }
 
+/// Get actual status from status list
+function getStatus(s: TaggingStatusWrap[]): string {
+    if (s.find((s) => s.status.status == 'ok')) {
+        return 'ok';
+    }
+    if (s.find((s) => s.status.status == 'skipped')) {
+        return 'skipped';
+    }
+    return 'failed';
+}
+
 function countStatus(status: any) {
-    return $1t.taggerStatus.value.statuses.reduce((a, c) => (c.status.status == status) ? a + 1 : a, 0);
+    return $1t.taggerStatus.value.statuses.reduce((a, c) => (getStatus(c) == status) ? a + 1 : a, 0);
 }
 
 // Toggle status filter
@@ -216,7 +232,7 @@ function goQT(successful: boolean) {
 const statuses = computed(() => {
     if (!filter.value)
         return $1t.taggerStatus.value.statuses;
-    return $1t.taggerStatus.value.statuses.filter((s) => s.status.status == filter.value);
+    return $1t.taggerStatus.value.statuses.filter((s) => getStatus(s) == filter.value);
 });
 
 

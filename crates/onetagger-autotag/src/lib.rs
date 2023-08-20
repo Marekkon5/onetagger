@@ -591,8 +591,9 @@ impl Tagger {
     pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
         
-        let original_files = files.clone();
+        // let original_files = files.clone();
         let mut succesful_files = vec![];
+        let mut failed_files = vec![];
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
@@ -653,7 +654,16 @@ impl Tagger {
                         if !config.multiplatform {
                             files.remove(files.iter().position(|f| f == &status.path).unwrap());
                         }
+                        // Remove from failed
+                        if let Some(i) = failed_files.iter().position(|i| i == &status.path) {
+                            failed_files.remove(i);
+                        }
                     }
+                    // Log failed
+                    if status.status == TaggingState::Error && !succesful_files.contains(&status.path) {
+                        failed_files.push(status.path.to_owned());
+                    }
+
                 }
             }
 
@@ -670,10 +680,7 @@ impl Tagger {
                 }
             }
             let mut failed_paths = vec![];
-            for file in &original_files {
-                if succesful_files.contains(file) {
-                    continue;
-                }
+            for file in &failed_files {
                 if config.move_failed && config.move_failed_path.is_some() {
                     match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
                         Ok(p) => failed_paths.push(p),
@@ -684,55 +691,11 @@ impl Tagger {
                 }
             }
             std::mem::drop(succesful_files);
-            std::mem::drop(original_files);
+            std::mem::drop(failed_files);
+            std::mem::drop(files);
 
             // Tagging ended, save lists of files
-            let write_result = || -> Result<(String, String), Box<dyn Error>> {
-                let time = timestamp!();
-                let folder = PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
-                if !folder.exists() {
-                    std::fs::create_dir_all(&folder)?;
-                }
-                let failed_file = folder.join(format!("failed-{}.m3u", time));
-                let success_file = folder.join(format!("success-{}.m3u", time));
-                {
-                    let mut file = File::create(&failed_file)?;
-                    file.write_all(failed_paths
-                        .iter()
-                        .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
-                        .collect::<Vec<_>>()
-                        .join("\r\n")
-                        .as_bytes()
-                    )?;
-                }
-                {
-                    let mut file = File::create(&success_file)?;
-                    let files: Vec<String> = successful_paths
-                        .iter()
-                        .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
-                        .collect();
-                    file.write_all(files.join("\r\n").as_bytes())?;
-                }
-                
-                // Run command
-                let (failed_file, success_file) = (failed_file.to_str().unwrap().to_string(), success_file.to_str().unwrap().to_string());
-                if let Some(command) = &config.post_command {
-                    if !command.trim().is_empty() {
-                        let command = command
-                            .replace("$failed", &failed_file)
-                            .replace("$success", &success_file);
-                        std::thread::spawn(|| {
-                            info!("Executing command: {}", command);
-                            let mut command = execute::shell(command);
-                            let result = command.execute().ok().flatten();
-                            info!("Command finished with: {:?}", result);
-                        });
-                    }
-                }
-
-                Ok((failed_file, success_file))
-            };
-            match write_result() {
+            match Self::write_results(successful_paths, failed_paths, &config) {
                 Ok((failed, success)) => {
                     info!("Written failed songs to: {}, successful to: {}", failed, success);
                     *finished.lock().unwrap() = Some(TaggerFinishedData {
@@ -746,6 +709,54 @@ impl Tagger {
         });
         
         rx
+    }
+
+    /// Write playlists & execute command
+    fn write_results(successful_paths: Vec<PathBuf>, failed_paths: Vec<PathBuf>, config: &TaggerConfig) -> Result<(String, String), Box<dyn Error>> {
+        let time = timestamp!();
+        let folder = PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
+        if !folder.exists() {
+            std::fs::create_dir_all(&folder)?;
+        }
+        let failed_file = folder.join(format!("failed-{}.m3u", time));
+        let success_file = folder.join(format!("success-{}.m3u", time));
+        {
+            let mut file = File::create(&failed_file)?;
+            file.write_all(failed_paths
+                .iter()
+                .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
+                .collect::<Vec<_>>()
+                .join("\r\n")
+                .as_bytes()
+            )?;
+        }
+        {
+            let mut file = File::create(&success_file)?;
+            let files: Vec<String> = successful_paths
+                .iter()
+                .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
+                .collect();
+            file.write_all(files.join("\r\n").as_bytes())?;
+        }
+        
+        // Run command
+        let (failed_file, success_file) = (failed_file.to_str().unwrap().to_string(), success_file.to_str().unwrap().to_string());
+        if let Some(command) = &config.post_command {
+            if !command.trim().is_empty() {
+                let command = command
+                    .replace("$failed", &failed_file)
+                    .replace("$success", &success_file);
+                std::thread::spawn(|| {
+                    info!("Executing command: {}", command);
+                    let mut command = execute::shell(command);
+                    let result = command.execute().ok().flatten();
+                    info!("Command finished with: {:?}", result);
+                });
+            }
+        }
+
+        Ok((failed_file, success_file))
+
     }
 
     /// Load track, shazam, prepare output

@@ -102,7 +102,7 @@ interface SpotifyConfig {
 }
 
 class TaggerStatus {
-    statuses: TaggingStatusWrap[] = [];
+    statuses: TaggingStatusWrap[][] = [];
     started: number = 0;
     progress: number = 0.0;
     done: boolean = false;
@@ -203,5 +203,5 @@ const SUPPORTED_TAGS = [
 ];
 
 
-export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile };
+export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap };
 export { AutotaggerConfig, TaggerStatus, SupportedTag, SUPPORTED_TAGS };
