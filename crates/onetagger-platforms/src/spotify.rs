@@ -291,7 +291,7 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
         PlatformInfo {
             id: "spotify".to_string(),
             name: "Spotify".to_string(),
-            description: "Requires a free account".to_string(),
+            description: "Requires a free account, can match using ISRC".to_string(),
             icon: include_bytes!("../assets/spotify.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),

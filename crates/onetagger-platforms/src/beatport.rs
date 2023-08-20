@@ -403,7 +403,7 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
         PlatformInfo {
             id: "beatport".to_string(),
             name: "Beatport".to_string(),
-            description: "Overall more specialized in Techno".to_string(),
+            description: "Overall more specialized in Techno, can match using ISRC".to_string(),
             icon: include_bytes!("../assets/beatport.png"),
             max_threads: 0,
             version: "1.0.0".to_string(),
