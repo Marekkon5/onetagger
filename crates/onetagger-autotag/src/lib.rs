@@ -13,7 +13,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
-use onetagger_tagger::{FileTaggedStatus, LyricsExt, SupportedTag, MatchingUtils};
+use onetagger_tagger::{FileTaggedStatus, LyricsExt, SupportedTag, MatchingUtils, TrackMatch};
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;

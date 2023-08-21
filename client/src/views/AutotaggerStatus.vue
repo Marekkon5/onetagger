@@ -200,7 +200,7 @@ function getStatus(s: TaggingStatusWrap[]): string {
     if (s.find((s) => s.status.status == 'skipped')) {
         return 'skipped';
     }
-    return 'failed';
+    return 'error';
 }
 
 function countStatus(status: any) {
