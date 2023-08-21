@@ -11,7 +11,7 @@ use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
 use rouille::{Server, router};
 use onetagger_shared::Settings;
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag, TrackMatch};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -171,8 +171,9 @@ impl Spotify {
         self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))
     }
 
+
     /// Extend track for autotagger
-    fn extend_track(&self, track: &mut Track, results: &Vec<FullTrack>, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
         // Fetch album
         if config.tag_enabled(SupportedTag::Label) {
             match self.album(&AlbumId::from_id(&track.release_id)?) {
@@ -182,27 +183,17 @@ impl Spotify {
                 Err(e) => warn!("Failed to fetch album data: {}", e),
             }
         }
-        // Fetch artist
+        // Fetch genres from album
         if config.tag_enabled(SupportedTag::Genre) {
-            // Get artist id
-            let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id().to_string()) == track.track_id).unwrap();
-            if let Some(artist_id) = t.artists.first().map(|a| a.id.clone()).flatten() {
-                match self.artist(&artist_id) {
-                    Ok(artist) => {
-                        track.genres = artist.genres;
-                    },
-                    Err(e) => warn!("Failed to fetch artist data: {}", e)
-                }
-            } else {
-                warn!("Missing artist ID");
+            if let Ok(id) = AlbumId::from_id(&track.release_id) {
+                let album = self.album(&id)?;
+                track.genres = album.genres;
             }
-            
         }
         // Fetch audio features
         if config.tag_enabled(SupportedTag::Key) {
-            let t = results.iter().find(|t| t.id.as_ref().map(|i| i.id()) == track.track_id.as_ref().map(|s| s.as_str())).unwrap();
-            if let Some(track_id) = t.id.as_ref() {
-                match self.audio_features(track_id) {
+            if let Some(track_id) = track.track_id.as_ref() {
+                match self.audio_features(&TrackId::from_id(track_id)?) {
                     Ok(features) => {
                         if features.key < 0 || features.key >= 12 {
                             warn!("Spotify returned unkown key!");
@@ -224,17 +215,14 @@ impl Spotify {
 }
 
 impl AutotaggerSource for Spotify {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Try ISRC
         if let Some(isrc) = info.isrc.as_ref() {
             let query = format!("isrc:{isrc}");
             let results = self.search_tracks(&query, 20)?;
             let tracks: Vec<Track> = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
             if let Some(track) = tracks.first() {
-                info!("Matched by ISRC");
-                let mut track = track.clone();
-                self.extend_track(&mut track, &results, config)?;
-                return Ok(Some((1.0, track)));
+                return Ok(vec![TrackMatch::new_isrc(track.clone())]);
             }
         };
 
@@ -242,12 +230,15 @@ impl AutotaggerSource for Spotify {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search_tracks(&query, 20)?;
         let tracks = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
-        if let Some((acc, mut track)) = MatchingUtils::match_track(info, &tracks, config, true) {
-            self.extend_track(&mut track, &results, config)?;
-            return Ok(Some((acc, track)));
-        }
-        Ok(None)
+        Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
+
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Self::extend_track_spotify(&self, track, config)?;
+        Ok(())
+    }
+
+    
    
 }
 
@@ -269,6 +260,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
         release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
         explicit: Some(track.explicit),
+        thumbnail: track.album.images.iter().min_by(|a, b| a.width.unwrap_or(1000).cmp(&b.width.unwrap_or(1000))).map(|i| i.url.to_string()),
         ..Default::default()
     }
 }

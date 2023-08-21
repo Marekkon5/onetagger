@@ -8,7 +8,7 @@ use scraper::{Html, Selector};
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag};
+use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag, TrackMatch};
 use serde_json::Value;
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
@@ -102,18 +102,6 @@ impl Beatport {
         Ok(response)
     }
 
-    /// Extend the track with release info
-    pub fn extend_track(&self, track: &mut Track) -> Result<(), Box<dyn Error>> {
-        debug!("Extending track...");
-        let release = self.release(track.release_id.parse()?)?;
-        track.track_total = release.track_count;
-        track.album_artists = match release.artists {
-            Some(a) => a.into_iter().map(|a| a.name).collect(),
-            None => vec![],
-        };
-        Ok(())
-    }
-
 
     /// Beatport returns 403 if you have more than single () pair
     pub fn clear_search_query(query: &str) -> String {
@@ -153,6 +141,13 @@ pub struct BeatportTrackResult {
     pub isrc: Option<String>,
     pub length: Option<u64>,
     pub mix_name: Option<String>,
+    pub release: Option<BeatportTrackResultRelease>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportTrackResultRelease {
+    pub release_id: i64,
+    pub release_image_uri: Option<String>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -222,6 +217,7 @@ impl BeatportTrackResult {
             },
             duration: Duration::from_millis(self.length.unwrap_or(0)),
             isrc: self.isrc,
+            thumbnail: self.release.map(|r| r.release_image_uri).flatten(),
             ..Default::default()
         }
     }
@@ -230,6 +226,7 @@ impl BeatportTrackResult {
 impl BeatportTrack {
     pub fn to_track(self, art_resolution: u32) -> Track {
         let art = self.get_art(art_resolution);
+        let thumbnail = self.get_art(150);
 
         let mut track = Track {
             platform: "beatport".to_string(),
@@ -261,6 +258,7 @@ impl BeatportTrack {
             publish_year: self.publish_date.as_ref().map(|d| d.chars().take(4).collect::<String>().parse().ok()).flatten(),
             release_date: self.new_release_date.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
             publish_date: self.publish_date.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+            thumbnail,
             ..Default::default()
         };
 
@@ -284,23 +282,21 @@ impl BeatportTrack {
 
 // Match track
 impl AutotaggerSource for Beatport {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {       
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {       
         // Load custom config
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
+        let mut output = vec![];
 
         // Fetch by ID
         if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
             info!("Fetching by ID: {}", id);
             match self.track(id) {
                 Ok(Some(api_track)) => {
-                    let mut track = api_track.to_track(custom_config.art_resolution);
-                    // Extend
-                    if config.tag_enabled(SupportedTag::AlbumArtist) || config.tag_enabled(SupportedTag::TrackTotal) {
-                        if let Err(e) = self.extend_track(&mut track) {
-                            warn!("Failed extending track: {e}");
-                        }
+                    let track = TrackMatch::new_id(api_track.to_track(custom_config.art_resolution));
+                    if !config.fetch_all_results {
+                        return Ok(vec![track]);   
                     }
-                    return Ok(Some((1.0, track)));
+                    output.push(track);
                 },
                 Ok(None) => warn!("Matching by ID failed, track restricted, matching normally"),
                 Err(e) => {
@@ -317,15 +313,11 @@ impl AutotaggerSource for Beatport {
                         let track = self.track(results.data[0].track_id)?;
                         match track {
                             Some(track) => {
-                                let mut track = track.to_track(custom_config.art_resolution);
-                                info!("Matched track by ISRC");
-                                // Extend
-                                if config.tag_enabled(SupportedTag::AlbumArtist) || config.tag_enabled(SupportedTag::TrackTotal) {
-                                    if let Err(e) = self.extend_track(&mut track) {
-                                        warn!("Failed extending track: {e}");
-                                    }
+                                let track = TrackMatch::new_isrc(track.to_track(custom_config.art_resolution));
+                                if !config.fetch_all_results {
+                                    return Ok(vec![track]);   
                                 }
-                                return Ok(Some((1.0, track)));
+                                output.push(track);
                             },
                             None => warn!("Matching by ISRC failed, track restricted, trying normal."),
                         }
@@ -341,46 +333,55 @@ impl AutotaggerSource for Beatport {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         debug!("BP Query: {}", query);
         for page in 1..custom_config.max_pages+1 {
-            match self.search(&query, page, 25) {
+            match self.search(&query, page, 50) {
                 Ok(res) => {
                     // Match
-                    let mut tracks = res.data.into_iter().map(|t| t.to_track(!custom_config.ignore_version)).collect();
+                    let tracks = res.data
+                        .into_iter()
+                        .map(|t| t.to_track(!custom_config.ignore_version))
+                        .collect::<Vec<_>>();
+                    let tracks = MatchingUtils::match_track(info, &tracks, config, true);
 
-                    // Fallback with restricted
-                    let (acc, mut track) = loop {
-                        match MatchingUtils::match_track(&info, &tracks, &config, true) {
-                            Some((acc, track)) => {
-                                let id = track.track_id.as_ref().unwrap().parse().unwrap();
-                                match self.track(id)? {
-                                    Some(track) => break (acc, track.to_track(custom_config.art_resolution)),
-                                    None => {
-                                        // Track restricted
-                                        warn!("Got restricted track, fallback");
-                                        tracks = tracks.into_iter().filter(|t| t.track_id != track.track_id).collect();
-                                        continue;
-                                    },
-                                };
-                            },
-                            None => return Ok(None),
-                        }
-                    };
-
-                    // Extend
-                    if config.tag_enabled(SupportedTag::AlbumArtist) || config.tag_enabled(SupportedTag::TrackTotal) {
-                        if let Err(e) = self.extend_track(&mut track) {
-                            warn!("Failed extending track: {e}");
-                        }
+                    // Return
+                    output.extend(tracks);
+                    if config.fetch_all_results {
+                        continue;
                     }
-                    return Ok(Some((acc, track)));
+                    return Ok(output);
                 },
                 Err(e) => {
                     warn!("Beatport search failed, query: {}. {}", query, e);
-                    return Ok(None);
+                    return Ok(output);
                 }
             }
         }
-        Ok(None)
+        Ok(output)
     }
+
+
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        let custom_config: BeatportConfig = config.get_custom("beatport")?;
+
+        // Extend search results track
+        if track.other.is_empty() {
+            let id = track.track_id.as_ref().unwrap().parse().unwrap();
+            *track = self.track(id)?.ok_or("Restricted track")?.to_track(custom_config.art_resolution);
+        }
+
+        // Ignore extending track
+        if !config.tag_enabled(SupportedTag::AlbumArtist) && !config.tag_enabled(SupportedTag::TrackTotal) {
+            return Ok(());
+        }
+
+        let release = self.release(track.release_id.parse()?)?;
+        track.track_total = release.track_count;
+        track.album_artists = match release.artists {
+            Some(a) => a.into_iter().map(|a| a.name).collect(),
+            None => vec![],
+        };
+        Ok(())
+    }
+    
 }
 
 /// For creating Beatport instances

@@ -9,7 +9,7 @@ use image::io::Reader as ImageReader;
 use image::ImageOutputFormat;
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
-use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag};
+use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag, TrackMatch};
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
@@ -229,8 +229,14 @@ impl CustomPlatform {
                 self.library.get(b"_1t_match_track")?;
             std::mem::transmute(f)
         };
+        let extend_fn = unsafe {
+            let f: Symbol<unsafe extern fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut MatchTrackResult> = 
+                self.library.get(b"_1t_extend_track")?;
+            std::mem::transmute(f)
+        };
         Ok(CustomPlatformSource {
             ptr: PtrWrap(ptr),
+            extend_fn,
             match_fn
         })
     }
@@ -262,21 +268,34 @@ impl AutotaggerSourceBuilder for CustomPlatform {
 
 struct CustomPlatformSource {
     ptr: PtrWrap,
-    match_fn: Symbol<'static, unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult>
+    match_fn: Symbol<'static, unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult>,
+    extend_fn: Symbol<'static, unsafe extern fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut Option<String>>,
 }
 
 impl AutotaggerSource for CustomPlatformSource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         unsafe {
             let f = &self.match_fn;
             let r = Box::from_raw(f(self.ptr.0, info, config));
             match *r {
-                MatchTrackResult::Ok(acc, track) => Ok(Some((acc, track))),
-                MatchTrackResult::NoMatch => Ok(None),
+                MatchTrackResult::Ok(r) => Ok(r),
                 MatchTrackResult::Err(e) => Err(e.into()),
             }
         }
     }
+
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        unsafe {
+            let f = &self.extend_fn;
+            let r = Box::from_raw(f(self.ptr.0, track, config));
+            match *r {
+                Some(e) => Err(e.into()),
+                None => Ok(()),
+            }
+        }
+    }
+
+    
 }
 
 

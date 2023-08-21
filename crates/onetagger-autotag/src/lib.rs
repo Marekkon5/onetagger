@@ -12,7 +12,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
-use onetagger_tagger::{FileTaggedStatus, LyricsExt, SupportedTag};
+use onetagger_tagger::{FileTaggedStatus, LyricsExt, SupportedTag, MatchingUtils};
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -852,32 +852,42 @@ impl Tagger {
        
         // Match track
         let result = tagger.match_track(&info, &config);
-        match result {
+        let mut tracks = match result {
             Ok(o) => {
-                match o {
-                    Some((acc, track)) => {
-                        // Save to file
-                        match track.merge_styles(&config.styles_options).write_to_file(&info, &config) {
-                            Ok(_) => {
-                                out.accuracy = Some(acc);
-                                out.status = TaggingState::Ok;
-                            },
-                            Err(e) => {
-                                error!("Failed writing tags to file: {e}");
-                                out.message = Some(format!("Failed writing tags to file: {}", e));
-                            }
-                        }
-                    },
-                    None => out.message = Some("No match!".to_owned())
+                if o.is_empty() {
+                    out.message = Some("No match!".to_owned());
+                    return out;
                 }
+                o
             },
             // Failed matching track
             Err(e) => {
                 error!("Matching error: {} ({:?})", e, path.as_ref());
                 out.message = Some(format!("Error matching track: {}", e));
+                return out;
             }
+        };
+
+        // Get & extend track
+        MatchingUtils::sort_tracks(&mut tracks, config);
+        let mut track = tracks.remove(0);
+        drop(tracks);
+        match tagger.extend_track(&mut track.track, config) {
+            Ok(_) => {},
+            Err(e) => warn!("Failed extending track: {e}"),
         }
 
+        // Save
+        match track.track.merge_styles(&config.styles_options).write_to_file(&info, &config) {
+            Ok(_) => {
+                out.accuracy = Some(track.accuracy);
+                out.status = TaggingState::Ok;
+            },
+            Err(e) => {
+                error!("Failed writing tags to file: {e}");
+                out.message = Some(format!("Failed writing tags to file: {}", e));
+            }
+        }
 
         out
     }

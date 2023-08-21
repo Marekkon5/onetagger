@@ -77,6 +77,8 @@ pub struct TaggerConfig {
     pub remove_all_covers: bool,
     /// Tag the same track on multiple platforms
     pub multiplatform: bool,
+    /// Fetch all results instead of the most likely ones (used for (future) manual tag)
+    pub fetch_all_results: bool,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
     pub custom: HashMap<String, Value>,
@@ -155,6 +157,7 @@ impl Default for TaggerConfig {
             capitalize_genres: false,
             remove_all_covers: false,
             id3_comm_lang: None,
+            fetch_all_results: false
         }
     }
 }
@@ -180,10 +183,10 @@ impl Default for MultipleMatchesSort {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[repr(C)]
 pub struct Track {
-    // Use platform id
+    /// Use platform id
     pub platform: String,
     /// Short title
     pub title: String,
@@ -199,7 +202,7 @@ pub struct Track {
     pub url: String,
     pub label: Option<String>,
     pub catalog_number: Option<String>,
-    // Tag name, Value
+    /// Tag name, Value
     pub other: Vec<(FrameName, Vec<String>)>,
     pub track_id: Option<String>,
     pub release_id: String,
@@ -220,6 +223,9 @@ pub struct Track {
     pub release_date: Option<NaiveDate>,
     pub publish_year: Option<i16>,
     pub publish_date: Option<NaiveDate>,
+
+    /// URL to cover thumbnail
+    pub thumbnail: Option<String>,
 }
 
 impl Track {
@@ -237,7 +243,51 @@ impl Track {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// Matched track
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[repr(C)]
+pub struct TrackMatch {
+    pub accuracy: f64,
+    pub track: Track,
+    pub reason: MatchReason
+}
+
+impl TrackMatch {
+    /// Create new instance
+    pub fn new(accuracy: f64, track: Track) -> TrackMatch {
+        TrackMatch { accuracy, track, reason: MatchReason::Fuzzy }
+    }
+
+    /// Create new ISRC matched match
+    pub fn new_isrc(track: Track) -> TrackMatch {
+        TrackMatch { accuracy: 1.0, track, reason: MatchReason::ISRC }
+    }
+
+    /// Create new ID matched match
+    pub fn new_id(track: Track) -> TrackMatch {
+        TrackMatch { accuracy: 1.0, track, reason: MatchReason::ID }
+    }
+}
+
+impl PartialOrd for TrackMatch {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.accuracy.partial_cmp(&other.accuracy)
+    }
+}
+
+/// Why was this track matched
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
+#[repr(C)]
+#[serde(rename_all = "camelCase")]
+pub enum MatchReason {
+    Fuzzy,
+    #[serde(rename = "isrc")]
+    ISRC,
+    #[serde(rename = "id")]
+    ID,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[repr(C)]
 pub enum TrackNumber {
     Number(i32),
@@ -484,7 +534,9 @@ pub trait AutotaggerSourceBuilder: Any + Send + Sync {
 /// For all the platforms
 pub trait AutotaggerSource: Any + Send + Sync {
     /// Returns (accuracy, track)
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>>;
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>>;
+    /// Extend track with extra metadata (match track should be as fast as possible)
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>>;
 }
 
 /// Platform info for GUI platform selector
@@ -756,7 +808,7 @@ impl MatchingUtils {
     }
 
     /// Do exact matches on each step of track cleaning
-    pub fn match_track_exact_fallback(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<Track> {
+    pub fn match_track_exact_fallback(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Vec<Track> {
         let cleaning_steps = [
             Self::clean_title_step1, Self::clean_title_step2, Self::clean_title_step3, Self::clean_title_step4,
             Self::clean_title_step5, Self::clean_title_step6, Self::clean_title_step7
@@ -771,9 +823,16 @@ impl MatchingUtils {
             input
         };
 
+        // Get title
+        let title: &str = match info.title() {
+            Ok(title) => title,
+            Err(_) => return vec![],
+        };
+
         // Match
+        let mut output = vec![];
         for step_count in 0..cleaning_steps.len() {
-            let clean_title = clean_steps(step_count, info.title().ok()?);
+            let clean_title = clean_steps(step_count, title);
             for track in tracks {
                 // Duration
                 if !MatchingUtils::match_duration(info, track, config) {
@@ -784,81 +843,37 @@ impl MatchingUtils {
                     // Match artist
                     if match_artist {
                         if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-                            return Some(track.to_owned())
-                        } else {
-                            continue;
+                            output.push(track.to_owned());
                         }
+                        continue;
                     }
-                    return Some(track.to_owned())
+                    output.push(track.to_owned());
                 }
             }
         }
 
-        None
+        output
     }
 
     /// Default track matching algo (v2 with exact match fallabck)
-    pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
+    /// NOTE: Output is unsorted, sorted later in AT
+    pub fn match_track(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Vec<TrackMatch> {
         // Exact fallback match
-        if let Some(track) = MatchingUtils::match_track_exact_fallback(info, tracks, config, match_artist) {
-            return Some((1.0, track));
+        let mut output = vec![];
+        output.extend(
+            MatchingUtils::match_track_exact_fallback(info, tracks, config, match_artist)
+            .into_iter().map(|t| TrackMatch::new(1.0, t))
+        );
+        if !config.fetch_all_results && !output.is_empty() {
+            return output;
         }
-
-        let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
-
-        // Fuzzy match - value, track
-        let mut fuzz: Vec<(f64, &Track)> = vec![];
-        for track in tracks {
-            // Artist
-            if match_artist {
-                if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-                    continue;
-                }
-            }
-            // Match title
-            let clean = MatchingUtils::clean_title_matching(&track.full_title());
-            let l = normalized_levenshtein(&clean, &clean_title);
-            if l >= config.strictness {
-                fuzz.push((l, track));
-            }
-        }
-        // Empty array
-        if fuzz.is_empty() {
-            return None;
-        }
-        // Sort
-        fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-        let best_acc = fuzz[0].0;
-        let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
-        MatchingUtils::sort_tracks(&mut fuzz, &config);
-        Some((fuzz[0].0, fuzz[0].1.to_owned()))
-    }
-
-    /// Default (old) track matching
-    pub fn match_track_v1(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
-        let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
-        // Exact match
-        let mut exact_matches = vec![];
-        for track in tracks {
-            if !MatchingUtils::match_duration(info, track, config) {
-                continue;
-            }
-            if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
-                if match_artist {
-                    if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-                        exact_matches.push((1.0, track));
-                    }
-                } else {
-                    exact_matches.push((1.0, track));
-                }
-            }
-        }
-
-        // Use exact match
-        if !exact_matches.is_empty() {
-            MatchingUtils::sort_tracks(&mut exact_matches, &config);
-            return Some((1.0, exact_matches[0].1.to_owned()));
-        }
+        
+        // Get clean title
+        let clean_title = match info.title() {
+            Ok(title) => title,
+            Err(_) => return output,
+        };
+        let clean_title = MatchingUtils::clean_title_matching(clean_title);
 
         // Fuzzy match - value, track
         let mut fuzz: Vec<(f64, &Track)> = vec![];
@@ -878,32 +893,85 @@ impl MatchingUtils {
         }
         // Empty array
         if fuzz.is_empty() {
-            return None;
+            return output;
         }
-        // Sort
-        fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-        let best_acc = fuzz[0].0;
-        let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
-        MatchingUtils::sort_tracks(&mut fuzz, &config);
-        Some((fuzz[0].0, fuzz[0].1.to_owned()))
+
+        output.extend(fuzz.into_iter().map(|(acc, track)| TrackMatch::new(acc, track.to_owned())));
+        output
     }
 
-    /// Sort matched tracks by release dates
-    fn sort_tracks(tracks: &mut Vec<(f64, &Track)>, config: &TaggerConfig) {
+    // /// Default (old) track matching
+    // pub fn match_track_v1(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
+    //     let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
+    //     // Exact match
+    //     let mut exact_matches = vec![];
+    //     for track in tracks {
+    //         if !MatchingUtils::match_duration(info, track, config) {
+    //             continue;
+    //         }
+    //         if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
+    //             if match_artist {
+    //                 if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
+    //                     exact_matches.push((1.0, track));
+    //                 }
+    //             } else {
+    //                 exact_matches.push((1.0, track));
+    //             }
+    //         }
+    //     }
+
+    //     // Use exact match
+    //     if !exact_matches.is_empty() {
+    //         MatchingUtils::sort_tracks(&mut exact_matches, &config);
+    //         return Some((1.0, exact_matches[0].1.to_owned()));
+    //     }
+
+    //     // Fuzzy match - value, track
+    //     let mut fuzz: Vec<(f64, &Track)> = vec![];
+    //     for track in tracks {
+    //         // Artist
+    //         if match_artist {
+    //             if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
+    //                 continue;
+    //             }
+    //         }
+    //         // Match title
+    //         let clean = MatchingUtils::clean_title_matching(&track.full_title());
+    //         let l = normalized_levenshtein(&clean, &clean_title);
+    //         if l >= config.strictness {
+    //             fuzz.push((l, track));
+    //         }
+    //     }
+    //     // Empty array
+    //     if fuzz.is_empty() {
+    //         return None;
+    //     }
+    //     // Sort
+    //     fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    //     let best_acc = fuzz[0].0;
+    //     let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
+    //     MatchingUtils::sort_tracks(&mut fuzz, &config);
+    //     Some((fuzz[0].0, fuzz[0].1.to_owned()))
+    // }
+
+    /// Sort matched tracks by accuracy or release dates
+    pub fn sort_tracks(tracks: &mut Vec<TrackMatch>, config: &TaggerConfig) {
         match config.multiple_matches {
-            MultipleMatchesSort::Default => {},
+            MultipleMatchesSort::Default => {
+                tracks.sort_by(|a, b| b.partial_cmp(&a).unwrap())
+            },
             MultipleMatchesSort::Oldest => tracks.sort_by(|a, b| {
-                if a.1.release_date.is_none() || b.1.release_date.is_none() {
+                if a.track.release_date.is_none() || b.track.release_date.is_none() {
                     Ordering::Equal
                 } else {
-                    a.1.release_date.as_ref().unwrap().cmp(b.1.release_date.as_ref().unwrap())
+                    a.track.release_date.as_ref().unwrap().cmp(b.track.release_date.as_ref().unwrap())
                 }
             }),
             MultipleMatchesSort::Newest => tracks.sort_by(|a, b| {
-                if a.1.release_date.is_none() || b.1.release_date.is_none() {
+                if a.track.release_date.is_none() || b.track.release_date.is_none() {
                     Ordering::Equal
                 } else {
-                    b.1.release_date.as_ref().unwrap().cmp(a.1.release_date.as_ref().unwrap())
+                    b.track.release_date.as_ref().unwrap().cmp(a.track.release_date.as_ref().unwrap())
                 }
             }),
         }

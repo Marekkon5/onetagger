@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 use chrono::{DateTime, Utc};
-use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags};
+use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags, TrackMatch};
 use regex::Regex;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
@@ -91,7 +91,7 @@ impl BPMSupreme {
 }
 
 impl AutotaggerSource for BPMSupreme {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Search and match
         let re = Regex::new(" \\(.*\\)$").unwrap();
         let title = MatchingUtils::clean_title(info.title()?);
@@ -101,6 +101,12 @@ impl AutotaggerSource for BPMSupreme {
         let tracks = self.search(&query, self.library)?.into_iter().map(|t| t.into_tracks()).flatten().collect::<Vec<Track>>();
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
+
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,7 +143,6 @@ impl BPMSupremeSong {
             artists: vec![self.artist],
             title: self.title,
             bpm: Some(self.bpm),
-            art: if self.cover_url.contains("default_cover.png") { None } else { Some(self.cover_url) },
             genres: vec![self.genre.name],
             key: self.key,
             label: Some(self.label),
@@ -146,6 +151,8 @@ impl BPMSupremeSong {
             mood: self.depth_analysis.map(|da| da.mood),
             url: format!("https://app.bpmsupreme.com/d/album/{}", self.id),
             catalog_number: Some(self.id.to_string()),
+            thumbnail: if self.cover_url.contains("default_cover.png") { None } else { Some(format!("{}?dw=112", self.cover_url)) },
+            art: if self.cover_url.contains("default_cover.png") { None } else { Some(self.cover_url) },
             ..Default::default()
         };
         // Different versions

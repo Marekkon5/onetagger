@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
-use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils, supported_tags};
+use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils, supported_tags, TrackMatch};
 use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
@@ -65,21 +65,22 @@ impl Bandcamp {
 }
 
 impl AutotaggerSource for Bandcamp {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         debug!("Bandcamp q: {query}");
         let results = self.search_tracks(&query)?;
         let results: Vec<Track> = results.into_iter().map(|r| r.into()).collect();
-        match MatchingUtils::match_track(info, &results, config, true) {
-            Some((acc, track)) => {
-                // Extend the track
-                let track = self.track_page(&track.url)?;
-                Ok(Some((acc, track.into())))
-            },
-            None => return Ok(None)
-        }
+        Ok(MatchingUtils::match_track(info, &results, config, true))
     }
+
+    fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        let t = self.track_page(&track.url)?;
+        *track = t.into();
+        Ok(())
+    }
+
+    
 }
 
 pub struct BandcampBuilder;
@@ -170,7 +171,6 @@ impl Into<Track> for BandcampTrack {
             // Prioritize album artist, because it is more likely the artist
             artists: vec![self.in_album.by_artist.map(|a| a.name.to_owned()).unwrap_or(self.by_artist.name)],
             label: Some(self.publisher.name),
-            art: Some(self.image),
             styles: self.keywords.unwrap_or(vec![]).into_iter()
                 .filter(|k| 
                     Some(k.to_lowercase()) != genre.as_ref().map(|g| g.to_lowercase()) && 
@@ -183,6 +183,8 @@ impl Into<Track> for BandcampTrack {
             url: self.id,
             release_id: self.in_album.id.unwrap_or(String::new()),
             track_total: self.in_album.num_tracks,
+            thumbnail: Some(self.image.replace("_10.", "_23.")),
+            art: Some(self.image),
             ..Default::default()
         }
     }

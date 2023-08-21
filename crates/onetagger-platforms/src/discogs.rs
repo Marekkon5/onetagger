@@ -10,7 +10,7 @@ use serde_json::Value;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, 
-    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag};
+    AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag, TrackMatch};
 
 pub struct Discogs {
     client: Client,
@@ -149,7 +149,7 @@ impl Discogs {
 }
 
 impl AutotaggerSource for Discogs {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         let discogs_config: DiscogsConfig = config.get_custom("discogs")?;
         // Exact ID match
         if config.match_by_id {
@@ -158,7 +158,8 @@ impl AutotaggerSource for Discogs {
                 // Exact track number match
                 if let Some(track_number) = info.track_number {
                     if track_number as usize <= release.tracks.len() {
-                        return Ok(Some((1.0, release.get_track(track_number as usize - 1, &discogs_config))))
+                        let track = release.get_track(track_number as usize - 1, &discogs_config);
+                        return Ok(vec![TrackMatch::new_id(track)]);
                     } else {
                         warn!("Track number out of bounds, searching normally...");
                     }
@@ -168,10 +169,11 @@ impl AutotaggerSource for Discogs {
                 for i in 0..release.tracks.len() {
                     tracks.push(release.get_track(i, &discogs_config));
                 }
-                match MatchingUtils::match_track(&info, &tracks, &config, false) {
-                    Some(o) => return Ok(Some(o)),
-                    None => warn!("Falling back to normal search..."),
+                let tracks = MatchingUtils::match_track(&info, &tracks, &config, false);
+                if !tracks.is_empty() {
+                    return Ok(tracks);
                 }
+                warn!("Falling back to normal search...");
             }
         }
         
@@ -189,7 +191,7 @@ impl AutotaggerSource for Discogs {
             results = self.search(Some("release,master"), None, Some(&MatchingUtils::clean_title(info.title()?)), Some(&info.artists.first().unwrap()))?;
         }
         if results.is_empty() {
-            return Ok(None);
+            return Ok(vec![]);
         }
         // Turncate
         results.truncate(discogs_config.max_albums as usize);
@@ -206,35 +208,47 @@ impl AutotaggerSource for Discogs {
             for i in 0..release.tracks.len() {
                 tracks.push(release.get_track(i, &discogs_config));
             }
-            if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, false) {
-                // Get catalog number if enabled from release rather than master
-                if ((config.tag_enabled(SupportedTag::CatalogNumber) && track.catalog_number.is_none()) || (config.tag_enabled(SupportedTag::Label) && track.label.is_none())) && (release.labels.is_none() && release.main_release.is_some()) {
-                    info!("Discogs fetching release for catalog number/label...");
-                    match self.full_release(ReleaseType::Release, release.main_release.unwrap()) {
-                        // Get CN, label from release
-                        Ok(r) => {
-                            if let Some(labels) = r.labels {
-                                if let Some(label) = labels.first() {
-                                    if track.label.is_none() {
-                                        track.label = Some(label.name.to_string());
-                                    }
-                                    if let Some(cn) = label.catno.as_ref() {
-                                        if cn != "none" {
-                                            track.catalog_number = Some(cn.to_owned());
-                                        }
-                                    }
-                                }
+            let tracks = MatchingUtils::match_track(&info, &tracks, &config, false);
+            return Ok(tracks);
+        }
+        Ok(vec![])
+    }
+
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        // Check if can be extended with master
+        if let Some((i, (_, v))) = track.other.iter().enumerate().find(|(_, (f, _))| f == &FrameName::same("DISCOGS_MAIN_RELEASE")) {
+            // Remove temporary field
+            let v = v.first().map(String::from).unwrap_or_default();
+            track.other.remove(i);
+            let id: i64 = match v.parse() {
+                Ok(id) => id,
+                Err(_) => return Ok(())
+            };
+
+            // Should be extended
+            if (config.tag_enabled(SupportedTag::CatalogNumber) && track.catalog_number.is_none()) || (config.tag_enabled(SupportedTag::Label) && track.label.is_none()) {
+                debug!("Discogs fetching release for catalog number/label...");
+                let r = self.full_release(ReleaseType::Release, id)?;
+              
+                if let Some(labels) = r.labels {
+                    if let Some(label) = labels.first() {
+                        if track.label.is_none() {
+                            track.label = Some(label.name.to_string());
+                        }
+                        if let Some(cn) = label.catno.as_ref() {
+                            if cn != "none" {
+                                track.catalog_number = Some(cn.to_owned());
                             }
-                        },
-                        Err(e) => warn!("Failed fetching release info for catalog number! {}", e)
+                        }
                     }
                 }
-                
-                return Ok(Some((acc, track)));
             }
         }
-        Ok(None)
+
+        Ok(())
     }
+
+    
 
 }
 
@@ -383,6 +397,11 @@ impl ReleaseMaster {
             other.push((FrameName::same("MEDIATYPE"), formats));
         }
 
+        // Add main release tag which is used by extend_track
+        if let Some(main_release) = self.main_release {
+            other.push((FrameName::same("DISCOGS_MAIN_RELEASE"), vec![main_release.to_string()]));
+        }
+
         // Generate track
         Track {
             platform: "discogs".to_string(),
@@ -418,6 +437,7 @@ impl ReleaseMaster {
             disc_number,
             track_total: Some(self.tracks.len() as u16),
             other,
+            thumbnail: self.images.as_ref().unwrap_or(&Vec::new()).iter().min_by(|a, b| a.width.cmp(&b.width)).map(|i| i.url.to_string()),
             ..Default::default()
         }
     }

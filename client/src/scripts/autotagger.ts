@@ -79,6 +79,7 @@ class AutotaggerConfig {
     capitalizeGenres: boolean = false;
     id3CommLang?: string;
     removeAllCovers: boolean = false;
+    fetchAllResults: boolean = false;
 
     spotify?: SpotifyConfig;
 

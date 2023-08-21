@@ -4,7 +4,7 @@ use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
-use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
+use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, TrackMatch};
 
 pub struct ITunes {
     client: Client,
@@ -55,7 +55,7 @@ impl ITunes {
 }
 
 impl AutotaggerSource for ITunes {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Get config
         let custom_config: ITunesConfig = config.get_custom("itunes")?;
 
@@ -63,11 +63,15 @@ impl AutotaggerSource for ITunes {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search(&query)?;
         let tracks: Vec<Track> = results.results.iter().filter_map(|r| r.into_track(custom_config.art_resolution)).collect();
-        if let Some((f, track)) = MatchingUtils::match_track(info, &tracks, config, true) {
-            return Ok(Some((f, track)));
-        }
-        Ok(None)
+
+        Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
+
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

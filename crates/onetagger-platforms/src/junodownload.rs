@@ -6,7 +6,7 @@ use regex::Regex;
 use std::thread::sleep;
 use std::time::Duration;
 use std::error::Error;
-use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
+use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
 pub struct JunoDownload {
     client: Client
@@ -158,6 +158,7 @@ impl JunoDownload {
                     duration,
                     track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
                     track_total: Some(track_total),
+                    thumbnail: Some(album_art_small.to_string()),
                     ..Default::default()
                 });
             } else {
@@ -171,16 +172,18 @@ impl JunoDownload {
 }
 
 impl AutotaggerSource for JunoDownload {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search(&query)?;
-        // Match
-        if let Some((acc, track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
-            return Ok(Some((acc, track)));
-        }
-        Ok(None)
+        Ok(MatchingUtils::match_track(&info, &tracks, &config, true))
     }
+
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    
 }
 
 pub struct JunoDownloadBuilder;

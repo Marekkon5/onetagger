@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
-use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber, supported_tags};
+use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber, supported_tags, TrackMatch};
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 
@@ -57,51 +57,52 @@ impl Deezer {
 }
 
 impl AutotaggerSource for Deezer {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search_tracks(&query)?.data.into_iter().map(|t| t.into()).collect::<Vec<_>>();
-        if let Some((accuracy, mut track)) = MatchingUtils::match_track(info, &tracks, config, true) {
-            track.art = Some(Self::image_url("cover", track.art.as_ref().unwrap(), self.config.art_resolution));
+        let mut tracks = MatchingUtils::match_track(info, &tracks, config, true);
+        // Inject art
+        tracks.iter_mut().for_each(|track| track.track.art = Some(Self::image_url("cover", track.track.art.as_ref().unwrap(), self.config.art_resolution)));
+        Ok(tracks)
+    }
 
-            // Extend with full track data
-            if config.any_tag_enabled(&supported_tags!(TrackNumber, DiscNumber, BPM, ISRC, ReleaseDate)) {
-                let id = track.track_id.as_ref().unwrap().parse().unwrap();
-                match self.track(id) {
-                    Ok(t) => {
-                        track.track_number = t.track_position.map(|t| TrackNumber::Number(t));
-                        track.disc_number = t.disk_number;
-                        if let Some(bpm) = t.bpm {
-                            if bpm > 1.0 {
-                                track.bpm = Some(bpm as i64);
-                            }
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        // Extend with full track data
+        if config.any_tag_enabled(&supported_tags!(TrackNumber, DiscNumber, BPM, ISRC, ReleaseDate)) {
+            let id = track.track_id.as_ref().unwrap().parse().unwrap();
+            match self.track(id) {
+                Ok(t) => {
+                    track.track_number = t.track_position.map(|t| TrackNumber::Number(t));
+                    track.disc_number = t.disk_number;
+                    if let Some(bpm) = t.bpm {
+                        if bpm > 1.0 {
+                            track.bpm = Some(bpm as i64);
                         }
-                        track.isrc = t.isrc;
-                        track.release_date = NaiveDate::parse_from_str(&t.release_date, "%Y-%m-%d").ok();
-                    },
-                    Err(e) => warn!("Failed extending Deezer track ID {id}: {e}")
-                }
+                    }
+                    track.isrc = t.isrc;
+                    track.release_date = NaiveDate::parse_from_str(&t.release_date, "%Y-%m-%d").ok();
+                },
+                Err(e) => warn!("Failed extending Deezer track ID {id}: {e}")
             }
-
-            // Extend with album data
-            if config.any_tag_enabled(&supported_tags!(Genre, TrackTotal, Label, AlbumArtist)) {
-                let id = track.release_id.parse().unwrap();
-                match self.album(id) {
-                    Ok(album) => {
-                        track.genres = album.genres.data.into_iter().map(|g| g.name).collect();
-                        track.track_total = Some(album.nb_tracks);
-                        track.label = Some(album.label);
-                        track.album_artists = album.contributors.into_iter().map(|a| a.name).collect();
-                    },
-                    Err(e) => warn!("Failed extending Deezer track (album {id}): {e}")
-                }
-            }
-
-            return Ok(Some((accuracy, track)));
         }
 
-        Ok(None)
+        // Extend with album data
+        if config.any_tag_enabled(&supported_tags!(Genre, TrackTotal, Label, AlbumArtist)) {
+            let id = track.release_id.parse().unwrap();
+            match self.album(id) {
+                Ok(album) => {
+                    track.genres = album.genres.data.into_iter().map(|g| g.name).collect();
+                    track.track_total = Some(album.nb_tracks);
+                    track.label = Some(album.label);
+                    track.album_artists = album.contributors.into_iter().map(|a| a.name).collect();
+                },
+                Err(e) => warn!("Failed extending Deezer track (album {id}): {e}")
+            }
+        }
+        Ok(())
     }
+
 }
 
 
@@ -170,13 +171,14 @@ impl Into<Track> for DeezerTrack {
             artists: vec![self.artist.name],
             album_artists: vec![],
             album: Some(self.album.title),
-            art: Some(self.album.md5_image),
             url: self.link,
             catalog_number: Some(self.id.to_string()),
             track_id: Some(self.id.to_string()),
             release_id: self.album.id.to_string(),
             duration: Duration::from_secs(self.duration as u64),
             explicit: self.explicit_lyrics.or(self.explicit_content_lyrics.map(|i| i == 1)),
+            thumbnail: Some(Deezer::image_url("cover", &self.album.md5_image, 150)),
+            art: Some(self.album.md5_image),
             ..Default::default()
         }
     }

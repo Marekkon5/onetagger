@@ -7,7 +7,7 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
 
-use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags};
+use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, TrackMatch};
 
 pub struct Beatsource {
     client: Client,
@@ -43,7 +43,7 @@ impl Beatsource {
 }
 
 impl AutotaggerSource for Beatsource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         let beatsource_config: BeatsourceConfig = config.get_custom("beatsource")?;
         
         // Search
@@ -59,6 +59,12 @@ impl AutotaggerSource for Beatsource {
         let matched = MatchingUtils::match_track(&info, &tracks, config, true);
         Ok(matched)
     }
+
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,7 +109,7 @@ impl BeatsourceTrack {
             ),
             bpm: self.bpm,
             genres: vec![self.genre.name],
-            art: self.release.image.map(|i| i.dynamic_uri
+            art: self.release.image.as_ref().map(|i| i.dynamic_uri
                 .replace("{w}", &config.art_resolution.to_string())
                 .replace("{h}", &config.art_resolution.to_string())
             ),
@@ -116,6 +122,10 @@ impl BeatsourceTrack {
             remixers: self.remixers.into_iter().map(|r| r.name).collect(),
             release_date: NaiveDate::parse_from_str(&self.publish_date, "%Y-%m-%d").ok(),
             isrc: self.isrc,
+            thumbnail: self.release.image.map(|i| i.dynamic_uri
+                .replace("{w}", "150")
+                .replace("{h}", "150")
+            ),
             ..Default::default()
         }
     }

@@ -1,10 +1,10 @@
 use std::error::Error;
 use log::{Record, Level, RecordBuilder};
 
-use crate::Track;
+use crate::TrackMatch;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 34;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 35;
 
 /// Logging from plugins
 #[no_mangle]
@@ -119,6 +119,21 @@ macro_rules! create_plugin {
             std::mem::forget(source);
             Box::into_raw(Box::new(r))
         }
+
+        /// Call .extend_track on source
+        #[no_mangle]
+        pub extern "C" fn _1t_extend_track(
+            ptr: *mut std::ffi::c_void,
+            track: &mut onetagger_tagger::Track,
+            config: &onetagger_tagger::TaggerConfig
+        ) -> *mut ::std::option::Option<::std::string::String> {
+            let mut source: Box<dyn onetagger_tagger::AutotaggerSource> = unsafe { 
+                Box::from_raw(ptr as *mut $plugin_type) 
+            };
+            let r = source.extend_track(track, config).map_err(|e| e.to_string()).err()
+            std::mem::forget(source);
+            Box::into_raw(Box::new(r))
+        }
     }
 }
 
@@ -126,17 +141,15 @@ macro_rules! create_plugin {
 #[derive(Debug, Clone)]
 #[repr(u8)]
 pub enum MatchTrackResult {
-    Ok(f64, Track),
-    NoMatch,
+    Ok(Vec<TrackMatch>),
     Err(String)
 }
 
 impl MatchTrackResult {
     /// Convert match_track Result into MatchTrackResult
-    pub fn from_result(r: Result<Option<(f64, Track)>, Box<dyn Error>>) -> MatchTrackResult {
+    pub fn from_result(r: Result<Vec<TrackMatch>, Box<dyn Error>>) -> MatchTrackResult {
         match r {
-            Ok(Some((acc, track))) => MatchTrackResult::Ok(acc, track),
-            Ok(None) => MatchTrackResult::NoMatch,
+            Ok(r) => MatchTrackResult::Ok(r),
             Err(e) => MatchTrackResult::Err(e.to_string())
         }
     }

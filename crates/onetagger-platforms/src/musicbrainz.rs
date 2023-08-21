@@ -5,7 +5,7 @@ use rand::Rng;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
+use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
 pub struct MusicBrainz {
     client: Client
@@ -93,28 +93,28 @@ impl MusicBrainz {
 }
 
 impl AutotaggerSource for MusicBrainz {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         let query = format!("{} {}~", info.artist()?, MatchingUtils::clean_title(info.title()?));
         match self.search(&query) {
             Ok(results) => {
                 let tracks: Vec<Track> = results.recordings.into_iter().map(|r| r.into()).collect();
-                if let Some((accuracy, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
-                    match self.full_release(track.track_id.as_ref().unwrap()) {
-                        Ok(releases) => MusicBrainz::extend_track(&mut track, releases),
-                        Err(e) => {
-                            warn!("Failed extending MusicBrainz track! {}", e);
-                        }
-                    }
-                    return Ok(Some((accuracy, track)));
-                }
+                return Ok(MatchingUtils::match_track(&info, &tracks, &config, true));
             }
             Err(e) => {
                 error!("MusicBrainz search failed. Query: {}. {}", query, e);
                 return Err(e);
             }
         }
-        Ok(None)
+
     }
+
+    fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        let releases = self.full_release(track.track_id.as_ref().unwrap())?;
+        MusicBrainz::extend_track(track, releases);
+        Ok(())
+    }
+
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -2,7 +2,7 @@ use std::error::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags};
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
 pub struct Traxsource {
     client: Client
@@ -117,7 +117,7 @@ impl Traxsource {
     }
 
     // Tracks in search don't have album name and art
-    pub fn extend_track(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
+    pub fn extend_track_traxsource(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
         // Fetch
         let data = self.client.get(&track.url)
             .send()?
@@ -192,23 +192,19 @@ impl Traxsource {
 }
 
 impl AutotaggerSource for Traxsource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search_tracks(&query)?;
-        // Match
-        if let Some((acc, mut track)) = MatchingUtils::match_track(&info, &tracks, &config, true) {
-            // Extend track if requested tags
-            if config.any_tag_enabled(&supported_tags!(AlbumArt, Album, CatalogNumber, ReleaseId, AlbumArtist, TrackNumber, TrackTotal)) {
-                match self.extend_track(&mut track, config.any_tag_enabled(&supported_tags!(CatalogNumber, TrackNumber, AlbumArt, TrackTotal, AlbumArtist))) {
-                    Ok(_) => {},
-                    Err(e) => warn!("Failed extending Traxsource track (album info might not be available): {}", e)
-                }
-            }
-            return Ok(Some((acc, track)));
-        }
-        Ok(None)
+        Ok(MatchingUtils::match_track(&info, &tracks, &config, true))
     }
+
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Self::extend_track_traxsource(&self, track, config.any_tag_enabled(&supported_tags!(CatalogNumber, TrackNumber, AlbumArt, TrackTotal, AlbumArtist)))?;
+        Ok(())
+    }
+
+    
 }
 
 pub struct TraxsourceBuilder;

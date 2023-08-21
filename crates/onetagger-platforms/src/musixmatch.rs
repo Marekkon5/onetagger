@@ -7,7 +7,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Lyrics, LyricsLine, LyricsLinePart, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, supported_tags};
+use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Lyrics, LyricsLine, LyricsLinePart, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, supported_tags, TrackMatch};
 
 #[derive(Clone)]
 pub struct Musixmatch {
@@ -102,10 +102,10 @@ impl Musixmatch {
 }
 
 impl AutotaggerSource for Musixmatch {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Option<(f64, Track)>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
         // Fetch
         if !config.any_tag_enabled(&supported_tags!(UnsyncedLyrics, SyncedLyrics)) {
-            return Ok(None);
+            return Ok(vec![]);
         }
         let _ = info.artist()?;
         let lyrics = self.fetch_lyrics(info.title()?, &info.artists.join(","), 0)?;
@@ -123,7 +123,7 @@ impl AutotaggerSource for Musixmatch {
                     paragraphs: vec![rs.into_iter().map(|l| l.into()).collect()],
                     language: richsync.richssync_language.to_owned()
                 });
-                return Ok(Some((1.0, track)));
+                return Ok(vec![TrackMatch::new(1.0, track)]);
             }
         }
 
@@ -136,7 +136,7 @@ impl AutotaggerSource for Musixmatch {
                         paragraphs: vec![lines.into_iter().map(|l| l.into()).collect()],
                         language: subtitle.subtitle.subtitle_language.to_owned()
                     });
-                    return Ok(Some((1.0, track)));
+                    return Ok(vec![TrackMatch::new(1.0, track)]);
                 }
             }
         }
@@ -146,7 +146,7 @@ impl AutotaggerSource for Musixmatch {
             if let Some(MusixmatchBody::Lyrics { lyrics }) = &lyrics.message.body {
                 // Instrumental
                 if lyrics.lyrics_body.trim().is_empty() || lyrics.lyrics_body.trim().to_lowercase() == "instrumental" {
-                    return Ok(None);
+                    return Ok(vec![TrackMatch::new(1.0, track)]);
                 }
                 
                 track.lyrics = Some(Lyrics { 
@@ -155,14 +155,20 @@ impl AutotaggerSource for Musixmatch {
                     }).collect::<Vec<_>>()).collect::<Vec<_>>(),
                     language: lyrics.lyrics_language.to_owned()
                 });
-                return Ok(Some((1.0, track)));
+                return Ok(vec![TrackMatch::new(1.0, track)]);
             }
         }
 
         // debug!("{:?}", lyrics);
 
-        Ok(None)
+        Ok(vec![])
     }
+
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
