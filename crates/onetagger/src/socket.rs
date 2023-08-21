@@ -54,7 +54,7 @@ enum Action {
     PlayerVolume { volume: f32 },
     PlayerStop,
 
-    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators },
+    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
     QuickTagSave { changes: TagChanges },
     QuickTagFolder { path: Option<String>, subdir: Option<String> },
 
@@ -368,7 +368,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::PlayerVolume { volume } => context.player.volume(volume),
         Action::PlayerStop => context.player.stop(),
         // Load quicktag files or playlist
-        Action::QuickTagLoad { path, playlist, recursive, separators } => {
+        Action::QuickTagLoad { path, playlist, recursive, separators, limit } => {
             let mut data = QuickTagData::default();
             // Playlist
             if let Some(playlist) = playlist {
@@ -379,7 +379,13 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 if PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
                     data = QuickTag::load_files(get_files_from_playlist_file(&path)?, &separators)?;
                 } else {
-                    data = QuickTag::load_files_path(&path, recursive.unwrap_or(false), &separators)?;
+                    data = QuickTag::load_files_path(
+                        &path, 
+                        recursive.unwrap_or(false), 
+                        &separators, 
+                        0, 
+                        limit.map(|l| l.then_some(500)).flatten().unwrap_or(usize::MAX)
+                    )?;
                 }
             }
             send_socket(websocket, json!({

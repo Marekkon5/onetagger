@@ -469,7 +469,7 @@ class OneTagger {
 
 
     // Quicktag
-    loadQuickTag(playlist?: Playlist) { 
+    loadQuickTag(playlist?: Playlist, limit = true) { 
         // Loading
         if (playlist || this.settings.value.path) {
             this.lock.value.locked = true;
@@ -479,6 +479,7 @@ class OneTagger {
         // Load playlist
         if (playlist) {
             this.send('quickTagLoad', { playlist, separators: this.settings.value.quickTag.separators });
+            this.quickTag.value.wasLimited = false;
             return;
         }
 
@@ -488,9 +489,12 @@ class OneTagger {
             this.send('quickTagLoad', {
                 path: this.settings.value.path,
                 recursive: this.settings.value.quickTag.recursive,
-                separators: this.settings.value.quickTag.separators
+                separators: this.settings.value.quickTag.separators,
+                limit: limit
             });
             this.saveSettings(false);
+            // Save limit info
+            this.quickTag.value.wasLimited = limit;
         }
     }
 

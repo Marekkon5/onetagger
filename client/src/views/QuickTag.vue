@@ -36,11 +36,15 @@
                 <span class='text-underline q-pl-xs'>(show)</span>
             </span>
         </span>
+        
+        <span class='q-px-sm text-bold cursor-pointer' v-if='$1t.quickTag.value.isLimited()' @click='$1t.loadQuickTag(undefined, false)'>
+            Loading was capped to 500 tracks! Click here to load all.
+        </span>
     </div>
 
 
     <!-- Tracks -->
-    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='fixTracklistWidth(true)'>
+    <div class='tracklist qt-full-height' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='onScroll'>
         
         <!-- Tracklist -->
         <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
@@ -314,11 +318,22 @@ function findIndex(highest: boolean = true) {
     return finalIndex;
 }
 
+/// Lazy load tracks
+function onScroll(e: Event) {
+    // Fix width
+    fixTracklistWidth(true);
+
+    let target = e.target as HTMLElement;
+    let scroll = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+
+
+}
+
 // Scroll to track index
 const tracklist = ref<HTMLElement | undefined>();
 function scrollToIndex(index: number) {
     if ($1t.settings.value.quickTag.thinTracks) {
-        setVerticalScrollPosition(tracklist.value!, index * 34 - (tracklist.value!.clientHeight / 68) * 34, 250);
+        setVerticalScrollPosition(tracklist.value!, index * 33 - (tracklist.value!.clientHeight / 68) * 34, 250);
         return;
     }
     setVerticalScrollPosition(tracklist.value!, index * 116 - 154, 250);
@@ -350,6 +365,7 @@ watch(() => $1t.quickTag.value.tracks, () => filterTracks());
 /// Index of track for selection cursor
 let selectionCursor = -1;
 let selectionDirection = 0;
+
 
 const saveButton = ref<any>();
 onMounted(() => {

@@ -6,6 +6,7 @@ class QuickTag {
     tracks: QTTrack[] = [];
     track: QTMultiTrack = new QTMultiTrack();
     failed: QuickTagFailed[] = [];
+    wasLimited = false;
 
     /// Number of tracks to save
     saving: number = 0;
@@ -17,6 +18,11 @@ class QuickTag {
         while (this.saving > 0) {
             await new Promise((r, _) => setTimeout(() => r(null), 10));
         }
+    }
+
+    /// Check if the loading was limited
+    isLimited() {
+        return (this.wasLimited && (this.tracks.length + this.failed.length) == 500);
     }
 }
 

@@ -15,7 +15,7 @@ pub struct QuickTag {}
 
 impl QuickTag {
     /// Load all files from folder
-    pub fn load_files_path(path: impl AsRef<Path>, recursive: bool, separators: &TagSeparators) -> Result<QuickTagData, Box<dyn Error>> {
+    pub fn load_files_path(path: impl AsRef<Path>, recursive: bool, separators: &TagSeparators, skip: usize, limit: usize) -> Result<QuickTagData, Box<dyn Error>> {
         // Check if path to playlist
         if !path.as_ref().is_dir() {
             return QuickTag::load_files(get_files_from_playlist_file(path)?, separators);
@@ -25,8 +25,11 @@ impl QuickTag {
         // Load recursivly
         if recursive {
             for e in WalkDir::new(path) {
-                if let Ok(e) = e {
-                    files.push(e.path().to_owned())
+                if let Ok(entry) = e {
+                    // Filter extensions to not make large arrays
+                    if EXTENSIONS.iter().any(|e| entry.path().extension().unwrap_or_default().to_ascii_lowercase() == *e) {
+                        files.push(entry.path().to_owned());
+                    }
                 }
             }
         } else {
@@ -41,10 +44,14 @@ impl QuickTag {
                 if entry.path().is_dir() {
                     continue;
                 }
-                files.push(entry.path());
+                // Filter extensions to not make large arrays
+                if EXTENSIONS.iter().any(|e| entry.path().extension().unwrap_or_default().to_ascii_lowercase() == *e) {
+                    files.push(entry.path());
+                }
             }
         }
         
+        let files = files.into_iter().skip(skip).take(limit).collect();
         QuickTag::load_files(files, separators)
     }
 
