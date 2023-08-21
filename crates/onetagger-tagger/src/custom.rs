@@ -4,7 +4,7 @@ use log::{Record, Level, RecordBuilder};
 use crate::TrackMatch;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 35;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 36;
 
 /// Logging from plugins
 #[no_mangle]
@@ -130,7 +130,7 @@ macro_rules! create_plugin {
             let mut source: Box<dyn onetagger_tagger::AutotaggerSource> = unsafe { 
                 Box::from_raw(ptr as *mut $plugin_type) 
             };
-            let r = source.extend_track(track, config).map_err(|e| e.to_string()).err()
+            let r = source.extend_track(track, config).map_err(|e| e.to_string()).err();
             std::mem::forget(source);
             Box::into_raw(Box::new(r))
         }

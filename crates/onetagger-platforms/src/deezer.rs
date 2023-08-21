@@ -282,7 +282,7 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
             icon: include_bytes!("../assets/deezer.png"),
             max_threads: 2,
             requires_auth: false, 
-            supported_tags: supported_tags!(Title, Version, Album, AlbumArtist, Artist, AlbumArt, URL, CatalogNumber, TrackId, ReleaseId, Duration, Genre, TrackTotal, Label, ISRC, ReleaseDate, TrackNumber, DiscNumber, Explicit),
+            supported_tags: supported_tags!(Title, Version, Album, AlbumArtist, Artist, AlbumArt, URL, CatalogNumber, TrackId, ReleaseId, Duration, Genre, TrackTotal, Label, ISRC, ReleaseDate, TrackNumber, DiscNumber, Explicit, BPM),
             custom_options: PlatformCustomOptions::new()
                 .add("art_resolution", "Album Art Resolution", PlatformCustomOptionValue::Number { min: 100, max: 1600, step: 100, value: 1200 }),
         }

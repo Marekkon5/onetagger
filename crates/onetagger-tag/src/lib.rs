@@ -3,12 +3,14 @@
 #[macro_use] extern crate log;
 
 use serde::{Serialize, Deserialize};
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
 use std::time::Duration;
 use std::error::Error;
 
 #[cfg(feature = "tag")]
 use std::collections::HashMap;
+#[cfg(feature = "tag")]
+use std::path::Path;
 
 #[cfg(feature = "tag")]
 pub mod id3;
