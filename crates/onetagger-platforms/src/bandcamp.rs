@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
 use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils, supported_tags, TrackMatch};
@@ -23,7 +23,7 @@ impl Bandcamp {
     }
 
     /// Search for tracks
-    fn search_tracks(&self, query: &str) -> Result<Vec<BandcampSearchResult>, Box<dyn Error>> {
+    fn search_tracks(&self, query: &str) -> Result<Vec<BandcampSearchResult>, Error> {
         let response = self.client.post("https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic")
             .json(&json!({
                 "fan_id": null,
@@ -45,7 +45,7 @@ impl Bandcamp {
     }
 
     /// Get data from track page
-    fn track_page(&self, url: &str) -> Result<BandcampTrack, Box<dyn Error>> {
+    fn track_page(&self, url: &str) -> Result<BandcampTrack, Error> {
         // Fetch with rate limit
         let response = self.client.get(url).send()?;
         if response.status().is_client_error() {
@@ -57,7 +57,7 @@ impl Bandcamp {
         // Get <script> tag
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script[type=\"application/ld+json\"]").unwrap();
-        let elem = document.select(&selector).next().ok_or(format!("Missing <script> tag with data on: {url}"))?;
+        let elem = document.select(&selector).next().ok_or(anyhow!("Missing <script> tag with data on: {url}"))?;
         let data: BandcampTrack = serde_json::from_str(&elem.text().collect::<Vec<_>>().join(""))?;
         Ok(data)
     }
@@ -65,7 +65,7 @@ impl Bandcamp {
 }
 
 impl AutotaggerSource for Bandcamp {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         debug!("Bandcamp q: {query}");
@@ -74,7 +74,7 @@ impl AutotaggerSource for Bandcamp {
         Ok(MatchingUtils::match_track(info, &results, config, true))
     }
 
-    fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         let t = self.track_page(&track.url)?;
         *track = t.into();
         Ok(())
@@ -90,7 +90,7 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
         BandcampBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(Bandcamp::new()))
     }
 

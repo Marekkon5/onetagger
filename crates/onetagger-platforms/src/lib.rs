@@ -1,4 +1,5 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 #[macro_use] extern crate onetagger_shared;
 
 pub mod beatport;

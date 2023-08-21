@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::path::{PathBuf, Path};
 use std::sync::atomic::Ordering;
 use std::thread;
@@ -230,20 +230,20 @@ impl AudioFeatures {
     }
 
     // Get features from track
-    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<(rspotify::model::audio::AudioFeatures, FullTrack), Box<dyn Error>> {
+    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<(rspotify::model::audio::AudioFeatures, FullTrack), Error> {
         let (mut track_id, mut full_track): (Option<String>, Option<FullTrack>) = (None, None);
         // Get by ISRC
         if let Some(isrc) = track.isrc.as_ref() {
             let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
             if let Some(t) = results.first() {
-                track_id = Some(t.id.as_ref().ok_or("Missing track ID")?.id().to_owned());
+                track_id = Some(t.id.as_ref().ok_or(anyhow!("Missing track ID"))?.id().to_owned());
                 full_track = Some(t.clone());
                 info!("[AF] Found track by ISRC. {:?}", track_id);
             }
         }
         // Fallback
         if track_id.is_none() {
-            let q = format!("{} {}", track.artists.first().ok_or("Track is missing artist")?.to_lowercase(), MatchingUtils::clean_title(track.title()?));
+            let q = format!("{} {}", track.artists.first().ok_or(anyhow!("Track is missing artist"))?.to_lowercase(), MatchingUtils::clean_title(track.title()?));
             let results = spotify.search_tracks(&q, 20)?;
             // Match
             for t in results {
@@ -262,12 +262,12 @@ impl AudioFeatures {
         }
 
         // Get features
-        let features = spotify.audio_features(&TrackId::from_id(&track_id.ok_or("Invalid track / no match")?)?)?;
+        let features = spotify.audio_features(&TrackId::from_id(&track_id.ok_or(anyhow!("Invalid track / no match"))?)?)?;
         Ok((features, full_track.unwrap()))
     }
 
     // Write to path
-    fn write_to_path(path: impl AsRef<Path>, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Box<dyn Error>> {
+    fn write_to_path(path: impl AsRef<Path>, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Error> {
         // Load tag
         let mut tag_wrap = Tag::load_file(&path, false)?;
         tag_wrap.set_separators(&config.separators);

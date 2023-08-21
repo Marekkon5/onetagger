@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::time::Duration;
 use chrono::{DateTime, Utc};
 use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags, TrackMatch};
@@ -31,7 +31,7 @@ impl BPMSupreme {
     }
 
     /// Login with email and password and get token
-    pub fn login(email: &str, password: &str) -> Result<String, Box<dyn Error>> {
+    pub fn login(email: &str, password: &str) -> Result<String, Error> {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36.")
             .build()
@@ -57,7 +57,7 @@ impl BPMSupreme {
     }
 
     /// Wrapper for GET request with rate limit
-    fn get<T: DeserializeOwned>(&self, url: &str, query: &[(&str, &str)]) -> Result<T, Box<dyn Error>> {
+    fn get<T: DeserializeOwned>(&self, url: &str, query: &[(&str, &str)]) -> Result<T, Error> {
         let res = self.client.get(url)
             .query(query)
             .send()?;
@@ -74,7 +74,7 @@ impl BPMSupreme {
     }
 
     /// Search for tracks
-    pub fn search(&self, query: &str, library: BPMMusicLibrary) -> Result<Vec<BPMSupremeSong>, Box<dyn Error>> {
+    pub fn search(&self, query: &str, library: BPMMusicLibrary) -> Result<Vec<BPMSupremeSong>, Error> {
         debug!("Library: {library:?}");
         let res: BPMSupremeResponse<Vec<BPMSupremeSong>> = self.get(
             "https://api.download.bpmsupreme.com/v1/albums",
@@ -91,7 +91,7 @@ impl BPMSupreme {
 }
 
 impl AutotaggerSource for BPMSupreme {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Search and match
         let re = Regex::new(" \\(.*\\)$").unwrap();
         let title = MatchingUtils::clean_title(info.title()?);
@@ -102,7 +102,7 @@ impl AutotaggerSource for BPMSupreme {
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
 
-    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         Ok(())
     }
 
@@ -214,7 +214,7 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
         BPMSupremeBuilder { token: None, library: BPMMusicLibrary::Supreme }
     }
 
-    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         // Get token
         let token = match &self.token {
             Some(token) => token.to_string(),

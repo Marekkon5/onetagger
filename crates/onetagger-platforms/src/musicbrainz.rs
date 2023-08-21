@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
 use rand::Rng;
@@ -22,7 +22,7 @@ impl MusicBrainz {
     }
 
     /// Make GET request to MusicBrainz, rate limit inlcuded
-    fn get<T: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<T, Box<dyn Error>> {
+    fn get<T: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<T, Error> {
         let mut new_query = query.to_owned();
         new_query.push(("fmt", "json"));
         debug!("MusicBrainz GET: {} {:?}", path, new_query);
@@ -40,7 +40,7 @@ impl MusicBrainz {
     }
 
     /// Search tracks (recordings)
-    pub fn search(&self, query: &str) -> Result<RecordingSearchResults, Box<dyn Error>> {
+    pub fn search(&self, query: &str) -> Result<RecordingSearchResults, Error> {
         let results: RecordingSearchResults = self.get("/recording", &[
             ("query", query),
             ("limit", "100")
@@ -49,7 +49,7 @@ impl MusicBrainz {
     }
 
     /// Get full release for recording
-    pub fn full_release(&self, recording_id: &str) -> Result<BrowseReleases, Box<dyn Error>> {
+    pub fn full_release(&self, recording_id: &str) -> Result<BrowseReleases, Error> {
         let results: BrowseReleases = self.get("/release", &[
             ("recording", recording_id),
             ("inc", "labels isrcs recordings genres tags")
@@ -93,7 +93,7 @@ impl MusicBrainz {
 }
 
 impl AutotaggerSource for MusicBrainz {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         let query = format!("{} {}~", info.artist()?, MatchingUtils::clean_title(info.title()?));
         match self.search(&query) {
             Ok(results) => {
@@ -108,7 +108,7 @@ impl AutotaggerSource for MusicBrainz {
 
     }
 
-    fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         let releases = self.full_release(track.track_id.as_ref().unwrap())?;
         MusicBrainz::extend_track(track, releases);
         Ok(())
@@ -285,7 +285,7 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
         MusicBrainzBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(MusicBrainz::new()))
     }
 

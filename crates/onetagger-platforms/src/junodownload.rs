@@ -5,7 +5,7 @@ use chrono::NaiveDate;
 use regex::Regex;
 use std::thread::sleep;
 use std::time::Duration;
-use std::error::Error;
+use anyhow::Error;
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
 pub struct JunoDownload {
@@ -26,7 +26,7 @@ impl JunoDownload {
     }
 
     // Search releases, generate tracks
-    pub fn search(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
+    pub fn search(&self, query: &str) -> Result<Vec<Track>, Error> {
         let response = self.client
             .get("https://www.junodownload.com/search/")
             .query(&[("q[all][]", query), ("solrorder", "relevancy"), ("items_per_page", "50")])
@@ -172,14 +172,14 @@ impl JunoDownload {
 }
 
 impl AutotaggerSource for JunoDownload {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search(&query)?;
         Ok(MatchingUtils::match_track(&info, &tracks, &config, true))
     }
 
-    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         Ok(())
     }
 
@@ -193,7 +193,7 @@ impl AutotaggerSourceBuilder for JunoDownloadBuilder {
         JunoDownloadBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(JunoDownload::new()))
     }
 

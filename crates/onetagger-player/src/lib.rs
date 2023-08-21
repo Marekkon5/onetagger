@@ -1,11 +1,12 @@
-use std::error::Error;
+#[macro_use] extern crate anyhow;
+
+use anyhow::Error;
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use hound::{WavSpec, SampleFormat, WavWriter};
 use rodio::{Sink, Source};
-use onetagger_shared::OTError;
 
 pub mod mp3;
 pub mod mp4;
@@ -139,8 +140,8 @@ enum PlayerAction {
 /// Wrapper for getting audio sources
 pub struct AudioSources {}
 impl AudioSources {
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Box<dyn AudioSource + Send + 'static>, Box<dyn Error>> {
-        let p = path.as_ref().extension().ok_or("Missing extension")?.to_ascii_lowercase();
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Box<dyn AudioSource + Send + 'static>, Error> {
+        let p = path.as_ref().extension().ok_or(anyhow!("Missing extension"))?.to_ascii_lowercase();
         // MP3
         if p == "mp3" {
             return Ok(Box::new(mp3::MP3Source::new(path)?));
@@ -166,7 +167,7 @@ impl AudioSources {
             return Ok(Box::new(ogg::OGGSource::new(path)?));
         }
 
-        Err(OTError::new("Unsupported format!").into())
+        Err(anyhow!("Unsupported format!").into())
     }
 }
 
@@ -174,10 +175,10 @@ pub trait AudioSource {
     /// Duration in ms
     fn duration(&self) -> u128;
     /// Rodio Source
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>>;
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error>;
 
     /// Stream generate 2D waveform, in thread, stream
-    fn generate_waveform(&self, bars: i16) -> Result<(Receiver<f32>, Sender<bool>), Box<dyn Error>> {
+    fn generate_waveform(&self, bars: i16) -> Result<(Receiver<f32>, Sender<bool>), Error> {
         let source = self.get_source()?;
         // Calculate n samples per bar
         let sample_rate = source.sample_rate() as f32;
@@ -214,7 +215,7 @@ pub trait AudioSource {
     }
 
     /// Generate wav for streaming in browser
-    fn generate_wav(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn generate_wav(&self) -> Result<Vec<u8>, Error> {
         let source = self.get_source()?;
         let spec = WavSpec {
             channels: source.channels(),

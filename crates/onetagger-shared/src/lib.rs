@@ -1,7 +1,8 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 
 use std::io::{Write, BufReader, BufWriter};
-use std::error::Error;
+use anyhow::Error;
 use std::path::PathBuf;
 use std::fs::File;
 use backtrace::Backtrace;
@@ -26,26 +27,6 @@ macro_rules! timestamp {
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 /// Hash of commit used to build this version
 pub const COMMIT: &'static str = env!("COMMIT");
-
-/// One-off error type
-#[derive(Debug, Clone)]
-pub struct OTError {
-    message: String
-}
-impl OTError {
-    pub fn new(msg: &str) -> OTError {
-        OTError {
-            message: msg.to_owned()
-        }
-    }
-}
-
-impl Error for OTError {}
-impl std::fmt::Display for OTError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
 
 /// Setup onetagger logging and panic hooks
 pub fn setup() {
@@ -135,7 +116,7 @@ impl Settings {
     }
 
     /// Load settings from file
-    pub fn load() -> Result<Settings, Box<dyn Error>> {
+    pub fn load() -> Result<Settings, Error> {
         let path = Settings::get_path()?;
         let settings: Settings = serde_json::from_reader(BufReader::new(File::open(&path)?))?;
 
@@ -152,7 +133,7 @@ impl Settings {
     }
     
     /// Save settings to file
-    pub fn save(&self) -> Result<(), Box<dyn Error>> {
+    pub fn save(&self) -> Result<(), Error> {
         let path = Settings::get_path()?;
         let mut file = BufWriter::new(File::create(path)?);
         file.write_all(serde_json::to_string_pretty(self)?.as_bytes())?;
@@ -160,14 +141,14 @@ impl Settings {
     }
 
     /// Get app data folder
-    pub fn get_folder() -> Result<PathBuf, Box<dyn Error>> {
+    pub fn get_folder() -> Result<PathBuf, Error> {
         // Android data dir override
         #[cfg(target_os = "android")]
         if let Ok(dir) = std::env::var("__ANDROID_DATA_DIR") {
             return Ok(PathBuf::from(dir));
         }
 
-        let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or("Error getting dir!")?;
+        let root = ProjectDirs::from("com", "OneTagger", "OneTagger").ok_or(anyhow!("Error getting dir!"))?;
         if !root.preference_dir().exists() {
             std::fs::create_dir_all(root.preference_dir())?;
         }
@@ -175,9 +156,9 @@ impl Settings {
     }
 
     /// Get settings path
-    fn get_path() -> Result<String, Box<dyn Error>> {
+    fn get_path() -> Result<String, Error> {
         let path = Settings::get_folder()?.join("settings.json");
-        Ok(path.to_str().ok_or("Error converting path to string!")?.to_string())
+        Ok(path.to_str().ok_or(anyhow!("Error converting path to string!"))?.to_string())
     }
 }
 

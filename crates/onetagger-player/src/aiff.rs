@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::error::Error;
+use anyhow::Error;
 use std::fs::File;
 use std::io::Read;
 use std::time::Duration;
@@ -16,7 +16,7 @@ pub struct AIFFSource {
 
 impl AIFFSource {
     // Load from path
-    pub fn new(path: impl AsRef<Path>) -> Result<AIFFSource, Box<dyn Error>> { 
+    pub fn new(path: impl AsRef<Path>) -> Result<AIFFSource, Error> { 
         // Get duration
         let file = lofty::read_from_path(&path)?;
         let duration = file.properties().duration();
@@ -37,7 +37,7 @@ impl AudioSource for AIFFSource {
     }
 
     // Get rodio source
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
         let source = AIFFDecoder::load(&self.path)?;
         Ok(Box::new(source.convert_samples()))
     }
@@ -53,7 +53,7 @@ struct AIFFDecoder {
 
 impl AIFFDecoder {
     /// Load file into memory
-    pub fn load(path: impl AsRef<Path>) -> Result<AIFFDecoder, Box<dyn Error>> {
+    pub fn load(path: impl AsRef<Path>) -> Result<AIFFDecoder, Error> {
         // Load file
         let mut data = vec![];
         File::open(path)?.read_to_end(&mut data)?;
@@ -61,7 +61,7 @@ impl AIFFDecoder {
         // Parse metadata (catch panic, because weird library)
         let reader = std::panic::catch_unwind(|| {
             PcmReader::new(&data)
-        }).map_err(|e| format!("Not an AIFF file: {e:?}"))?;
+        }).map_err(|e| anyhow!("Not an AIFF file: {e:?}"))?;
         let specs = reader.get_pcm_specs();
 
         // Decode the file (because the library is weeeird)
@@ -71,7 +71,7 @@ impl AIFFDecoder {
             for channel in 0..specs.num_channels {
                 let s = std::panic::catch_unwind(|| {
                     reader.read_sample(channel as u32, sample)
-                }).map_err(|e| format!("Failed decoding AIFF: {e:?}"))?.map_err(|e| format!("Failed decoding AIFF: {e}"))?;
+                }).map_err(|e| anyhow!("Failed decoding AIFF: {e:?}"))?.map_err(|e| anyhow!("Failed decoding AIFF: {e}"))?;
                 samples[i] = (s * i16::MAX as f32) as i16;
                 i += 1;
             }

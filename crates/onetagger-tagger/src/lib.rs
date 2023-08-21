@@ -1,6 +1,7 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 
-use std::error::Error;
+use anyhow::Error;
 use std::collections::HashMap;
 use std::any::Any;
 use std::cmp::Ordering;
@@ -87,8 +88,8 @@ pub struct TaggerConfig {
 
 impl TaggerConfig {
     /// Get platform's custom config
-    pub fn get_custom<T: DeserializeOwned>(&self, platform_id: &str) -> Result<T, Box<dyn Error>> {
-        let config = self.custom.get(platform_id).ok_or(format!("Missing {platform_id} custom config!"))?;
+    pub fn get_custom<T: DeserializeOwned>(&self, platform_id: &str) -> Result<T, Error> {
+        let config = self.custom.get(platform_id).ok_or(anyhow!("Missing {platform_id} custom config!"))?;
         Ok(serde_json::from_value(config.to_owned())?)
     }
 
@@ -457,19 +458,19 @@ pub struct AudioFileInfo {
 
 impl AudioFileInfo {
     /// Get title (or error shorthand)
-    pub fn title(&self) -> Result<&str, Box<dyn Error>> {
+    pub fn title(&self) -> Result<&str, Error> {
         if self.title.is_none() {
             error!("Track is missing title tag. {:?}", self.path);
-            return Err("Missing title tag!".into());
+            return Err(anyhow!("Missing title tag!"));
         }
         Ok(self.title.as_ref().unwrap().as_str())
     }
 
     /// Get first artist (or error shorthand)
-    pub fn artist(&self) -> Result<&str, Box<dyn Error>> {
+    pub fn artist(&self) -> Result<&str, Error> {
         if self.artists.is_empty() {
             error!("Track is missing artist tag. {:?}", self.path);
-            return Err("Missing artist tag!".into());
+            return Err(anyhow!("Missing artist tag!"));
         }
         Ok(self.artists.first().unwrap().as_str())
     }
@@ -525,7 +526,7 @@ pub trait AutotaggerSourceBuilder: Any + Send + Sync {
     fn new() -> Self where Self: Sized;
 
     /// Get AutotaggerSource for tagging
-    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>>;
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error>;
 
     /// Get info about this platform
     fn info(&self) -> PlatformInfo;
@@ -534,9 +535,9 @@ pub trait AutotaggerSourceBuilder: Any + Send + Sync {
 /// For all the platforms
 pub trait AutotaggerSource: Any + Send + Sync {
     /// Returns (accuracy, track)
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>>;
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error>;
     /// Extend track with extra metadata (match track should be as fast as possible)
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>>;
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error>;
 }
 
 /// Platform info for GUI platform selector
@@ -993,11 +994,11 @@ impl MatchingUtils {
     }
 
     /// Parse duration from String
-    pub fn parse_duration(input: &str) -> Result<Duration, Box<dyn Error>> {
+    pub fn parse_duration(input: &str) -> Result<Duration, Error> {
         let clean = input.replace("(", "").replace(")", "");
         let mut parts = clean.trim().split(":").collect::<Vec<&str>>();
         parts.reverse();
-        let mut seconds: u64 = parts.first().ok_or("Invalid timestamp!")?.parse()?;
+        let mut seconds: u64 = parts.first().ok_or(anyhow!("Invalid timestamp!"))?.parse()?;
         if parts.len() > 1 {
             seconds += parts[1].parse::<u64>()? * 60;
         }

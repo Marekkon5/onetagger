@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -42,7 +42,7 @@ pub struct FLACTag {
 
 impl FLACTag {
     // Load from file
-    pub fn load_file(path: impl AsRef<Path>) -> Result<FLACTag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<FLACTag, Error> {
         // Load header
         let mut file = BufReader::new(File::open(path)?);
         let mut header: [u8; 4] = [0; 4];
@@ -85,7 +85,7 @@ impl FLACTag {
 
 impl TagImpl for FLACTag {
     // Save to path
-    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Error> {
         self.tag.write_to_path(path)?;
         Ok(())
     }

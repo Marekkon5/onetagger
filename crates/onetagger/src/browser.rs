@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::path::{Path, PathBuf};
 use directories::UserDirs;
 use serde::{Serialize, Deserialize};
@@ -16,14 +16,14 @@ pub struct FileBrowser {
 impl FileBrowser {
     /// List files in dir with a join path or use default directory
     /// returns new path because it can change
-    pub fn list_dir_or_default(path: Option<PathBuf>, subdir: Option<String>, playlists: bool, files: bool, recursive: bool) -> Result<(PathBuf, Vec<FolderEntry>), Box<dyn Error>> {
-        let user_dirs = UserDirs::new().ok_or("Invalid home dir!")?;
+    pub fn list_dir_or_default(path: Option<PathBuf>, subdir: Option<String>, playlists: bool, files: bool, recursive: bool) -> Result<(PathBuf, Vec<FolderEntry>), Error> {
+        let user_dirs = UserDirs::new().ok_or(anyhow!("Invalid home dir!"))?;
         let path = path.unwrap_or(user_dirs.audio_dir().map(|p| p.to_owned()).unwrap_or(user_dirs.home_dir().to_owned()));
         let subdir = subdir.unwrap_or(String::new());
         // Override for playlists
         let path = if !path.is_dir() {
             if subdir == ".." {
-                path.parent().ok_or("Invalid playlist parent!")?.to_owned()
+                path.parent().ok_or(anyhow!("Invalid playlist parent!"))?.to_owned()
             } else {
                 path.to_owned()
             }
@@ -34,7 +34,7 @@ impl FileBrowser {
     }
 
     /// List files in dir
-    pub fn list_dir(path: impl AsRef<Path>, playlists: bool, files: bool, recursive: bool) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
+    pub fn list_dir(path: impl AsRef<Path>, playlists: bool, files: bool, recursive: bool) -> Result<Vec<FolderEntry>, Error> {
         let browser = FileBrowser {
             playlists, files
         };
@@ -44,7 +44,7 @@ impl FileBrowser {
         }
     }
  
-    fn list_dir_internal(&self, path: impl AsRef<Path>) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
+    fn list_dir_internal(&self, path: impl AsRef<Path>) -> Result<Vec<FolderEntry>, Error> {
         // Load playlist tracks
         if !path.as_ref().is_dir() {
             let files = get_files_from_playlist_file(path)?;
@@ -65,7 +65,7 @@ impl FileBrowser {
     }
 
     // Get only supported files from all subdirectories
-    fn list_dir_recursive(&self, path: impl AsRef<Path>) -> Result<Vec<FolderEntry>, Box<dyn Error>> {
+    fn list_dir_recursive(&self, path: impl AsRef<Path>) -> Result<Vec<FolderEntry>, Error> {
         // Check if playlist
         if !path.as_ref().is_dir() {
             return self.list_dir_internal(path);
@@ -131,7 +131,7 @@ pub struct FolderBrowser;
 
 impl FolderBrowser {
     /// List all subfolders in a directory
-    pub fn list_dir(path: impl AsRef<Path>) -> Result<DirectoryEntry, Box<dyn Error>> {
+    pub fn list_dir(path: impl AsRef<Path>) -> Result<DirectoryEntry, Error> {
         // Windows root dir override
         #[cfg(target_os = "windows")]
         if path.as_ref().to_string_lossy() == "/" {
@@ -168,7 +168,7 @@ impl FolderBrowser {
     }
 
     /// Generate tree structure from base path
-    pub fn generate_base(path: impl AsRef<Path>) -> Result<DirectoryEntry, Box<dyn Error>> {
+    pub fn generate_base(path: impl AsRef<Path>) -> Result<DirectoryEntry, Error> {
         let mut path = canonicalize(path.as_ref())?;
         let mut last_entry: Option<DirectoryEntry> = None;
 

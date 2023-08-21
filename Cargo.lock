@@ -3042,6 +3042,7 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 name = "onetagger"
 version = "1.7.0"
 dependencies = [
+ "anyhow",
  "base64 0.21.2",
  "clap",
  "directories",
@@ -3080,6 +3081,7 @@ dependencies = [
 name = "onetagger-autotag"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.21.2",
  "chrono",
  "crossbeam-channel",
@@ -3107,6 +3109,7 @@ dependencies = [
 name = "onetagger-cli"
 version = "1.7.0"
 dependencies = [
+ "anyhow",
  "clap",
  "convert_case 0.6.0",
  "log",
@@ -3123,6 +3126,7 @@ dependencies = [
 name = "onetagger-platforms"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "log",
  "minify-html",
@@ -3146,6 +3150,7 @@ name = "onetagger-player"
 version = "0.1.0"
 dependencies = [
  "alac",
+ "anyhow",
  "hound",
  "lofty",
  "mp3-duration",
@@ -3160,6 +3165,7 @@ dependencies = [
 name = "onetagger-playlist"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.21.2",
  "log",
  "onetagger-shared",
@@ -3172,6 +3178,7 @@ dependencies = [
 name = "onetagger-renamer"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dunce",
  "lazy_static",
  "log",
@@ -3188,6 +3195,7 @@ dependencies = [
 name = "onetagger-shared"
 version = "1.7.0"
 dependencies = [
+ "anyhow",
  "backtrace",
  "chrono",
  "crossterm",
@@ -3202,6 +3210,7 @@ dependencies = [
 name = "onetagger-tag"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.21.2",
  "chrono",
  "id3",
@@ -3218,6 +3227,7 @@ dependencies = [
 name = "onetagger-tagger"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "log",
  "onetagger-tag",

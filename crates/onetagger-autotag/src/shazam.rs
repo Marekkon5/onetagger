@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::path::Path;
 use std::thread::Builder;
 use rodio::source::UniformSourceIterator;
@@ -10,7 +10,7 @@ pub struct Shazam;
 
 impl Shazam {
     /// Recognize song on Shazam from path, returns Track, Duration
-    pub fn recognize_from_file(path: impl AsRef<Path>) -> Result<(ShazamTrack, u128), Box<dyn Error>> {
+    pub fn recognize_from_file(path: impl AsRef<Path>) -> Result<(ShazamTrack, u128), Error> {
         // Load file
         let source = AudioSources::from_path(path)?;
         let duration = source.duration();
@@ -31,9 +31,9 @@ impl Shazam {
             .unwrap()
             .join()
             .unwrap();
-        let response = songrec::recognize_song_from_signature(&signature)?;
+        let response = songrec::recognize_song_from_signature(&signature).map_err(|e| anyhow!("{e:?}"))?;
         let response: ShazamResponse = serde_json::from_value(response)?;
-        let track = response.track.ok_or("Shazam returned no matches!")?;
+        let track = response.track.ok_or(anyhow!("Shazam returned no matches!"))?;
         Ok((track, duration))
     }
 }

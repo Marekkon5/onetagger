@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::path::Path;
 use std::fs::File;
 use std::io::BufReader;
@@ -13,7 +13,7 @@ pub struct ALACSource {
 
 impl ALACSource {
     // Read alac from file
-    pub fn new(path: impl AsRef<Path>) -> Result<ALACSource, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<ALACSource, Error> {
         let file = File::open(path)?;
         let r = BufReader::new(file);
         let reader = Reader::new(r)?;

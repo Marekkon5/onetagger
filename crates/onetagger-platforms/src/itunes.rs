@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::time::Duration;
 use std::thread::sleep;
 use chrono::NaiveDate;
@@ -27,7 +27,7 @@ impl ITunes {
     }
 
     /// Make get request to API
-    fn get(&mut self, path: &str, query: &[(&str, &str)]) -> Result<Response, Box<dyn Error>> {
+    fn get(&mut self, path: &str, query: &[(&str, &str)]) -> Result<Response, Error> {
         debug!("iTunes GET: {} {:?}", path, query);
         // Rate limit
         if self.last_request > 0 && self.rate_limit != -1 {
@@ -49,13 +49,13 @@ impl ITunes {
     }
 
     /// Search the iTunes API
-    pub fn search(&mut self, query: &str) -> Result<SearchResults, Box<dyn Error>> {
+    pub fn search(&mut self, query: &str) -> Result<SearchResults, Error> {
         Ok(self.get("/search", &[("term", query)])?.json()?)
     }
 }
 
 impl AutotaggerSource for ITunes {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Get config
         let custom_config: ITunesConfig = config.get_custom("itunes")?;
 
@@ -67,7 +67,7 @@ impl AutotaggerSource for ITunes {
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
 
-    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         Ok(())
     }
 
@@ -149,7 +149,7 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
         ITunesBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(ITunes::new()))
     }
 

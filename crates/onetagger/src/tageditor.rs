@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::io::Cursor;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -13,8 +13,8 @@ pub struct TagEditor {}
 
 impl TagEditor {
     // Load tags from file
-    pub fn load_file(path: impl AsRef<Path>) -> Result<TagEditorFile, Box<dyn Error>> {
-        let filename = path.as_ref().file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename!")?;
+    pub fn load_file(path: impl AsRef<Path>) -> Result<TagEditorFile, Error> {
+        let filename = path.as_ref().file_name().ok_or(anyhow!("Invalid filename"))?.to_str().ok_or(anyhow!("Invalid filename!"))?;
         let tag_wrap = Tag::load_file(&path, true)?;
         let id3_binary = ID3Binary::from_tag(&tag_wrap);
         // Load tags
@@ -42,7 +42,7 @@ impl TagEditor {
     }
 
     // Load art and encode
-    fn load_art(picture: Picture) -> Result<TagEditorImage, Box<dyn Error>> {
+    fn load_art(picture: Picture) -> Result<TagEditorImage, Error> {
         let img = ImageReader::new(Cursor::new(&picture.data)).with_guessed_format()?.decode()?;
         Ok(TagEditorImage {
             mime: picture.mime.to_string(),

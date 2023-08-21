@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::collections::HashMap;
 use std::thread::sleep;
 use std::time::Duration;
@@ -65,7 +65,7 @@ impl Discogs {
     }
 
     // Get request wrapper with rate limit
-    fn get(&mut self, url: &str, query: Vec<(&str, &str)>) -> Result<Response, Box<dyn Error>> {
+    fn get(&mut self, url: &str, query: Vec<(&str, &str)>) -> Result<Response, Error> {
         debug!("Discogs GET {}", url);
         // Rate limit
         if self.last_request > 0 && self.rate_limit != -1 {
@@ -99,7 +99,7 @@ impl Discogs {
         Ok(response)
     }
 
-    pub fn search(&mut self, result_type: Option<&str>, query: Option<&str>, title: Option<&str>, artist: Option<&str>) -> Result<Vec<ReleaseMasterSearchResult>, Box<dyn Error>> {
+    pub fn search(&mut self, result_type: Option<&str>, query: Option<&str>, title: Option<&str>, artist: Option<&str>) -> Result<Vec<ReleaseMasterSearchResult>, Error> {
         // Generate parameters
         let mut qp = vec![];
         if let Some(t) = result_type {
@@ -130,7 +130,7 @@ impl Discogs {
     }
 
     // Get full release info
-    pub fn full_release(&mut self, release_type: ReleaseType, id: i64) -> Result<ReleaseMaster, Box<dyn Error>> {
+    pub fn full_release(&mut self, release_type: ReleaseType, id: i64) -> Result<ReleaseMaster, Error> {
         // Check if cached
         if self.release_cache.contains_key(&id) {
             return Ok(self.release_cache.get(&id).unwrap().to_owned());
@@ -149,7 +149,7 @@ impl Discogs {
 }
 
 impl AutotaggerSource for Discogs {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         let discogs_config: DiscogsConfig = config.get_custom("discogs")?;
         // Exact ID match
         if config.match_by_id {
@@ -214,7 +214,7 @@ impl AutotaggerSource for Discogs {
         Ok(vec![])
     }
 
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Check if can be extended with master
         if let Some((i, (_, v))) = track.other.iter().enumerate().find(|(_, (f, _))| f == &FrameName::same("DISCOGS_MAIN_RELEASE")) {
             // Remove temporary field
@@ -450,13 +450,13 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
         DiscogsBuilder {}
     }
 
-    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let config: DiscogsConfig = config.get_custom("discogs")?;
         let mut discogs = Discogs::new();
         // Auth
         discogs.set_auth_token(&config.token);
         if !discogs.validate_token() {
-            return Err("Invalid Discogs token!".into());
+            return Err(anyhow!("Invalid Discogs token!"));
         }
         if let Some(rl) = config.rate_limit {
             discogs.set_rate_limit(rl as i16);

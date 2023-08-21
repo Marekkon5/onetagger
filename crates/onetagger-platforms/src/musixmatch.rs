@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::error::Error;
+use anyhow::Error;
 use std::sync::{Mutex, Arc};
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use reqwest::blocking::{Client, ClientBuilder};
@@ -32,7 +32,7 @@ impl Musixmatch {
     }
 
     /// Get Musixmatch token
-    fn fetch_token(&self) -> Result<(), Box<dyn Error>> {
+    fn fetch_token(&self) -> Result<(), Error> {
         debug!("Fetching Musixmatch token");
         let t: Value = self.get("token.get", &[("user_language", "en")])?;
         // Capcha retry
@@ -41,13 +41,13 @@ impl Musixmatch {
             std::thread::sleep(Duration::from_secs(10));
             return self.fetch_token();
         }
-        let token = t["message"]["body"]["user_token"].as_str().ok_or("Couldn't fetch the token")?.to_string();
+        let token = t["message"]["body"]["user_token"].as_str().ok_or(anyhow!("Couldn't fetch the token"))?.to_string();
         *self.token.lock().unwrap() = Some(token);
         Ok(())
     }
 
     /// Make a GET request to musixmatch
-    fn get<O: DeserializeOwned>(&self, action: &str, query: &[(&str, &str)]) -> Result<O, Box<dyn Error>> {
+    fn get<O: DeserializeOwned>(&self, action: &str, query: &[(&str, &str)]) -> Result<O, Error> {
         // Get token
         if action != "token.get" && self.token.lock().unwrap().is_none() {
             self.fetch_token()?;
@@ -73,7 +73,7 @@ impl Musixmatch {
     }
 
     /// Fetch the lyrics
-    pub fn fetch_lyrics(&self, title: &str, artist: &str, retry_count: u32) -> Result<MusixmatchMacroCallsBody<MusixmatchBody>, Box<dyn Error>> {
+    pub fn fetch_lyrics(&self, title: &str, artist: &str, retry_count: u32) -> Result<MusixmatchMacroCallsBody<MusixmatchBody>, Error> {
         let r: MusixmatchResponse<MusixmatchMacroCallsBody<MusixmatchBody>> = 
             self.get("macro.subtitles.get", &[
                 ("format", "json"),
@@ -89,7 +89,7 @@ impl Musixmatch {
             if retry_count >= 3 {
                 error!("Musixmatch captcha too many retries reached!");
                 self.fetch_token()?;
-                return Err("Too many retries!".into());
+                return Err(anyhow!("Too many retries!"));
             }
             let delay = 2u64.pow(retry_count + 3);
             warn!("Musixmatch captcha, waiting for {delay}s...");
@@ -97,12 +97,12 @@ impl Musixmatch {
             return self.fetch_lyrics(title, artist, retry_count + 1);
         }
 
-        Ok(r.message.body.ok_or("Missing response body")?)
+        Ok(r.message.body.ok_or(anyhow!("Missing response body"))?)
     }
 }
 
 impl AutotaggerSource for Musixmatch {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Fetch
         if !config.any_tag_enabled(&supported_tags!(UnsyncedLyrics, SyncedLyrics)) {
             return Ok(vec![]);
@@ -164,7 +164,7 @@ impl AutotaggerSource for Musixmatch {
         Ok(vec![])
     }
 
-    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         Ok(())
     }
 
@@ -225,7 +225,7 @@ pub struct MusixmatchSubtitle {
 
 impl MusixmatchSubtitle {
     /// Parse the LRC inside subtitle_body
-    pub fn parse_subtitle(&self) -> Result<Vec<SubtitleLine>, Box<dyn Error>> {
+    pub fn parse_subtitle(&self) -> Result<Vec<SubtitleLine>, Error> {
         let mut output = vec![];
         for line in self.subtitle_body.lines() {
             if line.len() < 11 {
@@ -252,7 +252,7 @@ pub struct MusixmatchRichsync {
 
 impl MusixmatchRichsync {
     /// Parse richsync_body
-    pub fn parse_richsync(&self) -> Result<Vec<RichsyncLine>, Box<dyn Error>> {
+    pub fn parse_richsync(&self) -> Result<Vec<RichsyncLine>, Error> {
         Ok(serde_json::from_str(&self.richsync_body)?)
     }
 }
@@ -316,7 +316,7 @@ impl AutotaggerSourceBuilder for MusixmatchBuilder {
         }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(self.mxm.clone()))
     }
 

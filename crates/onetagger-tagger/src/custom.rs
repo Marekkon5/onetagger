@@ -1,10 +1,10 @@
-use std::error::Error;
+use anyhow::Error;
 use log::{Record, Level, RecordBuilder};
 
 use crate::TrackMatch;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 36;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 37;
 
 /// Logging from plugins
 #[no_mangle]
@@ -147,7 +147,7 @@ pub enum MatchTrackResult {
 
 impl MatchTrackResult {
     /// Convert match_track Result into MatchTrackResult
-    pub fn from_result(r: Result<Vec<TrackMatch>, Box<dyn Error>>) -> MatchTrackResult {
+    pub fn from_result(r: Result<Vec<TrackMatch>, Error>) -> MatchTrackResult {
         match r {
             Ok(r) => MatchTrackResult::Ok(r),
             Err(e) => MatchTrackResult::Err(e.to_string())

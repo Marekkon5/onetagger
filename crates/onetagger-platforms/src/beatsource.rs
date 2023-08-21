@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use chrono::NaiveDate;
@@ -27,7 +27,7 @@ impl Beatsource {
     }
 
     /// Search for tracks
-    pub fn search(&self, query: &str) -> Result<BeatsourceSearchResponse, Box<dyn Error>> {
+    pub fn search(&self, query: &str) -> Result<BeatsourceSearchResponse, Error> {
         let res: BeatsourceSearchResponse = self.client.get("https://api.beatsource.com/v4/catalog/search")
             .query(&[
                 ("pubper_page", "100"),
@@ -43,7 +43,7 @@ impl Beatsource {
 }
 
 impl AutotaggerSource for Beatsource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         let beatsource_config: BeatsourceConfig = config.get_custom("beatsource")?;
         
         // Search
@@ -60,7 +60,7 @@ impl AutotaggerSource for Beatsource {
         Ok(matched)
     }
 
-    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         Ok(())
     }
 
@@ -191,7 +191,7 @@ impl BeatsourceTokenManager {
     }
 
     /// Get and refresh token
-    pub fn token(&self) -> Result<String, Box<dyn Error>> {
+    pub fn token(&self) -> Result<String, Error> {
         let mut token = self.token.lock().unwrap();
         // Valid
         if token.expires > timestamp!() {
@@ -205,15 +205,15 @@ impl BeatsourceTokenManager {
     }
 
     /// Fetch token from homepage
-    fn fetch_token(&self) -> Result<BeatsourceToken, Box<dyn Error>> {
+    fn fetch_token(&self) -> Result<BeatsourceToken, Error> {
         debug!("Updating Beatsource token!");
         let body = self.client.get("https://www.beatsource.com").send()?.text()?;
         let document = Html::parse_document(&body);
         let selector = Selector::parse("script#__NEXT_DATA__").unwrap();
-        let elem = document.select(&selector).next().ok_or("Missing __NEXT_DATA__")?;
+        let elem = document.select(&selector).next().ok_or(anyhow!("Missing __NEXT_DATA__"))?;
         let text = elem.text().collect::<Vec<_>>().join("");
         let json: Value = serde_json::from_str(&text)?;
-        let token = json["props"]["rootStore"]["authStore"]["user"]["access_token"].as_str().ok_or("Missing access_token")?;
+        let token = json["props"]["rootStore"]["authStore"]["user"]["access_token"].as_str().ok_or(anyhow!("Missing access_token"))?;
         let expires = json["props"]["rootStore"]["authStore"]["user"]["expires_in"].as_u64().unwrap();
         debug!("New Beatsource token: {}", token);
         Ok(BeatsourceToken {
@@ -234,7 +234,7 @@ impl AutotaggerSourceBuilder for BeatsourceBuilder {
         }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(Beatsource::new(self.token_manager.clone())))
     }
 

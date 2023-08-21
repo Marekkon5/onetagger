@@ -1,7 +1,7 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate onetagger_shared;
 
-use std::error::Error;
+use anyhow::Error;
 use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -325,7 +325,7 @@ macro_rules! config_option {
 
 impl Actions {
     //. Create tagger config
-    pub fn get_at_config(&self) -> Result<TaggerConfig, Box<dyn Error>> {
+    pub fn get_at_config(&self) -> Result<TaggerConfig, Error> {
         match self {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
                 overwrite, threads, strictness, album_art_file, merge_genres, camelot, 

@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::io::BufReader;
 use std::fs::File;
 use std::path::{PathBuf, Path};
@@ -16,11 +16,11 @@ pub struct MP4Source {
 }
 
 impl MP4Source {
-    pub fn new(path: impl AsRef<Path>) -> Result<MP4Source, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<MP4Source, Error> {
         let file = File::open(&path)?;
         let metadata = file.metadata()?;
         let mp4 = Mp4Reader::read_header(BufReader::new(file), metadata.len())?;
-        let track = mp4.tracks().values().next().ok_or("No tracks!")?;
+        let track = mp4.tracks().values().next().ok_or(anyhow!("No tracks!"))?;
         // ALAC will fail on this function so i guess dirty but works
         let alac = track.audio_profile().is_err();
 
@@ -37,7 +37,7 @@ impl AudioSource for MP4Source {
         self.duration
     }
 
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
         // ALAC MP4
         if self.alac {
             let alac = ALACSource::new(&self.path)?;
@@ -50,7 +50,7 @@ impl AudioSource for MP4Source {
         let reader = BufReader::new(f);
         let mut decoder = Decoder::new_mpeg4(reader, meta.len())?;
         // Decode first sample otherwise for some reason the channels and sample rate is 0
-        decoder.decode_next_sample()?.ok_or("No samples!")?;
+        decoder.decode_next_sample()?.ok_or(anyhow!("No samples!"))?;
         Ok(Box::new(decoder))
     }
 }

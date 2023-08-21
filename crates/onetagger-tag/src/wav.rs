@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::io::{BufReader, BufWriter, Cursor};
 use std::fs::File;
 use std::collections::HashMap;
@@ -28,7 +28,7 @@ static ID3_RIFF: Lazy<HashMap<&'static str, ChunkId>> = Lazy::new(|| {
 
 /// Write wav to path
 /// Will copy ID3 meta into RIFF INFO chunk
-pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> Result<(), Box<dyn Error>> {
+pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> Result<(), Error> {
     let mut file = BufReader::new(File::open(&path)?);
     let mut offset = 0;
     // Read all the chunks
@@ -132,7 +132,7 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
 }
 
 /// Read WAV from file, will copy missing tags from RIFF to ID3
-pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Box<dyn Error>> {
+pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
     let mut file = BufReader::new(File::open(path)?);
     let mut offset = 0;
     // Read all the chunks

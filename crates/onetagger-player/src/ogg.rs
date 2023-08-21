@@ -1,5 +1,5 @@
 use std::time::Duration;
-use std::error::Error;
+use anyhow::Error;
 use std::path::{PathBuf, Path};
 use std::io::BufReader;
 use std::fs::File;
@@ -14,7 +14,7 @@ pub struct OGGSource {
 }
 
 impl OGGSource {
-    pub fn new(path: impl AsRef<Path>) -> Result<OGGSource, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<OGGSource, Error> {
         // Get duration
         let file = lofty::read_from_path(&path)?;
         let duration = file.properties().duration();
@@ -31,7 +31,7 @@ impl AudioSource for OGGSource {
         self.duration.as_millis()
     }
 
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
         // Use rodio vorbis
         Ok(Box::new(Decoder::new_vorbis(BufReader::new(File::open(&self.path)?))?))
     }

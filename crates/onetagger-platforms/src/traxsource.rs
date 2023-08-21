@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
@@ -20,7 +20,7 @@ impl Traxsource {
         }
     }
 
-    pub fn search_tracks(&self, query: &str) -> Result<Vec<Track>, Box<dyn Error>> {
+    pub fn search_tracks(&self, query: &str) -> Result<Vec<Track>, Error> {
         // Fetch
         debug!("Q: {}", query);
         let data = self.client.get("https://www.traxsource.com/search/tracks")
@@ -34,7 +34,7 @@ impl Traxsource {
 
         // Track list
         let list_selector = Selector::parse("div#searchTrackList").unwrap();
-        let track_list = document.select(&list_selector).next().ok_or("No results!")?;
+        let track_list = document.select(&list_selector).next().ok_or(anyhow!("No results!"))?;
         // Select track
         let track_selector = Selector::parse("div.trk-row").unwrap();
         let mut tracks = vec![];
@@ -117,7 +117,7 @@ impl Traxsource {
     }
 
     // Tracks in search don't have album name and art
-    pub fn extend_track_traxsource(&self, track: &mut Track, album_meta: bool) -> Result<(), Box<dyn Error>> {
+    pub fn extend_track_traxsource(&self, track: &mut Track, album_meta: bool) -> Result<(), Error> {
         // Fetch
         let data = self.client.get(&track.url)
             .send()?
@@ -192,14 +192,14 @@ impl Traxsource {
 }
 
 impl AutotaggerSource for Traxsource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search_tracks(&query)?;
         Ok(MatchingUtils::match_track(&info, &tracks, &config, true))
     }
 
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         Self::extend_track_traxsource(&self, track, config.any_tag_enabled(&supported_tags!(CatalogNumber, TrackNumber, AlbumArt, TrackTotal, AlbumArtist)))?;
         Ok(())
     }
@@ -214,7 +214,7 @@ impl AutotaggerSourceBuilder for TraxsourceBuilder {
         TraxsourceBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(Traxsource::new()))
     }
 

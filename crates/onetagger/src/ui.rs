@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::path::PathBuf;
 use std::time::Duration;
 use include_dir::Dir;
@@ -27,7 +27,7 @@ pub struct StartContext {
 }
 
 /// Start webview window
-pub fn start_webview() -> Result<(), Box<dyn Error>> {
+pub fn start_webview() -> Result<(), Error> {
     // Setup wry
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();

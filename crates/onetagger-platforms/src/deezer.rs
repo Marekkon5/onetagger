@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
 use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber, supported_tags, TrackMatch};
@@ -23,7 +23,7 @@ impl Deezer {
     }
 
     /// GET with rate limit wrap
-    fn get<D: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<D, Box<dyn Error>> {
+    fn get<D: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<D, Error> {
         let r: DeezerResponse<D> = self.client.get(format!("https://api.deezer.com{path}"))
             .query(query)
             .send()?.json()?;
@@ -36,17 +36,17 @@ impl Deezer {
     }
 
     /// Search tracks on Deezer api
-    pub fn search_tracks(&self, query: &str) -> Result<SearchResults<DeezerTrack>, Box<dyn Error>> {
+    pub fn search_tracks(&self, query: &str) -> Result<SearchResults<DeezerTrack>, Error> {
         Ok(self.get("/search/track", &[("q", query)])?)
     }
 
     /// Get full track info
-    pub fn track(&self, id: i64) -> Result<DeezerTrackFull, Box<dyn Error>> {
+    pub fn track(&self, id: i64) -> Result<DeezerTrackFull, Error> {
         Ok(self.get(&format!("/track/{id}"), &[])?)
     }
 
     /// Get full album info
-    pub fn album(&self, id: i64) -> Result<DeezerAlbumFull, Box<dyn Error>> {
+    pub fn album(&self, id: i64) -> Result<DeezerAlbumFull, Error> {
         Ok(self.get(&format!("/album/{id}"), &[])?)
     }
 
@@ -57,7 +57,7 @@ impl Deezer {
 }
 
 impl AutotaggerSource for Deezer {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let tracks = self.search_tracks(&query)?.data.into_iter().map(|t| t.into()).collect::<Vec<_>>();
@@ -67,7 +67,7 @@ impl AutotaggerSource for Deezer {
         Ok(tracks)
     }
 
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Extend with full track data
         if config.any_tag_enabled(&supported_tags!(TrackNumber, DiscNumber, BPM, ISRC, ReleaseDate)) {
             let id = track.track_id.as_ref().unwrap().parse().unwrap();
@@ -115,10 +115,10 @@ enum DeezerResponse<D> {
 
 impl<D> DeezerResponse<D> {
     /// Convert into result
-    pub fn into_result(self) -> Result<D, Box<dyn Error>> {
+    pub fn into_result(self) -> Result<D, Error> {
         match self {
             DeezerResponse::Ok(data) => Ok(data),
-            DeezerResponse::Error { error: DeezerError { message, code, .. } } => Err(format!("Deezer API Error {code}: {message}").into()),
+            DeezerResponse::Error { error: DeezerError { message, code, .. } } => Err(anyhow!("Deezer API Error {code}: {message}").into()),
         }
     }
 
@@ -268,7 +268,7 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
         DeezerBuilder
     }
 
-    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let deezer_config: DeezerConfig = config.get_custom("deezer")?;
         Ok(Box::new(Deezer::new(deezer_config)))
     }

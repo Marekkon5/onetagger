@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use rspotify::clients::{BaseClient, OAuthClient};
@@ -50,7 +50,7 @@ impl Spotify {
     }
 
     /// Generate OAuth authorization URL
-    pub fn generate_auth_url(client_id: &str, client_secret: &str) -> Result<(String, AuthCodeSpotify), Box<dyn Error>> {
+    pub fn generate_auth_url(client_id: &str, client_secret: &str) -> Result<(String, AuthCodeSpotify), Error> {
         let client = Self::create_client(client_id, client_secret);
         Ok((client.get_authorize_url(false)?, client ))
     }
@@ -66,7 +66,7 @@ impl Spotify {
     }
 
      /// Authentication server for callback from spotify
-     pub fn auth_server(spotify: AuthCodeSpotify, expose: bool) -> Result<Spotify, Box<dyn Error>> {
+     pub fn auth_server(spotify: AuthCodeSpotify, expose: bool) -> Result<Spotify, Error> {
         // Prepare server
         let token: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let token_clone = token.clone();
@@ -100,7 +100,7 @@ impl Spotify {
         let token = token_lock.as_ref().unwrap();
 
         // Auth
-        let code = spotify.parse_response_code(token.trim()).ok_or("Invalid token url!")?;
+        let code = spotify.parse_response_code(token.trim()).ok_or(anyhow!("Invalid token url!"))?;
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
@@ -110,8 +110,8 @@ impl Spotify {
     }
 
     /// Authorize from URL
-    pub fn auth_token_code(spotify: AuthCodeSpotify, url: &str) -> Result<Spotify, Box<dyn Error>> {
-        let code = spotify.parse_response_code(url).ok_or("Invalid token url!")?;
+    pub fn auth_token_code(spotify: AuthCodeSpotify, url: &str) -> Result<Spotify, Error> {
+        let code = spotify.parse_response_code(url).ok_or(anyhow!("Invalid token url!"))?;
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
@@ -121,7 +121,7 @@ impl Spotify {
     }
 
     /// Wrapper for rate limit 
-    fn rate_limit_wrap<F, R>(&self, f: F) -> Result<R, Box<dyn Error>>
+    fn rate_limit_wrap<F, R>(&self, f: F) -> Result<R, Error>
     where
         F: Fn(&Spotify) -> ClientResult<R>
     {
@@ -137,7 +137,7 @@ impl Spotify {
                             std::thread::sleep(Duration::from_secs(delay));
                             return self.rate_limit_wrap(f);
                         }
-                        return Err(format!("Unknown Spotify status code: {}", r.status()).into());
+                        return Err(anyhow!("Unknown Spotify status code: {}", r.status()));
                     },
                     e => return Err(e.into())
                 }
@@ -147,7 +147,7 @@ impl Spotify {
     }
 
     /// Search tracks by query
-    pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Box<dyn Error>> {
+    pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Error> {
         let results = self.rate_limit_wrap(|s| s.spotify.search(query, SearchType::Track, None, None, Some(limit), None))?;
         let mut tracks = vec![];
         if let SearchResult::Tracks(tracks_page) = results {
@@ -157,23 +157,23 @@ impl Spotify {
     }
 
     /// Fetch audio features for track id
-    pub fn audio_features(&self, id: &TrackId) -> Result<AudioFeatures, Box<dyn Error>> {
+    pub fn audio_features(&self, id: &TrackId) -> Result<AudioFeatures, Error> {
         self.rate_limit_wrap(|s| s.spotify.track_features(id.to_owned()))
     }
 
     /// Fetch full album
-    pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Box<dyn Error>> {
+    pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Error> {
         self.rate_limit_wrap(|s| s.spotify.album(id.to_owned()))
     }
 
     /// Fetch full artist
-    pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Box<dyn Error>> {
+    pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Error> {
         self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))
     }
 
 
     /// Extend track for autotagger
-    fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Fetch album
         if config.tag_enabled(SupportedTag::Label) {
             match self.album(&AlbumId::from_id(&track.release_id)?) {
@@ -215,7 +215,7 @@ impl Spotify {
 }
 
 impl AutotaggerSource for Spotify {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Try ISRC
         if let Some(isrc) = info.isrc.as_ref() {
             let query = format!("isrc:{isrc}");
@@ -233,7 +233,7 @@ impl AutotaggerSource for Spotify {
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
 
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         Self::extend_track_spotify(&self, track, config)?;
         Ok(())
     }
@@ -273,9 +273,9 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
         SpotifyBuilder
     }
 
-    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
-        let config = config.spotify.clone().ok_or("Missing Spotify config!")?;
-        let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or("Spotify not authorized!")?;
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let config = config.spotify.clone().ok_or(anyhow!("Missing Spotify config!"))?;
+        let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or(anyhow!("Spotify not authorized!"))?;
         Ok(Box::new(spotify))
     }
 

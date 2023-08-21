@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::path::Path;
@@ -17,7 +17,7 @@ pub struct MP4Tag {
 }
 
 impl MP4Tag {
-    pub fn load_file(path: impl AsRef<Path>) -> Result<MP4Tag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<MP4Tag, Error> {
         let tag = Tag::read_from_path(&path)?;
         Ok(MP4Tag {
             tag,
@@ -119,7 +119,7 @@ impl MP4Tag {
 }
 
 impl TagImpl for MP4Tag {
-    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Error> {
         self.tag.write_to_path(path)?;
         Ok(())
     }

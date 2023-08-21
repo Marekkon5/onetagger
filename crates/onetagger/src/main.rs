@@ -1,10 +1,11 @@
 #![windows_subsystem = "windows"]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 #[macro_use] extern crate include_dir;
 #[macro_use] extern crate onetagger_shared;
 
-use std::error::Error;
+use anyhow::Error;
 use clap::Parser;
 use onetagger_shared::{VERSION, COMMIT};
 
@@ -60,7 +61,7 @@ struct Cli {
 
 /// Show warning for old macOS
 #[cfg(target_os = "macos")]
-fn old_macos_warning() -> Result<(), Box<dyn Error>> {
+fn old_macos_warning() -> Result<(), Error> {
     use std::process::Command;
     use native_dialog::MessageDialog;
 
@@ -95,4 +96,4 @@ fn old_macos_warning() -> Result<(), Box<dyn Error>> {
 
 /// Show warning for old macOS
 #[cfg(not(target_os = "macos"))]
-fn old_macos_warning() -> Result<(), Box<dyn Error>> { Ok(()) }
+fn old_macos_warning() -> Result<(), Error> { Ok(()) }

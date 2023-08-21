@@ -1,5 +1,5 @@
 use std::path::{PathBuf, Path};
-use std::error::Error;
+use anyhow::Error;
 use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
@@ -11,13 +11,13 @@ pub struct WAVSource {
 }
 
 impl WAVSource {
-    pub fn new(path: impl AsRef<Path>) -> Result<WAVSource, Box<dyn Error>> {
+    pub fn new(path: impl AsRef<Path>) -> Result<WAVSource, Error> {
         let mut wav = WAVSource {
             path: path.as_ref().to_owned(),
             duration: 0
         };
         // Get duration from decoder
-        wav.duration = wav.get_source()?.total_duration().ok_or("Missing duration")?.as_millis();
+        wav.duration = wav.get_source()?.total_duration().ok_or(anyhow!("Missing duration"))?.as_millis();
 
         Ok(wav)
     }
@@ -30,7 +30,7 @@ impl AudioSource for WAVSource {
     }
 
     // Get rodio decoder
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Box<dyn Error>> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
         Ok(Box::new(Decoder::new_wav(BufReader::new(File::open(&self.path)?))?))
     }
 }

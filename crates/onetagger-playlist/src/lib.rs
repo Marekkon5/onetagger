@@ -1,14 +1,13 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 
-use std::error::Error;
+use anyhow::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use serde::{Serialize, Deserialize};
 use base64::Engine;
-
 use onetagger_tag::EXTENSIONS;
-use onetagger_shared::OTError;
 
 pub const PLAYLIST_EXTENSIONS: [&str; 2] = ["m3u", "m3u8"];
 
@@ -22,11 +21,11 @@ pub struct UIPlaylist {
 }
 
 impl UIPlaylist {
-    pub fn get_files(&self) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
         let files = match self.format {
             PlaylistFormat::M3U => {
                 // Decode base64 from JS
-                let bytes = base64::engine::general_purpose::STANDARD.decode(self.data[self.data.find(';').ok_or("Invalid data!")? + 8..].trim())?;
+                let bytes = base64::engine::general_purpose::STANDARD.decode(self.data[self.data.find(';').ok_or(anyhow!("Invalid data!"))? + 8..].trim())?;
                 let m3u = String::from_utf8(bytes)?;
                 get_files_from_m3u(&m3u, None)
             }
@@ -47,10 +46,10 @@ pub enum PlaylistFormat {
 }
 
 
-pub fn get_files_from_playlist_file(path: impl AsRef<Path>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+pub fn get_files_from_playlist_file(path: impl AsRef<Path>) -> Result<Vec<PathBuf>, Error> {
     // Validate extension
     if !PLAYLIST_EXTENSIONS.iter().any(|e| &&path.as_ref().extension().unwrap_or_default().to_string_lossy().to_lowercase() == e) {
-        return Err(OTError::new("Unsupported playlist!").into());
+        return Err(anyhow!("Unsupported playlist!").into());
     };
     
     // Load file

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::error::Error;
+use anyhow::Error;
 use std::path::Path;
 use lofty::{TagType, TaggedFileExt, AudioFile, PictureType, MimeType};
 use lofty::ogg::{VorbisComments, OggPictureStorage};
@@ -38,9 +38,9 @@ pub struct VorbisTag {
 
 impl VorbisTag {
     /// Load from path
-    pub fn load_file(path: impl AsRef<Path>) -> Result<VorbisTag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<VorbisTag, Error> {
         let file = lofty::read_from_path(path)?;
-        let tag = file.tag(TagType::VorbisComments).ok_or("Missing vorbis tag")?;
+        let tag = file.tag(TagType::VorbisComments).ok_or(anyhow!("Missing vorbis tag"))?;
         let vorbis: VorbisComments = tag.to_owned().into();
         Ok(VorbisTag {
             tag: vorbis,
@@ -71,7 +71,7 @@ impl VorbisTag {
 
 
 impl TagImpl for VorbisTag {
-    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Error> {
         let mut file = lofty::read_from_path(path)?;
         file.remove(TagType::VorbisComments);
         file.insert_tag(self.tag.clone().into());

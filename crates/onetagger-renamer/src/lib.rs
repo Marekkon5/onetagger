@@ -1,8 +1,9 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 #[macro_use] extern crate lazy_static;
 
 use std::path::{Path, PathBuf};
-use std::error::Error;
+use anyhow::Error;
 use onetagger_autotag::AudioFileInfoImpl;
 use onetagger_tagger::AudioFileInfo;
 use serde::{Serialize, Deserialize};
@@ -41,10 +42,10 @@ impl Renamer {
 
 
     /// Generate names - output: [(from, to),...]
-    pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(PathBuf, PathBuf)>, Box<dyn Error>> {
+    pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(PathBuf, PathBuf)>, Error> {
         let input_path = dunce::canonicalize(&config.path)?;
         if !input_path.exists() {
-            return Err("Invalid path!".into());
+            return Err(anyhow!("Invalid path!"));
         }
         
         // Get output path
@@ -91,7 +92,7 @@ impl Renamer {
     }
 
     /// Rename files
-    pub fn rename(&mut self, config: &RenamerConfig) -> Result<(), Box<dyn Error>> {
+    pub fn rename(&mut self, config: &RenamerConfig) -> Result<(), Error> {
         let files = self.generate(config, 0)?;
         for (from, to) in files {
             // Don't overwrite

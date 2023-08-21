@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::error::Error;
+use anyhow::Error;
 use std::time::Duration;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
@@ -33,7 +33,7 @@ impl Beatport {
     }
 
     /// Search for tracks on beatport
-    pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportTrackResults, Box<dyn Error>> {
+    pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportTrackResults, Error> {
         let query = Self::clear_search_query(query);
         let response = self.client.get("https://www.beatport.com/search/tracks")
             .query(&[
@@ -50,16 +50,16 @@ impl Beatport {
     }
     
     /// Extract next hydratation data from html
-    fn get_next_data<T: DeserializeOwned>(&self, response: &str) -> Result<T, Box<dyn Error>> {
+    fn get_next_data<T: DeserializeOwned>(&self, response: &str) -> Result<T, Error> {
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script#__NEXT_DATA__").unwrap();
-        let script = document.select(&selector).next().ok_or("Missing __NEXT_DATA__")?.text().collect::<String>();
+        let script = document.select(&selector).next().ok_or(anyhow!("Missing __NEXT_DATA__"))?.text().collect::<String>();
         let value: Value = serde_json::from_str(&script)?;
         Ok(serde_json::from_value(value["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"].to_owned())?)
     }
 
     /// Update embed auth token
-    pub fn update_token(&self) -> Result<String, Box<dyn Error>> {
+    pub fn update_token(&self) -> Result<String, Error> {
         let mut token = self.access_token.lock().unwrap();
         // Fetch new if doesn't exist
         if (*token).is_none() {
@@ -79,7 +79,7 @@ impl Beatport {
     }
 
     /// Fetch track using API
-    pub fn track(&self, id: i64) -> Result<Option<BeatportTrack>, Box<dyn Error>> {
+    pub fn track(&self, id: i64) -> Result<Option<BeatportTrack>, Error> {
         let token = self.update_token()?;
         let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
             .bearer_auth(token)
@@ -94,7 +94,7 @@ impl Beatport {
     }
 
     /// Fetch release using API
-    pub fn release(&self, id: i64) -> Result<BeatportRelease, Box<dyn Error>> {
+    pub fn release(&self, id: i64) -> Result<BeatportRelease, Error> {
         let token = self.update_token()?;
         let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
             .bearer_auth(token)
@@ -282,7 +282,7 @@ impl BeatportTrack {
 
 // Match track
 impl AutotaggerSource for Beatport {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {       
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {       
         // Load custom config
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
         let mut output = vec![];
@@ -359,13 +359,13 @@ impl AutotaggerSource for Beatport {
     }
 
 
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
 
         // Extend search results track
         if track.other.is_empty() {
             let id = track.track_id.as_ref().unwrap().parse().unwrap();
-            *track = self.track(id)?.ok_or("Restricted track")?.to_track(custom_config.art_resolution);
+            *track = self.track(id)?.ok_or(anyhow!("Restricted track"))?.to_track(custom_config.art_resolution);
         }
 
         // Ignore extending track
@@ -396,7 +396,7 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
         }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(Beatport::new(self.access_token.clone())))
     }
 

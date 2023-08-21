@@ -1,11 +1,13 @@
-// TODO: Use log somewhere
+// TODO: Use log & anyhow somewhere
 #[cfg(feature = "tag")]
 #[macro_use] extern crate log;
+#[cfg(feature = "tag")]
+#[macro_use] extern crate anyhow;
 
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use std::time::Duration;
-use std::error::Error;
+use anyhow::Error;
 
 #[cfg(feature = "tag")]
 use std::collections::HashMap;
@@ -37,8 +39,8 @@ pub enum Tag {
 
 #[cfg(feature = "tag")]
 impl Tag {
-    pub fn load_file(path: impl AsRef<Path>, allow_new: bool) -> Result<Tag, Box<dyn Error>> {
-        let ext = path.as_ref().extension().ok_or("Missing extension")?.to_ascii_lowercase();
+    pub fn load_file(path: impl AsRef<Path>, allow_new: bool) -> Result<Tag, Error> {
+        let ext = path.as_ref().extension().ok_or(anyhow!("Missing extension"))?.to_ascii_lowercase();
         // FLAC
         if ext == "flac" {
             return Ok(Tag::FLAC(flac::FLACTag::load_file(path)?));
@@ -108,7 +110,7 @@ impl Tag {
 #[cfg(feature = "tag")]
 pub trait TagImpl {
     /// Write file to path, using Path because of object safety
-    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>>;
+    fn save_file(&mut self, path: &Path) -> Result<(), Error>;
 
     /// Since all formats right now support separators
     fn set_separator(&mut self, separator: &str);
@@ -438,7 +440,7 @@ pub struct TagChanges {
 #[cfg(feature = "tag")]
 impl TagChanges {
     // Save all changes to file
-    pub fn commit(&self) -> Result<Tag, Box<dyn Error>> {
+    pub fn commit(&self) -> Result<Tag, Error> {
         use base64::Engine;
         
         let mut tag_wrap = Tag::load_file(&self.path, false)?;
@@ -520,7 +522,7 @@ impl Lyrics {
     }
 
     /// Parse MM:SS.ms (optionally just SS.ms)
-    pub fn parse_lrc_timestamp(input: &str) -> Result<Duration, Box<dyn Error>> {
+    pub fn parse_lrc_timestamp(input: &str) -> Result<Duration, Error> {
         let mut minutes = 0;
         let parts = input.split(":").collect::<Vec<_>>();
         let seconds = if parts.len() == 2 {

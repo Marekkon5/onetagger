@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Error;
 use std::ffi::c_void;
 use std::path::PathBuf;
 use std::io::Cursor;
@@ -96,7 +96,7 @@ impl AutotaggerPlatforms {
     }
 
     /// Prepare image for the UI
-    fn reencode_image(data: &'static [u8]) -> Result<String, Box<dyn Error>> {
+    fn reencode_image(data: &'static [u8]) -> Result<String, Error> {
         let img = ImageReader::new(Cursor::new(data)).with_guessed_format()?.decode()?;
         let mut buf = vec![];
         img.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png)?;
@@ -104,7 +104,7 @@ impl AutotaggerPlatforms {
     }
 
     /// Load custom platforms
-    fn load_custom(&mut self) -> Result<(), Box<dyn Error>> {
+    fn load_custom(&mut self) -> Result<(), Error> {
         // Path
         let folder = Settings::get_folder()?.join("platforms");
         if !folder.exists() {
@@ -158,14 +158,14 @@ pub struct CustomPlatform {
 
 impl CustomPlatform {
     /// Load library
-    pub fn open(path: &PathBuf) -> Result<CustomPlatform, Box<dyn Error>> {
+    pub fn open(path: &PathBuf) -> Result<CustomPlatform, Error> {
         let p = unsafe {
             let lib = Library::new(&path)?;
             // Check version compatibility
             let version: Symbol<*const i32> = lib.get(b"_1T_PLATFORM_COMPATIBILITY")?;
             if **version != onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY {
                 warn!("Plugin is incompatible! Plugin version: {}, Supported version: {}", **version, onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY);
-                return Err("Plugin is incompatible!".into());
+                return Err(anyhow!("Plugin is incompatible!"));
             }
             // Setup logging
             let logging_cb_fn: Symbol<unsafe extern fn(extern fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
@@ -188,8 +188,8 @@ impl CustomPlatform {
     }
 
     /// Open and convert into Autotagger platfrom
-    pub fn open_platform(path: &PathBuf) -> Result<AutotaggerPlatform, Box<dyn Error>> {
-        let filename = path.file_name().ok_or("Invalid filename")?.to_str().ok_or("Invalid filename")?.to_string();
+    pub fn open_platform(path: &PathBuf) -> Result<AutotaggerPlatform, Error> {
+        let filename = path.file_name().ok_or(anyhow!("Invalid filename"))?.to_str().ok_or(anyhow!("Invalid filename"))?.to_string();
         let lib = Self::open(path)?;
         Ok(AutotaggerPlatform {
             id: filename,
@@ -209,17 +209,17 @@ impl CustomPlatform {
     }
 
     //TODO: BETTER WAY THAN JUST REOPENING THE DLL
-    pub fn get_builder(&self) -> Result<CustomPlatform, Box<dyn Error>> {
+    pub fn get_builder(&self) -> Result<CustomPlatform, Error> {
         Ok(Self::open(&self.path)?)
     }
 
     /// Get source
-    fn get_source_raw(&self, config: &TaggerConfig) -> Result<CustomPlatformSource, Box<dyn Error>> {
+    fn get_source_raw(&self, config: &TaggerConfig) -> Result<CustomPlatformSource, Error> {
         let ptr = unsafe {
             let get_source_fn: Symbol<unsafe extern fn(*mut c_void, &TaggerConfig) -> *mut c_void> = self.library.get(b"_1t_builder_get_source")?;
             let source_ptr = get_source_fn(self.builder.0, config);
             if source_ptr.is_null() {
-                return Err("Failed creating custom platform source!".into());
+                return Err(anyhow!("Failed creating custom platform source!"));
             }
             source_ptr
         };
@@ -257,7 +257,7 @@ impl AutotaggerSourceBuilder for CustomPlatform {
         panic!("Not used / use CustomPlatform::load()");
     }
 
-    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Box<dyn Error>> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         Ok(Box::new(self.get_source_raw(config)?))
     }
 
@@ -273,23 +273,23 @@ struct CustomPlatformSource {
 }
 
 impl AutotaggerSource for CustomPlatformSource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Box<dyn Error>> {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         unsafe {
             let f = &self.match_fn;
             let r = Box::from_raw(f(self.ptr.0, info, config));
             match *r {
                 MatchTrackResult::Ok(r) => Ok(r),
-                MatchTrackResult::Err(e) => Err(e.into()),
+                MatchTrackResult::Err(e) => Err(anyhow!("{e}")),
             }
         }
     }
 
-    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {
+    fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         unsafe {
             let f = &self.extend_fn;
             let r = Box::from_raw(f(self.ptr.0, track, config));
             match *r {
-                Some(e) => Err(e.into()),
+                Some(e) => Err(anyhow!("{e}")),
                 None => Ok(()),
             }
         }

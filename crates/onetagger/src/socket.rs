@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::error::Error;
+use anyhow::Error;
 use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::sync::atomic::Ordering;
@@ -45,7 +45,7 @@ enum Action {
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
-    
+
     Waveform { path: PathBuf },
     PlayerLoad { path: PathBuf },
     PlayerPlay, 
@@ -193,7 +193,7 @@ pub fn start_socket_server(context: StartContext) {
 }
 
 /// Serialize and send to socket with warning intercept
-fn send_socket<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Box<dyn Error>> {
+fn send_socket<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Error> {
     match send_socket_inner(ws, json) {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -204,13 +204,13 @@ fn send_socket<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(
 }
 
 /// Serialize and send to socket
-fn send_socket_inner<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Box<dyn Error>> {
+fn send_socket_inner<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Error> {
     ws.write(Message::from(serde_json::to_string(&json)?))?;
     ws.flush()?;
     Ok(())
 }
 
-fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Box<dyn Error>> {
+fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Error> {
     // Parse JSON
     let action: Action = serde_json::from_str(text)?;
     match action {
@@ -288,7 +288,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                         file_count = files.len();
                     }
                     // Authorize spotify
-                    let spotify = context.spotify.as_ref().ok_or("Spotify unauthorized!")?.to_owned().to_owned();
+                    let spotify = context.spotify.as_ref().ok_or(anyhow!("Spotify unauthorized!"))?.to_owned().to_owned();
                     let rx = AudioFeatures::start_tagging(c.clone(), spotify, files);
                     ("audioFeatures", rx)
                 },

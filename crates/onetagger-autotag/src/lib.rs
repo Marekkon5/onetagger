@@ -1,8 +1,9 @@
 #[macro_use] extern crate log;
+#[macro_use] extern crate anyhow;
 #[macro_use] extern crate onetagger_shared;
 
 use std::collections::HashMap;
-use std::error::Error;
+use anyhow::Error;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
@@ -62,14 +63,14 @@ impl TaggerConfigExt for TaggerConfig {
 
 
 trait TrackImpl {
-    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>>;
-    fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>>;
+    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Error>;
+    fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Error>;
     fn merge_styles(self, option: &StylesOptions) -> Self;
 }
 
 impl TrackImpl for Track {
     // Write tags to file
-    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Box<dyn Error>> {        
+    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Error> {        
         // Get tag
         let mut tag_wrap = Tag::load_file(&info.path, true)?;
         tag_wrap.set_separators(&config.separators);
@@ -329,7 +330,7 @@ impl TrackImpl for Track {
     }
 
     // Download album art, None if invalid album art
-    fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+    fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Error> {
         let response = reqwest::blocking::get(url)?;
         if response.status() != StatusCode::OK {
             return Ok(None);
@@ -378,19 +379,19 @@ impl TrackImpl for Track {
 
 pub trait AudioFileInfoImpl {
     /// Load audio file info from path
-    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>>;
+    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Error>;
     /// Load duration from file
     fn load_duration(&mut self);
     /// Parse the filename template
     fn parse_template(template: &str) -> Option<Regex>;
     /// Load using shazam
-    fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Box<dyn Error>>;
+    fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Error>;
     /// Get list of all files in with supported extensions
     fn get_file_list(path: impl AsRef<Path>, subfolders: bool) -> Vec<PathBuf>;
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {
-    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Box<dyn Error>> {
+    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Error> {
         let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag();
         let separator = tag.get_separator().unwrap_or(" ".to_string());
@@ -404,7 +405,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
 
         // Parse filename
         if (title.is_none() || artists.is_none()) && filename_template.is_some() {
-            let filename = path.as_ref().file_name().ok_or("Missing filename!")?.to_str().ok_or("Missing filename")?;
+            let filename = path.as_ref().file_name().ok_or(anyhow!("Missing filename!"))?.to_str().ok_or(anyhow!("Missing filename"))?;
 
             if let Some(captures) = filename_template.unwrap().captures(filename) {
                 // Title
@@ -447,7 +448,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
         Ok(AudioFileInfo {
             format: tag_wrap.format(),
             title,
-            artists: artists.ok_or("Missing artist tag!")?,
+            artists: artists.ok_or(anyhow!("Missing artist tag!"))?,
             path: path.as_ref().to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
@@ -490,7 +491,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
     }
 
     // Recognize on Shazam
-    fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Box<dyn Error>> {
+    fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Error> {
         info!("Recognizing on Shazam: {:?}", path.as_ref());
         match Shazam::recognize_from_file(&path) {
             Ok((shazam_track, duration)) => {
@@ -712,7 +713,7 @@ impl Tagger {
     }
 
     /// Write playlists & execute command
-    fn write_results(successful_paths: Vec<PathBuf>, failed_paths: Vec<PathBuf>, config: &TaggerConfig) -> Result<(String, String), Box<dyn Error>> {
+    fn write_results(successful_paths: Vec<PathBuf>, failed_paths: Vec<PathBuf>, config: &TaggerConfig) -> Result<(String, String), Error> {
         let time = timestamp!();
         let folder = PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
         if !folder.exists() {
@@ -935,7 +936,7 @@ impl Tagger {
     }
 
     /// Move file to target dir if enabled
-    fn move_file(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<PathBuf, Box<dyn Error>> {
+    fn move_file(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<PathBuf, Error> {
         // Generate path
         let target_dir = Path::new(target.as_ref());
         let filename = Path::new(source.as_ref()).file_name().unwrap();

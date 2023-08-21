@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::error::Error;
+use anyhow::Error;
 use std::path::Path;
 use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder, Frame, Encoding};
 use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText, SynchronisedLyrics, TimestampFormat, SynchronisedLyricsType};
@@ -45,7 +45,7 @@ pub struct ID3Tag {
 
 impl ID3Tag {
     // Read from file
-    pub fn load_file(path: impl AsRef<Path>) -> Result<ID3Tag, Box<dyn Error>> {
+    pub fn load_file(path: impl AsRef<Path>) -> Result<ID3Tag, Error> {
         let ext = path.as_ref().extension().unwrap_or_default().to_ascii_lowercase();
         // MP3
         if ext == "mp3" {
@@ -189,7 +189,7 @@ impl ID3Tag {
 
 impl TagImpl for ID3Tag {
     // Write tag to file
-    fn save_file(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
+    fn save_file(&mut self, path: &Path) -> Result<(), Error> {
         let version = match self.id3v24 {
             true => Version::Id3v24,
             false => Version::Id3v23
