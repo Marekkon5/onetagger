@@ -76,10 +76,10 @@ impl FLACTag {
 
     // Convert between different cover/picture types
     fn picture_type(&self, cover_type: &CoverType) -> PictureType {
-        COVER_TYPES.iter().find(|(_, c)| c == cover_type).unwrap().0
+        COVER_TYPES.iter().find(|(_, c)| c == cover_type).map(|i| i.0).unwrap_or(PictureType::Other)
     }
     fn cover_type(&self, picture_type: &PictureType) -> CoverType {
-        COVER_TYPES.iter().find(|(p, _)| p == picture_type).unwrap().1.clone()
+        COVER_TYPES.iter().find(|(p, _)| p == picture_type).map(|i| i.1.clone()).unwrap_or(CoverType::Other)
     }
 }
 

@@ -1,4 +1,4 @@
-import { FrameName, Separators } from "./utils";
+import { FrameName, RustDuration, Separators } from "./utils";
 
 interface AutotaggerPlatform {
     id: string;
@@ -203,6 +203,40 @@ const SUPPORTED_TAGS = [
     { tag: SupportedTag.Explicit, label: 'Explicit' },
 ];
 
+/// Track from 
+interface Track {
+    platform: string;
+    title: string;
+    version?: string;
+    artists: string[];
+    album_artists: string[];
+    album?: string;
+    key?: string;
+    bpm?: number;
+    genres: string[];
+    styles: string[];
+    art?: string;
+    url: string;
+    label?: string;
+    catalog_number?: string;
+    other: [FrameName, String][];
+    track_id?: string;
+    release_id: string;
+    duration: RustDuration;
+    remixers: string[];
+    track_number?: number | string;
+    track_total?: number;
+    disc_number?: number;
+    isrc?: string;
+    mood?: string;
+    explicit?: boolean;
+    lyrics?: any;
+    release_year?: number;
+    release_date?: string;
+    publish_year?: number;
+    publish_date?: string;
+    thumbnail?: string;
+}
 
-export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap };
+export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap, Track };
 export { AutotaggerConfig, TaggerStatus, SupportedTag, SUPPORTED_TAGS };

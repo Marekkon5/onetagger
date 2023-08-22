@@ -62,17 +62,17 @@ impl TaggerConfigExt for TaggerConfig {
 } 
 
 
-trait TrackImpl {
-    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Error>;
+pub trait TrackImpl {
+    fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error>;
     fn download_art(&self, url: &str) -> Result<Option<Vec<u8>>, Error>;
     fn merge_styles(self, option: &StylesOptions) -> Self;
 }
 
 impl TrackImpl for Track {
     // Write tags to file
-    fn write_to_file(&self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<(), Error> {        
+    fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {        
         // Get tag
-        let mut tag_wrap = Tag::load_file(&info.path, true)?;
+        let mut tag_wrap = Tag::load_file(&path, true)?;
         tag_wrap.set_separators(&config.separators);
         let format = tag_wrap.format();
 
@@ -289,7 +289,7 @@ impl TrackImpl for Track {
                             tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
                             // Save to file
                             if config.album_art_file {
-                                let path = Path::new(&info.path).parent().unwrap().join("cover.jpg");
+                                let path = path.as_ref().parent().unwrap().join("cover.jpg");
                                 if !path.exists() {
                                     if let Ok(mut file) = File::create(path) {
                                         file.write_all(&data).ok();
@@ -312,7 +312,7 @@ impl TrackImpl for Track {
 
         // LRC
         if config.write_lrc && self.lyrics.is_some() {
-            let path = Path::new(&info.path).with_extension("lrc");
+            let path = path.as_ref().with_extension("lrc");
             if !path.exists() {
                 if let Some(lrc) = self.lyrics.as_ref().unwrap().generate_lrc(Some(&self), config.enhanced_lrc) {
                     info!("Writing LRC");
@@ -325,7 +325,7 @@ impl TrackImpl for Track {
         }
 
         // Save
-        tag.save_file(&info.path)?;
+        tag.save_file(path.as_ref())?;
         Ok(())
     }
 
@@ -879,7 +879,7 @@ impl Tagger {
         }
 
         // Save
-        match track.track.merge_styles(&config.styles_options).write_to_file(&info, &config) {
+        match track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
             Ok(_) => {
                 out.accuracy = Some(track.accuracy);
                 out.status = TaggingState::Ok;
@@ -963,4 +963,108 @@ impl Tagger {
 pub struct TaggerFinishedData {
     pub failed_file: String,
     pub success_file: String
+}
+
+
+/// Start manual tagging mode
+/// Return: receiver with results for every platform
+pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Receiver<(String, Result<Vec<TrackMatch>, Error>)>, Error> {
+    // Get filename template
+    let filename_template = config.filename_template.as_ref().map(|template| {
+        match AudioFileInfo::parse_template(template) {
+            Some(template) => Some(template),
+            None => {
+                warn!("Failed parsing filename template");
+                None
+            },
+        }
+    }).flatten();
+
+    // Title regex
+    let title_regex = config.title_regex.as_ref().map(|re| {
+        match Regex::new(re) {
+            Ok(r) => Some(r),
+            Err(e) => {
+                warn!("Failed parsing title regex: \"{re}\": {e}");
+                None
+            },
+        }
+    }).flatten();
+
+    // Load file
+    let file = AudioFileInfo::load_file(path, filename_template, title_regex)?;
+    let (tx, rx) = unbounded();
+
+    // Setup platforms
+    let mut platforms = vec![];
+    for platform in &config.platforms {
+        let mut p = match AUTOTAGGER_PLATFORMS.get_builder(platform) {
+            Some(p) => p,
+            None => {
+                warn!("Invalid platform: {platform}");
+                continue;
+            },
+        };
+        let mut s = match p.get_source(config) {
+            Ok(s) => s,
+            Err(e) => {
+                error!("Failed creating platform source for platform: {platform}. {e}");
+                continue;
+            }
+        };
+
+        // Spawn thread to match track
+        let mut config = config.clone();
+        config.fetch_all_results = true;
+        let info = file.clone();
+        let tx = tx.clone();
+        let platform = platform.to_string();
+        platforms.push(std::thread::spawn(move || {
+            tx.send((platform, s.match_track(&info, &config))).ok();
+        }));
+    }
+
+    Ok(rx)
+}
+
+/// Apply manual tag results
+pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {
+    if matches.is_empty() {
+        return Ok(())
+    }
+    
+    // Extend each match
+    for m in matches.iter_mut() {
+        // Get platform
+        let mut p = match AUTOTAGGER_PLATFORMS.get_builder(&m.track.platform) {
+            Some(p) => p,
+            None => {
+                warn!("Invalid platform: {}", m.track.platform);
+                continue;
+            },
+        };
+        let mut s = match p.get_source(config) {
+            Ok(s) => s,
+            Err(e) => {
+                error!("Failed creating platform source for platform: {}. {e}", m.track.platform);
+                continue;
+            }
+        };
+        // Extend
+        debug!("Extending track on: {}", m.track.platform);
+        match s.extend_track(&mut m.track, config) {
+            Ok(_) => {},
+            Err(e) => warn!("Failed extending track using: {}. {e}", m.track.platform),
+        }
+    }
+
+    // Merge
+    let mut track = matches.remove(0).track;
+    for t in matches {
+        track = track.merge(t.track);
+    }
+
+    // Save
+    track.merge_styles(&config.styles_options).write_to_file(&path, &config)?;
+    Ok(())
 }

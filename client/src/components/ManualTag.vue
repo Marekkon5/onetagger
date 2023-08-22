@@ -1,0 +1,181 @@
+<template>
+<q-dialog v-model='show' persistent>
+<q-card style='min-width: 600px; min-height: 50vh;'>
+
+    <!-- Title -->
+    <q-card-section>
+        <div class='text-h5 text-center'>Manual Tagger</div>
+        <div class='monospace text-center'>{{ path }}</div>
+    </q-card-section>
+
+    <!-- Body -->
+    <q-card-section>
+        <div class='manualtag-results'>
+            <q-list>
+                <q-item v-for='(match, i) in $1t.manualTag.value.matches' :key='i'>
+                    <q-item-section avatar>
+                        <div class='row items-center'>
+                            <div class='q-pr-sm'>
+                                <q-checkbox
+                                    :model-value="selected.includes(match)"
+                                    @update:model-value="(v) => toggleMatch(match)"
+                                ></q-checkbox>
+                            </div>
+                            <q-img width='48px' :src='match.track.thumbnail??match.track.art'></q-img>
+                        </div>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label overline>
+                            <span>{{ match.track.platform.toUpperCase() }}</span>
+                            <span class='q-px-sm'>|</span>
+                            <q-icon name='mdi-percent' class='q-pr-xs'></q-icon>
+                            <span>{{ (match.accuracy * 100.0).toFixed(2) }}</span>
+                            <span class='q-px-sm'>|</span>
+                            <q-icon name='mdi-information' class='q-pr-xs'></q-icon>
+                            <span>{{ match.reason.toUpperCase() }}</span>
+                        </q-item-label>
+                        <q-item-label>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
+                        <q-item-label>
+                            <span>{{ match.track.album }}</span>
+                            <span v-if='match.track.bpm'>, BPM: {{ match.track.bpm }}</span>
+                            <span v-if='match.track.key'>, Key: {{ match.track.key }}</span>
+    
+                        </q-item-label>
+                    </q-item-section>
+                </q-item>
+    
+            </q-list>
+        </div>
+    </q-card-section>
+
+    <!-- Actions -->
+    <q-separator></q-separator>
+    <q-card-section class='row'>
+        <q-space></q-space>
+        <!-- Cancel / close -->
+        <div class='q-px-sm'>
+            <q-btn flat color='red' @click='exit' v-if='!saving'>Close</q-btn>
+        </div>
+        <!-- Start tagging -->
+        <div class='q-px-sm' v-if='$1t.manualTag.value.busy || $1t.manualTag.value.matches.length == 0'>
+            <q-btn 
+                flat 
+                color='primary' 
+                @click='start' 
+                :disable='$1t.manualTag.value.busy || $1t.manualTag.value.matches.length > 0' 
+                :loading='$1t.manualTag.value.busy'
+            >Start</q-btn>
+        </div>
+        <!-- Apply -->
+        <div class='q-px-sm' v-if='selected.length > 0'>
+            <q-btn 
+                flat 
+                color='primary' 
+                @click='apply'
+                :disable='saving'
+                :loading='saving'
+            >Apply</q-btn>
+        </div>
+
+    </q-card-section>
+
+</q-card>
+</q-dialog>
+</template>
+
+<script lang='ts' setup>
+import { ref, toRefs, watch } from 'vue';
+import { TrackMatch } from '../scripts/manualtag';
+import { get1t } from '../scripts/onetagger';
+import { AutotaggerConfig } from '../scripts/autotagger';
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
+const $1t = get1t();
+const show = ref(false);
+const emit = defineEmits(['exit']);
+const props = defineProps({
+    path: { type: String, required: false }
+});
+const { path } = toRefs(props);
+const selected = ref<TrackMatch[]>([]);
+const saving = ref(false);
+let cachedConfig = {};
+
+/// Start manual tagger
+function start() {
+    $1t.manualTag.value.reset();
+
+    // Generate config
+    let config = JSON.parse(JSON.stringify($1t.config.value));
+    config.path = '';
+    config.spotify.clientId = $1t.spotify.value.clientId;
+    config.spotify.clientSecret = $1t.spotify.value.clientSecret;
+    cachedConfig = config;
+
+    // Start
+    $1t.manualTag.value.tagTrack(path!.value!, config);
+}
+
+/// Add or remove match
+function toggleMatch(match: TrackMatch) {
+    let i = selected.value.indexOf(match);
+    if (i != -1) {
+        selected.value.splice(i, 1);
+        return;
+    }
+    selected.value.push(match);
+}
+
+/// Exit manual tagger
+function exit() {
+    $1t.manualTag.value.reset();
+    selected.value = [];
+    saving.value = false;
+    show.value = false;
+    emit('exit');
+}
+
+/// Apply the matches
+async function apply() {
+    saving.value = true;
+    let response: any = await $1t.manualTag.value.apply(selected.value, path!.value!, cachedConfig as AutotaggerConfig);
+    // All ok
+    if (response.status == 'ok') {
+        $q.notify({
+            message: "Track saved!",
+            timeout: 3000,
+            position: 'top-right'
+        });
+    // Show error
+    } else {
+        await new Promise((r, _) => {
+            $q.dialog({
+                title: 'Failed to save track',
+                message: response.error,
+                ok: true,
+                cancel: false
+            })
+            .onOk(() => r(true));
+        });
+    }
+
+    exit();
+}
+
+// Show / Hide
+watch(path!, () => {
+    // to bool
+    show.value = !!(path!.value);
+});
+
+</script>
+
+<style lang='scss' scoped>
+.manualtag-results {
+    min-height: 50vh;
+    height: 50vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+</style>

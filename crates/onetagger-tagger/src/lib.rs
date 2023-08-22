@@ -242,7 +242,39 @@ impl Track {
             self.title.to_string()
         }
     }
+
+    /// Merge with other track
+    pub fn merge(mut self, other: Track) -> Track {
+        /// Merge 2 arrays
+        fn merge_array<T: PartialEq>(a: &mut Vec<T>, b: Vec<T>) {
+            let x = b.into_iter().filter(|i| !a.contains(i)).collect::<Vec<_>>();
+            a.extend(x);
+        }
+
+        // Generate self.value = self.value.or(other.value)
+        macro_rules! gen_track_merge_option {
+            ($($a: ident),*) => {
+                $( self.$a = self.$a.or(other.$a); )*
+            }
+        }
+        gen_track_merge_option!(version, album, key, bpm, art, label, catalog_number, track_number, 
+                track_total, disc_number, isrc, mood, explicit, lyrics, release_date, release_year, 
+                publish_date, publish_year, thumbnail);
+
+        // Generate merge_array(&mut self.value, other.value)
+        macro_rules! gen_track_merge_array {
+            ($($a: ident),*) => {
+                $( merge_array(&mut self.$a, other.$a); )*
+            }
+        }
+        gen_track_merge_array!(artists, album_artists, genres, styles, other, remixers);
+
+        self
+    }
 }
+
+
+
 
 /// Matched track
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -290,6 +322,7 @@ pub enum MatchReason {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[repr(C)]
+#[serde(untagged)]
 pub enum TrackNumber {
     Number(i32),
     /// Custom format (Discogs)

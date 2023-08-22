@@ -5,6 +5,7 @@ import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
 import { Keybind, Playlist, Spotify, wsUrl } from './utils';
+import { ManualTag } from './manualtag';
 import ExitDialog from '../components/ExitDialog.vue';
 import router from './router';
 
@@ -23,6 +24,7 @@ class OneTagger {
     folderBrowser: Ref<FolderBrowser> = ref(new FolderBrowser());
     taggerStatus: Ref<TaggerStatus> = ref(new TaggerStatus());
     autoTaggerPlaylist: Ref<Playlist> = ref({});
+    manualTag: Ref<ManualTag> = ref(new ManualTag());
 
     // Websocket
     private ws!: WebSocket;
@@ -245,6 +247,11 @@ class OneTagger {
             case 'folderBrowser':
                 this.onFolderBrowserEvent(json);
                 break;
+            // Manual tag applied tags
+            case 'manualTagApplied':
+                this.manualTag.value._resolveSaving!(json);
+                break;
+
             // Debug
             default:
                 // Tag editor

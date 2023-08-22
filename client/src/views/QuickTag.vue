@@ -50,6 +50,7 @@
         <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
             <q-intersection style='height: 116px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                 <QuickTagTile :track='item'></QuickTagTile>
+                <QuickTagContextMenu @manual-tag="manualTagPath = item.path"></QuickTagContextMenu>
             </q-intersection>
         </div>
         <!-- Thin tracks -->
@@ -57,6 +58,7 @@
             <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
                 <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                     <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
+                    <QuickTagContextMenu @manual-tag="manualTagPath = item.path"></QuickTagContextMenu>
                 </q-intersection>
             </div>
         </div>
@@ -148,6 +150,8 @@
         </q-card>
     </q-dialog>
 
+    <!-- Manual Tagger -->
+    <ManualTag :path='manualTagPath' @exit='manualTagPath = undefined'></ManualTag>
 
 </div>
 </template>
@@ -158,8 +162,10 @@ import { Ref, computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { CustomTagInfo, QTTrack } from '../scripts/quicktag.js';
 
+import ManualTag from '../components/ManualTag.vue';
 import QuickTagTile from '../components/QuickTagTile.vue';
 import QuickTagTileThin from '../components/QuickTagTileThin.vue';
+import QuickTagContextMenu from '../components/QuickTagContextMenu.vue';
 
 const { setVerticalScrollPosition } = scroll;
 
@@ -172,7 +178,7 @@ const filter = ref<string | undefined>(undefined);
 const sortDescending = ref(false);
 const sortOption = ref('title');
 const failedDialog = ref(false);
-
+const manualTagPath = ref<string | undefined>(undefined);
 
 // Click on track card
 function trackClick(track: QTTrack, event: MouseEvent) {

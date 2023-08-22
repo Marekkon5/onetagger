@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
-use onetagger_tagger::{TaggerConfig, AudioFileInfo};
+use onetagger_tagger::{TaggerConfig, AudioFileInfo, TrackMatch};
 use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl, TaggerConfigExt};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
@@ -71,7 +71,10 @@ enum Action {
     RenamerPreview { config: RenamerConfig },
     RenamerStart { config: RenamerConfig },
 
-    FolderBrowser { path: PathBuf, child: String, base: bool }
+    FolderBrowser { path: PathBuf, child: String, base: bool },
+
+    ManualTag { config: TaggerConfig, path: PathBuf },
+    ManualTagApply { matches: Vec<TrackMatch>, path: PathBuf, config: TaggerConfig },
 }
 
 
@@ -522,7 +525,55 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "path": path
             })).ok();
         },
-        
+
+        // Manually tag a file
+        Action::ManualTag { config, path } => {
+            let rx = onetagger_autotag::manual_tagger(path, &config)?;
+            for (platform, r) in rx {
+                match r {
+                    Ok(matches) => {
+                        send_socket(websocket, json!({
+                            "action": "manualTag",
+                            "platform": platform,
+                            "status": "ok",
+                            "matches": matches
+                        })).ok();
+                    },
+                    Err(e) => {
+                        send_socket(websocket, json!({
+                            "action": "manualTag",
+                            "platform": platform,
+                            "status": "error",
+                            "error": e.to_string()
+                        })).ok();
+                    },
+                }
+            }
+
+            // On done
+            send_socket(websocket, json!({
+                "action": "manualTagDone"
+            })).ok();
+        },
+        // Apply the tags from manual tagger
+        Action::ManualTagApply { matches, path, config } => {
+            match onetagger_autotag::manual_tagger_apply(matches, path, &config) {
+                Ok(_) => {
+                    send_socket(websocket, json!({
+                        "action": "manualTagApplied",
+                        "status": "ok"
+                    })).ok();
+                },
+                Err(e) => {
+                    error!("Failed applying manual tag: {e}");
+                    send_socket(websocket, json!({
+                        "action": "manualTagApplied",
+                        "status": "error",
+                        "error": e.to_string()
+                    })).ok();
+                },
+            }
+        }
         
     }
    

@@ -109,5 +109,11 @@ interface Playlist {
     filename?: string;
 }
 
-export type { Playlist };
+/// Duration from Rust
+interface RustDuration {
+    secs: number;
+    nanos: number;
+}
+
+export type { Playlist, RustDuration };
 export { wsUrl, httpUrl, spotifyUrl, Separators, FrameName, Keybind, Spotify };
