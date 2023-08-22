@@ -59,7 +59,7 @@ impl ID3Tag {
                     Version::Id3v24 => true,
                     _ => false
                 },
-                comm_lang: "xxx".to_string()
+                comm_lang: "eng".to_string()
             }.into());
         }
         // AIFF
@@ -74,7 +74,7 @@ impl ID3Tag {
                     Version::Id3v24 => true,
                     _ => false
                 },
-                comm_lang: "xxx".to_string()
+                comm_lang: "eng".to_string()
             }.into());
         }
         // WAV
@@ -89,7 +89,7 @@ impl ID3Tag {
                     Version::Id3v24 => true,
                     _ => false
                 },
-                comm_lang: "xxx".to_string()
+                comm_lang: "eng".to_string()
             }.into());
         }
 
@@ -118,7 +118,7 @@ impl ID3Tag {
                     format,
                     id3_separator: String::from(", "),
                     id3v24: true,
-                    comm_lang: "xxx".to_string()
+                    comm_lang: "eng".to_string()
                 }
             }
         }
