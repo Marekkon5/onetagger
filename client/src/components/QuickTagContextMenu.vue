@@ -4,7 +4,7 @@
 
             <q-item dense clickable @click='emit("manual-tag")' v-close-popup>
                 <q-item-section>
-                    Manual Tagger
+                    Manual Tag
                 </q-item-section>
             </q-item>
 

@@ -1,16 +1,16 @@
 <template>
 <q-dialog v-model='show' persistent>
-<q-card style='min-width: 600px; min-height: 50vh;'>
+<q-card style='min-width: 600px; min-height: 50vh; background-color: #181818;'>
 
     <!-- Title -->
     <q-card-section>
-        <div class='text-h5 text-center'>Manual Tagger</div>
-        <div class='monospace text-center'>{{ path }}</div>
+        <div class='text-subtitle1 text-bold text-center text-primary'>MANUAL TAG</div>
+        <div class='monospace text-subtitle2 text-grey-6 text-center'>{{ path }}</div>
     </q-card-section>
 
     <!-- Body -->
     <q-card-section>
-        <div class='manualtag-results'>
+        <div class='manualtag-results bg-dark'>
             <q-list>
                 <q-item v-for='(match, i) in $1t.manualTag.value.matches' :key='i'>
                     <q-item-section avatar>
@@ -25,21 +25,19 @@
                         </div>
                     </q-item-section>
                     <q-item-section>
-                        <q-item-label overline>
+                        <q-item-label overline class='text-white'>
                             <span>{{ match.track.platform.toUpperCase() }}</span>
                             <span class='q-px-sm'>|</span>
-                            <q-icon name='mdi-percent' class='q-pr-xs'></q-icon>
-                            <span>{{ (match.accuracy * 100.0).toFixed(2) }}</span>
+                            <span :class='accuracyColor(match.accuracy)'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span>
                             <span class='q-px-sm'>|</span>
-                            <q-icon name='mdi-information' class='q-pr-xs'></q-icon>
+                            <q-icon name='mdi-information' class='q-pr-xs icon-fix' color='grey-4'></q-icon>
                             <span>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
-                        <q-item-label>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
-                        <q-item-label>
+                        <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
+                        <q-item-label class='text-grey-5'>
                             <span>{{ match.track.album }}</span>
                             <span v-if='match.track.bpm'>, BPM: {{ match.track.bpm }}</span>
                             <span v-if='match.track.key'>, Key: {{ match.track.key }}</span>
-    
                         </q-item-label>
                     </q-item-section>
                 </q-item>
@@ -136,6 +134,13 @@ function exit() {
     emit('exit');
 }
 
+/// Get accuracy color
+function accuracyColor(acc: number) {
+    if (acc == 1.0) return 'text-green';
+    if (acc > 0.85) return 'text-yellow';
+    return 'text-red';
+}
+
 /// Apply the matches
 async function apply() {
     saving.value = true;
@@ -167,6 +172,9 @@ async function apply() {
 watch(path!, () => {
     // to bool
     show.value = !!(path!.value);
+    if (show.value) {
+        start();
+    }
 });
 
 </script>
@@ -177,5 +185,10 @@ watch(path!, () => {
     height: 50vh;
     overflow-y: scroll;
     overflow-x: hidden;
+    border-radius: 8px;
 }
+.icon-fix {
+    transform: translateY(-1px);
+}
+
 </style>
