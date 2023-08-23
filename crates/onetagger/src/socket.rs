@@ -528,6 +528,10 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
 
         // Manually tag a file
         Action::ManualTag { config, path } => {
+            // Log config
+            info!("Manual tag starting for path: {path:?}");
+            TaggerConfigs::AutoTagger(config.clone()).debug_print();
+
             let rx = onetagger_autotag::manual_tagger(path, &config)?;
             for (platform, r) in rx {
                 match r {
