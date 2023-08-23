@@ -1005,13 +1005,6 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
                 continue;
             },
         };
-        let mut s = match p.get_source(config) {
-            Ok(s) => s,
-            Err(e) => {
-                error!("Failed creating platform source for platform: {platform}. {e}");
-                continue;
-            }
-        };
 
         // Spawn thread to match track
         let mut config = config.clone();
@@ -1020,6 +1013,16 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
         let tx = tx.clone();
         let platform = platform.to_string();
         platforms.push(std::thread::spawn(move || {
+            // Get platform
+            let mut s = match p.get_source(&config) {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed creating platform source for platform: {platform}. {e}");
+                    tx.send((platform, Err(e))).ok();
+                    return;
+                }
+            };
+            // Match
             tx.send((platform, s.match_track(&info, &config))).ok();
         }));
     }

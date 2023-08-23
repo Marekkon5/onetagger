@@ -1,6 +1,6 @@
 <template>
 <q-dialog v-model='show' persistent>
-<q-card style='min-width: 600px; min-height: 50vh; background-color: #181818;'>
+<q-card style='min-width: 650px; min-height: 50vh;'>
 
     <!-- Title -->
     <q-card-section>
@@ -11,7 +11,17 @@
     <!-- Body -->
     <q-card-section>
         <div class='manualtag-results bg-dark'>
-            <q-list>
+
+            <!-- Results list -->
+            <q-list v-if='$1t.manualTag.value.busy || $1t.manualTag.value.done'>
+
+                <!-- Empty results -->
+                <div v-if='$1t.manualTag.value.done && $1t.manualTag.value.matches.length == 0' class='text-center'>
+                    <div class='text-h5 q-mt-md'>No results!</div>
+                    <div class='text-body1 text-grey-5 q-mt-md'>Try enabling more platforms or correcting title + artist tag.</div>
+                </div>
+
+                <!-- Matches -->
                 <q-item v-for='(match, i) in $1t.manualTag.value.matches' :key='i'>
                     <q-item-section avatar>
                         <div class='row items-center'>
@@ -29,9 +39,8 @@
                             <span>{{ match.track.platform.toUpperCase() }}</span>
                             <span class='q-px-sm'>|</span>
                             <span :class='accuracyColor(match.accuracy)'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span>
-                            <span class='q-px-sm'>|</span>
-                            <q-icon name='mdi-information' class='q-pr-xs icon-fix' color='grey-4'></q-icon>
-                            <span>{{ match.reason.toUpperCase() }}</span>
+                            <span v-if='match.reason != "fuzzy"' class='q-px-sm'>|</span>
+                            <span v-if='match.reason != "fuzzy"'>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
                         <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
                         <q-item-label class='text-grey-5'>
@@ -41,9 +50,23 @@
                         </q-item-label>
                     </q-item-section>
                 </q-item>
-    
             </q-list>
+
+            <!-- Config -->
+            <div v-else>
+                <div class='q-mt-md text-subtitle1 text-bold text-center text-primary'>PLATFORMS</div>
+                <autotagger-platforms dense></autotagger-platforms>
+                <autotagger-tags manual-tag></autotagger-tags>
+                <autotagger-platform-specific class='q-mt-lg q-px-lg'></autotagger-platform-specific>
+            </div>
+
         </div>
+
+        <!-- Errors -->
+        <div v-if='$1t.manualTag.value.errors.length > 0' class='text-center text-red text-body1 q-pt-sm clickable' @click='errorList = true'>
+            Some platforms failed to search. Click here to see details.
+        </div>
+
     </q-card-section>
 
     <!-- Actions -->
@@ -55,12 +78,12 @@
             <q-btn flat color='red' @click='exit' v-if='!saving'>Close</q-btn>
         </div>
         <!-- Start tagging -->
-        <div class='q-px-sm' v-if='$1t.manualTag.value.busy || $1t.manualTag.value.matches.length == 0'>
+        <div class='q-px-sm' v-if='!$1t.manualTag.value.done'>
             <q-btn 
                 flat 
                 color='primary' 
                 @click='start' 
-                :disable='$1t.manualTag.value.busy || $1t.manualTag.value.matches.length > 0' 
+                :disable='$1t.manualTag.value.busy && !$1t.manualTag.value.done' 
                 :loading='$1t.manualTag.value.busy'
             >Start</q-btn>
         </div>
@@ -79,6 +102,32 @@
 
 </q-card>
 </q-dialog>
+
+<!-- Error list -->
+<q-dialog v-model='errorList'>
+<q-card style='min-width: 420px;'>
+    <!-- Title -->
+    <q-card-section>
+        <div class='text-subtitle1 text-bold text-center text-red'>ERRORS</div>
+    </q-card-section>
+
+    <!-- Errors -->
+    <q-card-section>
+        <div v-for='error in $1t.manualTag.value.errors' class='text-body1'>
+            <span><span class='text-bold'>{{ error.platform.toUpperCase() }}</span>: {{ error.error }}</span>
+        </div>
+    </q-card-section>
+
+    <!-- Hide -->
+    <q-card-section class='row'>
+        <q-space></q-space>
+        <q-btn flat color='red' @click='errorList = false'>Close</q-btn>
+    </q-card-section>
+
+</q-card>
+</q-dialog>
+
+
 </template>
 
 <script lang='ts' setup>
@@ -87,6 +136,9 @@ import { TrackMatch } from '../scripts/manualtag';
 import { get1t } from '../scripts/onetagger';
 import { AutotaggerConfig } from '../scripts/autotagger';
 import { useQuasar } from 'quasar';
+import AutotaggerPlatforms from './AutotaggerPlatforms.vue';
+import AutotaggerTags from './AutotaggerTags.vue';
+import AutotaggerPlatformSpecific from './AutotaggerPlatformSpecific.vue';
 
 const $q = useQuasar();
 const $1t = get1t();
@@ -96,8 +148,9 @@ const props = defineProps({
     path: { type: String, required: false }
 });
 const { path } = toRefs(props);
-const selected = ref<TrackMatch[]>([]);
 const saving = ref(false);
+const selected = ref<TrackMatch[]>([]);
+const errorList = ref(false);
 let cachedConfig = {};
 
 /// Start manual tagger
@@ -172,9 +225,6 @@ async function apply() {
 watch(path!, () => {
     // to bool
     show.value = !!(path!.value);
-    if (show.value) {
-        start();
-    }
 });
 
 </script>
@@ -186,9 +236,7 @@ watch(path!, () => {
     overflow-y: scroll;
     overflow-x: hidden;
     border-radius: 8px;
-}
-.icon-fix {
-    transform: translateY(-1px);
+    background-color: #99999910 !important
 }
 
 </style>

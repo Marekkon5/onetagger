@@ -6,8 +6,10 @@ class ManualTag {
 
     ws?: WebSocket;
     busy = false;
+    done = false;
     matches: TrackMatch[] = [];
     errors: ManualTagError[] = [];
+
     
     _resolveSaving?: Function;
 
@@ -22,6 +24,7 @@ class ManualTag {
         this.matches = [];
         this.errors = [];
         this.busy = false;
+        this.done = false;
     }
 
     /// Start tagging a track
@@ -72,6 +75,7 @@ class ManualTag {
             // Finished
             case 'manualTagDone':
                 this.busy = false;
+                this.done = true;
                 this.ws?.close();
                 this.ws = undefined;
                 break;
