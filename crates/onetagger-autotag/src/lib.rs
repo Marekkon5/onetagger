@@ -1023,7 +1023,8 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
                 }
             };
             // Match
-            tx.send((platform, s.match_track(&info, &config))).ok();
+            let r = s.match_track(&info, &config).map(|mut m| { m.dedup(); m });
+            tx.send((platform, r)).ok();
         }));
     }
 

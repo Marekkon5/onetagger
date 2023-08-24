@@ -346,9 +346,25 @@ impl AutotaggerSource for Beatport {
                     // Match
                     let tracks = res.data
                         .into_iter()
-                        .map(|t| t.to_track(!custom_config.ignore_version))
+                        .map(|t| t.to_track(true))
                         .collect::<Vec<_>>();
-                    let tracks = MatchingUtils::match_track(info, &tracks, config, true);
+
+                    // Ignore version match
+                    let tracks = if custom_config.ignore_version {
+                        let t = tracks.clone().into_iter().map(|mut t| { t.version = None; t }).collect();
+                        // Copy back versions
+                        MatchingUtils::match_track(info, &t, config, true)
+                            .into_iter()
+                            .map(|mut t| {
+                                if let Some(ot) = tracks.iter().find(|ot| ot.url == t.track.url) {
+                                    t.track.version = ot.version.to_owned();
+                                }
+                                t
+                            })
+                            .collect()
+                    } else {
+                        MatchingUtils::match_track(info, &tracks, config, true)
+                    };
 
                     // Return
                     output.extend(tracks);

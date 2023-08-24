@@ -58,7 +58,7 @@
                             <span class='q-px-sm' :class='accuracyColor(match.accuracy)'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span>
                             <span v-if='match.reason != "fuzzy"'>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
-                        <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
+                        <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}<span v-if='match.track.version'> ({{ match.track.version }})</span></q-item-label>
                         <q-item-label class='text-grey-5'>
                             <span v-if='match.track.album'>Album: <span class='text-white'>{{ match.track.album }}</span></span>
                             <span v-if='match.track.album && match.track.genres.length > 0'>, </span>
