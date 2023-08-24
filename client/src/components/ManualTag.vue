@@ -1,6 +1,6 @@
 <template>
 <q-dialog v-model='show' persistent>
-<q-card style='min-width: 650px; min-height: 50vh;'>
+<q-card style='min-width: 650px; min-height: 50vh;' class='q-pa-lg'>
 
     <!-- Title -->
     <q-card-section>
