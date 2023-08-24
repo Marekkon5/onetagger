@@ -102,9 +102,11 @@ import { httpUrl } from '../scripts/utils.js';
 
 const $1t = get1t();
 const props = defineProps({
-    track: { required: true, type: QTTrack }
+    track: { required: true, type: QTTrack },
+    noArtCache: { default: false, type: Boolean }
 });
 const inputTrack = toRef(props, 'track');
+const noArtCache = toRef(props, 'noArtCache');
 
 // Get mood by name
 function getMood(name?: string) {
@@ -165,7 +167,7 @@ const track = computed(() => {
 });
 
 const selected = computed(() => $1t.quickTag.value.track.isSelected(track.value));
-const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.value.path)}`);
+const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.value.path)}${noArtCache.value ? "&_=" + Math.random().toString() : ""}`);
 
 </script>
 

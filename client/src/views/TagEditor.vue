@@ -305,14 +305,27 @@
 
                 </div>
 
-                <!-- Save -->
+
+
+                <!-- Save, Manual tag -->
                 <q-page-sticky position='bottom-right' :offset='[36, 18]'>
-                    <q-btn push
-                        @click='save'
-                        color="primary"
-                        class='text-black'
-                        label="Save"
-                    ></q-btn>
+                    <div class='row'>
+                        <q-btn 
+                            push
+                            @click='manualTagPath = file.path'
+                            color="primary"
+                            class='text-black q-mr-md'
+                            label="Manual Tag"
+                        ></q-btn>
+
+                        <q-btn 
+                            push
+                            @click='save'
+                            color="primary"
+                            class='text-black'
+                            label="Save"
+                        ></q-btn>
+                    </div>
                 </q-page-sticky>
 
             </div>
@@ -329,6 +342,9 @@
         <AddAlbumArt :types='albumArtTypes' @close='addAlbumArtDialog = false' @save='addAlbumArt'></AddAlbumArt>
     </q-dialog>
 
+    <!-- Manual Tag -->
+    <ManualTag :path='manualTagPath' @exit='loadFile(manualTagPath!); manualTagPath = undefined;'></ManualTag>
+
 </div>
 </template>
 
@@ -340,6 +356,7 @@ import { ABSTRACTIONS } from '../scripts/tags';
 import { computed, onDeactivated, onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { useQuasar } from 'quasar';
+import ManualTag from '../components/ManualTag.vue';
 
 const $1t = get1t();
 const $q = useQuasar();
@@ -355,6 +372,7 @@ const showAlbumArt = ref(false);
 const addAlbumArtDialog = ref(false);
 const customList = ref($1t.settings.value.tagEditorCustom);
 const id3v24 = ref(false);
+const manualTagPath = ref<string | undefined>(undefined);
 
 
 function loadFiles(f?: string) {

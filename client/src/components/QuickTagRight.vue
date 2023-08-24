@@ -47,7 +47,7 @@
 
     <!-- Manual tag -->
     <div class='full-width row justify-center' v-if='$1t.quickTag.value.track.tracks.length == 1'>
-        <q-btn outline color='primary' @click='emit("manual-tag", $1t.quickTag.value.track.tracks[0].path)'>MANUAL TAG</q-btn>
+        <q-btn outline color='primary' @click='$1t.onQuickTagEvent("onManualTag", {path: $1t.quickTag.value.track.tracks[0].path})'>MANUAL TAG</q-btn>
     </div>
 
 </div>
@@ -60,7 +60,6 @@ import { get1t } from '../scripts/onetagger.js';
 const $1t = get1t();
 const newTag = ref(-1);
 const newTagValue = ref<string | undefined>(undefined);
-const emit = defineEmits(['manual-tag']);
 
 // If the value is present in tag
 function selected(tag: number, value: string) {

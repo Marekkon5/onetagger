@@ -49,8 +49,8 @@
         <!-- Tracklist -->
         <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
             <q-intersection style='height: 116px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
-                <QuickTagTile :track='item'></QuickTagTile>
-                <QuickTagContextMenu @manual-tag="manualTagPath = item.path"></QuickTagContextMenu>
+                <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
+                <QuickTagContextMenu @manual-tag="onManualTag(item.path)"></QuickTagContextMenu>
             </q-intersection>
         </div>
         <!-- Thin tracks -->
@@ -58,7 +58,7 @@
             <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
                 <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                     <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
-                    <QuickTagContextMenu @manual-tag="manualTagPath = item.path"></QuickTagContextMenu>
+                    <QuickTagContextMenu @manual-tag="onManualTag(item.path)"></QuickTagContextMenu>
                 </q-intersection>
             </div>
         </div>
@@ -151,7 +151,7 @@
     </q-dialog>
 
     <!-- Manual Tagger -->
-    <ManualTag :path='manualTagPath' @exit='manualTagPath = undefined'></ManualTag>
+    <ManualTag :path='manualTagPath' @exit='onManualTagDone'></ManualTag>
 
 </div>
 </template>
@@ -179,6 +179,9 @@ const sortDescending = ref(false);
 const sortOption = ref('title');
 const failedDialog = ref(false);
 const manualTagPath = ref<string | undefined>(undefined);
+const noArtCacheList = ref<string[]>([])
+
+let afterSave: undefined | Function = undefined;
 
 // Click on track card
 function trackClick(track: QTTrack, event: MouseEvent) {
@@ -215,6 +218,12 @@ async function saveDialogCallback(save: boolean) {
     saveDialog.value = false;
     // focus on custom tags fix
     setTimeout(() => { $1t.quickTagUnfocus(); }, 50);
+
+    // Do after save action
+    if (afterSave) {
+        afterSave();
+        afterSave = undefined;
+    }
 }
 
 // Select folder and load tracks
@@ -324,15 +333,31 @@ function findIndex(highest: boolean = true) {
     return finalIndex;
 }
 
-/// Lazy load tracks
+// On scroll event
 function onScroll(e: Event) {
     // Fix width
     fixTracklistWidth(true);
+}
 
-    let target = e.target as HTMLElement;
-    let scroll = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+// Open manual tag
+async function onManualTag(path: string) {
+    // Wait for save
+    if ($1t.quickTag.value.track.isChanged()) {
+        let promise = new Promise((res, _) => afterSave = res);
+        $1t.onQuickTagEvent('onUnsavedChanges');
+        await promise;
+    }
+    $1t.quickTag.value.track.removeAll();
 
+    // Open
+    manualTagPath.value = path;
+}
 
+// Manual tagging done
+function onManualTagDone() {
+    noArtCacheList.value.push(manualTagPath.value!);
+    manualTagPath.value = undefined;
+    $1t.loadQuickTag();
 }
 
 // Scroll to track index
@@ -471,6 +496,11 @@ onMounted(() => {
                 });
 
                 break;
+
+            // Manual tag trigger
+            case 'onManualTag':
+                onManualTag(data.path);
+                return;
                 
             default:
                 console.log(`Unknown QT Event: ${action} ${data}`);
