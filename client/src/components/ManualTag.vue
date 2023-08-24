@@ -25,11 +25,24 @@
                 <q-item v-for='(match, i) in $1t.manualTag.value.matches' :key='i'>
                     <q-item-section avatar>
                         <div class='row items-center'>
-                            <div class='q-pr-sm'>
-                                <q-checkbox
-                                    :model-value="selected.includes(match)"
-                                    @update:model-value="(v) => toggleMatch(match)"
-                                ></q-checkbox>
+                            <div>
+                                <div class='q-pr-sm'>
+                                    <q-checkbox
+                                        :model-value="selected.includes(match)"
+                                        @update:model-value="(v) => toggleMatch(match)"
+                                    ></q-checkbox>
+                                </div>
+                                <!-- Open URL -->
+                                <q-btn 
+                                    icon='mdi-open-in-new' 
+                                    flat 
+                                    round 
+                                    size='sm' 
+                                    color='grey-5'
+                                    class='q-ml-xs'
+                                    @click='$1t.url(match.track.url)'
+                                    v-if='match.track.url'
+                                ></q-btn>
                             </div>
                             <q-img 
                                 width='48px' 

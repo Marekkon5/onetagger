@@ -214,6 +214,7 @@ impl BeatportTrackResult {
     pub fn to_track(self, include_version: bool) -> Track {
         Track {
             platform: "beatport".to_string(),
+            url: format!("https://www.beatport.com/track/{}/{}", self.track_name.to_lowercase().replace(" ", "-"), self.track_id),
             title: self.track_name,
             track_id: Some(self.track_id.to_string()),
             artists: self.artists.unwrap_or(vec![]).into_iter().map(|a| a.artist_name).collect(),
