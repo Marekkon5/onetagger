@@ -1,5 +1,5 @@
 <template>
-<div class='index-container'>
+<div class='index-container' oncontextmenu="return false;">
 
     <!-- Background -->
     <img src='../assets/bg.jpg' class='bg-image' ref='bgImage'>

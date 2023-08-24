@@ -187,7 +187,7 @@ class OneTagger {
             case 'taggingProgress':
                 this.taggerStatus.value.progress = json.status.progress;
                 // De duplicate failed
-                let i = this.taggerStatus.value.statuses.findIndex((s) => s[0].status.path == json.status.status.path)
+                var i = this.taggerStatus.value.statuses.findIndex((s) => s[0].status.path == json.status.status.path)
                 if (i != -1) {
                     this.taggerStatus.value.statuses[i].push(json.status);
                     return;
@@ -226,7 +226,7 @@ class OneTagger {
                 break;
             /*eslint-disable no-case-declarations*/
             case 'quickTagSaved':
-                i = this.quickTag.value.tracks.findIndex((t) => t.path == json.path);
+                var i = this.quickTag.value.tracks.findIndex((t) => t.path == json.path);
                 if (i != -1) {
                     this.quickTag.value.tracks[i] = new QTTrack(json.file, this.settings.value.quickTag);
                 } else {

@@ -31,7 +31,12 @@
                                     @update:model-value="(v) => toggleMatch(match)"
                                 ></q-checkbox>
                             </div>
-                            <q-img width='48px' :src='match.track.thumbnail??match.track.art'></q-img>
+                            <q-img 
+                                width='48px' 
+                                height='48px'
+                                :src='match.track.thumbnail??match.track.art'
+                                :placeholder-src="PLACEHOLDER_IMG"
+                            ></q-img>
                         </div>
                     </q-item-section>
                     <q-item-section>
@@ -44,9 +49,11 @@
                         </q-item-label>
                         <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
                         <q-item-label class='text-grey-5'>
-                            <span>{{ match.track.album }}</span>
-                            <span v-if='match.track.bpm'>, BPM: {{ match.track.bpm }}</span>
-                            <span v-if='match.track.key'>, Key: {{ match.track.key }}</span>
+                            <span v-if='match.track.album'>Album: <span class='text-white'>{{ match.track.album }}</span></span>
+                            <span v-if='match.track.album && match.track.genres.length > 0'>, </span>
+                            <span v-if='match.track.genres.length > 0'>Genres: <span class='text-white'>{{ match.track.genres.join(", ") }}</span></span>
+                            <span v-if='match.track.bpm'>, BPM: <span class='monospace text-white'>{{ match.track.bpm }}</span></span>
+                            <span v-if='match.track.key'>, Key: <span class='monospace text-white'>{{ match.track.key }}</span></span>
                         </q-item-label>
                     </q-item-section>
                 </q-item>
@@ -139,6 +146,7 @@ import { useQuasar } from 'quasar';
 import AutotaggerPlatforms from './AutotaggerPlatforms.vue';
 import AutotaggerTags from './AutotaggerTags.vue';
 import AutotaggerPlatformSpecific from './AutotaggerPlatformSpecific.vue';
+import { PLACEHOLDER_IMG } from '../scripts/quicktag';
 
 const $q = useQuasar();
 const $1t = get1t();

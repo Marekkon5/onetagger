@@ -38,7 +38,7 @@
                     <QuickTagFileBrowser v-if='left'></QuickTagFileBrowser>
                 </q-drawer>
                 <q-drawer :breakpoint="1000" v-model="right" side="right" :width="200" >
-                    <QuickTagRight></QuickTagRight>
+                    <QuickTagRight @manual-tag="(p) => manualTagPath = p"></QuickTagRight>
                 </q-drawer>
             </div>
 
@@ -114,6 +114,10 @@
             <FolderBrowser v-if='$1t.folderBrowser.value.open' :base='$1t.folderBrowser.value.basePath'></FolderBrowser>
         </q-dialog>
     </div>
+
+    <!-- Manual Tag -->
+    <ManualTag :path='manualTagPath' @exit="manualTagPath = undefined"></ManualTag>
+
 </template>
 
 <script lang='ts' setup>
@@ -134,6 +138,7 @@ import QuickTagFileBrowser from './components/QuickTagFileBrowser.vue';
 import PlayerBar from './components/PlayerBar.vue';
 import FolderBrowser from './components/FolderBrowser.vue';
 import LogoText from './components/LogoText.vue';
+import ManualTag from './components/ManualTag.vue';
 
 const $1t = get1t();
 const $q = useQuasar();
@@ -146,6 +151,7 @@ const settings = ref(false);
 const sizeDialog = ref(false);
 const update = ref<undefined | { url: string, version: string, changelog: string }>(undefined);
 const updateDialog = ref(false);
+const manualTagPath = ref<undefined | string>(undefined);
 
 // Hide/Show footer and drawer
 function hideSide() {

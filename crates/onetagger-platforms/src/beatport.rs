@@ -142,12 +142,18 @@ pub struct BeatportTrackResult {
     pub length: Option<u64>,
     pub mix_name: Option<String>,
     pub release: Option<BeatportTrackResultRelease>,
+    pub genre: Option<Vec<BeatportTrackResultsGenre>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportTrackResultRelease {
     pub release_id: i64,
     pub release_image_uri: Option<String>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatportTrackResultsGenre {
+    pub genre_name: String
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,6 +224,7 @@ impl BeatportTrackResult {
             duration: Duration::from_millis(self.length.unwrap_or(0)),
             isrc: self.isrc,
             thumbnail: self.release.map(|r| r.release_image_uri).flatten(),
+            genres: self.genre.map(|g| g.into_iter().map(|g| g.genre_name).collect()).unwrap_or(vec![]),
             ..Default::default()
         }
     }
