@@ -43,6 +43,7 @@ pub fn start_webview() -> Result<(), Error> {
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
     let mut webview = WebViewBuilder::new(window)?
         .with_url("http://127.0.0.1:36913")?
+        .with_devtools(true)
         .with_web_context(&mut context);
 
     // Windows webview2 does NOT support custom DnD, janky workaround
