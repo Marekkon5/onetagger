@@ -181,8 +181,12 @@ function start() {
     // Generate config
     let config = JSON.parse(JSON.stringify($1t.config.value));
     config.path = '';
-    config.spotify.clientId = $1t.spotify.value.clientId;
-    config.spotify.clientSecret = $1t.spotify.value.clientSecret;
+    if ($1t.spotify.value.clientId && $1t.spotify.value.clientSecret) {
+        config.spotify = {
+            clientId: $1t.spotify.value.clientId,
+            clientSecret: $1t.spotify.value.clientSecret,
+        }
+    }
     cachedConfig = config;
 
     // Start

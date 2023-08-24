@@ -20,7 +20,7 @@
     <div class='q-mt-sm'>
 
         <!-- Filter -->        
-        <q-input dense filled label='Filter' class='q-mb-sm' @input='applyFilter' v-model='filter'></q-input>
+        <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='applyFilter' v-model='filter'></q-input>
 
         <!-- Parent -->
         <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
