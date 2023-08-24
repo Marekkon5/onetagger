@@ -39,7 +39,7 @@
                                     round 
                                     size='sm' 
                                     color='grey-5'
-                                    class='q-ml-xs'
+                                    style='margin-left: 5px;'
                                     @click='$1t.url(match.track.url)'
                                     v-if='match.track.url'
                                 ></q-btn>
@@ -55,9 +55,7 @@
                     <q-item-section>
                         <q-item-label overline class='text-white'>
                             <span>{{ match.track.platform.toUpperCase() }}</span>
-                            <span class='q-px-sm'>|</span>
-                            <span :class='accuracyColor(match.accuracy)'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span>
-                            <span v-if='match.reason != "fuzzy"' class='q-px-sm'>|</span>
+                            <span class='q-px-sm' :class='accuracyColor(match.accuracy)'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span>
                             <span v-if='match.reason != "fuzzy"'>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
                         <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}</q-item-label>
