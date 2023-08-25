@@ -115,7 +115,6 @@ class QuickTagSettings {
         {genre: 'Latin', subgenres: []},
         {genre: 'Minimal', subgenres: []},
         {genre: 'Nu-Disco', subgenres: []},
-        {genre: 'Oldies', subgenres: []},
         {genre: 'Pop', subgenres: []},
         {genre: 'Reggae', subgenres: []},
         {genre: 'Rock', subgenres: []},

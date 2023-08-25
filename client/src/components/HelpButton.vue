@@ -33,8 +33,8 @@
 
             <!-- Auto tagger -->
             <div v-if='route == "autotagger"'>
-                <q-card-section class='q-pa-xl'>
-                    <div class='text-subtitle1 text-center text-primary text-bold text-uppercase'>Getting started with Auto Tag</div>
+                <q-card-section class='q-pa-lg'>
+                    <div class='q-mt-md text-subtitle1 text-center text-primary text-bold text-uppercase'>Getting started with Auto Tag</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
                         <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
@@ -128,7 +128,7 @@
                             </div>
                         </div>
                         
-                        <div class='bg-darker text-subtitle2 text-grey-5 q-my-md q-py-md text-center' style='line-height: 24px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-my-lg q-py-md text-center' style='line-height: 24px'>
                             <span class='q-pl-md'>Not all platforms have the same tags available. Hover over the help <q-icon name='mdi-help-circle-outline' style='margin-bottom: -2px;' class='q-pb-xs text-grey-6'></q-icon> icons for more info</span> <br>
                         </div>
                     </div>
@@ -167,7 +167,7 @@
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             <span class='text-number text-bold text-grey-6'>10.</span><span class='q-pl-sm'>Enable toggle <q-icon name='mdi-toggle-switch' class='text-grey-4'></q-icon> to activate stated options</span><br>
                             <span class='text-number text-bold text-grey-10'>_&nbsp;</span><span class='q-pl-md'>Hover over the help <q-icon name='mdi-help-circle-outline' class='q-pb-xs text-grey-6'></q-icon> icons for more info</span> <br>
-                            <span class='text-number text-bold text-grey-10'>_&nbsp;</span><span class='q-pl-md'>Click the start <q-icon name='mdi-play-circle' class='q-mb-xs text-primary'></q-icon> icon to process</span> <p></p>
+                            <span class='text-number text-bold text-grey-10'>_&nbsp;</span><span class='q-pl-md'>Click the start <q-icon name='mdi-play-circle' class='q-mb-md text-primary'></q-icon> icon to process</span> <p></p>
                         </div>
                         </div>
                         
@@ -179,8 +179,8 @@
 
             <!-- Audio features -->
             <div v-if='route == "audiofeatures"'>
-                <q-card-section class='q-pa-xl'>
-                    <div class='text-subtitle1 text-primary text-bold text-uppercase text-center'>Getting started with Audio Features</div>
+                <q-card-section class='q-pa-lg'>
+                    <div class='q-mt-md text-subtitle1 text-primary text-bold text-uppercase text-center'>Getting started with Audio Features</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
                         <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
@@ -221,7 +221,7 @@
                         </div>
                         </div>
                         </div>
-                        <div class='bg-darker text-subtitle2 text-grey-5 q-mt-md q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-mt-md q-mb-lg q-px-md q-py-md q-my-md text-center' style='line-height: 24px'>
                             For a more in-depth description, check out <span class='clickable doc-link' @click='$1t.url("https://developer.spotify.com/documentation/web-api/reference/#/operations/get-several-audio-features")'>Spotify’s official Audio Features </span> documentation<br>
                             <div class='bg-darker text-subtitle2 text-grey-5 text-center q-pt-xs' style='line-height: 24px'>
                             To look up audio features online for other tracks, check out <span class='clickable doc-link' @click='$1t.url("https://songdata.io")'>SongData.io </span> - Ignore the <span class='clickable doc-link' @click='$1t.url("https://www.reddit.com/r/DJs/comments/m3q97z/key_detection_comparison_spotify_vs_tunebat_vs/")'>keys determined by Spotify </span> though
@@ -409,7 +409,7 @@
 
                         </div>
                         </div>
-                            <div class='q-pb-xs text-subtitle3 q-my-md text-grey-5 text-center' style='line-height: 25px'>
+                            <div class='q-pb-xs text-subtitle3 q-my-md text-grey-5 text-center' style='line-height: 24px'>
                                 When threshold is <q-badge color='grey-8'><span class='textnumber text-grey-2'>0*</span></q-badge>&nbsp; it won't write the Prominent tag
                             </div>
                         
@@ -428,8 +428,8 @@
 
             <!-- Quicktag -->
             <div v-if='route == "quicktag"'>
-                <q-card-section class='q-pa-xl'>
-                    <div class='text-subtitle1 text-primary text-bold text-uppercase text-center'>Getting started with Quick Tag</div>
+                <q-card-section class='q-pa-lg'>
+                    <div class='q-mt-md text-subtitle1 text-primary text-bold text-uppercase text-center'>Getting started with Quick Tag</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
                         <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
@@ -521,8 +521,8 @@
 
             <!-- Tag editor -->
             <div v-if='route == "tageditor"'>
-                <q-card-section class='q-pa-xl'>
-                    <div class='text-subtitle1 text-primary text-bold text-uppercase text-center'>GETTING STARTED WITH EDIT TAGS</div>
+                <q-card-section class='q-pa-lg'>
+                    <div class='q-mt-md text-subtitle1 text-primary text-bold text-uppercase text-center'>GETTING STARTED WITH EDIT TAGS</div>
                     <div class='q-mt-xs text-center'>
                     <q-badge color='primary'>
                         <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
@@ -576,7 +576,7 @@
 
             <!-- Renamer -->
             <div v-if='route == "renamer"'>
-                <q-card-section class='q-pa-xl'>
+                <q-card-section class='q-pa-lg'>
                     
                     <div class='row'>
                         
@@ -612,7 +612,7 @@
                             <!-- Not selected -->
                             <div v-if='!renamerDoc' class='text-center'>
                             
-                                <div class='text-subtitle1 text-center text-primary text-bold text-uppercase'>Getting started with Auto Rename</div>
+                                <div class='q-mt-md text-subtitle1 text-center text-primary text-bold text-uppercase'>Getting started with Auto Rename</div>
                                 <div class='q-mt-xs text-center'>
                                     <q-badge color='primary'>
                                         <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
@@ -633,20 +633,16 @@
                                         For example, you can use the following variables:
                                     </div>
     
-                                    <div class='q-mt-sm' style="padding-left: 64px;">
+                                    <div class='q-mt-sm' style="padding-left: 100px;">
                                         <div style='width: 240px; margin: auto;' class='row'>
-                                            <div class='col-6 text-left text-grey-4'>
-                                                <span class='monospace'>%album%</span><br>
-                                                <span class='monospace'>%artist%</span><br>
-                                                <span class='monospace'>%title%</span><br>
-                                                <span class='monospace'>%track%</span><br>
+                                            <div class='col-4 text-left text-grey-4'>
+                                                <span class="__renamer_syntax_operator">%</span><span class="__renamer_syntax_variable">artist</span><span class="__renamer_syntax_operator">%</span><br>
+                                                <span class="__renamer_syntax_operator">%</span><span class="__renamer_syntax_variable">album</span><span class="__renamer_syntax_operator">%</span><br>                                                
                                             </div>
-                                            <div class='col-6 text-left text-grey-4'>
-                                                <span>Album</span><br>
-                                                <span>Artist</span><br>
-                                                <span>Title</span><br>
-                                                <span>Track</span><br>
-                                            </div>
+                                            <div class='col-4 text-left text-grey-4'>                                              
+                                                <span class="__renamer_syntax_operator">%</span><span class="__renamer_syntax_variable">title</span><span class="__renamer_syntax_operator">%</span><br>
+                                                <span class="__renamer_syntax_operator">%</span><span class="__renamer_syntax_variable">track</span><span class="__renamer_syntax_operator">%</span><br>
+                                            </div>                                            
                                         </div>
                                     </div>
                                 </div>
@@ -659,8 +655,9 @@
                                 <div class='q-my-sm'>
                                     <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md'>Static content</div>
                                     <div class='text-grey-4'>
-                                        Any you would like to add to your filenames basically.
-                                        Just add it outside the <span class='monospace'>%variable%</span>
+                                        Basically any you would like to add to your filenames.
+                                        Just add it outside the <span class="__renamer_syntax_operator">%</span><span class="__renamer_syntax_variable">variable</span><span class="__renamer_syntax_operator">%</span>
+                                        
                                     </div>
                                 </div>
 
