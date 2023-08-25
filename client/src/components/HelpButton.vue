@@ -128,14 +128,14 @@
                             </div>
                         </div>
                         
-                        <div class='bg-darker text-subtitle2 text-grey-5 q-my-lg q-py-md text-center' style='line-height: 24px'>
+                        <div class='bg-darker text-subtitle2 text-grey-5 q-my-md q-py-md text-center' style='line-height: 24px'>
                             <span class='q-pl-md'>Not all platforms have the same tags available. Hover over the help <q-icon name='mdi-help-circle-outline' style='margin-bottom: -2px;' class='q-pb-xs text-grey-6'></q-icon> icons for more info</span> <br>
                         </div>
                     </div>
 
                     <!-- Page 2 -->
                     <div v-if='page == 1'>
-                        <div class='row' style='width: 90%; margin-left:15%'>
+                        <div class='row' style='width: 86%; margin-left:15%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-md'>Step-by-step guide</div>
                         <div class='col-10 q-mt-md text-subtitle2 text-grey-4' style='line-height: 24px'>
                             <span class='text-number text-bold text-grey-6'>1.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Check the box to fetch from particular platform</span> <br>
@@ -145,14 +145,14 @@
                             <span class='text-number text-bold text-grey-6'>4. </span><span class='q-pl-sm'>Check the box to fetch stated tag. Click <q-badge color='primary' class='text-dark'>Next</q-badge></span> <br>
                         </div>
                         </div>
-                        <div class='row' style='width: 90%; margin-left:15%'>
+                        <div class='row' style='width: 86%; margin-left:15%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Beatport</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             <span class='text-number text-bold text-grey-6'>5. </span><span class='q-pl-sm'>Select <q-badge outline color='primary'><span class='text-white'>Album Art</span></q-badge> resolution. 500x500 is native, above will upscale</span> <br>
                             <span class='text-number text-bold text-grey-6'>6. </span><span class='q-pl-sm'>Drag slider to set amount of search page results to scan for the most corresponding track</span> <br>
                         </div>
                         </div>
-                        <div class='row' style='width: 90%; margin-left:15%'>
+                        <div class='row' style='width: 86%; margin-left:15%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Discogs</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             <span class='text-number text-bold text-grey-6'>7. </span><span class='q-pl-sm'>Enter token - To obtain token, create a free account on <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs </span></span> <br>
@@ -162,12 +162,12 @@
                             <span class='text-number text-bold text-grey-6'>9. </span><span class='q-pl-sm'>Drag slider to set amount of album search results to check. Click <q-badge color='primary' class='text-dark'>Next</q-badge></span><br>
                         </div>
                         </div>
-                        <div class='row' style='width: 90%; margin-left:15%'>
+                        <div class='row' style='width: 86%; margin-left:15%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'>Advanced</div>
                         <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
                             <span class='text-number text-bold text-grey-6'>10.</span><span class='q-pl-sm'>Enable toggle <q-icon name='mdi-toggle-switch' class='text-grey-4'></q-icon> to activate stated options</span><br>
                             <span class='text-number text-bold text-grey-10'>_&nbsp;</span><span class='q-pl-md'>Hover over the help <q-icon name='mdi-help-circle-outline' class='q-pb-xs text-grey-6'></q-icon> icons for more info</span> <br>
-                            <span class='text-number text-bold text-grey-10'>_&nbsp;</span><span class='q-pl-md'>Click the start <q-icon name='mdi-play-circle' class='q-mb-md text-primary'></q-icon> icon to process</span> <p></p>
+                            <span class='text-number text-bold text-grey-10'>_&nbsp;</span><span class='q-pl-md'>Click the start <q-icon name='mdi-play-circle' class='q-mb-xs text-primary' ></q-icon> icon to process</span> <p></p>
                         </div>
                         </div>
                         
@@ -239,7 +239,7 @@
                         </div>
                         </div>
 
-                        <div class='row' style='width: 100%; margin-left:3%'>
+                        <div class='row' style='width: 96%; margin-left:4%'>
                         <div class='col-1 text-primary text-bold q-mt-lg text-right' style='line-height: 24px'><q-badge outline color='primary'><span class='text-white'>Acousticness</span></q-badge>
                                     <q-badge color='grey-8'>
                                         <span class='textnumber text-grey-2'>0*</span>
@@ -327,8 +327,9 @@
                             </div>
 
                             <div class='row' style='width: 100%; margin-left:0%'>
-                            <div class='col-1 text-primary text-bold q-mt-lg text-right' style='line-height: 24px'><q-badge outline color='primary'><span class='text-white'>Liveness</span></q-badge>
+                                <div class='col-1 text-primary text-bold q-mt-lg text-right' style='line-height: 24px'><q-badge outline color='primary'><span class='text-white'>Liveness</span></q-badge><br>
                             <q-badge color='grey-8'>
+                            
                                         <span class='textnumber text-grey-2'>0*</span>
                                 </q-badge>
                                     <br>
@@ -409,7 +410,7 @@
 
                         </div>
                         </div>
-                            <div class='q-pb-xs text-subtitle3 q-my-md text-grey-5 text-center' style='line-height: 24px'>
+                            <div class='q-pb-xs text-subtitle3 q-my-md text-grey-5 text-center' style='line-height: 33px'>
                                 When threshold is <q-badge color='grey-8'><span class='textnumber text-grey-2'>0*</span></q-badge>&nbsp; it won't write the Prominent tag
                             </div>
                         
@@ -527,11 +528,10 @@
                     <q-badge color='primary'>
                         <span class='text-number text-bold text-dark'>{{page+1}} / {{pages}}</span>
                     </q-badge>
-                    </div>    
+                    </div>
 
                     <!-- Page 1 -->
-                    <div v-if='page == 0'>
-                    
+                    <div v-if='page == 0'>                    
                         
                         <div class='text-subtitle2 text-grey-4 q-mt-md text-center' style='line-height: 24px'>
                             It reads the metadata of MP3, AIFF, FLAC & M4A files within a folder.<br>
@@ -548,7 +548,7 @@
                         </div>
                         <div class='row' style='width: 82%; margin-left:18%'>
                         <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'></div>
-                        <div class='text-subtitle2 q-my-md text-grey-4' style='line-height: 24px'>
+                        <div class='text-subtitle2 q-my-md text-grey-4' style='line-height: 23px'>
                             * <q-badge outline color='primary'><span class='text-white'>Comments</span></q-badge> , (Unsynchronized) <q-badge outline color='primary'><span class='text-white'>Lyrics</span></q-badge> & Popularimeter <q-badge outline color='primary'><span class='text-white'>Rating</span></q-badge> are special tag frames.<br>
                             They show at the bottom below the <q-badge outline color='primary'><span class='text-white'>Album art</span></q-badge><br>
                             <br>
@@ -569,6 +569,52 @@
                         </div>
 
                     </div>
+
+                    <!-- Page 2 -->
+                    <div v-if='page == 1'>                   
+                        
+                    <div class='row' style='width: 82%; margin-left:18%'>
+                    <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg' style='line-height: 25px'>Manual tag</div>
+                    <div class='col-10 q-mt-lg text-subtitle2 text-grey-4' style='line-height: 24px'>
+                        Instead of <span class='text-subtitle3 text-bold'>AUTO TAG</span>, which matches automatically based on best match,<br>
+                        <span class='text-subtitle3 text-bold'>MANUAL TAG</span> allows you to be more specific and select the result you want.<br>
+                        This might come in handy when you are tagging a certain album or release.
+                    </div>
+                    </div>                    
+                    
+                    <div class='row' style='width: 82%; margin-left:18%'>
+                    <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'></div>
+                    <div class='text-subtitle2 q-my-md text-grey-4' style='line-height: 24px'>
+                        <span class='text-number text-bold text-grey-6'>1.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Click the track you want to search up and click <span><q-badge color='primary' class='text-dark'>Manual tag</q-badge></span> at the bottom.<br></span>
+                        <span class='text-number text-bold text-grey-6'>2.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Select the platforms and tags you want to seek for and hit <span class='text-subtitle3 text-primary'>START</span><br></span>
+                        <span class='text-number text-bold text-grey-6'>3.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>A list of results will show up that matches the Artist, Title and/or ISRC of your track.<br></span>
+                        <span class='text-number text-bold text-grey-6'>4.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Click the checkbox of the result that resembles the proper release.<br></span>
+                        <span class='text-number text-bold text-grey-6'>5.<span class='text-number text-bold text-grey-10'>_</span> </span><span class='q-pl-sm'>Click <span class='text-subtitle3 text-primary'>APPLY</span> to overwrite the existing tags.</span>
+                    </div>
+                    </div>                        
+                    
+                    <div class='row' style='width: 82%; margin-left:18%'>
+                    <div class='col-2 text-subtitle2 text-primary text-bold q-mt-lg'></div>
+                    <div class='text-subtitle2 q-my-xs text-grey-4' style='line-height: 23px'>
+                        To check more thorough if this is the proper release, hit the <span><q-icon name='mdi-open-in-new'></q-icon> icon</span> to go to the link.<br>
+                        It will open a browser window to the release page of the result.<br>                        
+                    </div>
+                    </div>
+
+                    <div class='row' style='width: 82%; margin-left:18%'>
+                    <div class='col-2 text-subtitle2 text-primary text-bold'></div>
+                    <div class='text-subtitle2 q-my-md text-grey-4' style='line-height: 23px'>
+                        If there are any errors to show, it will show this below the results.
+                    </div>
+                    </div>
+
+                    <div class='bg-darker text-subtitle2 text-grey-5 q-py-md q-my-md text-center' style='line-height: 24px'>
+                        <span class='text-subtitle3 text-bold'>MANUAL TAG</span> is also accessable with a right-click on a track in <span class='text-subtitle3 text-bold'>QUICK TAG</span><br>                                                     
+                        When a track is selected, it will also show a button at the bottom of the custom tags panel on the right.
+                    </div>
+                    
+
+                </div>
 
                 </q-card-section>
             </div>
@@ -725,7 +771,7 @@ const route = computed(() => {
 
 // Get page count
 const pages = computed(() => {
-    if (route.value == 'tageditor' || route.value == 'renamer') return 1;
+    if (route.value == 'renamer') return 1;
     return 2;
 });
 
