@@ -163,7 +163,7 @@ impl TagImpl for MP4Tag {
             } else {
                 let naive_date =NaiveDate::from_ymd_opt(date.year, date.month.unwrap() as u32, date.day.unwrap() as u32).unwrap()
                     .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap());
-                let date: DateTime<Utc> = DateTime::from_utc(naive_date, Utc);
+                let date: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive_date, Utc);
                 format!("{}", date.format("%+"))
             };
 
