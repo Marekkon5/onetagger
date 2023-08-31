@@ -3,13 +3,27 @@ on: [push, pull_request]
 
 jobs:
   build-linux:
-    name: Linux + Mac
+    name: Linux
     runs-on: ubuntu-22.04
 
     steps:
 
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Rust Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Node Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          client/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
 
     - name: Install dependencies
       run: |
@@ -26,10 +40,22 @@ jobs:
       with:
         version: 8
 
-    - name: Run build script
+    - name: Build
       run: |
-        chmod +x assets/compile-nix.sh
-        ./assets/compile-nix.sh
+        cd client
+        pnpm i
+        pnpm run build
+        cd ..
+        cargo update
+        cargo build --release
+
+    - name: Bundle
+      run: |
+        tar zcf OneTagger-linux.tar.gz -C target/release onetagger
+        tar zcf OneTagger-linux-cli.tar.gz -C target/release onetagger-cli
+        mkdir dist
+        mv OneTagger-linux.tar.gz dist/
+        mv OneTagger-linux-cli.tar.gz dist/
     
     - name: Upload Linux
       uses: actions/upload-artifact@v3
@@ -43,17 +69,6 @@ jobs:
         name: onetagger-linux-cli
         path: dist/OneTagger-linux-cli.tar.gz
 
-    - name: Upload Mac
-      uses: actions/upload-artifact@v3
-      with:
-        name: onetagger-mac
-        path: dist/OneTagger-mac.zip
-
-    - name: Upload Mac CLI
-      uses: actions/upload-artifact@v3
-      with:
-        name: onetagger-mac-cli
-        path: dist/OneTagger-mac-cli.zip
 
   build-win:
     name: Windows
@@ -62,6 +77,20 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Rust Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Node Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          client/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
       
     - name: Install NodeJS
       uses: actions/setup-node@v3
@@ -83,6 +112,7 @@ jobs:
         pnpm i
         pnpm run build
         cd ..
+        cargo update
         cargo build --release
         
     - name: Bundle
@@ -111,4 +141,77 @@ jobs:
       with:
         name: onetagger-win-cli
         path: dist/OneTagger-windows-cli.exe
+
+
+  build-mac:
+    name: Mac
+    runs-on: macos-11
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Rust Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Node Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          client/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+     
+    - name: Install dependencies
+      run: |
+        brew install rustup nodejs pnpm
+        rustup install stable
+        cargo install cargo-bundle
+    
+    - name: Build
+      run: |
+        cd client
+        pnpm i
+        pnpm run build
+        cd ..
+        cargo update
+        cd crates/onetagger
+        cargo bundle --release
+        cd ../..
+        cargo build --release --bin onetagger-cli
+
+    - name: Bundle
+      run: |
+        mkdir dist
+
+        cd target/release/bundle/osx
+        chmod +x OneTagger.app/Contents/MacOS/onetagger
+        zip -r OneTagger-mac.zip .
+        cd -
+
+        cd target/release
+        chmod +x onetagger-cli
+        zip OneTagger-mac-cli.zip onetagger-cli
+        cd -
+
+        mv target/release/bundle/osx/OneTagger-mac.zip dist/
+        mv target/release/OneTagger-mac-cli.zip dist/
+
+    - name: Upload Mac
+      uses: actions/upload-artifact@v3
+      with:
+        name: onetagger-mac
+        path: dist/OneTagger-mac.zip
+
+    - name: Upload Mac CLI
+      uses: actions/upload-artifact@v3
+      with:
+        name: onetagger-mac-cli
+        path: dist/OneTagger-mac-cli.zip
+                
         

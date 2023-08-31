@@ -48,7 +48,7 @@ You can create custom Auto Tagger platforms for One Tagger. Instructions and tem
 ## Compilling
 
 ### Linux & Mac
-Mac version is cross compiled from linux, the build script is designed to run on Github Actions enviromnent, so you have to install some dependencies manually: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
+Install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
 
 **Install remaining dependencies**
 ```
@@ -63,18 +63,12 @@ pnpm run build
 cd ..
 ```
 
-**Compile Linux only**
+**Compile**
 ```
 cargo build --release
 ```
 Output is in: `target/release/onetagger`
 
-**Compile Linux + Mac, create bundles**
-```
-assets/compile-nix.sh
-```
-**Don't start the script directly or from assets dir. It has to be relative to the parent**  
-Output files will be in the `dist/` directory.
 
 ### Windows
 You need to install dependencies: [rustup](https://rustup.rs), [nodejs](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe), [pnpm](https://pnpm.io/installation)
