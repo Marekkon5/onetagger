@@ -18,6 +18,7 @@ class Settings {
     playOnSeek: boolean = false;
     autoPlayNext: boolean = false;
     externalAudioPlayer: boolean = false;
+    devtools: boolean = false;
 
     renamer: RenamerSettings = new RenamerSettings();
     quickTag: QuickTagSettings = new QuickTagSettings();

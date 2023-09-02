@@ -41,9 +41,16 @@ pub fn start_webview() -> Result<(), Error> {
         .build(&event_loop)?;
     window.set_inner_size(Size::Physical(PhysicalSize::new(1280, 720)));
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
+    let p = proxy.clone();
     let mut webview = WebViewBuilder::new(window)?
         .with_url("http://127.0.0.1:36913")?
-        .with_devtools(true)
+        .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
+        .with_ipc_handler(move |_window, message| {
+            let proxy = &p;
+            if message == "devtools" {
+                proxy.send_event(CustomWindowEvent::DevTools).ok();
+            }
+        })
         .with_web_context(&mut context);
 
     // Windows webview2 does NOT support custom DnD, janky workaround
@@ -117,6 +124,10 @@ pub fn start_webview() -> Result<(), Error> {
                     Ok(_) => {},
                     Err(e) => error!("Failed executing JS on webview: {e}"),
                 }
+            },
+            // Open devtools
+            Event::UserEvent(CustomWindowEvent::DevTools) => {
+                webview.open_devtools();
             }
             _ => ()
         }
@@ -125,7 +136,8 @@ pub fn start_webview() -> Result<(), Error> {
 }
 
 enum CustomWindowEvent {
-    DropFolder(PathBuf)
+    DropFolder(PathBuf),
+    DevTools,
 }
 
 // Start WebSocket server

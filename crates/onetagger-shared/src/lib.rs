@@ -131,6 +131,11 @@ impl Settings {
 
         Ok(settings)
     }
+
+    /// Are devtools enabled
+    pub fn devtools(&self) -> bool {
+        self.ui["devtools"].as_bool().unwrap_or(false)
+    }
     
     /// Save settings to file
     pub fn save(&self) -> Result<(), Error> {

@@ -19,7 +19,7 @@ use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl, TaggerCo
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
-use onetagger_shared::Settings;
+use onetagger_shared::{Settings, COMMIT};
 use onetagger_playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
 
 use crate::StartContext;
@@ -42,6 +42,7 @@ enum Action {
     OpenFolder { path: PathBuf },
     OpenFile { path: PathBuf },
     DeleteFiles { paths: Vec<String> },
+    GetLog,
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
@@ -130,7 +131,10 @@ struct InitData {
     os: &'static str,
     start_context: StartContext,
     platforms: &'static AutotaggerPlatforms,
-    renamer_docs: FullDocs
+    renamer_docs: FullDocs,
+    commit: &'static str,
+    work_dir: PathBuf,
+    data_dir: PathBuf
 }
 
 impl InitData {
@@ -142,7 +146,10 @@ impl InitData {
             os: env::consts::OS,
             start_context,
             platforms: &onetagger_autotag::AUTOTAGGER_PLATFORMS,
-            renamer_docs: FullDocs::get().html()
+            renamer_docs: FullDocs::get().html(),
+            commit: COMMIT,
+            work_dir: std::env::current_dir().unwrap_or_default(),
+            data_dir: Settings::get_folder().unwrap_or_default(),
         }
     }
 }
@@ -253,6 +260,15 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     "context": context
                 })).ok();
             }
+        },
+        // Get 1t Log
+        Action::GetLog => {
+            log::logger().flush();
+            let log = std::fs::read_to_string(&Settings::get_folder()?.join("onetagger.log"))?;
+            send_socket(websocket, json!({
+                "action": "log",
+                "log": log
+            })).ok();
         },
         // Open URL in external browser
         Action::Browser { url } => { webbrowser::open(&url)?; },

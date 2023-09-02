@@ -8,6 +8,7 @@ import { Keybind, Playlist, Spotify, wsUrl } from './utils';
 import { ManualTag } from './manualtag';
 import ExitDialog from '../components/ExitDialog.vue';
 import router from './router';
+import DevToolsVue from '../components/DevTools.vue';
 
 class OneTagger {
     // Singleton
@@ -77,6 +78,12 @@ class OneTagger {
             // @ts-ignore
             if (e.target && e.target.nodeName == "INPUT") return true;
 
+            // Dev tools
+            if (e.key == 'F3') {
+                Dialog.create({ component: DevToolsVue });
+                return false;
+            }
+
             if (this.handleKeyDown(e)) {
                 e.preventDefault();
                 return false;
@@ -128,10 +135,7 @@ class OneTagger {
             // Initial info
             case 'init':
                 // Fill AppInfo
-                this.info.value.version = json.version;
-                this.info.value.os = json.os;
-                this.info.value.platforms = json.platforms;
-                this.info.value.renamerDocs = json.renamerDocs;
+                Object.assign(this.info.value, json);
                 // Path from args
                 if (json.startContext.startPath) {
                     this.settings.value.path = json.startContext.startPath;
@@ -140,7 +144,12 @@ class OneTagger {
 
                 this.info.value.ready = true;
                 break;
-            
+        
+            // Load log
+            case 'log':
+                this.info.value.log = json.log;
+                break;
+
             // Settings loaded
             case 'loadSettings':
                 this.loadSettings(json.settings);
@@ -626,7 +635,12 @@ interface AppInfo {
     os: string;
     ready: boolean;
     platforms: AutotaggerPlatform[];
-    renamerDocs: any
+    renamerDocs: any,
+    commit: string,
+    workDir: string,
+    dataDir: string,
+    startContext: { serverMode: boolean, expose: boolean, startPath?: string, browser: boolean },
+    log?: string,
 }
 
 class FolderBrowser {
