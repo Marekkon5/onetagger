@@ -174,7 +174,7 @@ jobs:
       run: |
         brew install rustup nodejs pnpm
         rustup install stable
-        cargo install cargo-bundle
+        cargo install cargo-bundle || true
     
     - name: Build
       run: |
