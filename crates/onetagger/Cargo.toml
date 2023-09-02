@@ -8,7 +8,6 @@ categories = ["multimedia::audio"]
 
 [dependencies]
 log = "0.4"
-wry = "0.31"
 mime = "0.3"
 dunce = "1.0"
 trash = "3.0"
@@ -28,6 +27,7 @@ directories = "5.0"
 tungstenite = "0.20"
 tinyfiledialogs = "3.9"
 
+wry = { version = "0.31", features = ["devtools"] }
 clap = { version = "4.1", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 
