@@ -222,7 +222,7 @@ impl BeatportTrackResult {
                 true => self.mix_name,
                 false => None
             },
-            duration: Duration::from_millis(self.length.unwrap_or(0)),
+            duration: Duration::from_millis(self.length.unwrap_or(0)).into(),
             isrc: self.isrc,
             thumbnail: self.release.map(|r| r.release_image_uri).flatten(),
             genres: self.genre.map(|g| g.into_iter().map(|g| g.genre_name).collect()).unwrap_or(vec![]),
@@ -258,7 +258,7 @@ impl BeatportTrack {
             ],
             track_id: Some(self.id.to_string()),
             release_id: self.release.id.to_string(),
-            duration: Duration::from_millis(self.length_ms.unwrap_or(0)),
+            duration: Duration::from_millis(self.length_ms.unwrap_or(0)).into(),
             remixers: self.remixers.into_iter().map(|r| r.name).collect(),
             track_number: self.number.map(|n| TrackNumber::Number(n as i32)),
             isrc: self.isrc,
@@ -409,6 +409,7 @@ impl AutotaggerSource for Beatport {
 }
 
 /// For creating Beatport instances
+#[derive(Debug, Clone)]
 pub struct BeatportBuilder {
     access_token: Arc<Mutex<Option<BeatportOAuth>>>
 }

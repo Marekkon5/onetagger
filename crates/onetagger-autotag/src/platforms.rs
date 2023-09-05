@@ -2,6 +2,7 @@ use anyhow::Error;
 use std::ffi::c_void;
 use std::path::PathBuf;
 use std::io::Cursor;
+use std::sync::{Arc, Mutex};
 use base64::Engine;
 use libloading::{Library, Symbol};
 use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp, deezer, musixmatch};
@@ -13,17 +14,16 @@ use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, 
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
-    pub static ref AUTOTAGGER_PLATFORMS: AutotaggerPlatforms = AutotaggerPlatforms::all();
+    pub static ref AUTOTAGGER_PLATFORMS: Arc<Mutex<AutotaggerPlatforms>> = Arc::new(Mutex::new(AutotaggerPlatforms::all()));
 }
 
 
 /// For passing platform list into UI
-#[derive(Serialize, Deserialize)]
 pub struct AutotaggerPlatforms(pub Vec<AutotaggerPlatform>);
 
 impl AutotaggerPlatforms {
     /// Get all the available platforms
-    pub fn all() -> AutotaggerPlatforms {
+    fn all() -> AutotaggerPlatforms {
         let mut output = vec![];
 
         // Built-ins
@@ -46,76 +46,70 @@ impl AutotaggerPlatforms {
             Ok(_) => {},
             Err(e) => warn!("Failed loading custom platforms: {e}")
         };
+        match platforms.load_python() {
+            Ok(_) => {},
+            Err(e) => warn!("Failed loading Python platforms: {e}"),
+        }
+
         platforms
     }
 
     /// Get the source
-    pub fn get_builder(&self, id: &str) -> Option<Box<dyn AutotaggerSourceBuilder>> {
-        let platform = self.0.iter().find(|p| p.id == id)?;
-        if platform.built_in {
-            let platform: Box<dyn AutotaggerSourceBuilder> = match platform.id.as_ref() {
-                "beatport" => Box::new(beatport::BeatportBuilder::new()),
-                "discogs" => Box::new(discogs::DiscogsBuilder::new()),
-                "beatsource" => Box::new(beatsource::BeatsourceBuilder::new()),
-                "itunes" => Box::new(itunes::ITunesBuilder::new()),
-                "junodownload" => Box::new(junodownload::JunoDownloadBuilder::new()),
-                "musicbrainz" => Box::new(musicbrainz::MusicBrainzBuilder::new()),
-                "spotify" => Box::new(spotify::SpotifyBuilder::new()),
-                "traxsource" => Box::new(traxsource::TraxsourceBuilder::new()),
-                "bpmsupreme" => Box::new(bpmsupreme::BPMSupremeBuilder::new()),
-                "bandcamp" => Box::new(bandcamp::BandcampBuilder::new()),
-                "deezer" => Box::new(deezer::DeezerBuilder::new()),
-                "musixmatch" => Box::new(musixmatch::MusixmatchBuilder::new()),
-                _ => unreachable!()
-            };
-            Some(platform)
-        } else {
-            // Custom platform
-            Some(Box::new(platform.custom.as_ref().unwrap().get_builder().unwrap()))
-        }
+    pub fn get_builder(&mut self, id: &str) -> Option<&mut Box<dyn AutotaggerSourceBuilder + Send + Sync>> {
+        let platform = self.0.iter_mut().find(|p| p.info.id == id)?;
+        Some(&mut platform.platform)
     }
 
     /// Add a builtin platform to output list
     fn add_builtin<P: AutotaggerSourceBuilder>(output: &mut Vec<AutotaggerPlatform>) {
         let info = P::new().info();
         output.push(AutotaggerPlatform {
-            id: info.id.clone(),
-            built_in: true,
-            icon: match Self::reencode_image(info.icon) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Failed generating icon for platform id: {}. {e}", info.id);
-                    String::new()
-                }
+            info: AutotaggerPlatformInfo {
+                id: info.id.clone(),
+                built_in: true,
+                icon: match Self::reencode_image(info.icon) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("Failed generating icon for platform id: {}. {e}", info.id);
+                        String::new()
+                    }
+                },
+                supported_tags: info.supported_tags.clone(),
+                requires_auth: info.requires_auth,
+                platform: info,
             },
-            supported_tags: info.supported_tags.clone(),
-            requires_auth: info.requires_auth,
-            platform: info,
-            custom: None
+            platform: Box::new(P::new())
         })
     }
 
     /// Prepare image for the UI
-    fn reencode_image(data: &'static [u8]) -> Result<String, Error> {
+    fn reencode_image(data: &[u8]) -> Result<String, Error> {
         let img = ImageReader::new(Cursor::new(data)).with_guessed_format()?.decode()?;
         let mut buf = vec![];
         img.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png)?;
         Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::engine::general_purpose::STANDARD.encode(buf)))
     }
 
-    /// Load custom platforms
-    fn load_custom(&mut self) -> Result<(), Error> {
-        // Path
+    /// Get custom platforms dir
+    fn platforms_dir() -> Result<PathBuf, Error> {
         let folder = Settings::get_folder()?.join("platforms");
         if !folder.exists() {
-            std::fs::create_dir(folder)?;
-            return Ok(())
+            std::fs::create_dir(&folder)?;
         }
+        Ok(folder)
+    }
+
+    /// Load custom platforms
+    fn load_custom(&mut self) -> Result<(), Error> {
+        let folder = Self::platforms_dir()?;
         for entry in std::fs::read_dir(folder)? {
             let entry = entry?;
+            if entry.path().is_dir() {
+                continue;
+            }
             match CustomPlatform::open_platform(&entry.path()) {
                 Ok(p) => {
-                    info!("Loaded custom platform: {}@{}", p.id, p.platform.version);
+                    info!("Loaded custom platform: {}@{}", p.info.id, p.info.platform.version);
                     self.0.push(p);
                 },
                 Err(e) => {
@@ -127,12 +121,50 @@ impl AutotaggerPlatforms {
 
         Ok(())
     }
+
+    /// Load python custom platforms
+    fn load_python(&mut self) -> Result<(), Error> {
+        let folder = Self::platforms_dir()?;
+        onetagger_python::setup()?;
+        
+        for entry in std::fs::read_dir(folder)?.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()) {
+            let platform = onetagger_python::load_python_platform(entry.path())?;
+            
+            // Load icon
+            let icon = match Self::reencode_image(&std::fs::read(&entry.path().join("icon.png")).unwrap_or(vec![])) {
+                Ok(icon) => icon,
+                Err(e) => {
+                    warn!("Failed generating icon for platform: {:?} {e}", entry.path());
+                    String::new()
+                },
+            };
+
+            // Generate info
+            let info = AutotaggerPlatformInfo {
+                id: entry.file_name().to_string_lossy().to_string(),
+                built_in: false,
+                platform: platform.info.info.to_owned(),
+                icon,
+                requires_auth: platform.info.info.requires_auth,
+                supported_tags: platform.info.info.supported_tags.clone(),
+            };
+
+            self.0.push(AutotaggerPlatform { info, platform: Box::new(platform) });
+        }
+        Ok(())
+    }
+}
+
+/// Autotagger Platform
+pub struct AutotaggerPlatform {
+    pub info: AutotaggerPlatformInfo,
+    pub platform: Box<dyn AutotaggerSourceBuilder + Send + Sync>
 }
 
 /// For passing platform list into UI
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AutotaggerPlatform {
+pub struct AutotaggerPlatformInfo {
     pub id: String,
     pub built_in: bool,
     pub platform: PlatformInfo,
@@ -140,12 +172,7 @@ pub struct AutotaggerPlatform {
     pub icon: String,
     pub requires_auth: bool,
     pub supported_tags: Vec<SupportedTag>,
-
-    /// For custom platforms
-    #[serde(skip)]
-    custom: Option<CustomPlatform>
-} 
-
+}
 
 
 /// Wrapper for loaded custom platform
@@ -192,19 +219,21 @@ impl CustomPlatform {
         let filename = path.file_name().ok_or(anyhow!("Invalid filename"))?.to_str().ok_or(anyhow!("Invalid filename"))?.to_string();
         let lib = Self::open(path)?;
         Ok(AutotaggerPlatform {
-            id: filename,
-            built_in: false,
-            platform: lib.info.clone(),
-            icon: match AutotaggerPlatforms::reencode_image(lib.info.icon) {
-                Ok(i) => i,
-                Err(e) => {
-                    warn!("Failed loading custom platform icon: {e}");
-                    String::new()
+            info: AutotaggerPlatformInfo {
+                id: filename,
+                built_in: false,
+                platform: lib.info.clone(),
+                icon: match AutotaggerPlatforms::reencode_image(lib.info.icon) {
+                    Ok(i) => i,
+                    Err(e) => {
+                        warn!("Failed loading custom platform icon: {e}");
+                        String::new()
+                    },
                 },
+                supported_tags: lib.info.supported_tags.clone(),
+                requires_auth: lib.info.requires_auth,
             },
-            supported_tags: lib.info.supported_tags.clone(),
-            requires_auth: lib.info.requires_auth,
-            custom: Some(lib),
+            platform: Box::new(lib)
         })
     }
 

@@ -108,7 +108,7 @@ impl Traxsource {
                 other: vec![],
                 track_id: Some(track_id),
                 release_id: String::new(),
-                duration,
+                duration: duration.into(),
                 ..Default::default()
             })
         }
@@ -207,6 +207,7 @@ impl AutotaggerSource for Traxsource {
     
 }
 
+#[derive(Debug, Clone)]
 pub struct TraxsourceBuilder;
 
 impl AutotaggerSourceBuilder for TraxsourceBuilder {

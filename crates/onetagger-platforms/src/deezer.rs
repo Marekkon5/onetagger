@@ -175,7 +175,7 @@ impl Into<Track> for DeezerTrack {
             catalog_number: Some(self.id.to_string()),
             track_id: Some(self.id.to_string()),
             release_id: self.album.id.to_string(),
-            duration: Duration::from_secs(self.duration as u64),
+            duration: Duration::from_secs(self.duration as u64).into(),
             explicit: self.explicit_lyrics.or(self.explicit_content_lyrics.map(|i| i == 1)),
             thumbnail: Some(Deezer::image_url("cover", &self.album.md5_image, 150)),
             art: Some(self.album.md5_image),
@@ -261,6 +261,7 @@ pub struct DeezerGenres {
     pub data: Vec<DeezerGenre>
 }
 
+#[derive(Debug, Clone)]
 pub struct DeezerBuilder;
 
 impl AutotaggerSourceBuilder for DeezerBuilder {

@@ -204,6 +204,7 @@ impl BPMMusicLibrary {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BPMSupremeBuilder {
     token: Option<String>,
     library: BPMMusicLibrary

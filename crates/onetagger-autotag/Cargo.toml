@@ -27,6 +27,7 @@ reqwest = { version = "0.11", features = ["json", "blocking", "rustls-tls"], def
 songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
 
 onetagger-tag = { path = "../onetagger-tag" }
+onetagger-python = { path = "../onetagger-python" }
 onetagger-tagger = { path = "../onetagger-tagger" }
 onetagger-player = { path = "../onetagger-player" }
 onetagger-shared = { path = "../onetagger-shared" }

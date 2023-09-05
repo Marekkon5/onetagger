@@ -5,6 +5,7 @@
 #[macro_use] extern crate anyhow;
 
 use serde::{Serialize, Deserialize};
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::time::Duration;
 use anyhow::Error;
@@ -24,6 +25,9 @@ pub mod mp4;
 pub mod vorbis;
 #[cfg(feature = "tag")]
 mod wav;
+
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
 
 // Supported extensions
 pub static EXTENSIONS : [&'static str; 11] = ["mp3", "flac", "aif", "aiff", "m4a", 
@@ -157,6 +161,7 @@ pub trait TagImpl {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub struct TagSeparators {
     pub id3: String,
     pub vorbis: Option<String>,
@@ -175,6 +180,7 @@ impl Default for TagSeparators {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub enum AudioFileFormat {
     FLAC, AIFF, MP3, MP4, WAV, OGG
 }
@@ -196,6 +202,7 @@ impl AudioFileFormat {
 
 /// Tag fields from UI
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct FrameName {
@@ -505,6 +512,7 @@ impl TagChanges {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct Lyrics {
@@ -551,21 +559,68 @@ impl Lyrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct LyricsLine {
     pub text: String,
-    pub start: Option<Duration>,
-    pub end: Option<Duration>,
+    pub start: Option<OTDuration>,
+    pub end: Option<OTDuration>,
     /// Optional
     pub parts: Vec<LyricsLinePart>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct LyricsLinePart {
     pub text: String,
-    pub start: Option<Duration>,
-    pub end: Option<Duration>
+    pub start: Option<OTDuration>,
+    pub end: Option<OTDuration>
+}
+
+/// Duration which can be used in Python as well
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[repr(transparent)]
+pub struct OTDuration(pub Duration);
+
+impl Deref for OTDuration {
+    type Target = Duration;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for OTDuration {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Into<Duration> for OTDuration {
+    fn into(self) -> Duration {
+        self.0
+    }
+}
+
+impl From<Duration> for OTDuration {
+    fn from(value: Duration) -> Self {
+        Self(value)
+    }
+}
+
+#[cfg(feature = "python")]
+impl IntoPy<PyObject> for OTDuration {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        self.0.as_secs_f64().to_object(py)
+    }
+}
+
+#[cfg(feature = "python")]
+impl<'a> FromPyObject<'a> for OTDuration {
+    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+        Ok(OTDuration(Duration::from_secs_f64(ob.extract()?)))
+    }
 }

@@ -432,7 +432,7 @@ impl ReleaseMaster {
             catalog_number,
             track_id: None,
             release_id: self.id.to_string(),
-            duration: MatchingUtils::parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO),
+            duration: MatchingUtils::parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO).into(),
             track_number: Some(track_number),
             disc_number,
             track_total: Some(self.tracks.len() as u16),
@@ -443,6 +443,7 @@ impl ReleaseMaster {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DiscogsBuilder {}
 
 impl AutotaggerSourceBuilder for DiscogsBuilder {

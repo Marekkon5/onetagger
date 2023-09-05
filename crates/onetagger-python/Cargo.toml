@@ -1,0 +1,21 @@
+[package]
+name = "onetagger-python"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dunce = "1.0"
+chrono = "0.4"
+anyhow = "1.0"
+serde_json = "1.0"
+
+log = { version = "0.4", features = ["serde"] }
+pyo3 = { version = "0.18", features = ["chrono", "serde"] }
+serde = { version = "1.0", features = ["derive"] }
+bitcode = { version = "0.4", features = ["serde"] }
+pyembed = { git = "https://github.com/indygreg/PyOxidizer.git" }
+
+onetagger-tagger = { path = "../onetagger-tagger", features = ["python"] }
+onetagger-shared = { path = "../onetagger-shared" }

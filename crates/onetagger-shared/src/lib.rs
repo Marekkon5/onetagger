@@ -41,6 +41,7 @@ pub fn setup() {
 
     Dispatch::new()
         .level(LevelFilter::Warn)
+        .level_for("onetagger_python", level)
         .level_for("onetagger_shared", level)
         .level_for("onetagger_autotag", level)
         .level_for("onetagger_platforms", level)

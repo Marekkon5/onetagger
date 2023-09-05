@@ -18,6 +18,12 @@ mod quicktag;
 mod tageditor;
 
 fn main() {
+    // Python subprocess
+    if std::env::args().any(|a| a == "--python-subprocess") {
+        onetagger_autotag::python_process();
+        std::process::exit(0);
+    }
+
     // Setup 1T
     onetagger_shared::setup();
     let cli = Cli::parse();

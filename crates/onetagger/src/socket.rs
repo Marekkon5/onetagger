@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use anyhow::Error;
+use onetagger_autotag::platforms::AutotaggerPlatformInfo;
 use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::sync::atomic::Ordering;
@@ -15,7 +16,7 @@ use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, TrackMatch};
-use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl, TaggerConfigExt};
+use onetagger_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -93,7 +94,7 @@ impl TaggerConfigs {
             TaggerConfigs::AutoTagger(c) => {
                 let mut c = c.clone();
                 // don't leak secrets
-                c.custom = HashMap::new();
+                c.custom = HashMap::new().into();
                 c.spotify = None;
                 info!("AutoTagger config: {:?}", c);
             },
@@ -130,7 +131,7 @@ struct InitData {
     version: &'static str,
     os: &'static str,
     start_context: StartContext,
-    platforms: &'static AutotaggerPlatforms,
+    platforms: Vec<AutotaggerPlatformInfo>,
     renamer_docs: FullDocs,
     commit: &'static str,
     work_dir: PathBuf,
@@ -145,7 +146,7 @@ impl InitData {
             version: crate::VERSION,
             os: env::consts::OS,
             start_context,
-            platforms: &onetagger_autotag::AUTOTAGGER_PLATFORMS,
+            platforms: onetagger_autotag::AUTOTAGGER_PLATFORMS.lock().unwrap().0.iter().map(|p| p.info.clone()).collect(),
             renamer_docs: FullDocs::get().html(),
             commit: COMMIT,
             work_dir: std::env::current_dir().unwrap_or_default(),

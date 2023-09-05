@@ -14,6 +14,11 @@ strsim = "0.10"
 unidecode = "0.3"
 serde_json = "1.0"
 
+pyo3 = { version = "0.18", features = ["chrono", "serde"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 
 onetagger-tag = { path = "../onetagger-tag", default-features = false }
+
+[features]
+default = []
+python = ["pyo3", "onetagger-tag/python"]

@@ -9,7 +9,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Lyrics, LyricsLine, LyricsLinePart, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, supported_tags, TrackMatch};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Musixmatch {
     client: Client,
     token: Arc<Mutex<Option<String>>>
@@ -272,12 +272,12 @@ pub struct RichsyncLine {
 impl Into<LyricsLine> for RichsyncLine {
     fn into(self) -> LyricsLine {
         LyricsLine {
-            start: Some(Duration::from_secs_f32(self.ts)),
-            end: Some(Duration::from_secs_f32(self.ts)),
+            start: Some(Duration::from_secs_f32(self.ts).into()),
+            end: Some(Duration::from_secs_f32(self.ts).into()),
             text: self.x,
             parts: self.l.into_iter().map(|p| LyricsLinePart {
                 text: p.c,
-                start: Some(Duration::from_secs_f32(self.ts + p.o)),
+                start: Some(Duration::from_secs_f32(self.ts + p.o).into()),
                 end: None,
             }).collect()
         }
@@ -300,11 +300,12 @@ pub struct SubtitleLine {
 
 impl Into<LyricsLine> for SubtitleLine {
     fn into(self) -> LyricsLine {
-        LyricsLine { text: self.line, start: Some(self.timestamp), end: None, parts: vec![] }
+        LyricsLine { text: self.line, start: Some(self.timestamp.into()), end: None, parts: vec![] }
     }
 }
 
 /// 1T source builder
+#[derive(Debug, Clone)]
 pub struct MusixmatchBuilder {
     mxm: Musixmatch
 }

@@ -164,7 +164,7 @@ impl Into<Track> for Recording {
             url: format!("https://musicbrainz.org/recording/{}", self.id),
             track_id: Some(self.id),
             release_id: release.map(|r| r.id.to_string()).unwrap_or(String::new()),
-            duration: self.length.map(|l| Duration::from_millis(l)).unwrap_or(Duration::ZERO),
+            duration: self.length.map(|l| Duration::from_millis(l)).unwrap_or(Duration::ZERO).into(),
             release_year: self.first_release_date.clone().map(|d| (d.len() >= 4).then(|| d[0..4].parse().ok()).flatten()).flatten(),
             release_date: self.first_release_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok()).flatten(),
             isrc: self.isrcs.map(|v| v.first().map(String::from)).flatten(),
@@ -278,6 +278,7 @@ pub struct BrowseReleases {
     pub releases: Vec<Release>
 }
 
+#[derive(Debug, Clone)]
 pub struct MusicBrainzBuilder;
 
 impl AutotaggerSourceBuilder for MusicBrainzBuilder {

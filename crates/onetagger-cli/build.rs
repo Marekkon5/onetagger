@@ -1,4 +1,7 @@
 fn main() {
+    // Required for Python
+    println!("cargo:rustc-link-arg=-Wl,-export-dynamic");
+
     // Set Windows icon
     #[cfg(windows)]
     {
