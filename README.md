@@ -52,7 +52,7 @@ Install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/
 
 **Install remaining dependencies**
 ```
-sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
+sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 ```
 
 **Compile UI**

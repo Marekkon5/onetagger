@@ -1,5 +1,6 @@
 fn main() {
     // Required for Python
+    #[cfg(not(target_os = "macos"))]
     println!("cargo:rustc-link-arg=-Wl,-export-dynamic");
 
     // Set Windows icon

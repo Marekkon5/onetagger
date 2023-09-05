@@ -16,6 +16,12 @@ use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
 
 
 fn main() {
+    // Python subprocess
+    if std::env::args().any(|a| a == "--python-subprocess") {
+        onetagger_autotag::python_process();
+        std::process::exit(0);
+    }
+
     let cli = Cli::parse();
 
     // Default configs
