@@ -75,6 +75,7 @@ Section "One Tagger" OneTagger
 	; Copy new
 	SetOutPath $INSTDIR
 	File "..\target\release\onetagger.exe"
+	File "..\crates\onetagger-python\pyembedded\python310.dll"
 	File "..\assets\icon.ico"
 	File "..\vc_redist.x64.exe"
 	File "..\MicrosoftEdgeWebview2Setup.exe"

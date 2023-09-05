@@ -8,7 +8,7 @@ class OneTaggerInfoLog(io.TextIOBase):
         pass
     def write(self, v):
         if v.strip() != '':
-            onetagger.info(v)
+            onetagger.info(v.strip())
 sys.stdout = OneTaggerInfoLog()
 
 # stderr -> log
@@ -17,5 +17,5 @@ class OneTaggerErrorLog(io.TextIOBase):
         pass
     def write(self, v):
         if v.strip() != '':
-            onetagger.error(v)
-sys.stderr = OneTaggerInfoLog()
+            onetagger.warn(v.strip())
+sys.stderr = OneTaggerErrorLog()

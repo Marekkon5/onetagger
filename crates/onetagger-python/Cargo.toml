@@ -9,12 +9,12 @@ edition = "2021"
 dunce = "1.0"
 chrono = "0.4"
 anyhow = "1.0"
+rmp-serde = "1.1"
 serde_json = "1.0"
 
 log = { version = "0.4", features = ["serde"] }
 pyo3 = { version = "0.18", features = ["chrono", "serde"] }
 serde = { version = "1.0", features = ["derive"] }
-bitcode = { version = "0.4", features = ["serde"] }
 pyembed = { git = "https://github.com/indygreg/PyOxidizer.git" }
 
 onetagger-tagger = { path = "../onetagger-tagger", features = ["python"] }

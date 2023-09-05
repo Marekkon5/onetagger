@@ -51,6 +51,7 @@ jobs:
         pnpm run build
         cd ..
         cargo update
+        cargo run --bin onetagger-python-builder --release
         cargo build --release
 
     - name: Bundle
@@ -121,6 +122,7 @@ jobs:
         pnpm run build
         cd ..
         cargo update
+        cargo run --bin onetagger-python-builder --release
         cargo build --release
         
     - name: Bundle
@@ -136,7 +138,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: onetagger-win
-        path: dist/OneTagger-windows.exe
+        path: | 
+          dist/OneTagger-windows.exe
+          crates/onetagger-python/pyembedded/python310.dll
     
     - name: Upload Archive
       uses: actions/upload-artifact@v3
@@ -191,6 +195,7 @@ jobs:
         pnpm run build
         cd ..
         cargo update
+        cargo run --bin onetagger-python-builder --release
         cd crates/onetagger
         cargo bundle --release
         cd ../..

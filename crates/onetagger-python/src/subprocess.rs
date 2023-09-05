@@ -1,4 +1,4 @@
-use std::io::{Read, Write, BufReader, BufRead};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{ChildStdin, ChildStdout, Child};
 use anyhow::Error;
@@ -23,6 +23,7 @@ pub enum PythonRequest {
     /// Exit
     Exit,
 
+    PipInstall { path: PathBuf, pip_path: PathBuf, requirements: Vec<String> },
     MatchTrack { info: AudioFileInfo, config: TaggerConfig },
     ExtendTrack { track: Track, config: TaggerConfig },
 }
@@ -33,6 +34,8 @@ pub enum PythonResponse {
     Log { level: Level, message: String },
     Error { error: String },
     InitOk,
+    PipOk,
+    Exit,
 
     MatchTrack { result: Result<Vec<TrackMatch>, String> },
     ExtendTrack { result: Result<Track, String> }
@@ -50,6 +53,14 @@ pub fn python_process() {
         match read_stdin() {
             Ok(PythonRequest::Init { path, code }) => break (path, code),
             Ok(PythonRequest::Exit) => return,
+            // Install pip packages and exit
+            Ok(PythonRequest::PipInstall { path, pip_path, requirements }) => {
+                match pip_install(path, pip_path, requirements) {
+                    Ok(_) => write_stdout(&PythonResponse::PipOk),
+                    Err(e) => write_stdout(&PythonResponse::Error { error: e.to_string() }),
+                }.ok();
+                return;
+            },
             Err(e) => { error!("{e}"); return },
             _ => {}
         }
@@ -66,6 +77,9 @@ pub fn python_process() {
             write_stdout(&PythonResponse::Error { error: e.to_string() }).ok();
         },
     }
+    
+    // Quit
+    write_stdout(&PythonResponse::Exit).ok();
 }
 
 /// Start and run python interpreter
@@ -82,14 +96,13 @@ fn python_interpreter(path: PathBuf, code: &str) -> Result<(), Error> {
         let match_track = module.getattr("match_track")?;
         let extend_track = module.getattr("extend_track")?;
 
-
-
         // Read loop
-        while let Ok(request) = read_stdin() {
-            match request {
+        loop {
+            match read_stdin()? {
                 // Ignore
-                PythonRequest::Init { .. } => {},
+                PythonRequest::Init { .. } => unreachable!(),
                 PythonRequest::Exit => return Ok(()),
+                PythonRequest::PipInstall { .. } => unreachable!(),
 
                 PythonRequest::MatchTrack { info, config } => {
                     write_stdout(&PythonResponse::MatchTrack {
@@ -103,6 +116,36 @@ fn python_interpreter(path: PathBuf, code: &str) -> Result<(), Error> {
                 },
             }
         }
+    })?;
+    Ok(())
+}
+
+/// Install pip packages
+fn pip_install(path: PathBuf, pip_path: PathBuf, requirements: Vec<String>) -> Result<(), Error> {
+    crate::module::setup();
+
+    // Add pip to path
+    let mut config = crate::module::pyoxidizer_config(path, stdlib_path()?)?;
+    let pip_path = dunce::canonicalize(pip_path)?;
+    config.interpreter_config.module_search_paths.as_mut().unwrap().push(pip_path);
+
+    // Install
+    let interpreter = MainPythonInterpreter::new(config)?;
+    interpreter.with_gil(|py| -> Result<(), Error> {
+        // Load utils
+        let _util = PyModule::from_code(py, include_str!("util.py"), "", "")?;
+
+        // Package list
+        let mut params: Vec<String> = vec![
+            "install".into(), 
+            "pip".into(), 
+            "setuptools".into(), 
+            "wheel".into()
+        ];
+        params.extend(requirements);
+
+        // Install
+        py.import("pip")?.call_method1("main", (params,))?;
         Ok(())
     })?;
     Ok(())
@@ -135,7 +178,6 @@ impl SubprocessWrap {
     pub fn recv(&mut self) -> Result<PythonResponse, Error> {
         loop {
             let response: PythonResponse = read_message(&mut self.stdout)?;
-            debug!("{response:?}");
             match response {
                 PythonResponse::Log { level, message } => {
                     match level {
@@ -147,9 +189,19 @@ impl SubprocessWrap {
                     }
                 },
                 PythonResponse::Error { error } => return Err(anyhow!("{error}")),
+                PythonResponse::Exit => {
+                    debug!("Exitting subprocess");
+                    return Ok(PythonResponse::Exit);
+                }
                 r => return Ok(r)
             }
         }
+    }
+}
+
+impl Drop for SubprocessWrap {
+    fn drop(&mut self) {
+        self.child.kill().ok();
     }
 }
 
@@ -157,11 +209,10 @@ impl SubprocessWrap {
 fn read_message<R: Read, D: DeserializeOwned>(read: &mut R) -> Result<D, Error> {
     let mut size_buf = [0u8; 4];
     read.read_exact(&mut size_buf)?;
-    debug!("len: {:?}", size_buf);
     let size = u32::from_be_bytes(size_buf) as usize;
     let mut buf = vec![0u8; size];
     read.read_exact(&mut buf)?;
-    Ok(bitcode::deserialize(&buf)?)
+    Ok(rmp_serde::from_slice(&buf)?)
 }
 
 /// Read from stdin
@@ -172,7 +223,7 @@ fn read_stdin() -> Result<PythonRequest, Error> {
 
 /// Serialize and write message
 fn write_message<W: Write, S: Serialize>(write: &mut W, msg: &S) -> Result<(), Error> {
-    let buf = bitcode::serialize(msg)?;
+    let buf = rmp_serde::to_vec(msg)?;
     let len = (buf.len() as u32).to_be_bytes();
     write.write_all(&len)?;
     write.write_all(&buf)?;

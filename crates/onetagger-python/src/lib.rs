@@ -8,7 +8,6 @@ use std::process::{Command, Stdio};
 use anyhow::Error;
 use onetagger_shared::Settings;
 use onetagger_tagger::{PlatformInfo, AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, AudioFileInfo, Track, TrackMatch};
-use pyembed::{MainPythonInterpreter, OxidizedPythonInterpreterConfig};
 use serde::{Serialize, Deserialize};
 use subprocess::{SubprocessWrap, PythonResponse, PythonRequest};
 
@@ -45,37 +44,15 @@ pub fn setup() -> Result<(), Error> {
         std::fs::write(dir.join("pip.pyz"), PIP_PYZ)?;
     }
 
+    // Setup pyo3
+    module::setup();
+
     Ok(())
 }
 
 /// Get standard library path
 fn stdlib_path() -> Result<PathBuf, Error> {
     Ok(dunce::canonicalize(Settings::get_folder()?.join("python_stdlib.zip"))?)
-}
-
-
-/// pip install packages
-fn pip_install(mut config: OxidizedPythonInterpreterConfig, requirements: &[String]) -> Result<(), Error> {
-    let pip_path = dunce::canonicalize(Settings::get_folder()?.join("pip.pyz"))?;
-    // Params
-    config.interpreter_config.run_filename = Some(pip_path.clone());
-    config.interpreter_config.argv = Some(vec![
-        "pip.pyz".into(),
-        "pip.pyz".into(),
-        "install".into(),
-        "pip".into(),
-        "setuptools".into(),
-        "wheel".into()
-    ]);
-    config.interpreter_config.argv.as_mut().unwrap().extend(requirements.iter().map(|r| r.into()));
-
-    // Run
-    let interpreter = MainPythonInterpreter::new(config)?;
-    let r = interpreter.py_runmain();
-    if r != 0 {
-        return Err(anyhow!("pip install failed with code: {r}"));
-    }
-    Ok(())
 }
 
 /// Platform info for Python
@@ -99,6 +76,18 @@ pub fn load_python_platform(path: impl AsRef<Path>) -> Result<PythonPlatformBuil
     Ok(PythonPlatformBuilder { info, path: dunce::canonicalize(path)? })
 }
 
+/// Spawn python child process
+fn spawn_python_child() -> Result<SubprocessWrap, Error> {
+    let child = Command::new(std::env::current_exe()?)
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .arg("--python-subprocess")
+        .spawn()?;
+    let wrap = SubprocessWrap::new(child);
+    Ok(wrap)
+}
+
 pub struct PythonPlatformBuilder {
     pub info: PythonPlatformInfo,
     path: PathBuf
@@ -111,27 +100,24 @@ impl AutotaggerSourceBuilder for PythonPlatformBuilder {
 
     fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         // Install packages
-        let config = module::pyoxidizer_config(&self.path.join(".python"), stdlib_path()?)?;
         info!("Running pip install {:?}", self.info.requirements);
-        pip_install(config.clone(), &self.info.requirements)?;
+        let mut wrap = spawn_python_child()?;
+        wrap.send(&PythonRequest::PipInstall { 
+            path: self.path.join(".python"), 
+            pip_path: Settings::get_folder()?.join("pip.pyz"), 
+            requirements: self.info.requirements.clone()
+        })?;
+        wrap.recv()?;
+        drop(wrap);
 
         // Load code
         let code = std::fs::read_to_string(self.path.join(&self.info.main))?;
 
         // Spawn subprocess
-        let child = Command::new(std::env::current_exe()?)
-            .stdout(Stdio::piped())
-            .stdin(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .arg("--python-subprocess")
-            .spawn()?;
-        let mut wrap = SubprocessWrap::new(child);
-        debug!("Pre init");
+        let mut wrap = spawn_python_child()?;
         wrap.send(&PythonRequest::Init { path: self.path.join(".python"), code })?;
-        debug!("Post init");
         // Receive init ok or error
         wrap.recv()?;
-        debug!("init ok");
 
         Ok(Box::new(PythonPlatform { subprocess: wrap }))
     }
@@ -150,9 +136,7 @@ pub struct PythonPlatform {
 
 impl AutotaggerSource for PythonPlatform {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
-        debug!("Pre match");
         self.subprocess.send(&PythonRequest::MatchTrack { info: info.clone(), config: config.clone() })?;
-        debug!("Post match");
         if let PythonResponse::MatchTrack { result } = self.subprocess.recv()? {
             return result.map_err(|e| anyhow!("{e}"));
         }
@@ -165,5 +149,12 @@ impl AutotaggerSource for PythonPlatform {
             *track = result.map_err(|e| anyhow!("{e}"))?;
         }
         Ok(())
+    }
+}
+
+impl Drop for PythonPlatform {
+    fn drop(&mut self) {
+        self.subprocess.send(&PythonRequest::Exit).ok();
+        self.subprocess.recv().ok();
     }
 }
