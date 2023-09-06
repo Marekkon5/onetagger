@@ -875,7 +875,7 @@ impl MatchingUtils {
 
     /// Step 5: Remove feat/ft
     fn clean_title_step5(input: &str) -> String {
-        let re = Regex::new(r"(\(|\[)?(feat|ft)\.? .+?(\)|\]|\(|$)").unwrap();
+        let re = Regex::new(r" (\(|\[)?(feat|ft)\.? .+?(\)|\]|\(|$)").unwrap();
         re.replace(input, "").into_owned()
     }
 
