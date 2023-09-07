@@ -117,6 +117,18 @@ impl TaggerConfig {
     }
 }
 
+#[cfg(feature = "python")]
+#[pymethods]
+impl TaggerConfig {
+    #[pyo3(name = "getcustom")]
+    fn get_custom_py(&self, platform_id: &str, py: Python<'_>) -> Result<Py<PyAny>, Error> {
+        let value = self.custom.get(platform_id).ok_or(anyhow!("Missing custom platform config for id: {platform_id}"))?;
+        let p = pythonize::pythonize(py, value)?;
+        Ok(p)
+    }
+
+}
+
 impl Default for TaggerConfig {
     fn default() -> Self {
         Self {
@@ -290,12 +302,6 @@ pub struct Track {
 
 #[cfg_attr(feature = "python", pymethods)]
 impl Track {
-    #[cfg(feature = "python")]
-    #[new]
-    fn new() -> Track {
-        Track::default()
-    }
-
     /// Get title with version
     pub fn full_title(&self) -> String {
         if let Some(v) = self.version.as_ref() {
@@ -356,6 +362,7 @@ pub struct TrackMatch {
 #[pymethods]
 impl TrackMatch {
     #[new]
+    #[pyo3(signature = (track, accuracy, reason = None))]
     fn new_py(track: Track, accuracy: f32, reason: Option<MatchReason>) -> TrackMatch {
         TrackMatch { accuracy: accuracy as f64, track, reason: reason.unwrap_or(MatchReason::Fuzzy) }
     }
@@ -604,6 +611,7 @@ pub struct AudioFileInfo {
     pub tags: HashMap<String, Vec<String>>
 }
 
+#[cfg_attr(feature = "python", pymethods)]
 impl AudioFileInfo {
     /// Get title (or error shorthand)
     pub fn title(&self) -> Result<&str, Error> {
@@ -622,7 +630,9 @@ impl AudioFileInfo {
         }
         Ok(self.artists.first().unwrap().as_str())
     }
+}
 
+impl AudioFileInfo {
     // Try to split artist string with common separators
     pub fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
         // Already an array
@@ -826,7 +836,6 @@ impl PlatformCustomOptions {
         self
     }
 }
-
 
 pub struct MatchingUtils;
 impl MatchingUtils {
@@ -1050,60 +1059,6 @@ impl MatchingUtils {
         output.extend(fuzz.into_iter().map(|(acc, track)| TrackMatch::new(acc, track.to_owned())));
         output
     }
-
-    // /// Default (old) track matching
-    // pub fn match_track_v1(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
-    //     let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
-    //     // Exact match
-    //     let mut exact_matches = vec![];
-    //     for track in tracks {
-    //         if !MatchingUtils::match_duration(info, track, config) {
-    //             continue;
-    //         }
-    //         if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
-    //             if match_artist {
-    //                 if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-    //                     exact_matches.push((1.0, track));
-    //                 }
-    //             } else {
-    //                 exact_matches.push((1.0, track));
-    //             }
-    //         }
-    //     }
-
-    //     // Use exact match
-    //     if !exact_matches.is_empty() {
-    //         MatchingUtils::sort_tracks(&mut exact_matches, &config);
-    //         return Some((1.0, exact_matches[0].1.to_owned()));
-    //     }
-
-    //     // Fuzzy match - value, track
-    //     let mut fuzz: Vec<(f64, &Track)> = vec![];
-    //     for track in tracks {
-    //         // Artist
-    //         if match_artist {
-    //             if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-    //                 continue;
-    //             }
-    //         }
-    //         // Match title
-    //         let clean = MatchingUtils::clean_title_matching(&track.full_title());
-    //         let l = normalized_levenshtein(&clean, &clean_title);
-    //         if l >= config.strictness {
-    //             fuzz.push((l, track));
-    //         }
-    //     }
-    //     // Empty array
-    //     if fuzz.is_empty() {
-    //         return None;
-    //     }
-    //     // Sort
-    //     fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-    //     let best_acc = fuzz[0].0;
-    //     let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
-    //     MatchingUtils::sort_tracks(&mut fuzz, &config);
-    //     Some((fuzz[0].0, fuzz[0].1.to_owned()))
-    // }
 
     /// Sort matched tracks by accuracy or release dates
     pub fn sort_tracks(tracks: &mut Vec<TrackMatch>, config: &TaggerConfig) {

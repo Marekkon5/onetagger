@@ -14,11 +14,12 @@ strsim = "0.10"
 unidecode = "0.3"
 serde_json = "1.0"
 
-pyo3 = { version = "0.18", features = ["chrono", "serde"], optional = true }
+pyo3 = { version = "0.18", features = ["chrono", "serde", "anyhow"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
+pythonize = { version = "0.18", optional = true }
 
 onetagger-tag = { path = "../onetagger-tag", default-features = false }
 
 [features]
 default = []
-python = ["pyo3", "onetagger-tag/python"]
+python = ["pyo3", "pythonize", "onetagger-tag/python"]

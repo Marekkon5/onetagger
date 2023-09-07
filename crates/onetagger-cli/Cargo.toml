@@ -14,6 +14,7 @@ convert_case = "0.6"
 clap = { version = "4.1", features = ["derive"] }
 
 onetagger-tagger = { path = "../onetagger-tagger" }
+onetagger-python = { path = "../onetagger-python" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-autotag = { path = "../onetagger-autotag" }
 onetagger-renamer = { path = "../onetagger-renamer" }

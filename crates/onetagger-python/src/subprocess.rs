@@ -10,8 +10,6 @@ use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
 use pyo3::prelude::*;
 
-use crate::stdlib_path;
-
 static PYTHON_SUBPROCESS_LOG: PythonSubprocessLog = PythonSubprocessLog;
 
 /// Request sent from parent process
@@ -23,7 +21,8 @@ pub enum PythonRequest {
     /// Exit
     Exit,
 
-    PipInstall { path: PathBuf, pip_path: PathBuf, requirements: Vec<String> },
+    PipInstall { path: PathBuf, requirements: Vec<String> },
+    GenerateDocs { python_path: PathBuf, output: PathBuf },
     MatchTrack { info: AudioFileInfo, config: TaggerConfig },
     ExtendTrack { track: Track, config: TaggerConfig },
 }
@@ -35,6 +34,7 @@ pub enum PythonResponse {
     Error { error: String },
     InitOk,
     PipOk,
+    DocsOk,
     Exit,
 
     MatchTrack { result: Result<Vec<TrackMatch>, String> },
@@ -54,9 +54,16 @@ pub fn python_process() {
             Ok(PythonRequest::Init { path, code }) => break (path, code),
             Ok(PythonRequest::Exit) => return,
             // Install pip packages and exit
-            Ok(PythonRequest::PipInstall { path, pip_path, requirements }) => {
-                match pip_install(path, pip_path, requirements) {
+            Ok(PythonRequest::PipInstall { path, requirements }) => {
+                match pip_install(path, requirements) {
                     Ok(_) => write_stdout(&PythonResponse::PipOk),
+                    Err(e) => write_stdout(&PythonResponse::Error { error: e.to_string() }),
+                }.ok();
+                return;
+            },
+            Ok(PythonRequest::GenerateDocs { python_path, output }) => {
+                match generate_docs(python_path, output) {
+                    Ok(_) => write_stdout(&PythonResponse::DocsOk),
                     Err(e) => write_stdout(&PythonResponse::Error { error: e.to_string() }),
                 }.ok();
                 return;
@@ -85,7 +92,7 @@ pub fn python_process() {
 /// Start and run python interpreter
 fn python_interpreter(path: PathBuf, code: &str) -> Result<(), Error> {
     crate::module::setup();
-    let config = crate::module::pyoxidizer_config(path, stdlib_path()?)?;
+    let config = crate::module::pyoxidizer_config(path)?;
     let interpreter = MainPythonInterpreter::new(config)?;
     interpreter.with_gil(|py| -> Result<(), Error> {
         // Load utils
@@ -103,6 +110,7 @@ fn python_interpreter(path: PathBuf, code: &str) -> Result<(), Error> {
                 PythonRequest::Init { .. } => unreachable!(),
                 PythonRequest::Exit => return Ok(()),
                 PythonRequest::PipInstall { .. } => unreachable!(),
+                PythonRequest::GenerateDocs { .. } => unreachable!(),
 
                 PythonRequest::MatchTrack { info, config } => {
                     write_stdout(&PythonResponse::MatchTrack {
@@ -121,13 +129,9 @@ fn python_interpreter(path: PathBuf, code: &str) -> Result<(), Error> {
 }
 
 /// Install pip packages
-fn pip_install(path: PathBuf, pip_path: PathBuf, requirements: Vec<String>) -> Result<(), Error> {
+fn pip_install(path: PathBuf, requirements: Vec<String>) -> Result<(), Error> {
     crate::module::setup();
-
-    // Add pip to path
-    let mut config = crate::module::pyoxidizer_config(path, stdlib_path()?)?;
-    let pip_path = dunce::canonicalize(pip_path)?;
-    config.interpreter_config.module_search_paths.as_mut().unwrap().push(pip_path);
+    let config = crate::module::pyoxidizer_config(path)?;
 
     // Install
     let interpreter = MainPythonInterpreter::new(config)?;
@@ -201,6 +205,9 @@ impl SubprocessWrap {
 
 impl Drop for SubprocessWrap {
     fn drop(&mut self) {
+        if let Ok(Some(code)) = self.child.try_wait() {
+            debug!("Subprocess exited with code: {code:?}");
+        }
         self.child.kill().ok();
     }
 }
@@ -252,4 +259,20 @@ impl Log for PythonSubprocessLog {
     fn flush(&self) {
         
     }
+}
+
+/// Generate 1T Python docs
+fn generate_docs(python_path: PathBuf, output: PathBuf) -> Result<(), Error> {
+    crate::module::setup();
+
+    // Run
+    let config = crate::module::pyoxidizer_config(python_path)?;
+    let interpreter = MainPythonInterpreter::new(config)?;
+    interpreter.with_gil(|py| -> Result<(), Error> {
+        let _util = PyModule::from_code(py, include_str!("util.py"), "", "")?;
+        let doc = PyModule::from_code(py, include_str!("docs.py"), "", "")?;
+        doc.getattr("generate_docs")?.call1(("onetagger", output.to_string_lossy().to_string()))?;
+        Ok(())
+    })?;
+    Ok(())
 }

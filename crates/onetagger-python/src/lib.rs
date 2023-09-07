@@ -8,6 +8,7 @@ use std::process::{Command, Stdio};
 use anyhow::Error;
 use onetagger_shared::Settings;
 use onetagger_tagger::{PlatformInfo, AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, AudioFileInfo, Track, TrackMatch};
+use pyembed::MainPythonInterpreter;
 use serde::{Serialize, Deserialize};
 use subprocess::{SubprocessWrap, PythonResponse, PythonRequest};
 
@@ -16,6 +17,7 @@ mod subprocess;
 
 /// Re-Export python process
 pub use subprocess::python_process;
+use tempdir::TempDir;
 
 /// Python Standard Library ZIP
 const PYTHON_STDLIB: &[u8] = include_bytes!("../pyembedded/stdlib.zip");
@@ -50,10 +52,6 @@ pub fn setup() -> Result<(), Error> {
     Ok(())
 }
 
-/// Get standard library path
-fn stdlib_path() -> Result<PathBuf, Error> {
-    Ok(dunce::canonicalize(Settings::get_folder()?.join("python_stdlib.zip"))?)
-}
 
 /// Platform info for Python
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,6 +86,59 @@ fn spawn_python_child() -> Result<SubprocessWrap, Error> {
     Ok(wrap)
 }
 
+/// Generate python module docs
+pub fn generate_docs() -> Result<PathBuf, Error> {
+    let temp = TempDir::new("1tdocs")?;
+
+    // Pip
+    debug!("Pip install");
+    let mut wrap = spawn_python_child()?;
+    wrap.send(&PythonRequest::PipInstall { 
+        path: temp.path().to_owned(), 
+        requirements: vec!["pdoc3".into(), "requests".into(), "beautifulsoup4".into(), "lxml".into()]
+    })?;
+    wrap.recv()?;
+    drop(wrap);
+
+    // Generate
+    debug!("Generate docs");
+    let mut wrap = spawn_python_child()?;
+    let path = Settings::get_folder()?.join("onetagger-python.html");
+    wrap.send(&PythonRequest::GenerateDocs { python_path: temp.path().to_owned(), output: path.to_owned() })?;
+    wrap.recv()?;
+    Ok(path)
+}
+
+/// Get python interpreter for platform
+/// WARNING: Exits the process, can be only called once
+pub fn python_interpreter(platform: &str) -> Result<(), Error> {
+    module::setup();
+    let folder = Settings::get_folder()?;
+    let mut config = module::pyoxidizer_config(folder.join("platforms").join(platform).join(".python"))?;
+    config.interpreter_config.module_search_paths.as_mut().unwrap().push(folder.join("pip.pyz"));
+    let interpreter = MainPythonInterpreter::new(config)?;
+    // Enable modern shell
+    interpreter.with_gil(|py| { py.import("readline").ok(); });
+    std::process::exit(interpreter.run());
+}
+
+/// Check the args, if it has python (non-1T related ones, start Python)
+pub fn python_hook() {
+    // 1T Python subprocess
+    let args = std::env::args().collect::<Vec<_>>();
+    if args.iter().any(|a| a == "--python-subprocess") {
+        python_process();
+        std::process::exit(0);
+    }
+
+    // Python subprocess spawned
+    if std::env::var("_1T_PY_HOME").is_ok() {
+        let mut config = module::pyoxidizer_config(std::env::var("_1T_PY_HOME").unwrap()).unwrap();
+        config.argv = Some(args.into_iter().map(|v| v.into()).collect());
+        std::process::exit(MainPythonInterpreter::new(config).unwrap().py_runmain());
+    }
+}
+
 pub struct PythonPlatformBuilder {
     pub info: PythonPlatformInfo,
     path: PathBuf
@@ -104,7 +155,6 @@ impl AutotaggerSourceBuilder for PythonPlatformBuilder {
         let mut wrap = spawn_python_child()?;
         wrap.send(&PythonRequest::PipInstall { 
             path: self.path.join(".python"), 
-            pip_path: Settings::get_folder()?.join("pip.pyz"), 
             requirements: self.info.requirements.clone()
         })?;
         wrap.recv()?;
