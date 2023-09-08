@@ -136,21 +136,24 @@ fn pip_install(path: PathBuf, requirements: Vec<String>) -> Result<(), Error> {
     // Install
     let interpreter = MainPythonInterpreter::new(config)?;
     interpreter.with_gil(|py| -> Result<(), Error> {
-        // Load utils
-        let _util = PyModule::from_code(py, include_str!("util.py"), "", "")?;
+        let f = || -> PyResult<()> {
+            // Load utils
+            let _util = PyModule::from_code(py, include_str!("util.py"), "", "")?;
 
-        // Package list
-        let mut params: Vec<String> = vec![
-            "install".into(), 
-            "pip".into(), 
-            "setuptools".into(), 
-            "wheel".into()
-        ];
-        params.extend(requirements);
+            // Package list
+            let mut params: Vec<String> = vec![
+                "install".into(), 
+                "pip".into(), 
+                "setuptools".into(), 
+                "wheel".into()
+            ];
+            params.extend(requirements);
 
-        // Install
-        py.import("pip")?.call_method1("main", (params,))?;
-        Ok(())
+            // Install
+            py.import("pip")?.call_method1("main", (params,))?;
+            Ok(())
+        };
+        convert_result(f(), py)
     })?;
     Ok(())
 }
