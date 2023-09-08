@@ -47,7 +47,7 @@ pub fn setup() {
 /// ## How to implement your own module:
 /// 
 /// ```
-/// from onetagger import AudioFileInfo, TaggerConfig, TrackMatch, Track, new_track, match_track
+/// from onetagger import AudioFileInfo, TaggerConfig, TrackMatch, Track, new_track, match_tracks
 /// 
 /// # This function should search on your platform and return list of relevant / matched tracks
 /// def match_track(info: AudioFileInfo, config: TaggerConfig) -> list[TrackMatch]:
@@ -60,7 +60,7 @@ pub fn setup() {
 ///         artists = ["Artist"]
 ///     )
 ///     # Match your tracks
-///     matches = match_track(info, [track], config, True)
+///     matches = match_tracks(info, [track], config, True)
 ///     return matches
 /// 
 /// # This function will be called later on matched track, so here you can fetch additional metadata
@@ -143,14 +143,14 @@ fn onetagger(_py: Python<'_>, module: &PyModule) -> PyResult<()> {
     /// NOTE: Output is unsorted, sorted later in AT
     #[pyfn(module)]
     #[pyo3(signature = (info, tracks, config, match_artist = true))]
-    fn match_track(info: &AudioFileInfo, tracks: Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Vec<TrackMatch> {
+    fn match_tracks(info: &AudioFileInfo, tracks: Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Vec<TrackMatch> {
         MatchingUtils::match_track(info, &tracks, config, match_artist)
     }
 
     /// Do exact matches on each step of track cleaning
     #[pyfn(module)]
     #[pyo3(signature = (info, tracks, config, match_artist = true))]
-    fn match_track_exact_fallback(info: &AudioFileInfo, tracks: Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Vec<Track> {
+    fn match_tracks_exact_fallback(info: &AudioFileInfo, tracks: Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Vec<Track> {
         MatchingUtils::match_track_exact_fallback(info, &tracks, config, match_artist)
     }
 
@@ -215,32 +215,30 @@ fn onetagger(_py: Python<'_>, module: &PyModule) -> PyResult<()> {
 /// 
 #[pyfunction]
 #[pyo3(signature = (**kwargs))]
-fn new_track(kwargs: Option<&PyDict>) -> Track {
+fn new_track(kwargs: Option<&PyDict>) -> Result<Track, Error> {
     let kwargs = match kwargs {
         Some(k) => k,
-        None => return Track::default()
+        None => return Ok(Track::default())
     };
 
-    // Copy fields to track
-    let mut track = Track::default();
-    macro_rules! gen_track_fields {
-        ($($field: tt),*) => {
-            $(
-            kwargs
-                .get_item(stringify!(field))
-                .map(|i| i.extract().map(|i| track.$field = i).ok())
-                .flatten()
-                .unwrap_or_default();
-            )*
-        };
+    // Set some fields to default value
+    macro_rules! set_default {
+        ($field: tt, $value: expr) => {
+            if !kwargs.hasattr($field).unwrap_or(false) {
+                kwargs.set_item($field, $value)?;
+            }
+        }
     }
-    gen_track_fields!(
-        platform, title, version, artists, album_artists, album, key, bpm, genres, 
-        styles, art, url, label, catalog_number, other, track_id, release_id, duration, 
-        remixers, track_number, track_total, disc_number, isrc, mood, explicit, lyrics, 
-        release_year, release_date, publish_year, publish_date, thumbnail
-    );
-    track
+    set_default!("album_artists", Vec::<()>::new());
+    set_default!("genres", Vec::<()>::new());
+    set_default!("styles", Vec::<()>::new());
+    set_default!("other", Vec::<()>::new());
+    set_default!("remixers", Vec::<()>::new());
+    set_default!("duration", 0.0f64);
+    set_default!("release_id", String::new());
+    set_default!("url", String::new());
+
+    Ok(pythonize::depythonize(kwargs)?)
 }
 
 /// Create new TrackMatch object from track

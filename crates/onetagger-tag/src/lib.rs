@@ -4,7 +4,8 @@
 #[cfg(feature = "tag")]
 #[macro_use] extern crate anyhow;
 
-use serde::{Serialize, Deserialize};
+use serde::de::Visitor;
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -581,7 +582,7 @@ pub struct LyricsLinePart {
 }
 
 /// Duration which can be used in Python as well
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(transparent)]
 pub struct OTDuration(pub Duration);
 
@@ -622,5 +623,40 @@ impl IntoPy<PyObject> for OTDuration {
 impl<'a> FromPyObject<'a> for OTDuration {
     fn extract(ob: &'a PyAny) -> PyResult<Self> {
         Ok(OTDuration(Duration::from_secs_f64(ob.extract()?)))
+    }
+}
+
+impl Serialize for OTDuration {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer 
+    {
+        serializer.serialize_f64(self.as_secs_f64())
+    }
+}
+
+impl<'de> Deserialize<'de> for OTDuration {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de> 
+    {
+        deserializer.deserialize_f64(OTDurationVisitor)
+    }
+}
+
+struct OTDurationVisitor;
+
+impl<'de> Visitor<'de> for OTDurationVisitor {
+    type Value = OTDuration;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Duration as f64 seconds")
+    }
+
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error, 
+    {
+        Ok(OTDuration(Duration::from_secs_f64(v)))    
     }
 }

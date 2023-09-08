@@ -44,6 +44,7 @@ enum Action {
     OpenFile { path: PathBuf },
     DeleteFiles { paths: Vec<String> },
     GetLog,
+    PythonDocs,
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
@@ -594,6 +595,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     })).ok();
                 },
             }
+        },
+
+        // Generate and open Python documentation
+        Action::PythonDocs => {
+            webbrowser::open(&format!("file://{}", onetagger_python::generate_docs()?.to_string_lossy()))?;
         }
         
     }

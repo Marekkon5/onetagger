@@ -308,7 +308,12 @@ impl Track {
             if v.trim().is_empty() {
                 self.title.to_string()
             } else {
-                format!("{} ({})", self.title, v.trim())
+                let v = v.trim();
+                if v.starts_with("(") || v.starts_with("[") || v.starts_with("{") {
+                    format!("{} {}", self.title, v)
+                } else {
+                    format!("{} ({})", self.title, v)                    
+                }
             }
         } else {
             self.title.to_string()

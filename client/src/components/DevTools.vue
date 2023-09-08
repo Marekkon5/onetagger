@@ -25,6 +25,7 @@
         <q-btn class='q-mx-sm' outline color='primary' @click='devServer()'>Go to dev server</q-btn>
         <q-btn class='q-mx-sm' outline color='primary' @click='devtools()'>Open webview devtools</q-btn>
         <q-btn class='q-mx-sm' outline color='primary' @click='$1t.send("openSettingsFolder")'>Open data dir</q-btn>
+        <q-btn class='q-mx-sm' outline color='primary' @click='pythonDocs()'>Generate and open Python Docs</q-btn>
         <div class='q-my-sm'></div>
 
         <!-- Log -->
@@ -63,11 +64,12 @@
 </template>
 
 <script lang='ts' setup>
-import { useDialogPluginComponent } from 'quasar';
+import { useDialogPluginComponent, useQuasar } from 'quasar';
 import { get1t } from '../scripts/onetagger';
 import { computed, onMounted, ref } from 'vue';
 
 const { dialogRef, onDialogHide } = useDialogPluginComponent();
+const $q = useQuasar();
 const $1t = get1t();
 const logRef = ref(null);
 const fullLog = ref(false);
@@ -106,6 +108,18 @@ function devtools() {
 function logBottom() {
     //@ts-ignore
     logRef.value!.scrollTo(log.value.length);
+}
+
+// Generate python docs and show warning
+function pythonDocs() {
+    $1t.send('pythonDocs');
+    $q.dialog({
+        title: 'Python Docs',
+        message: 'Python docs are generating, which might take a while and will open once ready. You can also access them later from 1T folder',
+        ok: {
+            color: 'primary'
+        }
+    });
 }
 
 // Get color for level

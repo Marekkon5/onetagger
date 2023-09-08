@@ -4846,6 +4846,7 @@ dependencies = [
  "onetagger-tagger",
  "pyembed",
  "pyo3",
+ "pythonize",
  "rmp-serde",
  "serde",
  "serde_json",

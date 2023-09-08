@@ -141,7 +141,7 @@ impl AutotaggerPlatforms {
 
             // Generate info
             let info = AutotaggerPlatformInfo {
-                id: entry.file_name().to_string_lossy().to_string(),
+                id: format!("{}.py", entry.file_name().to_string_lossy()),
                 built_in: false,
                 platform: platform.info.info.to_owned(),
                 icon,
