@@ -33,6 +33,7 @@ fn main() {
     // Generate docs
     if cli.python_docs {
         onetagger_shared::setup();
+        onetagger_python::setup().expect("Failed preparing Python env");
         println!("{}", onetagger_python::generate_docs().expect("Failed to generate docs").to_string_lossy());
         return;
     }

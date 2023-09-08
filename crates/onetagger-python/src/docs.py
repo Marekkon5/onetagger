@@ -73,5 +73,5 @@ def generate_docs(module, output):
     style.string = STYLE
     soup.body.append(style)
 
-    with open(output, 'w') as f:
+    with open(output, 'w', encoding='utf-8') as f:
         f.write(soup.prettify())

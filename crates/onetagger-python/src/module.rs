@@ -28,6 +28,9 @@ pub fn pyoxidizer_config<'a>(dir: impl AsRef<Path>) -> Result<OxidizedPythonInte
         dunce::canonicalize(folder.join("python_stdlib.zip"))?,
         dunce::canonicalize(folder.join("pip.pyz"))?,
     ]);
+    #[cfg(target_os = "windows")]
+    config.interpreter_config.module_search_paths.as_mut().unwrap().push(dunce::canonicalize(folder.join("lib"))?);
+
     config.interpreter_config.run_filename = None;
     config.interpreter_config.argv = Some(vec![]);
 

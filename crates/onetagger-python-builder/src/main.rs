@@ -27,6 +27,11 @@ fn setup_all(out_dir: impl AsRef<Path>) -> Result<(), Error> {
     println!("Zipping stdlib...");
     zip_stdlib(out_dir.as_ref().join("stdlib"), out_dir.as_ref().join("stdlib.zip"))?;
 
+    // Windows also has libs folder
+    if cfg!(target_os = "windows") {
+        zip_stdlib(out_dir.as_ref().join("lib"), out_dir.as_ref().join("lib.zip"))?;
+    }
+
     // Patch & copy config
     println!("Copy config...");
     let re = Regex::new("packed_resources: .*").unwrap();
@@ -50,6 +55,9 @@ fn setup_all(out_dir: impl AsRef<Path>) -> Result<(), Error> {
     std::fs::remove_dir_all(out_dir.as_ref().join("stdlib"))?;
     std::fs::remove_dir_all(out_dir.as_ref().join("tcl"))?;
     std::fs::remove_file(out_dir.as_ref().join("default_python_config.rs"))?;
+    if cfg!(windows) {
+        std::fs::remove_dir_all(out_dir.as_ref().join("lib"))?;
+    }
 
     Ok(())
 }

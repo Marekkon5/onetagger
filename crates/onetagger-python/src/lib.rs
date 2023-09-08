@@ -24,6 +24,10 @@ const PYTHON_STDLIB: &[u8] = include_bytes!("../pyembedded/stdlib.zip");
 const PYTHON_VERSION: &'static str = include_str!("../pyembedded/VERSION");
 const PIP_PYZ: &[u8] = include_bytes!("../pyembedded/pip.pyz");
 
+/// Windows specific libraries that have to be unzipped
+#[cfg(target_os = "windows")]
+const PYTHON_LIBS: &[u8] = include_bytes!("../pyembedded/lib.zip");
+
 /// Setup Python
 pub fn setup() -> Result<(), Error> {
     let dir = Settings::get_folder()?;
@@ -44,6 +48,16 @@ pub fn setup() -> Result<(), Error> {
         info!("Writing python stdlib for {}", PYTHON_VERSION);
         std::fs::write(dir.join("python_stdlib.zip"), PYTHON_STDLIB)?;
         std::fs::write(dir.join("pip.pyz"), PIP_PYZ)?;
+    }
+
+    // Unzip Windows libs
+    #[cfg(target_os = "windows")]
+    {
+        use zip::read::ZipArchive;
+        use std::io::Cursor;
+        let mut zip = ZipArchive::new(Cursor::new(PYTHON_LIBS))?;
+        std::fs::create_dir_all(dir.join("lib"))?;
+        zip.extract(dir.join("lib"))?;
     }
 
     // Setup pyo3
