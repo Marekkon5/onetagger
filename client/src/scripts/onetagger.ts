@@ -81,7 +81,9 @@ class OneTagger {
             // Dev tools
             if (e.key == 'F3') {
                 Dialog.create({ component: DevToolsVue });
-                return false;
+                e.preventDefault();
+                e.stopPropagation();
+                return true;
             }
 
             if (this.handleKeyDown(e)) {

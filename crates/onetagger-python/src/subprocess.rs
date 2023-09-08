@@ -213,12 +213,12 @@ impl Drop for SubprocessWrap {
 }
 
 /// Read and deserialize message
-fn read_message<R: Read, D: DeserializeOwned>(read: &mut R) -> Result<D, Error> {
+fn read_message<R: Read, D: DeserializeOwned>(reader: &mut R) -> Result<D, Error> {
     let mut size_buf = [0u8; 4];
-    read.read_exact(&mut size_buf)?;
+    reader.read_exact(&mut size_buf)?;
     let size = u32::from_be_bytes(size_buf) as usize;
     let mut buf = vec![0u8; size];
-    read.read_exact(&mut buf)?;
+    reader.read_exact(&mut buf)?;
     Ok(rmp_serde::from_slice(&buf)?)
 }
 
@@ -269,10 +269,27 @@ fn generate_docs(python_path: PathBuf, output: PathBuf) -> Result<(), Error> {
     let config = crate::module::pyoxidizer_config(python_path)?;
     let interpreter = MainPythonInterpreter::new(config)?;
     interpreter.with_gil(|py| -> Result<(), Error> {
-        let _util = PyModule::from_code(py, include_str!("util.py"), "", "")?;
-        let doc = PyModule::from_code(py, include_str!("docs.py"), "", "")?;
-        doc.getattr("generate_docs")?.call1(("onetagger", output.to_string_lossy().to_string()))?;
-        Ok(())
+        let f = || -> PyResult<()> {
+            let _util = PyModule::from_code(py, include_str!("util.py"), "", "")?;
+            let doc = PyModule::from_code(py, include_str!("docs.py"), "", "")?;
+            doc.getattr("generate_docs")?.call1(("onetagger", output.to_string_lossy().to_string()))?;
+            Ok(())
+        };
+        convert_result(f(), py)
     })?;
     Ok(())
+}
+
+/// Convert py result to normal result
+fn convert_result<T>(result: PyResult<T>, py: Python<'_>) -> Result<T, Error> {
+    match result {
+        Ok(r) => Ok(r),
+        Err(e) => {
+            let mut error = format!("{e}");
+            if let Some(traceback) = e.traceback(py).map(|e| e.format().ok()).flatten() {
+                error = format!("{error}\n{traceback}");
+            }
+            Err(anyhow!("{}", error))
+        },
+    }
 }
