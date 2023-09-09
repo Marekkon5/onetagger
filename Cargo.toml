@@ -15,7 +15,7 @@ members = [
     "crates/onetagger-python-builder",
 ]
 
-# Optimize for size
 [profile.release]
 opt-level = 3
-strip = true
+# Required for MacOS (Python), waste for Linux
+strip = false
