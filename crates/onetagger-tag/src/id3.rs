@@ -227,8 +227,8 @@ impl TagImpl for ID3Tag {
     fn all_tags(&self) -> HashMap<String, Vec<String>> {
         let mut tags = HashMap::new();
         for frame in self.tag.frames() {
-            if let Content::Text(v) = frame.content() {
-                tags.insert(frame.id().to_owned(), v.split(&self.id3_separator).map(String::from).collect());
+            if let Some(v) = self.get_raw(frame.id()) {
+                tags.insert(frame.id().to_owned(), v);
             }
         }
         // Add TXXX
@@ -446,6 +446,7 @@ impl TagImpl for ID3Tag {
             self.tag.set_text(tag, value.join(&self.id3_separator));
         }
     }
+
     // Get raw TEXT field
     fn get_raw(&self, tag: &str) -> Option<Vec<String>> {
         // Custom tag (TXXX)
@@ -475,6 +476,11 @@ impl TagImpl for ID3Tag {
         // Get tag
         if let Some(t) = self.tag.get(tag) {
             if let Some(content) = t.content().text() {
+                // In ID3v2.2/3 strings are NULL terminated, so they can't contain null bytes.
+                // Because of that the ID3 library replaces \0 with / and then back
+                if (self.tag.version() == Version::Id3v22 || self.tag.version() == Version::Id3v23) && content.contains("\0") {
+                    return Some(content.replace("\0", "/").split(&self.id3_separator).map(String::from).collect());
+                }
                 Some(content.split(&self.id3_separator).map(String::from).collect())
             } else {
                 None
