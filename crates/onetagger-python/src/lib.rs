@@ -85,6 +85,26 @@ pub fn load_python_platform(path: impl AsRef<Path>) -> Result<PythonPlatformBuil
     let info: PythonPlatformInfo = serde_json::from_reader(BufReader::new(File::open(path.as_ref().join("info.json"))?))?;
     // Create python dir
     std::fs::create_dir_all(path.as_ref().join(".python"))?;
+
+    // Check version and dependencies
+    let installed_version = match std::fs::read_to_string(path.as_ref().join(".VERSION")) {
+        Ok(version) => version,
+        Err(_) => String::new(),
+    };
+    if installed_version != info.info.version {
+        // Install pip dependencies
+        info!("Running pip install {:?}", info.requirements);
+        let mut wrap = spawn_python_child()?;
+        wrap.send(&PythonRequest::PipInstall { 
+            path: path.as_ref().join(".python"), 
+            requirements: info.requirements.clone()
+        })?;
+        wrap.recv()?;
+    }
+
+    // Save installed version
+    std::fs::write(path.as_ref().join(".VERSION"), &info.info.version)?;
+
     Ok(PythonPlatformBuilder { info, path: dunce::canonicalize(path)? })
 }
 
@@ -158,32 +178,27 @@ pub struct PythonPlatformBuilder {
     path: PathBuf
 }
 
+impl PythonPlatformBuilder {
+    /// Initialize subprocess
+    fn init(&self) -> Result<SubprocessWrap, Error> {
+        // Load code
+        let code = std::fs::read_to_string(self.path.join(&self.info.main))?;
+        // Spawn subprocess
+        let mut wrap = spawn_python_child()?;
+        wrap.send(&PythonRequest::Init { path: self.path.join(".python"), code })?;
+        // Receive init ok or error
+        wrap.recv()?;
+        Ok(wrap)
+    }
+}
+
 impl AutotaggerSourceBuilder for PythonPlatformBuilder {
     fn new() -> Self where Self: Sized {
         panic!("Not used / Python platforms should be loaded externally");
     }
 
     fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        // Install packages
-        info!("Running pip install {:?}", self.info.requirements);
-        let mut wrap = spawn_python_child()?;
-        wrap.send(&PythonRequest::PipInstall { 
-            path: self.path.join(".python"), 
-            requirements: self.info.requirements.clone()
-        })?;
-        wrap.recv()?;
-        drop(wrap);
-
-        // Load code
-        let code = std::fs::read_to_string(self.path.join(&self.info.main))?;
-
-        // Spawn subprocess
-        let mut wrap = spawn_python_child()?;
-        wrap.send(&PythonRequest::Init { path: self.path.join(".python"), code })?;
-        // Receive init ok or error
-        wrap.recv()?;
-
-        Ok(Box::new(PythonPlatform { subprocess: wrap }))
+        Ok(Box::new(PythonPlatform { subprocess: self.init()? }))
     }
 
     fn info(&self) -> PlatformInfo {
