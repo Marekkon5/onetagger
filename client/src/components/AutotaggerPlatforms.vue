@@ -53,7 +53,7 @@
                             </div>
                         </q-card-section>
                         <q-card-section class='row'>
-                            <img :src='platform.icon' :height='dense ? 40 : 50'>
+                            <img class='q-pa-xs' :class='{"q-mt-sm": !dense}' :src='platform.icon' :height='dense ? 40 : 50'>
                         </q-card-section>
                     </q-card-section>
                 </q-card>
