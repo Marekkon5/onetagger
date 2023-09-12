@@ -94,7 +94,7 @@ function browse() {
 /// Check if tag is supported on selected platforms
 function isSupported(tag: SupportedTag) {
     if (tag == SupportedTag.MetaTags) return true;
-    return ($1t.info.value.platforms.find(p => $1t.config.value.platforms.includes(p.id) && p.supportedTags.includes(tag))) != null;
+    return ($1t.info.value.platforms.find(p => $1t.config.value.platforms.includes(p.platform.id) && p.supportedTags.includes(tag))) != null;
 }
 
 /// Toggle tag on and off

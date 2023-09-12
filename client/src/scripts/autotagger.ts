@@ -1,7 +1,6 @@
 import { FrameName, RustDuration, Separators } from "./utils";
 
 interface AutotaggerPlatform {
-    id: string;
     builtIn: boolean;
     platform: PlatformInfo;
     icon: string;

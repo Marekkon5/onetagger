@@ -60,7 +60,7 @@ impl AutotaggerPlatforms {
     /// Get the source
     pub fn get_builder(&mut self, id: &str) -> Option<&mut Box<dyn AutotaggerSourceBuilder + Send + Sync>> {
         let platform = self.platforms.iter_mut()
-            .find(|p| p.info.id == id || p.info.platform.id == id)?;
+            .find(|p| p.info.platform.id == id)?;
         Some(&mut platform.platform)
     }
 
@@ -69,7 +69,6 @@ impl AutotaggerPlatforms {
         let info = P::new().info();
         output.push(AutotaggerPlatform {
             info: AutotaggerPlatformInfo {
-                id: info.id.clone(),
                 built_in: true,
                 icon: match Self::reencode_image(info.icon) {
                     Ok(s) => s,
@@ -113,7 +112,7 @@ impl AutotaggerPlatforms {
             }
             match CustomPlatform::open_platform(&entry.path()) {
                 Ok(p) => {
-                    info!("Loaded custom platform: {}@{}", p.info.id, p.info.platform.version);
+                    info!("Loaded custom platform: {}@{}", p.info.platform.id, p.info.platform.version);
                     self.platforms.push(p);
                 },
                 Err(e) => {
@@ -145,7 +144,6 @@ impl AutotaggerPlatforms {
 
             // Generate info
             let info = AutotaggerPlatformInfo {
-                id: format!("{}.py", entry.file_name().to_string_lossy()),
                 built_in: false,
                 platform: platform.info.info.to_owned(),
                 icon,
@@ -169,7 +167,6 @@ pub struct AutotaggerPlatform {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutotaggerPlatformInfo {
-    pub id: String,
     pub built_in: bool,
     pub platform: PlatformInfo,
     /// Encoded for UI
@@ -220,11 +217,9 @@ impl CustomPlatform {
 
     /// Open and convert into Autotagger platfrom
     pub fn open_platform(path: &PathBuf) -> Result<AutotaggerPlatform, Error> {
-        let filename = path.file_name().ok_or(anyhow!("Invalid filename"))?.to_str().ok_or(anyhow!("Invalid filename"))?.to_string();
         let lib = Self::open(path)?;
         Ok(AutotaggerPlatform {
             info: AutotaggerPlatformInfo {
-                id: filename,
                 built_in: false,
                 platform: lib.info.clone(),
                 icon: match AutotaggerPlatforms::reencode_image(lib.info.icon) {

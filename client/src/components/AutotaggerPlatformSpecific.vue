@@ -122,7 +122,7 @@ import { computed } from 'vue';
 const $1t = get1t();
 const spotify = computed(() => $1t.config.value.platforms.includes('spotify'));
 const platforms = computed(() => $1t.info.value.platforms
-    .filter((p) => $1t.config.value.platforms.includes(p.id) && p.platform.customOptions.options.length > 0)
+    .filter((p) => $1t.config.value.platforms.includes(p.platform.id) && p.platform.customOptions.options.length > 0)
     .map((p) => p.platform));
 
 </script>
