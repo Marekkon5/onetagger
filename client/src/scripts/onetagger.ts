@@ -1,6 +1,6 @@
 import { Dialog, Notify, setCssVar } from 'quasar';
 import { ref, Ref } from 'vue';
-import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger';
+import { AutotaggerConfig, AutotaggerPlatform, ConfigCallbackResponse, TaggerStatus } from './autotagger';
 import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
@@ -261,6 +261,21 @@ class OneTagger {
             // Manual tag applied tags
             case 'manualTagApplied':
                 this.manualTag.value._resolveSaving!(json);
+                break;
+
+            // Callback from config
+            case 'configCallback':
+                let response = json.response as ConfigCallbackResponse;
+                switch (response.type) {
+                    case 'empty':
+                        break;
+                    case 'error':
+                        this.onError(response.error);
+                        break;
+                    case 'updateConfig':
+                        Object.assign(this.config.value.custom[json.platform], response.config);
+                        break;
+                }
                 break;
 
             // Debug

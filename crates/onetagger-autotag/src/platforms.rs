@@ -1,4 +1,5 @@
 use anyhow::Error;
+use serde_json::Value;
 use std::ffi::c_void;
 use std::path::PathBuf;
 use std::io::Cursor;
@@ -10,7 +11,7 @@ use image::io::Reader as ImageReader;
 use image::ImageOutputFormat;
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
-use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag, TrackMatch};
+use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag, TrackMatch, ConfigCallbackResponse};
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
@@ -19,7 +20,9 @@ lazy_static::lazy_static! {
 
 
 /// For passing platform list into UI
-pub struct AutotaggerPlatforms(pub Vec<AutotaggerPlatform>);
+pub struct AutotaggerPlatforms {
+    pub platforms: Vec<AutotaggerPlatform>,
+}
 
 impl AutotaggerPlatforms {
     /// Get all the available platforms
@@ -41,7 +44,7 @@ impl AutotaggerPlatforms {
         AutotaggerPlatforms::add_builtin::<musixmatch::MusixmatchBuilder>(&mut output);
 
         // Custom
-        let mut platforms = AutotaggerPlatforms(output);
+        let mut platforms = AutotaggerPlatforms { platforms: output };
         match platforms.load_custom() {
             Ok(_) => {},
             Err(e) => warn!("Failed loading custom platforms: {e}")
@@ -56,7 +59,8 @@ impl AutotaggerPlatforms {
 
     /// Get the source
     pub fn get_builder(&mut self, id: &str) -> Option<&mut Box<dyn AutotaggerSourceBuilder + Send + Sync>> {
-        let platform = self.0.iter_mut().find(|p| p.info.id == id)?;
+        let platform = self.platforms.iter_mut()
+            .find(|p| p.info.id == id || p.info.platform.id == id)?;
         Some(&mut platform.platform)
     }
 
@@ -110,7 +114,7 @@ impl AutotaggerPlatforms {
             match CustomPlatform::open_platform(&entry.path()) {
                 Ok(p) => {
                     info!("Loaded custom platform: {}@{}", p.info.id, p.info.platform.version);
-                    self.0.push(p);
+                    self.platforms.push(p);
                 },
                 Err(e) => {
                     error!("Failed loading custom platform from {:?}: {e}", entry.path());
@@ -149,7 +153,7 @@ impl AutotaggerPlatforms {
                 supported_tags: platform.info.info.supported_tags.clone(),
             };
 
-            self.0.push(AutotaggerPlatform { info, platform: Box::new(platform) });
+            self.platforms.push(AutotaggerPlatform { info, platform: Box::new(platform) });
         }
         Ok(())
     }
@@ -269,6 +273,20 @@ impl CustomPlatform {
             match_fn
         })
     }
+
+    /// Get config callback
+    fn config_callback_raw(&self, name: &str, config: Value) -> Result<ConfigCallbackResponse, Error> {
+        let config = Box::new(config);
+        let output = unsafe {
+            let f: Symbol<unsafe extern fn(*mut c_void, &str, *mut Value) -> *mut ConfigCallbackResponse> =
+                self.library.get(b"_1t_builder_config_callback")?;
+            let response = Box::from_raw(f(self.builder.0, name, Box::into_raw(config)));
+            let output = (*response).clone();
+            drop(response);
+            output
+        };
+        Ok(output)
+    }
 }
 
 impl Drop for CustomPlatform {
@@ -293,6 +311,14 @@ impl AutotaggerSourceBuilder for CustomPlatform {
     fn info(&self) -> PlatformInfo {
         self.info.clone()
     }
+
+    fn config_callback(&mut self, name: &str, config: Value) -> ConfigCallbackResponse {
+        match self.config_callback_raw(name, config) {
+            Ok(r) => r,
+            Err(e) => ConfigCallbackResponse::Error { error: e.to_string() },
+        }
+    }
+    
 }
 
 struct CustomPlatformSource {

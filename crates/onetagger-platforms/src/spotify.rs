@@ -175,21 +175,26 @@ impl Spotify {
     /// Extend track for autotagger
     fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Fetch album
-        if config.tag_enabled(SupportedTag::Label) {
+        if config.tag_enabled(SupportedTag::Label) || config.tag_enabled(SupportedTag::Genre) {
             match self.album(&AlbumId::from_id(&track.release_id)?) {
                 Ok(album) => {
                     track.label = album.label;
+                    track.genres = album.genres;
                 }
                 Err(e) => warn!("Failed to fetch album data: {}", e),
             }
         }
-        // Fetch genres from album
-        if config.tag_enabled(SupportedTag::Genre) {
-            if let Ok(id) = AlbumId::from_id(&track.release_id) {
-                let album = self.album(&id)?;
-                track.genres = album.genres;
+
+        // Fetch genres from artist if album has them unavailable
+        if track.genres.is_empty() && config.tag_enabled(SupportedTag::Genre) && track.custom.get("artist_id").is_some() {
+            match self.artist(&ArtistId::from_id(track.custom.get("artist_id").unwrap())?) {
+                Ok(artist) => {
+                    track.genres = artist.genres;
+                },
+                Err(e) => warn!("Failed to fetch artist data: {e}"),
             }
         }
+
         // Fetch audio features
         if config.tag_enabled(SupportedTag::Key) {
             if let Some(track_id) = track.track_id.as_ref() {
@@ -248,6 +253,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         platform: "spotify".to_string(),
         title: track.name,
         version: None,
+        custom: track.artists.first().map(|a| a.id.as_ref().map(|id| id.id().to_string())).flatten().into_iter().map(|a| ("artist_id".to_string(), a)).collect(),
         artists: track.artists.into_iter().map(|a| a.name).collect(),
         album_artists: track.album.artists.into_iter().map(|a| a.name).collect(),
         album: Some(track.album.name),

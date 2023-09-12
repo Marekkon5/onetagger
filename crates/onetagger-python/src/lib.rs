@@ -187,10 +187,7 @@ impl AutotaggerSourceBuilder for PythonPlatformBuilder {
     }
 
     fn info(&self) -> PlatformInfo {
-        // Cap thread count
-        let mut info = self.info.info.clone();
-        info.max_threads = 1;
-        info
+        self.info.info.clone()
     }
 }
 

@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::collections::HashMap;
 use anyhow::Error;
 use onetagger_shared::Settings;
 use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, SpotifyConfig, MultipleMatchesSort, 
@@ -240,6 +241,7 @@ fn new_track(kwargs: Option<&PyDict>) -> Result<Track, Error> {
     set_default!("duration", 0.0f64);
     set_default!("release_id", String::new());
     set_default!("url", String::new());
+    set_default!("custom", HashMap::<String, String>::new());
 
     Ok(pythonize::depythonize(kwargs)?)
 }

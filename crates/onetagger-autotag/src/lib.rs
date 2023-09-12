@@ -48,7 +48,7 @@ impl TaggerConfigExt for TaggerConfig {
     fn custom_default() -> TaggerConfig {
         let mut custom = HashMap::new();
         let autotagger_platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
-        for platform in &autotagger_platforms.0 {
+        for platform in &autotagger_platforms.platforms {
             if !platform.info.platform.custom_options.options.is_empty() {
                 let mut options = HashMap::new();
                 for option in &platform.info.platform.custom_options.options {

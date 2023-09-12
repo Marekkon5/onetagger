@@ -75,6 +75,14 @@
                 </div>
             </div>
 
+            <!-- Button -->
+            <div v-if='option.value.type == "button"'>
+                <div>
+                    <div class='text-subtitle2 text-grey-6 q-mb-md' v-if='option.tooltip' v-html='option.tooltip'></div>
+                    <q-btn color='primary' outline :label='option.label' @click='$1t.send("configCallback", { platform: platform.id, config: $1t.config.value.custom[platform.id], id: option.id })'></q-btn>
+                </div>
+            </div>
+
         </div>
 
         <!-- Separator -->

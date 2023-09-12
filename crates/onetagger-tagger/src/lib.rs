@@ -298,6 +298,9 @@ pub struct Track {
 
     /// URL to cover thumbnail
     pub thumbnail: Option<String>,
+
+    /// Custom fields for passing into extend_track
+    pub custom: HashMap<String, String>
 }
 
 #[cfg_attr(feature = "python", pymethods)]
@@ -694,6 +697,12 @@ pub trait AutotaggerSourceBuilder: Any + Send + Sync {
 
     /// Get info about this platform
     fn info(&self) -> PlatformInfo;
+
+    /// Callback from config
+    /// Use Value as data type for the sake of object safety, FFI, simplicity, and it's used in JS anyway
+    fn config_callback(&mut self, _name: &str, _config: Value) -> ConfigCallbackResponse {
+        ConfigCallbackResponse::Empty
+    }
 }
 
 /// For all the platforms
@@ -702,6 +711,16 @@ pub trait AutotaggerSource: Any + Send + Sync {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error>;
     /// Extend track with extra metadata (match track should be as fast as possible)
     fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error>;
+}
+
+/// Response from Config callback
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type")]
+#[repr(C)]
+pub enum ConfigCallbackResponse {
+    UpdateConfig { config: Value },
+    Error { error: String },
+    Empty
 }
 
 /// Platform info for GUI platform selector
@@ -771,7 +790,9 @@ pub enum PlatformCustomOptionValue {
     /// Custom tag picker
     Tag { value: FrameName },
     /// Select / dropdown
-    Option { values: Vec<String>, value: String }
+    Option { values: Vec<String>, value: String },
+    /// Callback button
+    Button,
 }
 
 impl PlatformCustomOptionValue {
@@ -783,6 +804,7 @@ impl PlatformCustomOptionValue {
             PlatformCustomOptionValue::String { value, .. } => Value::from(value.clone()),
             PlatformCustomOptionValue::Tag { value } => serde_json::to_value(&value).unwrap(),
             PlatformCustomOptionValue::Option { value, .. } => Value::from(value.to_string()),
+            PlatformCustomOptionValue::Button => Value::Null,
         }
     }
 }

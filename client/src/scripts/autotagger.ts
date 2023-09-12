@@ -32,6 +32,7 @@ type CustomPlatformValue =
     | { type: "string", value: string, hidden?: boolean }
     | { type: "tag", value: FrameName }
     | { type: "option", values: string[], value: string }
+    | { type: "button" }
 
 
 interface AutotaggerProfile {
@@ -236,7 +237,13 @@ interface Track {
     publish_year?: number;
     publish_date?: string;
     thumbnail?: string;
+    custom: { [key: string]: string };
 }
 
-export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap, Track };
+type ConfigCallbackResponse = 
+    { type: 'empty' } |
+    { type: 'error', error: string } |
+    { type: 'updateConfig', config: any }
+
+export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap, Track, ConfigCallbackResponse };
 export { AutotaggerConfig, TaggerStatus, SupportedTag, SUPPORTED_TAGS };

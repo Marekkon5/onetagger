@@ -16,7 +16,7 @@ use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, TrackMatch};
-use onetagger_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt};
+use onetagger_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt, AUTOTAGGER_PLATFORMS};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -48,6 +48,7 @@ enum Action {
 
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
+    ConfigCallback { config: Value, platform: String, id: String },
 
     Waveform { path: PathBuf },
     PlayerLoad { path: PathBuf },
@@ -147,7 +148,7 @@ impl InitData {
             version: crate::VERSION,
             os: env::consts::OS,
             start_context,
-            platforms: onetagger_autotag::AUTOTAGGER_PLATFORMS.lock().unwrap().0.iter().map(|p| p.info.clone()).collect(),
+            platforms: onetagger_autotag::AUTOTAGGER_PLATFORMS.lock().unwrap().platforms.iter().map(|p| p.info.clone()).collect(),
             renamer_docs: FullDocs::get().html(),
             commit: COMMIT,
             work_dir: std::env::current_dir().unwrap_or_default(),
@@ -278,6 +279,16 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::OpenFolder { path } => { opener::open(&path).ok(); },
         Action::OpenFile { path } => { opener::open(&path).ok(); },
         Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; }
+
+        Action::ConfigCallback { config, platform, id } => {
+            if let Some(p) = AUTOTAGGER_PLATFORMS.lock().unwrap().get_builder(&platform) {
+                send_socket(websocket, json!({
+                    "action": "configCallback",
+                    "platform": platform,
+                    "response": p.config_callback(&id, config)
+                })).ok();
+            }
+        }
         Action::StartTagging { config, playlist } => {
             config.debug_print();
 
