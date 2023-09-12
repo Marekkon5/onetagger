@@ -96,7 +96,7 @@
 <script lang='ts' setup>
 import { computed, ref, toRef } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
-import { CAMELOT_KEYS, CustomTagInfo, KEY_COLORS, PLACEHOLDER_IMG, QTTrack } from '../scripts/quicktag.js';
+import { CAMELOT_KEYS, CustomTagInfo, KEY_COLORS, OPENKEY_KEYS, PLACEHOLDER_IMG, QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';
 
 
@@ -134,12 +134,12 @@ function removeGenre(genre: string) {
 function keyColor(key?: string) {
     if (!key) return;
     key = key.trim().toUpperCase();
-    // Camelot
-    let color = KEY_COLORS[CAMELOT_KEYS[key]];
+    // Camelot or OpenKey
+    let color = KEY_COLORS[CAMELOT_KEYS[key.toUpperCase()]] || KEY_COLORS[OPENKEY_KEYS[key.toLowerCase()]];
     // Normal
     if (!color) {
         if (key.length < 3) key = `0${key}`;
-        color = KEY_COLORS[key];
+        color = KEY_COLORS[key.toUpperCase()];
     }
     if (color) {
         return `color: ${color};`;
