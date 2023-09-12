@@ -204,6 +204,14 @@ impl TagImpl for ID3Tag {
             }
         }
 
+        // Fix TRCK when converting ID3v2.3 to v2.4
+        // Caused by rust-id3 library replacing \0 with / on v2.3
+        // get_raw has abstraction over it so should be fine
+        if self.id3v24 {
+            self.set_raw("TRCK", self.get_raw("TRCK").unwrap_or(vec![]), true);
+            self.set_raw("TPOS", self.get_raw("TPOS").unwrap_or(vec![]), true);
+        }
+
         // Write
         match self.format {
             ID3AudioFormat::MP3 => {
