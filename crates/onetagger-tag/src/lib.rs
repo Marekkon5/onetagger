@@ -659,4 +659,18 @@ impl<'de> Visitor<'de> for OTDurationVisitor {
     {
         Ok(OTDuration(Duration::from_secs_f64(v)))    
     }
+    
+    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error, 
+    {
+        Ok(OTDuration(Duration::from_secs(v as u64)))    
+    }
+
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error, 
+    {
+        Ok(OTDuration(Duration::from_secs(v)))
+    }
 }

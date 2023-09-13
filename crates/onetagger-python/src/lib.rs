@@ -106,7 +106,7 @@ pub fn load_python_platform(path: impl AsRef<Path>) -> Result<PythonPlatformBuil
     // Save installed version
     std::fs::write(path.as_ref().join(".version"), &info.info.version)?;
 
-    Ok(PythonPlatformBuilder { info, path: dunce::canonicalize(path)? })
+    Ok(PythonPlatformBuilder { info, path: dunce::canonicalize(path)?, subprocess: None })
 }
 
 /// Spawn python child process
@@ -176,7 +176,8 @@ pub fn python_hook() {
 
 pub struct PythonPlatformBuilder {
     pub info: PythonPlatformInfo,
-    path: PathBuf
+    path: PathBuf,
+    subprocess: Option<SubprocessWrap>
 }
 
 impl PythonPlatformBuilder {
@@ -198,7 +199,14 @@ impl AutotaggerSourceBuilder for PythonPlatformBuilder {
         panic!("Not used / Python platforms should be loaded externally");
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        // Use config subprocess
+        if config.threads == 1 && self.subprocess.is_some() {
+            return Ok(Box::new(PythonPlatform { subprocess: self.subprocess.take().unwrap() }));
+        }
+        // Remove config subprocess if >1 threads
+        self.subprocess = None;
+        
         Ok(Box::new(PythonPlatform { subprocess: self.init()? }))
     }
 
@@ -209,9 +217,17 @@ impl AutotaggerSourceBuilder for PythonPlatformBuilder {
     fn config_callback(&mut self, name: &str, config: Value) -> ConfigCallbackResponse {
         // Call subprocess
         let f = || -> Result<ConfigCallbackResponse, Error> {
-            let mut subprocess = self.init()?;
+            // Get subprocess
+            let mut subprocess = match self.subprocess.take() {
+                Some(s) => s,
+                None => self.init()?,
+            };
+
             subprocess.send(&PythonRequest::ConfigCallback { name: name.to_string(), config })?;
             if let PythonResponse::ConfigCallback { result } = subprocess.recv()? {
+                // Save subprocess
+                self.subprocess = Some(subprocess);
+
                 return Ok(result);
             }
             return Err(anyhow!("Invalid subprocess response"));

@@ -169,15 +169,23 @@ fn onetagger(_py: Python<'_>, module: &PyModule) -> PyResult<()> {
     /// Match track duration
     #[pyfn(module)]
     #[pyo3(signature = (info, track, config))]
-    pub fn match_duration(info: &AudioFileInfo, track: &Track, config: &TaggerConfig) -> bool {
+    fn match_duration(info: &AudioFileInfo, track: &Track, config: &TaggerConfig) -> bool {
         MatchingUtils::match_duration(info, track, config)
     }
 
     /// Parse duration from String
     #[pyfn(module)]
     #[pyo3(signature = (input))]
-    pub fn parse_duration(input: &str) -> Result<OTDuration, Error> {
+    fn parse_duration(input: &str) -> Result<OTDuration, Error> {
         MatchingUtils::parse_duration(input).map(|d| d.into())
+    }
+
+    /// Open URL in browser
+    #[pyfn(module)]
+    #[pyo3(signature = (url))]
+    fn browser(url: &str) -> Result<(), Error> {
+        webbrowser::open(url)?;
+        Ok(())
     }
 
     module.add_class::<Track>()?;
