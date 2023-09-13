@@ -1,6 +1,6 @@
-import { Dialog, Notify, setCssVar } from 'quasar';
+import { Dialog, DialogChainObject, Notify, setCssVar } from 'quasar';
 import { ref, Ref } from 'vue';
-import { AutotaggerConfig, AutotaggerPlatform, TaggerStatus } from './autotagger';
+import { AutotaggerConfig, AutotaggerPlatform, ConfigCallbackResponse, TaggerStatus } from './autotagger';
 import { Player } from './player';
 import { QTTrack, QuickTag, QuickTagFile } from './quicktag';
 import { Settings } from './settings';
@@ -35,6 +35,9 @@ class OneTagger {
     // Quicktag track loading
     private nextQTTrack?: QTTrack;
 
+    // Dialog when loading platforms
+    loadingPlatformsDialog?: DialogChainObject;
+
     constructor() {
         // Singleton
         if (OneTagger.instance) {
@@ -61,8 +64,8 @@ class OneTagger {
             setTimeout(() => {
                 this.send('init');
                 this.send('spotifyAuthorized');
-                // Update custom to v2
-                this.send('defaultCustomPlatformSettings');
+                // Load platforms
+                setTimeout(() => this.loadPlatforms(), 25);
             }, 100);
         });
         this.ws.addEventListener('message', (event) => {
@@ -81,7 +84,9 @@ class OneTagger {
             // Dev tools
             if (e.key == 'F3') {
                 Dialog.create({ component: DevToolsVue });
-                return false;
+                e.preventDefault();
+                e.stopPropagation();
+                return true;
             }
 
             if (this.handleKeyDown(e)) {
@@ -136,6 +141,7 @@ class OneTagger {
             case 'init':
                 // Fill AppInfo
                 Object.assign(this.info.value, json);
+                this.info.value.platforms = [];
                 // Path from args
                 if (json.startContext.startPath) {
                     this.settings.value.path = json.startContext.startPath;
@@ -259,6 +265,28 @@ class OneTagger {
             // Manual tag applied tags
             case 'manualTagApplied':
                 this.manualTag.value._resolveSaving!(json);
+                break;
+
+            // Callback from config
+            case 'configCallback':
+                let response = json.response as ConfigCallbackResponse;
+                switch (response.type) {
+                    case 'empty':
+                        break;
+                    case 'error':
+                        this.onError(response.error);
+                        break;
+                    case 'updateConfig':
+                        Object.assign(this.config.value.custom[json.platform], response.config);
+                        break;
+                }
+                break;
+            // Platforms loaded
+            case 'loadPlatforms':
+                this.info.value.platforms = json.platforms;
+                this.send('defaultCustomPlatformSettings');
+                this.loadingPlatformsDialog!.hide();
+                this.loadingPlatformsDialog = undefined;
                 break;
 
             // Debug
@@ -462,6 +490,20 @@ class OneTagger {
         // Prompt for unsaved changes
         this.nextQTTrack = track;
         this.onQuickTagEvent('onUnsavedChanges');
+    }
+
+    /// Load AT platforms
+    loadPlatforms() {
+        this.send('loadPlatforms');
+        this.loadingPlatformsDialog = Dialog.create({
+            title: 'Loading platforms...',
+            progress: {
+                color: 'primary'
+            },
+            persistent: true,
+            ok: false,
+            cancel: false,
+        });
     }
 
     /// Add or remove a track to the multitrack

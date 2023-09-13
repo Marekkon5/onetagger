@@ -6,7 +6,7 @@
                     <q-card-section horizontal class='row justify-between'>
                         <q-card-section>
                             <div class='row'>
-                                <q-checkbox :model-value='isEnabled(platform.id)' class='cb' @update:model-value='update(platform.id)'></q-checkbox>
+                                <q-checkbox :model-value='isEnabled(platform.platform.id)' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
                                 <div class='text-h6 q-mt-xs'>
                                     {{platform.platform.name}}
                                     
@@ -49,11 +49,11 @@
                                 <span v-html='platform.platform.description'></span>
                             </div>
                             <div v-if='!platform.builtIn' class='text-grey-8 q-pl-sm text-bold monospace text-left' style='font-size: 10px;'>
-                                [{{platform.id}}@{{platform.platform.version}}]
+                                [{{platform.platform.id}}@{{platform.platform.version}}]
                             </div>
                         </q-card-section>
                         <q-card-section class='row'>
-                            <img :src='platform.icon' :height='dense ? 40 : 50'>
+                            <img class='q-pa-xs' :class='{"q-mt-sm": !dense}' :src='platform.icon' :height='dense ? 40 : 50'>
                         </q-card-section>
                     </q-card-section>
                 </q-card>
@@ -90,7 +90,7 @@ function isEnabled(platform: string) {
 
 // Sync platforms order to config
 function syncPlatforms() {
-    $1t.config.value.platforms = $1t.info.value.platforms.map((p) => p.id).filter((p) => $1t.config.value.platforms.includes(p));
+    $1t.config.value.platforms = $1t.info.value.platforms.map((p) => p.platform.id).filter((p) => $1t.config.value.platforms.includes(p));
 }
 
 /// Does the platform have lyrics
@@ -100,8 +100,8 @@ function hasLyrics(platform: AutotaggerPlatform) {
 
 onMounted(() => {
     $1t.info.value.platforms.sort((a, b) => {
-        let x = $1t.config.value.platforms.indexOf(a.id);
-        let y = $1t.config.value.platforms.indexOf(b.id);
+        let x = $1t.config.value.platforms.indexOf(a.platform.id);
+        let y = $1t.config.value.platforms.indexOf(b.platform.id);
         if (x == -1) x = 1000;
         if (y == -1) y = 1000;
         return x - y;

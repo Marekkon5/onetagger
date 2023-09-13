@@ -18,8 +18,10 @@ mp4ameta = { version = "0.11", optional = true }
 metaflac = { version = "0.2.5", optional = true }
 once_cell = { version = "1.17", optional = true }
 
+pyo3 = { version = "0.18", features = ["chrono", "serde"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 
 [features]
 default = ["tag"]
+python = ["pyo3"]
 tag = ["id3", "mp4ameta", "metaflac", "base64", "log", "riff", "lofty", "once_cell"]

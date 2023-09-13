@@ -39,10 +39,12 @@ impl BPMSupreme {
         let res: BPMSupremeResponse<BPMSupremeUser> = client.post("https://api.bpmsupreme.com/v4/login")
             .json(&json!({
                 "device": {
+                    "app_type": "web_landing",
                     "app_version": "2.0",
                     "build_version": "1",
                     "debug": false,
                     "device_data_os": "web",
+                    "device_data_device_name": "Windows Chrome",
                     "device_uuid": "d2d9dc2f7cf311a3bff7f3ea6df3ba9b",
                     "language": "en-US"
                 },
@@ -53,6 +55,7 @@ impl BPMSupreme {
             .send()?
             .error_for_status()?
             .json()?;
+        debug!("User: {:?}", res.data);
         Ok(res.data.session_token)
     }
 
@@ -204,29 +207,21 @@ impl BPMMusicLibrary {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BPMSupremeBuilder {
-    token: Option<String>,
     library: BPMMusicLibrary
 }
 
 impl AutotaggerSourceBuilder for BPMSupremeBuilder {
     fn new() -> Self {
-        BPMSupremeBuilder { token: None, library: BPMMusicLibrary::Supreme }
+        BPMSupremeBuilder { library: BPMMusicLibrary::Supreme }
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        // Get token
-        let token = match &self.token {
-            Some(token) => token.to_string(),
-            None => {
-                // Try to login
-                let custom: BPMSupremeConfig = config.get_custom("bpmsupreme")?;
-                let token = BPMSupreme::login(&custom.email, &custom.password)?;
-                self.token = Some(token.to_string());
-                self.library = custom.library;
-                token
-            }
-        };
+        // Try to login
+        let custom: BPMSupremeConfig = config.get_custom("bpmsupreme")?;
+        let token = BPMSupreme::login(&custom.email, &custom.password)?;
+        self.library = custom.library;
         
         Ok(Box::new(BPMSupreme::new(&token, self.library)))
     }

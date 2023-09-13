@@ -83,6 +83,7 @@ impl AutotaggerSource for Bandcamp {
     
 }
 
+#[derive(Debug, Clone)]
 pub struct BandcampBuilder;
 
 impl AutotaggerSourceBuilder for BandcampBuilder {

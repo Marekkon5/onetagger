@@ -5,6 +5,7 @@ use anyhow::Error;
 use std::collections::HashMap;
 use std::any::Any;
 use std::cmp::Ordering;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::time::Duration;
 use chrono::NaiveDate;
@@ -15,6 +16,9 @@ use serde_json::Value;
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
+
 pub mod custom;
 
 const ATTRIBUTES_TO_REMOVE: [&'static str; 23] = ["(intro)", "(clean)", "(intro clean)", "(dirty)", "(intro dirty)", "(clean extended)",
@@ -22,9 +26,10 @@ const ATTRIBUTES_TO_REMOVE: [&'static str; 23] = ["(intro)", "(clean)", "(intro 
     "(radio edit)", "(ck cut)", "(super cut)", "(mega cutz)", "(snip hitz)", "(jd live cut)", "(djcity intro)", "(vdj jd edit)"];
 
 // Re-export
-pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field, Lyrics, LyricsLine, LyricsLinePart};
+pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field, Lyrics, LyricsLine, LyricsLinePart, OTDuration};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
     // Global
@@ -82,7 +87,7 @@ pub struct TaggerConfig {
     pub fetch_all_results: bool,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
-    pub custom: HashMap<String, Value>,
+    pub custom: PlatformTaggerConfig,
     pub spotify: Option<SpotifyConfig>,
 }
 
@@ -110,6 +115,18 @@ impl TaggerConfig {
         }
         self.overwrite_tags.contains(&tag)
     }
+}
+
+#[cfg(feature = "python")]
+#[pymethods]
+impl TaggerConfig {
+    #[pyo3(name = "getcustom")]
+    fn get_custom_py(&self, platform_id: &str, py: Python<'_>) -> Result<Py<PyAny>, Error> {
+        let value = self.custom.get(platform_id).ok_or(anyhow!("Missing custom platform config for id: {platform_id}"))?;
+        let p = pythonize::pythonize(py, value)?;
+        Ok(p)
+    }
+
 }
 
 impl Default for TaggerConfig {
@@ -143,7 +160,7 @@ impl Default for TaggerConfig {
             post_command: None, 
             styles_custom_tag: Some(FrameName::same("STYLE")), 
             spotify: None, 
-            custom: HashMap::new(), 
+            custom: Default::default(), 
             include_subfolders: true,
             track_number_leading_zeroes: 0, 
             enable_shazam: false, 
@@ -163,7 +180,48 @@ impl Default for TaggerConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[repr(transparent)]
+pub struct PlatformTaggerConfig(pub HashMap<String, Value>);
+
+impl Deref for PlatformTaggerConfig {
+    type Target = HashMap<String, Value>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<HashMap<String, Value>> for PlatformTaggerConfig {
+    fn from(value: HashMap<String, Value>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<HashMap<String, Value>> for PlatformTaggerConfig {
+    fn into(self) -> HashMap<String, Value> {
+        self.0
+    }
+}
+
+#[cfg(feature = "python")]
+impl IntoPy<PyObject> for PlatformTaggerConfig {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        None::<()>.into_py(py)
+    }
+}
+
+#[cfg(feature = "python")]
+impl<'a> FromPyObject<'a> for PlatformTaggerConfig {
+    fn extract(_ob: &'a PyAny) -> PyResult<Self> {
+        // TODO: Unimplemented
+        Ok(Self::default())
+    }
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 pub struct SpotifyConfig {
     pub client_id: String,
@@ -172,6 +230,7 @@ pub struct SpotifyConfig {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub enum MultipleMatchesSort {
     Default,
     Oldest,
@@ -184,7 +243,19 @@ impl Default for MultipleMatchesSort {
     }
 }
 
+impl From<String> for MultipleMatchesSort {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "default" => MultipleMatchesSort::Default,
+            "oldest" => MultipleMatchesSort::Oldest,
+            "newest" => MultipleMatchesSort::Newest,
+            _ => MultipleMatchesSort::Default
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 pub struct Track {
     /// Use platform id
@@ -207,7 +278,7 @@ pub struct Track {
     pub other: Vec<(FrameName, Vec<String>)>,
     pub track_id: Option<String>,
     pub release_id: String,
-    pub duration: Duration,
+    pub duration: OTDuration,
     pub remixers: Vec<String>,
     pub track_number: Option<TrackNumber>,
     pub track_total: Option<u16>,
@@ -227,8 +298,12 @@ pub struct Track {
 
     /// URL to cover thumbnail
     pub thumbnail: Option<String>,
+
+    /// Custom fields for passing into extend_track
+    pub custom: HashMap<String, String>
 }
 
+#[cfg_attr(feature = "python", pymethods)]
 impl Track {
     /// Get title with version
     pub fn full_title(&self) -> String {
@@ -236,13 +311,20 @@ impl Track {
             if v.trim().is_empty() {
                 self.title.to_string()
             } else {
-                format!("{} ({})", self.title, v.trim())
+                let v = v.trim();
+                if v.starts_with("(") || v.starts_with("[") || v.starts_with("{") {
+                    format!("{} {}", self.title, v)
+                } else {
+                    format!("{} ({})", self.title, v)                    
+                }
             }
         } else {
             self.title.to_string()
         }
     }
+}
 
+impl Track {
     /// Merge with other track
     pub fn merge(mut self, other: Track) -> Track {
         /// Merge 2 arrays
@@ -274,15 +356,24 @@ impl Track {
 }
 
 
-
-
 /// Matched track
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 pub struct TrackMatch {
     pub accuracy: f64,
     pub track: Track,
     pub reason: MatchReason
+}
+
+#[cfg(feature = "python")]
+#[pymethods]
+impl TrackMatch {
+    #[new]
+    #[pyo3(signature = (track, accuracy, reason = None))]
+    fn new_py(track: Track, accuracy: f32, reason: Option<MatchReason>) -> TrackMatch {
+        TrackMatch { accuracy: accuracy as f64, track, reason: reason.unwrap_or(MatchReason::Fuzzy) }
+    }
 }
 
 impl TrackMatch {
@@ -310,6 +401,7 @@ impl PartialOrd for TrackMatch {
 
 /// Why was this track matched
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 #[serde(rename_all = "camelCase")]
 pub enum MatchReason {
@@ -353,8 +445,29 @@ impl ToString for TrackNumber {
     }
 }
 
+#[cfg(feature = "python")]
+impl IntoPy<PyObject> for TrackNumber {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        match self {
+            TrackNumber::Number(n) => n.to_object(py),
+            TrackNumber::Custom(n) => n.to_object(py),
+        }
+    }
+}
+
+#[cfg(feature = "python")]
+impl<'a> FromPyObject<'a> for TrackNumber {
+    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+        match ob.extract::<String>() {
+            Ok(s) => return Ok(TrackNumber::Custom(s)),
+            Err(_) => return Ok(TrackNumber::Number(ob.extract::<i32>()?)),
+        }
+    }
+}
+
 /// For Discogs & Beatport
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub enum StylesOptions {
@@ -371,6 +484,22 @@ pub enum StylesOptions {
 impl Default for StylesOptions {
     fn default() -> Self {
         Self::Default
+    }
+}
+
+impl From<String> for StylesOptions {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "default" => StylesOptions::Default,
+            "onlyGenres" => StylesOptions::OnlyGenres,
+            "onlyStyles" => StylesOptions::OnlyStyles,
+            "mergeToGenres" => StylesOptions::MergeToGenres,
+            "mergeToStyles" => StylesOptions::MergeToStyles,
+            "stylesToGenre" => StylesOptions::StylesToGenre,
+            "genresToStyle" => StylesOptions::GenresToStyle,
+            "customTag" => StylesOptions::CustomTag,
+            _ => StylesOptions::Default
+        }
     }
 }
 
@@ -437,7 +566,7 @@ impl LyricsExt for Lyrics {
                 if let Some(artist) = track.artists.first() {
                     output.push_str(&format!("[ar:{artist}]\n"));
                 }
-                if track.duration != Duration::ZERO {
+                if *track.duration != Duration::ZERO {
                     output.push_str(&format!("[length: {}:{:02}]\n", track.duration.as_secs() / 60, track.duration.as_secs() % 60));
                 }
                 output.push('\n');
@@ -449,13 +578,13 @@ impl LyricsExt for Lyrics {
             if let Some(start) = line.start {
                 // Write normal
                 if !enhanced || line.parts.is_empty() {
-                    output.push_str(&format!("[{}]{}\n", format_lrc_ts(start), line.text));
+                    output.push_str(&format!("[{}]{}\n", format_lrc_ts(*start), line.text));
                 } else {
                     // Write enhanced
-                    output.push_str(&format!("[{}]", format_lrc_ts(start)));
+                    output.push_str(&format!("[{}]", format_lrc_ts(*start)));
                     for part in &line.parts {
                         if let Some(start) = part.start {
-                            output.push_str(&format!(" <{}> {}", format_lrc_ts(start), part.text));
+                            output.push_str(&format!(" <{}> {}", format_lrc_ts(*start), part.text));
                         } else {
                             output.push_str(&format!(" {}", part.text));
                         }
@@ -475,7 +604,8 @@ impl LyricsExt for Lyrics {
 
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 pub struct AudioFileInfo {
     pub title: Option<String>,
@@ -483,12 +613,13 @@ pub struct AudioFileInfo {
     pub format: AudioFileFormat,
     pub path: PathBuf,
     pub isrc: Option<String>,
-    pub duration: Option<Duration>,
+    pub duration: Option<OTDuration>,
     pub track_number: Option<u16>,
     pub tagged: FileTaggedStatus,
     pub tags: HashMap<String, Vec<String>>
 }
 
+#[cfg_attr(feature = "python", pymethods)]
 impl AudioFileInfo {
     /// Get title (or error shorthand)
     pub fn title(&self) -> Result<&str, Error> {
@@ -507,7 +638,9 @@ impl AudioFileInfo {
         }
         Ok(self.artists.first().unwrap().as_str())
     }
+}
 
+impl AudioFileInfo {
     // Try to split artist string with common separators
     pub fn parse_artist_tag(input: Vec<&str>) -> Vec<String> {
         // Already an array
@@ -529,7 +662,8 @@ impl AudioFileInfo {
 }
 
 /// If the file was already tagged with OneTagger
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub enum FileTaggedStatus {
     /// Not tagged with 1T
     Untagged,
@@ -563,6 +697,12 @@ pub trait AutotaggerSourceBuilder: Any + Send + Sync {
 
     /// Get info about this platform
     fn info(&self) -> PlatformInfo;
+
+    /// Callback from config
+    /// Use Value as data type for the sake of object safety, FFI, simplicity, and it's used in JS anyway
+    fn config_callback(&mut self, _name: &str, _config: Value) -> ConfigCallbackResponse {
+        ConfigCallbackResponse::Empty
+    }
 }
 
 /// For all the platforms
@@ -571,6 +711,16 @@ pub trait AutotaggerSource: Any + Send + Sync {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error>;
     /// Extend track with extra metadata (match track should be as fast as possible)
     fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error>;
+}
+
+/// Response from Config callback
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type")]
+#[repr(C)]
+pub enum ConfigCallbackResponse {
+    UpdateConfig { config: Value },
+    Error { error: String },
+    Empty
 }
 
 /// Platform info for GUI platform selector
@@ -601,6 +751,7 @@ pub struct PlatformInfo {
 
 /// All the different tags a platform can support
 #[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub enum SupportedTag {
@@ -639,7 +790,9 @@ pub enum PlatformCustomOptionValue {
     /// Custom tag picker
     Tag { value: FrameName },
     /// Select / dropdown
-    Option { values: Vec<String>, value: String }
+    Option { values: Vec<String>, value: String },
+    /// Callback button
+    Button,
 }
 
 impl PlatformCustomOptionValue {
@@ -651,6 +804,7 @@ impl PlatformCustomOptionValue {
             PlatformCustomOptionValue::String { value, .. } => Value::from(value.clone()),
             PlatformCustomOptionValue::Tag { value } => serde_json::to_value(&value).unwrap(),
             PlatformCustomOptionValue::Option { value, .. } => Value::from(value.to_string()),
+            PlatformCustomOptionValue::Button => Value::Null,
         }
     }
 }
@@ -709,7 +863,6 @@ impl PlatformCustomOptions {
         self
     }
 }
-
 
 pub struct MatchingUtils;
 impl MatchingUtils {
@@ -934,60 +1087,6 @@ impl MatchingUtils {
         output
     }
 
-    // /// Default (old) track matching
-    // pub fn match_track_v1(info: &AudioFileInfo, tracks: &Vec<Track>, config: &TaggerConfig, match_artist: bool) -> Option<(f64, Track)> {
-    //     let clean_title = MatchingUtils::clean_title_matching(info.title().ok()?);
-    //     // Exact match
-    //     let mut exact_matches = vec![];
-    //     for track in tracks {
-    //         if !MatchingUtils::match_duration(info, track, config) {
-    //             continue;
-    //         }
-    //         if clean_title == MatchingUtils::clean_title_matching(&track.full_title()) {
-    //             if match_artist {
-    //                 if MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-    //                     exact_matches.push((1.0, track));
-    //                 }
-    //             } else {
-    //                 exact_matches.push((1.0, track));
-    //             }
-    //         }
-    //     }
-
-    //     // Use exact match
-    //     if !exact_matches.is_empty() {
-    //         MatchingUtils::sort_tracks(&mut exact_matches, &config);
-    //         return Some((1.0, exact_matches[0].1.to_owned()));
-    //     }
-
-    //     // Fuzzy match - value, track
-    //     let mut fuzz: Vec<(f64, &Track)> = vec![];
-    //     for track in tracks {
-    //         // Artist
-    //         if match_artist {
-    //             if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
-    //                 continue;
-    //             }
-    //         }
-    //         // Match title
-    //         let clean = MatchingUtils::clean_title_matching(&track.full_title());
-    //         let l = normalized_levenshtein(&clean, &clean_title);
-    //         if l >= config.strictness {
-    //             fuzz.push((l, track));
-    //         }
-    //     }
-    //     // Empty array
-    //     if fuzz.is_empty() {
-    //         return None;
-    //     }
-    //     // Sort
-    //     fuzz.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-    //     let best_acc = fuzz[0].0;
-    //     let mut fuzz: Vec<(f64, &Track)> = fuzz.into_iter().filter(|(acc, _)| *acc >= best_acc).collect();
-    //     MatchingUtils::sort_tracks(&mut fuzz, &config);
-    //     Some((fuzz[0].0, fuzz[0].1.to_owned()))
-    // }
-
     /// Sort matched tracks by accuracy or release dates
     pub fn sort_tracks(tracks: &mut Vec<TrackMatch>, config: &TaggerConfig) {
         match config.multiple_matches {
@@ -1019,7 +1118,7 @@ impl MatchingUtils {
         }
         let duration = *info.duration.as_ref().unwrap();
         //  No duration available
-        if duration == Duration::ZERO || track.duration == Duration::ZERO {
+        if *duration == Duration::ZERO || *track.duration == Duration::ZERO {
             return true;
         }
         let diff = (duration.as_secs() as i64 - track.duration.as_secs() as i64).abs() as u64;

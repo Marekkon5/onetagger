@@ -59,9 +59,8 @@
                             <span v-if='match.reason != "fuzzy"'>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
                         <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}<span v-if='match.track.version'> ({{ match.track.version }})</span></q-item-label>
+                        <q-item-label class='text-grey-5' v-if='match.track.album'>{{ match.track.album }}</q-item-label>
                         <q-item-label class='text-grey-5'>
-                            <span v-if='match.track.album'>Album: <span class='text-white'>{{ match.track.album }}</span></span>
-                            <span v-if='match.track.album && match.track.genres.length > 0'>, </span>
                             <span v-if='match.track.genres.length > 0'>Genres: <span class='text-white'>{{ match.track.genres.join(", ") }}</span></span>
                             <span v-if='match.track.bpm'>, BPM: <span class='monospace text-white'>{{ match.track.bpm }}</span></span>
                             <span v-if='match.track.key'>, Key: <span class='monospace text-white'>{{ match.track.key }}</span></span>

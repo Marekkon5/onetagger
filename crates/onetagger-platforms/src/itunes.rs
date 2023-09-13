@@ -119,7 +119,7 @@ impl SearchResult {
                     url: track_view_url.to_string(),
                     track_id: Some(track_id.to_string()),
                     release_id: collection_id.map(|c| c.to_string()).unwrap_or_default(),
-                    duration: track_time_millis.map(|d| Duration::from_millis(d)).unwrap_or(Duration::ZERO),
+                    duration: track_time_millis.map(|d| Duration::from_millis(d)).unwrap_or(Duration::ZERO).into(),
                     genres: vec![primary_genre_name.to_string()],
                     release_date: release_date.as_ref().map(|release_date| NaiveDate::parse_from_str(&release_date[0..10], "%Y-%m-%d").ok()).flatten(),
                     track_number: track_number.map(|t| t.into()),
@@ -142,6 +142,7 @@ pub enum TrackKind {
     Other
 }
 
+#[derive(Debug, Clone)]
 pub struct ITunesBuilder;
 
 impl AutotaggerSourceBuilder for ITunesBuilder {

@@ -4,7 +4,7 @@ use log::{Record, Level, RecordBuilder};
 use crate::TrackMatch;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 39;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 41;
 
 /// Logging from plugins
 #[no_mangle]
@@ -103,6 +103,19 @@ macro_rules! create_plugin {
             }
             std::mem::forget(builder);
             Box::into_raw(source.unwrap()) as *mut std::ffi::c_void
+        }
+
+        /// Call .config_callback() on the builder
+        #[no_mangle]
+        pub extern "C" fn _1t_builder_config_callback(
+            ptr: *mut std::ffi::c_void,
+            name: &str,
+            config: *mut serde_json::Value
+        ) -> *mut onetagger_tagger::ConfigCallbackResponse {
+            let mut builder: Box<$builder_type> = unsafe { Box::from_raw(ptr as *mut $builder_type) };
+            let output = Box::new(builder.config_callback(name, *unsafe { Box::from_raw(config) }));
+            std::mem::forget(builder);
+            Box::into_raw(output)
         }
 
         /// Call .match_track on source

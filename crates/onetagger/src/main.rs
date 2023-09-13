@@ -18,6 +18,9 @@ mod quicktag;
 mod tageditor;
 
 fn main() {
+    // Python
+    onetagger_python::python_hook();
+
     // Setup 1T
     onetagger_shared::setup();
     let cli = Cli::parse();

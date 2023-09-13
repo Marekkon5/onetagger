@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
+        sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 
     - name: Install NodeJS
       uses: actions/setup-node@v3
@@ -51,6 +51,7 @@ jobs:
         pnpm run build
         cd ..
         cargo update
+        cargo run --bin onetagger-python-builder --release
         cargo build --release
 
     - name: Bundle
@@ -121,6 +122,7 @@ jobs:
         pnpm run build
         cd ..
         cargo update
+        cargo run --bin onetagger-python-builder --release
         cargo build --release
         
     - name: Bundle
@@ -131,12 +133,15 @@ jobs:
         &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
         copy target\release\onetagger.exe dist\OneTagger-windows.exe
         copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
+        copy crates\onetagger-python\pyembedded\python310.dll dist\python310.dll
 
     - name: Upload Archive
       uses: actions/upload-artifact@v3
       with:
         name: onetagger-win
-        path: dist/OneTagger-windows.exe
+        path: | 
+          dist/OneTagger-windows.exe
+          dist/python310.dll
     
     - name: Upload Archive
       uses: actions/upload-artifact@v3
@@ -148,8 +153,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: onetagger-win-cli
-        path: dist/OneTagger-windows-cli.exe
-
+        path: |
+          dist/OneTagger-windows-cli.exe
+          dist/python310.dll
 
   build-mac:
     name: Mac
@@ -191,6 +197,7 @@ jobs:
         pnpm run build
         cd ..
         cargo update
+        cargo run --bin onetagger-python-builder --release
         cd crates/onetagger
         cargo bundle --release
         cd ../..

@@ -118,7 +118,7 @@ impl BeatsourceTrack {
             catalog_number: Some(self.catalog_number),
             track_id: Some(self.id.to_string()),
             release_id: self.release.id.to_string(),
-            duration: self.length_ms.map(|ms| Duration::from_millis(ms)).unwrap_or(Duration::ZERO),
+            duration: self.length_ms.map(|ms| Duration::from_millis(ms)).unwrap_or(Duration::ZERO).into(),
             remixers: self.remixers.into_iter().map(|r| r.name).collect(),
             release_date: NaiveDate::parse_from_str(&self.publish_date, "%Y-%m-%d").ok(),
             isrc: self.isrc,
@@ -223,6 +223,7 @@ impl BeatsourceTokenManager {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BeatsourceBuilder {
     token_manager: BeatsourceTokenManager
 }

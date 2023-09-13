@@ -33,6 +33,7 @@ pub mod audiofeatures;
 
 // Re-exports
 pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
+pub use onetagger_python::python_process;
 
 lazy_static::lazy_static! {
     /// Stop tagging global variable
@@ -46,17 +47,18 @@ pub trait TaggerConfigExt {
 impl TaggerConfigExt for TaggerConfig {
     fn custom_default() -> TaggerConfig {
         let mut custom = HashMap::new();
-        for platform in &AUTOTAGGER_PLATFORMS.0 {
-            if !platform.platform.custom_options.options.is_empty() {
+        let autotagger_platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+        for platform in &autotagger_platforms.platforms {
+            if !platform.info.platform.custom_options.options.is_empty() {
                 let mut options = HashMap::new();
-                for option in &platform.platform.custom_options.options {
+                for option in &platform.info.platform.custom_options.options {
                     options.insert(option.id.to_string(), option.value.json_value());
                 }
-                custom.insert(platform.platform.id.to_string(), serde_json::to_value(options).unwrap());
+                custom.insert(platform.info.platform.id.to_string(), serde_json::to_value(options).unwrap());
             }
         }
         let mut default = TaggerConfig::default();
-        default.custom = custom;
+        default.custom = custom.into();
         default
     }
 } 
@@ -460,9 +462,9 @@ impl AudioFileInfoImpl for AudioFileInfo {
 
     fn load_duration(&mut self) {
         // Mark as loaded
-        self.duration = Some(Duration::ZERO);
+        self.duration = Some(Duration::ZERO.into());
         if let Ok(source) = AudioSources::from_path(&self.path) {
-            self.duration = Some(Duration::from_millis(source.duration() as u64))
+            self.duration = Some(Duration::from_millis(source.duration() as u64).into())
         } else {
             warn!("Failed loading duration from file! {:?}", self.path);
         }
@@ -502,7 +504,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
                     format: AudioFileFormat::from_extension(&path.as_ref().extension().unwrap_or_default().to_string_lossy()).unwrap(),
                     path: path.as_ref().to_owned(),
                     isrc: shazam_track.isrc,
-                    duration: Some(Duration::from_millis(duration as u64)),
+                    duration: Some(Duration::from_millis(duration as u64).into()),
                     track_number: None,
                     tagged: FileTaggedStatus::Untagged,
                     tags: Default::default(),
@@ -619,7 +621,8 @@ impl Tagger {
                 }
 
                 // Get tagger
-                let mut tagger = match AUTOTAGGER_PLATFORMS.get_builder(platform) {
+                let mut autotagger_platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+                let tagger = match autotagger_platforms.get_builder(platform) {
                     Some(tagger) => tagger,
                     None => {
                         error!("Invalid platform: {platform}");
@@ -631,7 +634,7 @@ impl Tagger {
                 if platform_info.max_threads > 0 && platform_info.max_threads < config.threads {
                     threads = platform_info.max_threads;
                 }
-                let rx = match Tagger::tag_dir(&files, &mut tagger, &config, threads) {
+                let rx = match Tagger::tag_dir(&files, tagger, &config, threads) {
                     Some(t) => t,
                     None => {
                         error!("Failed creating platform: {platform:?}, skipping...");
@@ -894,7 +897,7 @@ impl Tagger {
     }
 
     // Tag all files with threads specified in config
-    pub fn tag_dir(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
+    pub fn tag_dir(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
         info!("Starting tagging: {} files, {} threads!", files.len(), threads);
         let (tx, rx) = unbounded();
         let (file_tx, file_rx): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
@@ -998,12 +1001,22 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
     // Setup platforms
     let mut platforms = vec![];
     for platform in &config.platforms {
-        let mut p = match AUTOTAGGER_PLATFORMS.get_builder(platform) {
+        let mut autotagger_platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+        let p = match autotagger_platforms.get_builder(platform) {
             Some(p) => p,
             None => {
                 warn!("Invalid platform: {platform}");
                 continue;
             },
+        };
+
+        // Get platform
+        let mut s = match p.get_source(&config) {
+            Ok(s) => s,
+            Err(e) => {
+                error!("Failed creating platform source for platform: {platform}. {e}");
+                continue;
+            }
         };
 
         // Spawn thread to match track
@@ -1013,15 +1026,6 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
         let tx = tx.clone();
         let platform = platform.to_string();
         platforms.push(std::thread::spawn(move || {
-            // Get platform
-            let mut s = match p.get_source(&config) {
-                Ok(s) => s,
-                Err(e) => {
-                    error!("Failed creating platform source for platform: {platform}. {e}");
-                    tx.send((platform, Err(e))).ok();
-                    return;
-                }
-            };
             // Match
             let r = s.match_track(&info, &config).map(|mut m| { m.dedup(); m });
             tx.send((platform, r)).ok();
@@ -1040,7 +1044,8 @@ pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>,
     // Extend each match
     for m in matches.iter_mut() {
         // Get platform
-        let mut p = match AUTOTAGGER_PLATFORMS.get_builder(&m.track.platform) {
+        let mut autotagger_platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+        let p = match autotagger_platforms.get_builder(&m.track.platform) {
             Some(p) => p,
             None => {
                 warn!("Invalid platform: {}", m.track.platform);

@@ -16,6 +16,7 @@ use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
 
 
 fn main() {
+    onetagger_python::python_hook();
     let cli = Cli::parse();
 
     // Default configs
@@ -27,6 +28,13 @@ fn main() {
     if cli.audiofeatures_config {
         let config = serde_json::to_string_pretty(&AudioFeaturesConfig::default()).expect("Failed serializing config!");
         println!("{config}");
+        return;
+    }
+    // Generate docs
+    if cli.python_docs {
+        onetagger_shared::setup();
+        onetagger_python::setup().expect("Failed preparing Python env");
+        println!("{}", onetagger_python::generate_docs().expect("Failed to generate docs").to_string_lossy());
         return;
     }
 
@@ -115,7 +123,9 @@ fn main() {
 
             renamer.rename(&config).expect("Failed renaming!");
         },
-        
+        Actions::Python { platform } => {
+            onetagger_python::python_interpreter(platform).expect("Failed");
+        }
     }
 }
 
@@ -134,6 +144,10 @@ struct Cli {
     /// Prints the default Audio Features config and exits
     #[clap(long)]
     audiofeatures_config: bool,
+
+    /// Generate python module documentation and exit
+    #[clap(long)]
+    python_docs: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -308,6 +322,12 @@ enum Actions {
         /// Keep original subfolders
         #[clap(long)]
         keep_subfolders: bool,
+    },
+    /// Start interactive Python interpreter for platform
+    Python {
+        /// Context of which platform
+        #[clap(long, short)]
+        platform: String,
     }
 }
 

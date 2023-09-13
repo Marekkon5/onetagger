@@ -15,7 +15,7 @@ use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, TrackMatch};
-use onetagger_autotag::{Tagger, AutotaggerPlatforms, AudioFileInfoImpl, TaggerConfigExt};
+use onetagger_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt, AUTOTAGGER_PLATFORMS};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -44,8 +44,11 @@ enum Action {
     DeleteFiles { paths: Vec<String> },
     GetLog,
 
+    PythonDocs,
+    LoadPlatforms,
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
+    ConfigCallback { config: Value, platform: String, id: String },
 
     Waveform { path: PathBuf },
     PlayerLoad { path: PathBuf },
@@ -93,7 +96,7 @@ impl TaggerConfigs {
             TaggerConfigs::AutoTagger(c) => {
                 let mut c = c.clone();
                 // don't leak secrets
-                c.custom = HashMap::new();
+                c.custom = HashMap::new().into();
                 c.spotify = None;
                 info!("AutoTagger config: {:?}", c);
             },
@@ -130,7 +133,6 @@ struct InitData {
     version: &'static str,
     os: &'static str,
     start_context: StartContext,
-    platforms: &'static AutotaggerPlatforms,
     renamer_docs: FullDocs,
     commit: &'static str,
     work_dir: PathBuf,
@@ -145,7 +147,6 @@ impl InitData {
             version: crate::VERSION,
             os: env::consts::OS,
             start_context,
-            platforms: &onetagger_autotag::AUTOTAGGER_PLATFORMS,
             renamer_docs: FullDocs::get().html(),
             commit: COMMIT,
             work_dir: std::env::current_dir().unwrap_or_default(),
@@ -276,6 +277,24 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::OpenFolder { path } => { opener::open(&path).ok(); },
         Action::OpenFile { path } => { opener::open(&path).ok(); },
         Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; }
+
+        Action::LoadPlatforms => {
+            let mut platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+            platforms.load_all();
+            send_socket(websocket, json!({
+                "action": "loadPlatforms",
+                "platforms": platforms.platforms.iter().map(|p| p.info.clone()).collect::<Vec<_>>()
+            })).ok();
+        },
+        Action::ConfigCallback { config, platform, id } => {
+            if let Some(p) = AUTOTAGGER_PLATFORMS.lock().unwrap().get_builder(&platform) {
+                send_socket(websocket, json!({
+                    "action": "configCallback",
+                    "platform": platform,
+                    "response": p.config_callback(&id, config)
+                })).ok();
+            }
+        }
         Action::StartTagging { config, playlist } => {
             config.debug_print();
 
@@ -593,6 +612,11 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     })).ok();
                 },
             }
+        },
+
+        // Generate and open Python documentation
+        Action::PythonDocs => {
+            webbrowser::open(&format!("file://{}", onetagger_python::generate_docs()?.to_string_lossy()))?;
         }
         
     }

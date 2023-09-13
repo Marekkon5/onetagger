@@ -7,15 +7,15 @@ members = [
     "crates/onetagger-shared",
     "crates/onetagger-player",
     "crates/onetagger-tagger",
+    "crates/onetagger-python",
     "crates/onetagger-renamer",
     "crates/onetagger-autotag",
     "crates/onetagger-playlist",
     "crates/onetagger-platforms",
+    "crates/onetagger-python-builder",
 ]
 
-exclude = ["android", "android/onetagger-android"]
-
-# Optimize for size
 [profile.release]
 opt-level = 3
-strip = true
+# Required for MacOS (Python), waste for Linux
+strip = false

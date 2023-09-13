@@ -606,6 +606,33 @@ const CAMELOT_KEYS: Record<string, string> = {
     "E"   :"12B",
 }
 
+const OPENKEY_KEYS: Record<string, string> = {
+    "5m":   "12A",
+    "5d":   "12B",
+    "6m":   "01A",
+    "6d":   "01B",
+    "7m":   "02A",
+    "7d":   "02B",
+    "8m":   "03A",
+    "8d":   "03B",
+    "9m":   "04A",
+    "9d":   "04B",
+    "10m":  "05A",
+    "10d":  "05B",
+    "11m":  "06A",
+    "11d":  "06B",
+    "12m":  "07A",
+    "12d":  "07B",
+    "1m":   "08A",
+    "1d":   "08B",
+    "2m":   "09A",
+    "2d":   "09B",
+    "3m":   "10A",
+    "3d":   "10B",
+    "4m":   "11A",
+    "4d":   "11B"
+}
+
 
 export type { QuickTagFile, QuickTagMood, QuickTagGenre, QuickTagCustom, CustomTagInfo };
-export { QuickTag, QuickTagSettings, QTTrack, EnergyTag, PLACEHOLDER_IMG, CAMELOT_KEYS, KEY_COLORS };
+export { QuickTag, QuickTagSettings, QTTrack, EnergyTag, PLACEHOLDER_IMG, CAMELOT_KEYS, KEY_COLORS, OPENKEY_KEYS };

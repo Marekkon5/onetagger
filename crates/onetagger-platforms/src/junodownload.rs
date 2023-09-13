@@ -155,7 +155,7 @@ impl JunoDownload {
                     catalog_number: catalog_number.clone(),
                     other: vec![],
                     release_id: release_id.clone(),
-                    duration,
+                    duration: duration.into(),
                     track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
                     track_total: Some(track_total),
                     thumbnail: Some(album_art_small.to_string()),
@@ -186,6 +186,7 @@ impl AutotaggerSource for JunoDownload {
     
 }
 
+#[derive(Debug, Clone)]
 pub struct JunoDownloadBuilder;
 
 impl AutotaggerSourceBuilder for JunoDownloadBuilder {
