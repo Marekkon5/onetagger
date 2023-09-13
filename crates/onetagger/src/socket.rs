@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use anyhow::Error;
-use onetagger_autotag::platforms::AutotaggerPlatformInfo;
 use std::net::{TcpListener, TcpStream};
 use std::env;
 use std::sync::atomic::Ordering;
@@ -44,8 +43,9 @@ enum Action {
     OpenFile { path: PathBuf },
     DeleteFiles { paths: Vec<String> },
     GetLog,
-    PythonDocs,
 
+    PythonDocs,
+    LoadPlatforms,
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
     ConfigCallback { config: Value, platform: String, id: String },
@@ -133,7 +133,6 @@ struct InitData {
     version: &'static str,
     os: &'static str,
     start_context: StartContext,
-    platforms: Vec<AutotaggerPlatformInfo>,
     renamer_docs: FullDocs,
     commit: &'static str,
     work_dir: PathBuf,
@@ -148,7 +147,6 @@ impl InitData {
             version: crate::VERSION,
             os: env::consts::OS,
             start_context,
-            platforms: onetagger_autotag::AUTOTAGGER_PLATFORMS.lock().unwrap().platforms.iter().map(|p| p.info.clone()).collect(),
             renamer_docs: FullDocs::get().html(),
             commit: COMMIT,
             work_dir: std::env::current_dir().unwrap_or_default(),
@@ -280,6 +278,14 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::OpenFile { path } => { opener::open(&path).ok(); },
         Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; }
 
+        Action::LoadPlatforms => {
+            let mut platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+            platforms.load_all();
+            send_socket(websocket, json!({
+                "action": "loadPlatforms",
+                "platforms": platforms.platforms.iter().map(|p| p.info.clone()).collect::<Vec<_>>()
+            })).ok();
+        },
         Action::ConfigCallback { config, platform, id } => {
             if let Some(p) = AUTOTAGGER_PLATFORMS.lock().unwrap().get_builder(&platform) {
                 send_socket(websocket, json!({

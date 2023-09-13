@@ -15,7 +15,7 @@ use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, 
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
-    pub static ref AUTOTAGGER_PLATFORMS: Arc<Mutex<AutotaggerPlatforms>> = Arc::new(Mutex::new(AutotaggerPlatforms::all()));
+    pub static ref AUTOTAGGER_PLATFORMS: Arc<Mutex<AutotaggerPlatforms>> = Arc::new(Mutex::new(AutotaggerPlatforms::builtin()));
 }
 
 
@@ -26,7 +26,7 @@ pub struct AutotaggerPlatforms {
 
 impl AutotaggerPlatforms {
     /// Get all the available platforms
-    fn all() -> AutotaggerPlatforms {
+    fn builtin() -> AutotaggerPlatforms {
         let mut output = vec![];
 
         // Built-ins
@@ -43,18 +43,21 @@ impl AutotaggerPlatforms {
         AutotaggerPlatforms::add_builtin::<deezer::DeezerBuilder>(&mut output);
         AutotaggerPlatforms::add_builtin::<musixmatch::MusixmatchBuilder>(&mut output);
 
+        AutotaggerPlatforms { platforms: output }
+    }
+
+    /// Load all custom platforms
+    pub fn load_all(&mut self) {
+        *self = Self::builtin();
         // Custom
-        let mut platforms = AutotaggerPlatforms { platforms: output };
-        match platforms.load_custom() {
+        match self.load_custom() {
             Ok(_) => {},
             Err(e) => warn!("Failed loading custom platforms: {e}")
         };
-        match platforms.load_python() {
+        match self.load_python() {
             Ok(_) => {},
             Err(e) => warn!("Failed loading Python platforms: {e}"),
         }
-
-        platforms
     }
 
     /// Get the source

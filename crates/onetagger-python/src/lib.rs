@@ -7,9 +7,10 @@ use std::fs::File;
 use std::process::{Command, Stdio};
 use anyhow::Error;
 use onetagger_shared::Settings;
-use onetagger_tagger::{PlatformInfo, AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, AudioFileInfo, Track, TrackMatch};
+use onetagger_tagger::{PlatformInfo, AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, AudioFileInfo, Track, TrackMatch, ConfigCallbackResponse};
 use pyembed::MainPythonInterpreter;
 use serde::{Serialize, Deserialize};
+use serde_json::Value;
 use subprocess::{SubprocessWrap, PythonResponse, PythonRequest};
 
 mod module;
@@ -87,7 +88,7 @@ pub fn load_python_platform(path: impl AsRef<Path>) -> Result<PythonPlatformBuil
     std::fs::create_dir_all(path.as_ref().join(".python"))?;
 
     // Check version and dependencies
-    let installed_version = match std::fs::read_to_string(path.as_ref().join(".VERSION")) {
+    let installed_version = match std::fs::read_to_string(path.as_ref().join(".version")) {
         Ok(version) => version,
         Err(_) => String::new(),
     };
@@ -103,7 +104,7 @@ pub fn load_python_platform(path: impl AsRef<Path>) -> Result<PythonPlatformBuil
     }
 
     // Save installed version
-    std::fs::write(path.as_ref().join(".VERSION"), &info.info.version)?;
+    std::fs::write(path.as_ref().join(".version"), &info.info.version)?;
 
     Ok(PythonPlatformBuilder { info, path: dunce::canonicalize(path)? })
 }
@@ -204,6 +205,24 @@ impl AutotaggerSourceBuilder for PythonPlatformBuilder {
     fn info(&self) -> PlatformInfo {
         self.info.info.clone()
     }
+
+    fn config_callback(&mut self, name: &str, config: Value) -> ConfigCallbackResponse {
+        // Call subprocess
+        let f = || -> Result<ConfigCallbackResponse, Error> {
+            let mut subprocess = self.init()?;
+            subprocess.send(&PythonRequest::ConfigCallback { name: name.to_string(), config })?;
+            if let PythonResponse::ConfigCallback { result } = subprocess.recv()? {
+                return Ok(result);
+            }
+            return Err(anyhow!("Invalid subprocess response"));
+        };
+       
+        match f() {
+            Ok(r) => r,
+            Err(e) => ConfigCallbackResponse::Error { error: e.to_string() },
+        }
+    }
+    
 }
 
 pub struct PythonPlatform {

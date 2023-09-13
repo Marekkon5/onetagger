@@ -3,12 +3,13 @@ use std::path::PathBuf;
 use std::process::{ChildStdin, ChildStdout, Child};
 use anyhow::Error;
 use log::{Record, Metadata, Log, LevelFilter, Level};
-use onetagger_tagger::{AudioFileInfo, TaggerConfig, Track, TrackMatch};
+use onetagger_tagger::{AudioFileInfo, TaggerConfig, Track, TrackMatch, ConfigCallbackResponse};
 use pyembed::MainPythonInterpreter;
 use pyo3::types::PyTuple;
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
 use pyo3::prelude::*;
+use serde_json::Value;
 
 static PYTHON_SUBPROCESS_LOG: PythonSubprocessLog = PythonSubprocessLog;
 
@@ -25,6 +26,7 @@ pub enum PythonRequest {
     GenerateDocs { python_path: PathBuf, output: PathBuf },
     MatchTrack { info: AudioFileInfo, config: TaggerConfig },
     ExtendTrack { track: Track, config: TaggerConfig },
+    ConfigCallback { name: String, config: Value }
 }
 
 /// Response from child process
@@ -38,7 +40,8 @@ pub enum PythonResponse {
     Exit,
 
     MatchTrack { result: Result<Vec<TrackMatch>, String> },
-    ExtendTrack { result: Result<Track, String> }
+    ExtendTrack { result: Result<Track, String> },
+    ConfigCallback { result: ConfigCallbackResponse }
 }
 
 /// Start python process
@@ -122,6 +125,25 @@ fn python_interpreter(path: PathBuf, code: &str) -> Result<(), Error> {
                         result: call_py::<(Track, TaggerConfig), Track>(extend_track, (track, config)).map_err(|e| e.to_string())
                     })?;
                 },
+                PythonRequest::ConfigCallback { name, config } => {
+                    // (try to) call the function and extract result
+                    let f = || -> Result<ConfigCallbackResponse, Error> {
+                        let f = module.getattr("config_callback")?;
+                        let config = pythonize::pythonize(py, &config)?;
+                        let result = f.call1((name, config))?;
+                        if result.is_none() {
+                            return Ok(ConfigCallbackResponse::Empty);
+                        }
+                        Ok(ConfigCallbackResponse::UpdateConfig { config: pythonize::depythonize(result)? })
+                    };
+                    // Send back
+                    match f() {
+                        Ok(r) => write_stdout(&PythonResponse::ConfigCallback { result: r })?,
+                        Err(e) => write_stdout(&PythonResponse::ConfigCallback { result: ConfigCallbackResponse::Error { error: e.to_string() } })?,
+                    }
+
+                },
+                
             }
         }
     })?;
