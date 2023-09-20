@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+zip = "0.6"
 log = "0.4"
 regex = "1.7"
 dunce = "1.0"
@@ -16,6 +17,7 @@ chrono = "0.4"
 base64 = "0.21"
 execute = "0.2"
 walkdir = "2.3"
+tempfile = "3.8"
 libloading = "0.8"
 serde_json = "1.0"
 lazy_static = "1.4"

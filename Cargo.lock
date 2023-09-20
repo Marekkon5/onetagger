@@ -4761,7 +4761,9 @@ dependencies = [
  "serde",
  "serde_json",
  "songrec",
+ "tempfile",
  "walkdir",
+ "zip",
 ]
 
 [[package]]

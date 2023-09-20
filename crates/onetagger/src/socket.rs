@@ -49,6 +49,8 @@ enum Action {
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
     ConfigCallback { config: Value, platform: String, id: String },
+    RepoManifest,
+    InstallPlatform { id: String, version: String, is_native: bool },
 
     Waveform { path: PathBuf },
     PlayerLoad { path: PathBuf },
@@ -617,7 +619,32 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         // Generate and open Python documentation
         Action::PythonDocs => {
             webbrowser::open(&format!("file://{}", onetagger_python::generate_docs()?.to_string_lossy()))?;
-        }
+        },
+
+        Action::RepoManifest => {
+            send_socket(websocket, json!({
+                "action": "repoManifest",
+                "manifest": onetagger_autotag::repo::fetch_manifest()?
+            })).ok();
+        },
+        Action::InstallPlatform { id, version, is_native } => {
+            match onetagger_autotag::repo::install_platform(&id, &version, is_native) {
+                Ok(_) => send_socket(websocket, json!({
+                    "action": "installPlatform",
+                    "status": "ok"
+                })).ok(),
+                Err(e) => {
+                    error!("Failed installing platform {id}@{version}: {e}");
+                    send_socket(websocket, json!({
+                        "action": "installPlatform",
+                        "status": "error",
+                        "error": e.to_string()
+                    })).ok()
+                },
+            };
+        },
+
+        
         
     }
    
