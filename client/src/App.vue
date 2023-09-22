@@ -121,7 +121,7 @@ import axios from 'axios';
 
 import { compareVersions } from 'compare-versions';
 import { useQuasar } from 'quasar';
-import { onMounted, onUpdated, ref, watch } from "vue";
+import {computed, onMounted, onUpdated, ref, watch} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { get1t } from "./scripts/onetagger.js";
 

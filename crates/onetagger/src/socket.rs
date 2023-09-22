@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use anyhow::Error;
 use std::net::{TcpListener, TcpStream};
-use std::env;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -50,6 +49,7 @@ enum Action {
     StopTagging,
     ConfigCallback { config: Value, platform: String, id: String },
     RepoManifest,
+    #[serde(rename_all = "camelCase")]
     InstallPlatform { id: String, version: String, is_native: bool },
 
     Waveform { path: PathBuf },
@@ -134,6 +134,8 @@ struct InitData {
     action: &'static str,
     version: &'static str,
     os: &'static str,
+    arch: &'static str,
+    custom_platform_compat: i32,
     start_context: StartContext,
     renamer_docs: FullDocs,
     commit: &'static str,
@@ -147,7 +149,9 @@ impl InitData {
         InitData {
             action: "init",
             version: crate::VERSION,
-            os: env::consts::OS,
+            os: std::env::consts::OS,
+            arch: std::env::consts::ARCH,
+            custom_platform_compat: onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY,
             start_context,
             renamer_docs: FullDocs::get().html(),
             commit: COMMIT,

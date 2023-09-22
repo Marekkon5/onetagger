@@ -242,7 +242,20 @@ interface Track {
 type ConfigCallbackResponse = 
     { type: 'empty' } |
     { type: 'error', error: string } |
-    { type: 'updateConfig', config: any }
+    { type: 'updateConfig', config: any };
 
-export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap, Track, ConfigCallbackResponse };
+
+interface RepoPlatform {
+    id: string;
+    name: string;
+    author: string;
+    description: string;
+    requiresAuth: string;
+    language: 'rust' | 'python';
+    version: string;
+    maxThreads: number;
+    versions: { [key: string]: number };
+}
+
+export type { AutotaggerPlatform, PlatformInfo, AutotaggerProfile, TaggingStatusWrap, Track, ConfigCallbackResponse, RepoPlatform };
 export { AutotaggerConfig, TaggerStatus, SupportedTag, SUPPORTED_TAGS };

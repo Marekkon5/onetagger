@@ -9,6 +9,7 @@ import { ManualTag } from './manualtag';
 import ExitDialog from '../components/ExitDialog.vue';
 import router from './router';
 import DevToolsVue from '../components/DevTools.vue';
+import PlatformsRepoVue from '../components/PlatformsRepo.vue';
 
 class OneTagger {
     // Singleton
@@ -287,6 +288,33 @@ class OneTagger {
                 this.send('defaultCustomPlatformSettings');
                 this.loadingPlatformsDialog!.hide();
                 this.loadingPlatformsDialog = undefined;
+                break;
+
+            // Show repo dialog
+            case 'repoManifest':
+                Dialog.create({
+                    component: PlatformsRepoVue,
+                    componentProps: {
+                        manifest: json.manifest
+                    }
+                });
+                break;
+
+            // Platform installed
+            case 'installPlatform':
+                let isOk = json.status == 'ok';
+                Dialog.create({
+                    title: isOk ? 'Platform Installed' : 'Failed to install platform',
+                    message: isOk ? 'Platform was installed succesfully, press OK to continue' : json.error,
+                    persistent: true,
+                    cancel: false,
+                    ok: {
+                        color: 'primary'
+                    }
+                })
+                .onOk(() => {
+                    window.location.reload();
+                });
                 break;
 
             // Debug
@@ -675,6 +703,8 @@ class OneTagger {
 interface AppInfo {
     version: string;
     os: string;
+    arch: string;
+    customPlatformCompat: number;
     ready: boolean;
     platforms: AutotaggerPlatform[];
     renamerDocs: any,

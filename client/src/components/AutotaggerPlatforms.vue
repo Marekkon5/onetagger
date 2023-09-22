@@ -1,5 +1,5 @@
 <template>
-    <div class='row justify-center q-mb-xl'>
+    <div class='row justify-center'>
         <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' item-key='id'>
             <template #item='{ element: platform }'>
                 <q-card flat class='card q-ma-md'>
@@ -59,7 +59,13 @@
                 </q-card>
             </template>
         </draggable>        
+
     </div>    
+
+    <div class="row items-center justify-center q-mb-xl">
+        <q-btn color="primary" class="text-black" @click='$1t.send("repoManifest")'>Get more platforms</q-btn>
+    </div>       
+
 </template>
 
 <script lang='ts' setup>
