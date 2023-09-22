@@ -77,7 +77,7 @@
                 <div class='text-body1 q-pb-xs q-px-sm'>Version: <b>{{ version }}</b>, 
                     Compatibility: <span class='text-bold' :class='{"text-red": compat != $1t.info.value.customPlatformCompat, "text-green": compat == $1t.info.value.customPlatformCompat}'>{{ compat }}</span>
                 </div>
-                <q-btn icon='mdi-download' flat round @click='installPlatform(selectedPlatform, version.toString())'></q-btn>
+                <q-btn icon='mdi-download' flat round @click='installPlatform(selectedPlatform!, version.toString())'></q-btn>
 
             </div>
         </div>
