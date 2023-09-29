@@ -27,7 +27,7 @@ directories = "5.0"
 tungstenite = "0.20"
 tinyfiledialogs = "3.9"
 
-wry = { version = "0.32", features = ["devtools"] }
+wry = { version = "0.33", features = ["devtools"] }
 clap = { version = "4.1", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 

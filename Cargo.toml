@@ -17,5 +17,6 @@ members = [
 
 [profile.release]
 opt-level = 3
+
 # Required for MacOS (Python), waste for Linux
 strip = false
