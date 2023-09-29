@@ -15,6 +15,7 @@
         <div>Data Directory: <span class='monospace'>{{ $1t.info.value.dataDir }}</span></div>
         <div>Working Directory: <span class='monospace'>{{ $1t.info.value.workDir }}</span></div>
         <div>Start Context: <span class='monospace'>{{ $1t.info.value.startContext }}</span></div>
+        <div>Custom Platforms Compatibility: <span class='monospace'>{{ $1t.info.value.customPlatformCompat }}</span></div>
         <div>
             <q-checkbox @update:model-value="(v) => {$1t.settings.value.devtools = v; $1t.saveSettings(true)}" :model-value='$1t.settings.value.devtools' label='Enable webview devtools (requires restart)'></q-checkbox>
         </div>
@@ -32,7 +33,7 @@
         <div class='q-py-sm text-bold monospace'>
             Log:
         </div>
-        <q-virtual-scroll ref='logRef' :items='log' v-slot='{ item, index }' style='max-height: calc(100vh - 460px);'>
+        <q-virtual-scroll ref='logRef' :items='log' v-slot='{ item, index }' style='max-height: calc(100vh - 480px);'>
             <div :key='index'>
                 <span class='monospace text-bold'>{{ item.time }} &nbsp;</span>
                 <span class='monospace text-bold' :class='`text-${levelColor(item.level)}`'> {{ item.level }} &nbsp;</span>

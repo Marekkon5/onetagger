@@ -22,7 +22,8 @@
 
             <div class='text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
             <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
-            <AutotaggerPlatforms class='q-mb-xl'></AutotaggerPlatforms>
+            <div class='text-subtitle2 text-grey-6'>You can also click <span class='text-primary cursor-pointer' @click='$1t.send("repoManifest")'>here</span> to get new platforms.</div>
+            <AutotaggerPlatforms></AutotaggerPlatforms>
         </q-step>
 
         <!-- Tags -->

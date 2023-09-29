@@ -63,22 +63,22 @@
 
 <!-- Download dialog -->
 <q-dialog v-model='downloadDialog' v-if='selectedPlatform'>
-<q-card>
+<q-card style='min-width: 420px; min-height: 200px;'>
 
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle1 text-bold text-center text-primary'>INSTALL PLATFORM</div>
+        <div class='text-subtitle1 text-bold text-center text-primary'>INSTALL {{ selectedPlatform.name.toUpperCase() }}</div>
     </q-card-section>
 
     <!-- Versions -->
-    <div >
+    <div>
         <div v-for='(compat, version) in selectedPlatform.versions' class='q-pa-sm'>
             <div class='row items-center'>
                 <div class='text-body1 q-pb-xs q-px-sm'>Version: <b>{{ version }}</b>, 
                     Compatibility: <span class='text-bold' :class='{"text-red": compat != $1t.info.value.customPlatformCompat, "text-green": compat == $1t.info.value.customPlatformCompat}'>{{ compat }}</span>
                 </div>
+                <q-space></q-space>
                 <q-btn icon='mdi-download' flat round @click='installPlatform(selectedPlatform!, version.toString())'></q-btn>
-
             </div>
         </div>
     </div>

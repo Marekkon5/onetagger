@@ -59,17 +59,21 @@
                 </q-card>
             </template>
         </draggable>        
-
     </div>    
 
-    <div class="row items-center justify-center q-mb-xl">
-        <q-btn color="primary" class="text-black" @click='$1t.send("repoManifest")'>Get more platforms</q-btn>
+    <div v-if='!dense' class='q-mt-md'>
+        <div class='text-subtitle1 text-bold text-primary'>NEED MORE PLATFORMS?</div>
+        <div class='text-subtitle2 text-grey-6'>OneTagger supports custom platforms written in Rust or Python. You can install them using the button below.</div>
+
+        <div class="row items-center justify-center q-mt-md q-mb-xl">
+            <q-btn color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="text-black" @click='openPlatformsRepo()'>Platforms Repository</q-btn>
+        </div>
     </div>       
 
 </template>
 
 <script lang='ts' setup>
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
 import { AutotaggerPlatform, SupportedTag } from '../scripts/autotagger';
@@ -79,6 +83,7 @@ const { dense } = defineProps({
     dense: { type: Boolean, default: false }
 });
 const $1t = get1t();
+const platformsRepoButtonLoading = ref(false);
 
 // Update config
 function update(platform: string) {
@@ -102,6 +107,15 @@ function syncPlatforms() {
 /// Does the platform have lyrics
 function hasLyrics(platform: AutotaggerPlatform) {
     return platform.supportedTags.includes(SupportedTag.UnsyncedLyrics) || platform.supportedTags.includes(SupportedTag.SyncedLyrics);
+}
+
+/// Open the platforms repo and make the button load
+function openPlatformsRepo() {
+    platformsRepoButtonLoading.value = true;
+    $1t.send("repoManifest");
+    setTimeout(() => {
+        platformsRepoButtonLoading.value = false
+    }, 2000);
 }
 
 onMounted(() => {
