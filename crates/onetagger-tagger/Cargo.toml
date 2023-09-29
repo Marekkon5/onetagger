@@ -9,13 +9,13 @@ edition = "2021"
 log = "0.4"
 regex = "1.7"
 anyhow = "1.0"
-chrono = "0.4"
 strsim = "0.10"
 unidecode = "0.3"
 serde_json = "1.0"
 
 pyo3 = { version = "0.18", features = ["chrono", "serde", "anyhow"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
 pythonize = { version = "0.18", optional = true }
 
 onetagger-tag = { path = "../onetagger-tag", default-features = false }
