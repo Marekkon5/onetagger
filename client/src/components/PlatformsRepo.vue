@@ -1,6 +1,6 @@
 <template>
 <q-dialog ref="dialogRef" @hide="onDialogHide">
-<q-card class="q-pa-md" style='min-width: 550px;'>
+<q-card class="q-pa-md" style='min-width: 570px;'>
 
     <!-- Title -->
     <q-card-section>
@@ -8,7 +8,7 @@
     </q-card-section>
 
     <!-- Platforms -->
-    <div style='overflow-y: scroll; height: 500px;'>
+    <div style='overflow-y: scroll; height: 480px;'>
         <div v-for="platform in platforms">
             <q-card flat class='bg-darker q-ma-md'>
                 <q-card-section horizontal class='row justify-between'>
@@ -44,10 +44,15 @@
                         </div>
                         <span v-html='platform.description'></span>
                         <br>
+                        <!-- Info -->
                         <span>Author: {{ platform.author }}</span>
                         <div class='text-grey-8 text-bold monospace text-left' style='font-size: 10px;'>
                             {{platform.id}}@{{platform.version}}
                         </div>
+                        <div class='text-red text-bold' v-if='!Object.values(platform.versions).includes($1t.info.value.customPlatformCompat)'>
+                            Platform potentially incompatible!
+                        </div>
+
                     </q-card-section>
                     <q-card-section class='column'>
                         <img class='q-pa-xs' :src='iconUrl(platform.id)' :height='50'>
@@ -58,6 +63,11 @@
                 </q-card-section>
             </q-card>
         </div>
+    </div>
+
+    <!-- Show incompatible -->
+    <div>
+        <q-checkbox label='Show incompatible' v-model='showIncompatible'></q-checkbox>
     </div>
 </q-card>
 
@@ -108,6 +118,7 @@ const $q = useQuasar();
 const $1t = get1t();
 const selectedPlatform = ref<RepoPlatform|undefined>(undefined);
 const downloadDialog = ref(false);
+const showIncompatible = ref(false);
 
 function iconUrl(id: string) {
     return `${ICON_URL}/${id}/icon.png`;
@@ -131,6 +142,6 @@ function installPlatform(platform: RepoPlatform, version: string) {
 }
 
 /// Filter incompatible platforms
-const platforms = computed(() => manifest.filter((p) => Object.values(p.versions).includes($1t.info.value.customPlatformCompat)));
+const platforms = computed(() => manifest.filter((p) => showIncompatible.value || Object.values(p.versions).includes($1t.info.value.customPlatformCompat)));
 
 </script>

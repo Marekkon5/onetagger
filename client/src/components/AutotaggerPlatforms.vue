@@ -61,13 +61,18 @@
         </draggable>        
     </div>    
 
-    <div v-if='!dense' class='q-mt-md'>
+    <div v-if='!dense' class='q-mt-md q-mb-xl'>
         <div class='text-subtitle1 text-bold text-primary'>NEED MORE PLATFORMS?</div>
         <div class='text-subtitle2 text-grey-6'>OneTagger supports custom platforms written in Rust or Python. You can install them using the button below.</div>
 
-        <div class="row items-center justify-center q-mt-md q-mb-xl">
+        <div class="row items-center justify-center q-mt-md">
             <q-btn color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="text-black" @click='openPlatformsRepo()'>Platforms Repository</q-btn>
         </div>
+
+        <div class='text-subtitle2 text-center q-py-sm'>
+            Want to create your own platform? <span class='text-primary cursor-pointer' @click='$1t.url("https://github.com/Marekkon5/onetagger/blob/master/CUSTOM_PLATFORMS.md")'>Click here!</span>
+        </div>
+
     </div>       
 
 </template>
