@@ -50,9 +50,9 @@
                             {{platform.id}}@{{platform.version}}
                         </div>
                         <div class='text-red text-bold' v-if='!Object.values(platform.versions).includes($1t.info.value.customPlatformCompat)'>
-                            Platform potentially incompatible!
+                            <span v-if='platform.language != "rust"'>Platform potentially incompatible!</span>
+                            <span v-else>Platform is incompatible!</span>
                         </div>
-
                     </q-card-section>
                     <q-card-section class='column'>
                         <img class='q-pa-xs' :src='iconUrl(platform.id)' :height='50'>
