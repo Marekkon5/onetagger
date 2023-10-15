@@ -1,10 +1,10 @@
 use anyhow::Error;
+use mp4parse::{SampleEntry, CodecType};
+use rodio::decoder::Mp4Type;
 use std::io::BufReader;
 use std::fs::File;
 use std::path::{PathBuf, Path};
 use rodio::Source;
-use redlux::Decoder;
-use mp4::Mp4Reader;
 
 use crate::AudioSource;
 use crate::alac::ALACSource;
@@ -18,15 +18,20 @@ pub struct MP4Source {
 impl MP4Source {
     pub fn new(path: impl AsRef<Path>) -> Result<MP4Source, Error> {
         let file = File::open(&path)?;
-        let metadata = file.metadata()?;
-        let mp4 = Mp4Reader::read_header(BufReader::new(file), metadata.len())?;
-        let track = mp4.tracks().values().next().ok_or(anyhow!("No tracks!"))?;
-        // ALAC will fail on this function so i guess dirty but works
-        let alac = track.audio_profile().is_err();
+        let mp4 = mp4parse::read_mp4(&mut BufReader::new(file))?;
+        let track = mp4.tracks.first().ok_or(anyhow!("No MP4 tracks"))?;
+        let duration = track.duration.ok_or(anyhow!("Missing duration"))?.0 as f32 / track.timescale.ok_or(anyhow!("Missing timescale"))?.0 as f32;
+        // Check if alac
+        let mut alac = false;
+        if let SampleEntry::Audio(entry) = track.stsd.as_ref().ok_or(anyhow!("Missing stsd"))?.descriptions.first().ok_or(anyhow!("Missing first stsd"))? {
+            alac = entry.codec_type == CodecType::ALAC
+        }
+
+        debug!("Creating MP4 source ok, alac: {}", alac);
 
         Ok(MP4Source {
             path: path.as_ref().to_owned(),
-            duration: mp4.duration().as_millis(),
+            duration: (duration * 1000.0) as u128,
             alac
         })
     }
@@ -48,9 +53,20 @@ impl AudioSource for MP4Source {
         let f = File::open(&self.path)?;
         let meta = f.metadata()?;
         let reader = BufReader::new(f);
-        let mut decoder = Decoder::new_mpeg4(reader, meta.len())?;
-        // Decode first sample otherwise for some reason the channels and sample rate is 0
-        decoder.decode_next_sample()?.ok_or(anyhow!("No samples!"))?;
-        Ok(Box::new(decoder))
+
+        // Try redlux with fallback to symphonia
+        match redlux::Decoder::new_mpeg4(reader, meta.len()) {
+            Ok(mut decoder) => {
+                // Decode first sample otherwise for some reason the channels and sample rate is 0
+                decoder.decode_next_sample()?.ok_or(anyhow!("No samples!"))?;
+                return Ok(Box::new(decoder))
+            },
+            Err(e) => {
+                warn!("Fallback to aac symphonia because of: {e}");
+                let decoder = rodio::Decoder::new_mp4(BufReader::new(File::open(&self.path)?), Mp4Type::M4a)?;
+                return Ok(Box::new(decoder));
+            },
+        }
+        
     }
 }

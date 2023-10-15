@@ -1,3 +1,4 @@
+#[macro_use] extern crate log;
 #[macro_use] extern crate anyhow;
 
 use anyhow::Error;

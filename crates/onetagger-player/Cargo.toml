@@ -6,15 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mp4 = "0.13"
+log = "0.4"
 alac = "0.5"
 hound = "3.5"
-rodio = "0.16"
 anyhow = "1.0"
 lofty = "0.15"
 redlux = "0.6"
 pacmog = "0.4.1"
+mp4parse = "0.17"
 mp3-duration = "0.1"
+
+rodio = { version = "0.16", features = ["symphonia-aac", "symphonia-isomp4"] }
 
 onetagger-shared = { path = "../onetagger-shared" }
 
