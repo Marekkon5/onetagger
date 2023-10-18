@@ -54,6 +54,7 @@ impl AutotaggerPlatforms {
             Ok(_) => {},
             Err(e) => warn!("Failed loading custom platforms: {e}")
         };
+        #[cfg(feature = "python")]
         match self.load_python() {
             Ok(_) => {},
             Err(e) => warn!("Failed loading Python platforms: {e}"),
@@ -129,6 +130,7 @@ impl AutotaggerPlatforms {
     }
 
     /// Load python custom platforms
+    #[cfg(feature = "python")]
     fn load_python(&mut self) -> Result<(), Error> {
         let folder = Self::platforms_dir()?;
         onetagger_python::setup()?;
