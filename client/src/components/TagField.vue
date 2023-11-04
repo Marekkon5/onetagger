@@ -25,7 +25,7 @@
 </template>
 
 <script lang='ts' setup>
-import { computed, ref } from 'vue';
+import { Ref, computed, ref, toRef, watch } from 'vue';
 import {MP4, VORBIS, ID3} from '../scripts/tags';
 
 type BannedTags = { id3: string[], vorbis: string[], mp4: string[] };
@@ -46,12 +46,13 @@ const bannedTagEditor: BannedTags = {
     mp4: []
 }
 
-const { format, initial, dense, tageditor } = defineProps({
+const props = defineProps({
     format: { type: String, required: true },
-    initial: { type: String, required: false },
+    modelValue: { type: String, required: false, default: '' },
     dense: { default: false, type: Boolean },
     tageditor: { default: false, type: Boolean }
 });
+const { format, dense, tageditor } = props;
 
 // Autocompletion
 let options: string[] = [];
@@ -67,9 +68,10 @@ switch (format) {
         break;
 }
 let originalOptions = JSON.parse(JSON.stringify(options));
-const value = ref(initial??'');
+
+const value: Ref<string> = ref(props.modelValue);
 const error = ref<string | undefined>();
-const emit = defineEmits(['change']);
+const emit = defineEmits(['update:modelValue']);
 
 
 // Remove ID3 helper text
@@ -109,7 +111,7 @@ function onInputValue(v: string) {
     if (!v)
         error.value = "Shouldn't be empty!"
 
-    emit('change', v);
+    emit('update:modelValue', v);
 }
 
 // On filter for quasar
@@ -132,6 +134,10 @@ const label = computed(() => {
 const color = computed(() => {
     if ((format == 'id3' || format == 'mp4') && (value.value??'').length != 4) return 'yellow';
     return 'primary';
+});
+
+watch(() => props.modelValue, () => {
+    onInput(props.modelValue);
 });
 
 </script>

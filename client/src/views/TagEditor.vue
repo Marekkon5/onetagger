@@ -133,7 +133,7 @@
                 <!-- Add new tag -->
                 <div class='row q-mt-xl'>
                     <div class='col-3 q-pt-sm text-uppercase text-primary text-subtitle2'>Add new text tag</div>
-                    <TagField tageditor class='col-8' dense :format='tagFormat!' @change='newTag = $event'></TagField>
+                    <TagField tageditor class='col-8' dense :format='tagFormat!' @update:model-value='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
                             <q-icon name='mdi-plus' class='text-primary'></q-icon>

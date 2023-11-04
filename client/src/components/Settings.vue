@@ -508,8 +508,11 @@ function addNewQTValue(i: number) {
 
 // Move QT tag
 function reorderCustomQT(now: number, offset: number) {
-    let item = $1t.settings.value.quickTag.custom.splice(now, 1);
-    $1t.settings.value.quickTag.custom.splice(now + offset, 0, item[0]);
+    let item = $1t.settings.value.quickTag.custom[now + offset];
+    $1t.settings.value.quickTag.custom[now + offset] = $1t.settings.value.quickTag.custom[now];
+    $1t.settings.value.quickTag.custom[now] = item;
+    // let item = $1t.settings.value.quickTag.custom.splice(now, 1);
+    // $1t.settings.value.quickTag.custom.splice(now + offset, 0, item[0]);
     
 }
 
