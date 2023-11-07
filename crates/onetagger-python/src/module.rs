@@ -236,7 +236,7 @@ fn new_track(kwargs: Option<&PyDict>) -> Result<Track, Error> {
     // Set some fields to default value
     macro_rules! set_default {
         ($field: tt, $value: expr) => {
-            if !kwargs.hasattr($field).unwrap_or(false) {
+            if !kwargs.keys().contains($field).unwrap_or(false) {
                 kwargs.set_item($field, $value)?;
             }
         }

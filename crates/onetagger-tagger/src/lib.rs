@@ -638,6 +638,11 @@ impl AudioFileInfo {
         }
         Ok(self.artists.first().unwrap().as_str())
     }
+
+    /// Get path (used in Python to convert PathBuf to String)
+    pub fn getpath(&self) -> String {
+        self.path.to_string_lossy().to_string()
+    }
 }
 
 impl AudioFileInfo {
