@@ -64,9 +64,10 @@ cd ..
 
 **Compile**
 ```
+cargo run --bin onetagger-python-builder --release
 cargo build --release
 ```
-Output is in: `target/release/onetagger`
+Output will be in: `target/release/onetagger`
 
 
 ### Windows
@@ -82,6 +83,7 @@ cd ..
 
 **Compile OneTagger:**
 ```
+cargo run --bin onetagger-python-builder --release
 cargo build --release
 ```
 
