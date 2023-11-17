@@ -218,7 +218,7 @@ impl TagImpl for ID3Tag {
                 Encoder::new()
                     .version(version)
                     .padding(2048)
-                    .encode_to_path(&self.tag, path)?;
+                    .write_to_path(&self.tag, path)?;
             },
             ID3AudioFormat::AIFF => self.tag.write_to_aiff_path(path, version)?,
             ID3AudioFormat::WAV => crate::wav::write_wav(path, self.tag.clone(), version)?,
