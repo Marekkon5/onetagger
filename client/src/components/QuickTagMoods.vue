@@ -1,11 +1,12 @@
 <template>
-<div class='q-mx-md'>
-    <div class='q-mt-sm moods row'>
+<div class='q-mx-sm'>
+    <div class='q-mt-sm moods row text-center text-subtitle2 text-weight-medium'>
         <div v-for='(mood, i) in $1t.settings.value.quickTag.moods' :key='"mood"+i' class='q-mx-xs' @click='moodSelect(mood)'>
             <q-chip 
                 :outline='!(moodSelected(mood) || moodHover == i)' 
-                :color='mood.color + ((moodSelected(mood) || moodHover == i) ? "-6" : "")'
-                :label='mood.mood'
+                :color='mood.color'
+                :label='mood.mood'  
+                                
                 @mousemove='moodHover = i'
                 @mouseleave="moodHover = -1"
                 class='pointer'
@@ -40,8 +41,5 @@ function moodSelect(mood: QuickTagMood) {
 <style>
 .pointer {
     cursor: pointer;    
-}
-.pointer:hover {
-    transform: scale(1.1);
 }
 </style>

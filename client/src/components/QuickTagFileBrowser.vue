@@ -38,7 +38,7 @@
                 <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='!file.dir && !file.playlist' name='mdi-music'></q-icon>
                 <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='file.dir' name='mdi-folder'></q-icon>
                 <q-icon size='xs' class='q-mb-xs text-grey-5' v-if='file.playlist' name='mdi-playlist-music'></q-icon>
-                <span class='q-ml-sm'>{{file.filename}}</span>
+                <span class='q-ml-sm text-caption'>{{file.filename}}</span>
             </div>
         </div>
 

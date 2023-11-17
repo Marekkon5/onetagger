@@ -20,9 +20,8 @@
             :error='step > 0 && $1t.config.value.platforms.length == 0'
             class='text-center step'>
 
-            <div class='text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
-            <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
-            <div class='text-subtitle2 text-grey-6'>You can also click <span class='text-primary cursor-pointer' @click='$1t.send("repoManifest")'>here</span> to get new platforms.</div>
+            <div class='text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
+            <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>            
             <AutotaggerPlatforms></AutotaggerPlatforms>
         </q-step>
 
@@ -57,7 +56,7 @@
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-subtitle1 text-bold text-primary'>ADVANCED</div>
+            <div class='text-subtitle2 text-bold text-primary'>ADVANCED</div>
             <span class='text-subtitle2 text-grey-6'>Miscellaneous options</span>
             <br>
             <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
@@ -75,7 +74,7 @@
 
         <div class='col-6 row align-center items-center justify-center content-center'>
             <div>
-                <q-btn push color='primary' class='text-black' @click='step += 1' v-if='step < 3'>
+                <q-btn dense push color='primary' class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium' @click='step += 1' v-if='step < 3'>
                     Next
                 </q-btn>
             </div>
@@ -92,11 +91,13 @@
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
-                <div class='q-mt-md text-subtitle1 text-bold text-primary'>PROFILES</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-primary'>PROFILES</div>
                 <div class='text-subtitle2 text-grey-6'>Save, create, delete profiles</div>
-                <AutotaggerProfile class='full-width q-mt-md' v-if='$1t.settings.value.showAutoTaggerProfiles'></AutotaggerProfile>
+                <div class='row justify-center'>
+                    <AutotaggerProfile style='width: 400px;' class='q-mt-md' v-if='$1t.settings.value.showAutoTaggerProfiles'></AutotaggerProfile>
+                </div>
                 <div class='q-my-lg'></div>
-                <div class='q-mt-md text-subtitle1 text-bold text-primary'>SELECT PLATFORMS</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
                 <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
                 <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
@@ -112,7 +113,7 @@
             <div class='q-mr-md q-mt-md'>
                 <q-btn flat round icon='mdi-console' color='grey-8' @click='cliDialog = true'>
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span class='text-weight-bold'>CLI Version Config</span>
+                        <span>CLI Version Config</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -128,7 +129,7 @@
                     @click='startTagging'
                 >
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span class='text-weight-bold'>START</span>
+                        <span>START</span>
                     </q-tooltip>
                 </q-btn>
             </div>

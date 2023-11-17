@@ -4,8 +4,8 @@
 
     <!-- Path -->
     <div v-if='!manualTag'>
-        <div class='text-subtitle1 text-bold text-primary'>SELECT INPUT</div>
-        <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the browse <span><q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span></div>
+        <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT</div>
+        <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or<span class='keybind-icon text-caption text-bold'>CLICK</span> the browse <span><q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span></div>
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
             <div class='col-1'></div>
             <q-input filled class='col-10' label='Path' v-model='$1t.config.value.path'>
@@ -37,12 +37,12 @@
             </div>
         </div>
 
-        <q-separator class='q-mx-auto custom-separator' :style='"margin-top: 16px;"' inset color="dark"/>
+        <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 8px;"' inset color="dark"/>
     </div>
     
     <!-- Tags -->
 
-    <div class='text-subtitle1 q-mt-lg text-primary text-bold' style='margin-top: 35px;'>SELECT TAGS</div>
+    <div class='text-subtitle2 q-mt-lg text-primary text-bold' style='margin-top: 35px;'>SELECT TAGS</div>
     <div class='text-subtitle2 q-mb-sm text-grey-6'>Check the box to fetch stated tag</div>
     
     <div class='q-pt-xs q-mb-md' :style='"max-width: 550px; margin: auto;"'>
@@ -156,5 +156,13 @@ function toggleTags(mode: string) {
 
 .mt-n2 {
     margin-top: -2px;
+}
+
+.keybind-icon {
+    padding: 4px;
+    border-radius: 2px;
+    background: #262828;
+    margin-bottom: 4px;
+    margin-left: 4px;
 }
 </style>

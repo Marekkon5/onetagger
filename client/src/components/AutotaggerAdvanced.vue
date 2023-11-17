@@ -1,10 +1,10 @@
 <template>
-<div class='text-left q-pt-xs' style='max-width: 550px; margin:auto;'>
+<div class='text-left q-pt-xs' style='max-width: 450px; margin:auto;'>
     <q-list>
         <!-- Overwrite tags -->
         <AdvancedSettingsToggle 
             label='Overwrite tags'
-            tooltip='Overwrite the existing tags in the song'
+            tooltip='When disabling toggle, you can select which tags to overwrite alternatively'
             v-model='$1t.config.value.overwrite'
         ></AdvancedSettingsToggle>
 
@@ -174,15 +174,53 @@
             v-model='$1t.config.value.capitalizeGenres'
         ></AdvancedSettingsToggle>
 
+        <!-- Duration -->   
+        <div class='row justify-center items-center q-px-md'>
+            <div>Match duration</div>
+            <div class='text-grey-6 q-ml-sm'>
+                <q-icon name='mdi-alert-circle-outline' class='q-mb-xs'></q-icon>
+                Warning: Strict
+            </div>
+            <q-space></q-space>
+            <q-toggle v-model='$1t.config.value.matchDuration'></q-toggle>
+        </div>
+
     </q-list>
 
+    <!-- Styles / genres action -->
+    <q-separator class='q-mx-auto q-mt-md custom-sep-advanced' :style='"margin-top: 21px;"' inset color="dark"/>
+    <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg' :style='"margin-top: 35px;"'>
+        GENRE / STYLE / SUBGENRE
+        <div class='text-subtitle2 q-mb-md text-grey-6'>
+            Fetch all <span class="text-grey-4">(default)</span>, if it should merge them, or write elsewhere <br><span class="text-grey-4">(supported platforms only)</span>
+        </div>        
+        
+        <!-- Styles -->
+        <q-select
+            dark
+            standout='text-grey-4 bg-dark'
+            v-model='stylesOption'
+            :options='stylesOptions'
+            class='select'
+            label='Genres/Styles tag'
+            style='margin-bottom: 40px;'
+            @update:model-value='updateStyleOption'
+            popup-content-class='no-shadow'
+        ></q-select>
+        <!-- Styles custom tag -->
+        <div v-if='$1t.config.value.stylesOptions == "customTag"'>
+            <TagFields v-model='$1t.config.value.stylesCustomTag' class='q-mb-md'></TagFields>
+        </div>
+    </div>
+
+
     <!-- Multiple matches ordering -->
-    <q-separator class='q-mx-auto q-mb-xl custom-separator' inset color="dark"/>
+    <q-separator class='q-mx-auto q-mb-xl custom-sep-advanced' :style='"margin-top: 21px;"' inset color="dark"/>
     
     <q-select 
         dark
         standout='text-grey-4 bg-dark'
-        class='row select q-ma-auto q-mt-xl'
+        class='row select q-ma-auto' :style='"margin-top: -8px;"'
         v-model='$1t.config.value.multipleMatches' 
         :options='multipleMatches'
         label='Multiple matches ordering'
@@ -237,15 +275,6 @@
         class='input'
     ></q-input>
 
-    <!-- Duration -->
-    <br>
-    <div class='row justify-center items-center' style='margin-bottom: -3px;'>
-        <q-toggle v-model='$1t.config.value.matchDuration' label='Match duration'></q-toggle>
-        <div class='text-grey-6 q-ml-sm'>
-            <q-icon name='mdi-alert-circle-outline' class='q-mb-xs'></q-icon>
-            Warning: Strict
-        </div>
-    </div>
     
     <div class='row justify-center q-mt-sm' v-if='$1t.config.value.matchDuration'>
         <q-slider
@@ -262,9 +291,18 @@
     </div>
     <br>
 
+    
+
+    <!-- Separators -->
+    <q-separator class='q-mx-auto q-mt-md custom-sep-advanced' :style='"margin-top: 8px;"' inset color="dark"/>
+    <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg q-mb-sm' :style='"margin-top: 35px;"'>SEPARATORS</div>
+    <div class='row q-pb-md q-mt-sm justify-center half-width'>
+        <Separators v-model='$1t.config.value.separators'></Separators>
+    </div>
+
     <!-- Track number padding -->
-    <q-separator class='q-mx-auto q-mt-md custom-separator' inset color="dark"/>
-    <div class='text-subtitle1 text-center text-bold text-primary q-mt-md' style='margin-top: 31px;'>TAG OPTIONS</div>
+    
+    <div class='text-subtitle2 text-center text-bold text-primary' style='margin-top: 3px;'>TAG OPTIONS</div>
     <div class='row q-pb-xs justify-center half-width'>
         <q-input 
             v-model.number='$1t.config.value.trackNumberLeadingZeroes' 
@@ -277,56 +315,19 @@
 
     <!-- ID3 Lang -->
     <div class='row q-pb-xs justify-center half-width'>
-        <q-input 
+        <q-input :labelStyle="{ fontSize: '10px' }"
             v-model='$1t.config.value.id3CommLang' 
             filled 
-            label='ID3 COMM Language'
+            label='ID3 COMM Language'            
             class='input'
             :rules="[val => !val || val.length == 3]"
         ></q-input>
     </div>
-
-    <!-- Separators -->
-    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg q-mb-sm'>SEPARATORS</div>
-    <div class='row q-pb-md q-mt-sm justify-center half-width'>
-        <Separators v-model='$1t.config.value.separators'></Separators>
-    </div>
     
-
-    <!-- Styles / genres action -->
-    <div class='text-subtitle1 text-center text-bold text-primary'>
-        GENRE / STYLE / SUBGENRE OPTIONS
-        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
-            <q-tooltip>
-                <i>Supported platforms:</i> Discogs & Bandcamp for Style, Beatport for Subgenre <i>(all gets written to Style tag by default)</i>
-            </q-tooltip>
-        </q-icon>
-        <div class='text-subtitle2 q-mb-md text-grey-6'>
-            Fetch all <i>(default)</i>, if it should merge them, or write elsewhere <i>(supported platforms only)</i>
-        </div>        
-        
-        <!-- Styles -->
-        <q-select
-            dark
-            standout='text-grey-4 bg-dark'
-            v-model='stylesOption'
-            :options='stylesOptions'
-            class='select'
-            label='Genres/Styles tag'
-            style='margin-bottom: 48px;'
-            @update:model-value='updateStyleOption'
-            popup-content-class='no-shadow'
-        ></q-select>
-        <!-- Styles custom tag -->
-        <div v-if='$1t.config.value.stylesOptions == "customTag"'>
-            <TagFields v-model='$1t.config.value.stylesCustomTag' class='q-mb-md'></TagFields>
-        </div>
-    </div>
-
-    <q-separator class='q-mx-auto q-mb-lg custom-separator' inset color="dark"/>
+    <q-separator class='q-mx-auto q-mb-lg custom-sep-advanced' style='margin-top: 16px;' inset color="dark"/>
 
     <!-- Command -->
-    <div class='text-subtitle1 text-center text-bold text-primary q-mt-lg'>
+    <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg' style='margin-top: 35px;'>
         EXECUTE COMMAND WHEN TAGGING IS FINISHED
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
             <q-tooltip>
@@ -376,10 +377,7 @@ onMounted(() => {
 .slider-tooltip {
     margin-top: 36px;
 }
-.custom-separator {
-    max-width: 550px;
-    margin: auto;
-}
+
 .half-width {
     max-width: 50vw;
 }
@@ -390,5 +388,10 @@ onMounted(() => {
     width: 36%; 
     margin-left: 32%; 
     text-align: left;
+}
+
+.custom-sep-advanced {
+    min-width: 600px;
+    margin-left: -75px;    
 }
 </style>

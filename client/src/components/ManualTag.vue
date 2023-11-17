@@ -4,21 +4,21 @@
 
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle1 text-bold text-center text-primary'>MANUAL TAG</div>
+        <div class='text-subtitle2 q-mb-xs text-bold text-center text-primary'>MANUAL TAG</div>
         <div class='monospace text-subtitle2 text-grey-6 text-center'>{{ path }}</div>
     </q-card-section>
 
     <!-- Body -->
     <q-card-section>
-        <div class='manualtag-results bg-dark'>
+        <div class='manualtag-results bg-dark q-pt-md'>
 
             <!-- Results list -->
             <q-list v-if='$1t.manualTag.value.busy || $1t.manualTag.value.done'>
 
                 <!-- Empty results -->
                 <div v-if='$1t.manualTag.value.done && $1t.manualTag.value.matches.length == 0' class='text-center'>
-                    <div class='text-h5 q-mt-md'>No results!</div>
-                    <div class='text-body1 text-grey-5 q-mt-md'>Try enabling more platforms or correcting title + artist tag.</div>
+                    <div class='text-h6 text-grey-4 q-mt-md'>No results!</div>
+                    <div class='text-subtitle2 text-grey-6 q-mt-md'>Try enabling more platforms or correcting <q-badge  outline color='grey-8'><span class='text-uppercase text-grey-4'>Title</span></q-badge> + <q-badge  outline color='grey-8'><span class='text-uppercase text-grey-4'>Artist</span></q-badge> tag</div>
                 </div>
 
                 <!-- Matches -->
@@ -38,9 +38,9 @@
                                     flat 
                                     round 
                                     size='sm' 
-                                    color='grey-5'
+                                    color='grey-7'
                                     style='margin-left: 5px;'
-                                    @click='$1t.url(match.track.url)'
+                                    @click='$1t.url(match.track.url)'                                    
                                     v-if='match.track.url'
                                 ></q-btn>
                             </div>
@@ -53,17 +53,17 @@
                         </div>
                     </q-item-section>
                     <q-item-section>
-                        <q-item-label overline class='text-white'>
+                        <q-item-label overline class='text-grey-4'>
                             <span>{{ match.track.platform.toUpperCase() }}</span>
-                            <span class='q-px-sm' :class='accuracyColor(match.accuracy)'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span>
+                            <span class='q-px-sm' :class='accuracyColor(match.accuracy)'><span class='text-subtitle3'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span></span>
                             <span v-if='match.reason != "fuzzy"'>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
-                        <q-item-label class='text-grey-5'>{{ match.track.artists.join(", ") }} - {{ match.track.title }}<span v-if='match.track.version'> ({{ match.track.version }})</span></q-item-label>
-                        <q-item-label class='text-grey-5' v-if='match.track.album'>{{ match.track.album }}</q-item-label>
-                        <q-item-label class='text-grey-5'>
-                            <span v-if='match.track.genres.length > 0'>Genres: <span class='text-white'>{{ match.track.genres.join(", ") }}</span></span>
-                            <span v-if='match.track.bpm'>, BPM: <span class='monospace text-white'>{{ match.track.bpm }}</span></span>
-                            <span v-if='match.track.key'>, Key: <span class='monospace text-white'>{{ match.track.key }}</span></span>
+                        <q-item-label class='title-span text-grey-6 text-weight-medium'>{{ match.track.artists.join(", ") }}  <span class='text-grey-4 text-weight-medium'> {{ match.track.title }}</span><span class='text-grey-4' v-if='match.track.version'> ({{ match.track.version }})</span></q-item-label>
+                        <q-item-label class='text-grey-6' v-if='match.track.album'><q-badge  outline color='grey-9'><span class='text-uppercase text-grey-6'>Album</span></q-badge>  <span class='text-caption text-weight-medium text-grey-5'>{{ match.track.album }}</span></q-item-label>
+                        <q-item-label class='text-grey-6'>
+                            <span v-if='match.track.genres.length > 0'><q-badge outline color='grey-9'><span class='text-uppercase text-grey-6'>Genre</span></q-badge>  <span class='text-caption text-weight-bold text-grey-4'>{{ match.track.genres.join(", ") }}</span></span>
+                            <span v-if='match.track.bpm'>  <q-badge outline color='grey-9'><span class='text-uppercase text-grey-6'>BPM</span></q-badge>  <span class='text-caption monospace text-weight-medium text-grey-4'>{{ match.track.bpm }}</span></span>
+                            <span v-if='match.track.key'>  <q-badge outline color='grey-9'><span class='text-uppercase text-grey-6'>Key</span></q-badge>  <span class='text-caption monospace text-weight-medium' :style='keyColor(match.track.key)'>{{ match.track.key }}</span></span>
                         </q-item-label>
                     </q-item-section>
                 </q-item>
@@ -71,7 +71,7 @@
 
             <!-- Config -->
             <div v-else>
-                <div class='q-mt-md text-subtitle1 text-bold text-center text-primary'>PLATFORMS</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-center text-primary'>PLATFORMS</div>
                 <autotagger-platforms dense></autotagger-platforms>
                 <autotagger-tags manual-tag></autotagger-tags>
                 <autotagger-platform-specific class='q-mt-lg q-px-lg'></autotagger-platform-specific>
@@ -80,14 +80,13 @@
         </div>
 
         <!-- Errors -->
-        <div v-if='$1t.manualTag.value.errors.length > 0' class='text-center text-red text-body1 q-pt-sm clickable' @click='errorList = true'>
-            Some platforms failed to search. Click here to see details.
+        <div v-if='$1t.manualTag.value.errors.length > 0' class='text-center text-red text-body2 q-pt-sm clickable' @click='errorList = true'>
+            Some platforms failed to search.<span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> here to see details.
         </div>
 
     </q-card-section>
 
-    <!-- Actions -->
-    <q-separator></q-separator>
+    <!-- Actions -->    
     <q-card-section class='row'>
         <q-space></q-space>
         <!-- Cancel / close -->
@@ -125,13 +124,13 @@
 <q-card style='min-width: 420px;'>
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle1 text-bold text-center text-red'>ERRORS</div>
+        <div class='q-mt-md text-subtitle2 text-bold text-center text-red'>ERRORS</div>
     </q-card-section>
 
     <!-- Errors -->
     <q-card-section>
-        <div v-for='error in $1t.manualTag.value.errors' class='text-body1'>
-            <span><span class='text-bold'>{{ error.platform.toUpperCase() }}</span>: {{ error.error }}</span>
+        <div v-for='error in $1t.manualTag.value.errors' class='text-subtitle2'>
+            <span class="text-grey-5"><span class='text-grey-4 monospace'>{{ error.platform.toUpperCase() }}</span>: {{ error.error }}</span>
         </div>
     </q-card-section>
 
@@ -156,7 +155,7 @@ import { useQuasar } from 'quasar';
 import AutotaggerPlatforms from './AutotaggerPlatforms.vue';
 import AutotaggerTags from './AutotaggerTags.vue';
 import AutotaggerPlatformSpecific from './AutotaggerPlatformSpecific.vue';
-import { PLACEHOLDER_IMG } from '../scripts/quicktag';
+import { PLACEHOLDER_IMG, keyColor } from '../scripts/quicktag';
 
 const $q = useQuasar();
 const $1t = get1t();
@@ -249,6 +248,7 @@ watch(path!, () => {
     show.value = !!(path!.value);
 });
 
+
 </script>
 
 <style lang='scss' scoped>
@@ -260,5 +260,11 @@ watch(path!, () => {
     border-radius: 8px;
     background-color: #99999910 !important
 }
-
+.keybind-icon {
+    padding: 4px;
+    border-radius: 2px;
+    background: #262828;
+    margin-bottom: 4px;
+    margin-left: 4px;
+}
 </style>

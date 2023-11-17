@@ -12,7 +12,7 @@
                                     
                                     <!-- Speed icon -->
                                     <span>
-                                        <span class='q-pl-xs text-grey-8'>
+                                        <span class='q-pl-xs text-grey-7'>
                                             <q-icon v-if='platform.platform.maxThreads == 1' name='mdi-speedometer-slow' size='xs' class='q-pb-xs'></q-icon>
                                             <q-icon v-if='platform.platform.maxThreads > 1' name='mdi-speedometer-medium' size='xs' class='q-pb-xs'></q-icon>
                                             <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
@@ -59,18 +59,20 @@
                 </q-card>
             </template>
         </draggable>        
-    </div>    
+    </div>
+    
+    <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 24px; margin-bottom: 35px"' inset color="dark"/>
 
     <div v-if='!dense' class='q-mt-md q-mb-xl'>
-        <div class='text-subtitle1 text-bold text-primary'>NEED MORE PLATFORMS?</div>
-        <div class='text-subtitle2 text-grey-6'>OneTagger supports custom platforms written in Rust or Python. You can install them using the button below.</div>
+        <div class='text-subtitle2 text-bold text-primary'>NEED MORE PLATFORMS?</div>
+        <div class='text-subtitle2 text-grey-6'>One Tagger supports custom platforms written in Rust or Python.<br>You can install them using the button below.</div>
 
         <div class="row items-center justify-center q-mt-md">
-            <q-btn color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="text-black" @click='openPlatformsRepo()'>Platforms Repository</q-btn>
+            <q-btn dense push color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="rounded-borders q-px-sm q-mb-xs text-black text-weight-medium text-caption" @click='openPlatformsRepo()'>Platforms Repository</q-btn>
         </div>
 
-        <div class='text-subtitle2 text-center q-py-sm'>
-            Want to create your own platform? <span class='text-primary cursor-pointer' @click='$1t.url("https://github.com/Marekkon5/onetagger/blob/master/CUSTOM_PLATFORMS.md")'>Click here!</span>
+        <div class='text-caption text-grey-6 text-center q-py-sm'>
+            <span @click='$1t.url("https://github.com/Marekkon5/onetagger/blob/master/CUSTOM_PLATFORMS.md")' class='clickable doc-link'>How to create a custom platform?<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>            
         </div>
 
     </div>       

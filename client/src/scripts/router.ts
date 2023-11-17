@@ -1,7 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import Index from '../views/Index.vue';
-import AudioFeatures from '../views/AudioFeatures.vue';
 import TagEditor from '../views/TagEditor.vue';
 import Renamer from '../views/Renamer.vue';
 
@@ -9,6 +8,7 @@ import Renamer from '../views/Renamer.vue';
 const AutotaggerStatus = () => import('../views/AutotaggerStatus.vue');
 const Autotagger = () => import('../views/Autotagger.vue');
 const QuickTag = () => import('../views/QuickTag.vue');
+const AudioFeatures = () => import('../views/AudioFeatures.vue');
 
 const history = createWebHashHistory();
 

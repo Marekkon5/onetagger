@@ -2,8 +2,8 @@
 <div class='text-center'>
 
     <!-- Platforms -->
-    <div v-for='(platform, i) in platforms' :key='"p"+i' class='q-mb-xl'>
-        <div class='text-subtitle1 text-bold text-uppercase text-grey-4' style='margin-top: 1px;'>{{platform.name}}</div>
+    <div v-for='(platform, i) in platforms' :key='"p"+i' class='q-mb-md'>
+        <div class='text-subtitle2 text-bold text-uppercase text-grey-4' style='margin-top: 1px; margin-bottom: -16px'>{{platform.name}}</div>
 
         <!-- Custom options -->
         <div v-for='(option, j) in platform.customOptions.options' :key='i+"o"+j' class='q-mt-lg'>
@@ -16,7 +16,7 @@
                         {{option.tooltip}}
                     </q-tooltip>
                 </q-chip>
-                <div class='row justify-center'>
+                <div class='row justify-center' :style='"margin-bottom: -12px"'>
                     <q-slider
                         label-text-color='black'
                         v-model='$1t.config.value.custom[platform.id][option.id]'
@@ -24,7 +24,7 @@
                         :max='option.value.max'
                         :step='option.value.step'
                         label
-                        class='slider q-my-sm q-pb-lg col-10'
+                        class='slider col-10'
                     ></q-slider>
                 </div>
             </div>
@@ -53,7 +53,7 @@
 
             <!-- Input -->
             <div v-if='option.value.type == "string"'>
-                <div class='text-subtitle2 text-grey-6 q-mb-md' v-if='option.tooltip' v-html='option.tooltip'></div>
+                <div class='text-subtitle2 text-grey-6 q-mb-sm' v-if='option.tooltip' v-html='option.tooltip'></div>
                 <q-input
                     dark
                     standout='text-grey-4 bg-dark'
@@ -68,7 +68,7 @@
             <div v-if='option.value.type == "boolean"'>
                 <div>
                     <q-toggle 
-                        style='margin-bottom: 10px;' 
+                        style='margin-bottom: -14px;' 
                         v-model='$1t.config.value.custom[platform.id][option.id]' 
                         :label="option.label"
                     ><br></q-toggle>
@@ -86,25 +86,24 @@
         </div>
 
         <!-- Separator -->
-        <q-separator class='q-mx-auto q-mt-lg custom-separator' inset color="dark"/>
+        <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 40px; margin-bottom: 35px"' inset color="dark"/>
     </div>
 
     <!-- No settings available -->
     <div v-if='platforms.length == 0 && !spotify'>
-        <div class='text-subtitle1 q-my-md text-grey-4' v-if='!$1t.settings.value.autoTaggerSinglePage'>
+        <div class='text-subtitle2 q-my-md text-grey-4' v-if='!$1t.settings.value.autoTaggerSinglePage'>
             No platform specific settings available for the selected platform(s)
         </div>
     </div>
 
     <!-- Spotify -->
     <div v-if='spotify'>  
-        <q-separator class='q-mx-auto q-mt-lg custom-separator' inset color="dark"/>      
-        <div class='text-subtitle1 text-bold text-uppercase text-grey-4' style='margin-top: 54px;'>Spotify</div>
+        <div class='text-subtitle2 text-bold text-uppercase text-grey-4' style='margin-top: 35px; margin-bottom: -16px'>Spotify</div>
         <div class='justify-center' style='max-width: 836px; margin: auto;'>
             <SpotifyLogin v-if='!$1t.spotify.value.authorized'></SpotifyLogin>
         </div>
         <div v-if='$1t.spotify.value.authorized'>
-            <div class='q-mt-xs text-h7 text-primary'>You are successfully logged in to Spotify</div>
+            <div class='q-mt-lg text-h7 text-primary'>You are successfully logged in to Spotify</div>
         </div>
         <br>
     </div>
@@ -126,9 +125,3 @@ const platforms = computed(() => $1t.info.value.platforms
     .map((p) => p.platform));
 
 </script>
-
-<style>
-.custom-separator {
-    width: 150px;    
-}
-</style>

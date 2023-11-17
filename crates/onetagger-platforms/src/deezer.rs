@@ -290,6 +290,7 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
     }
 }
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DeezerConfig {
     pub art_resolution: u16

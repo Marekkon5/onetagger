@@ -633,6 +633,22 @@ const OPENKEY_KEYS: Record<string, string> = {
     "4d":   "11B"
 }
 
+// Get color for musical key
+function keyColor(key?: string) {
+    if (!key) return;
+    key = key.trim().toUpperCase();
+    // Camelot or OpenKey
+    let color = KEY_COLORS[CAMELOT_KEYS[key.toUpperCase()]] || KEY_COLORS[OPENKEY_KEYS[key.toLowerCase()]];
+    // Normal
+    if (!color) {
+        if (key.length < 3) key = `0${key}`;
+        color = KEY_COLORS[key.toUpperCase()];
+    }
+    if (color) {
+        return `color: ${color};`;
+    }
+}
+
 
 export type { QuickTagFile, QuickTagMood, QuickTagGenre, QuickTagCustom, CustomTagInfo };
-export { QuickTag, QuickTagSettings, QTTrack, EnergyTag, PLACEHOLDER_IMG, CAMELOT_KEYS, KEY_COLORS, OPENKEY_KEYS };
+export { QuickTag, QuickTagSettings, QTTrack, EnergyTag, PLACEHOLDER_IMG, CAMELOT_KEYS, KEY_COLORS, OPENKEY_KEYS, keyColor };

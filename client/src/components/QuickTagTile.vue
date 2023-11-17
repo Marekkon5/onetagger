@@ -20,16 +20,16 @@
                 </div>
                 <!-- Title -->
                 <div class='col-4 q-pl-sm'>
-                    <span class='text-subtitle1 text-grey-4 text-weight-bold text-no-wrap title-span qt-tile-main'>{{track.title}}</span>
-                    <span class='text-subtitle2 title-span text-grey-6 text-weight-medium text-no-wrap'>{{track.artists.join(", ")}}</span>
+                    <span class='text-subtitle2 text-grey-4 text-weight-medium text-no-wrap title-span qt-tile-main'>{{track.title}}</span>
+                    <span class='text-subtitle2 text-grey-6 text-weight-medium text-no-wrap title-span'>{{track.artists.join(", ")}}</span>
                 </div>
                 <!-- Details -->
-                <div class='col-7 row text-grey-6 text-weight-medium text-center items-center'>
+                <div class='col-7 row text-center text-subtitle2 text-weight-medium items-center'>
                     <div class='col-3 qt-tile-col' @click='removeMood(track.mood)'>
                         <!-- Mood -->
                         <q-chip 
                             v-if='getMood(track.mood)'
-                            :color='getMood(track.mood)!.color + "-6"'
+                            :color='getMood(track.mood)!.color + ""'
                             :outline='getMood(track.mood)!.outline'
                             :label='getMood(track.mood)!.mood'
                             class='cursor-pointer'
@@ -38,14 +38,14 @@
                     <div class='col-3 qt-tile-col'>
                         <!-- Track rating -->
                         <q-rating 
-                            size='1.4em' 
+                            size='1.2em' 
                             v-model='track.energy'
                             no-reset
                             :readonly='!selected'
                         ></q-rating>
                     </div>
 
-                    <div class='col-4 text-grey-4 qt-tile-col'>
+                    <div class='col-4 qt-tile-col text-grey-4 text-caption text-weight-bold'>
                         <!-- Genres -->
                         <div v-if='selected'>
                             <span 
@@ -59,10 +59,10 @@
                         </div>
                         <div v-if='!selected'>{{track.genres.join(', ')}}</div>
 
-                        <div class='text-grey-6'>{{track.year}}</div>
+                        <div class='text-grey-6 text-weight-medium monospace'>{{track.year}}</div>
                     </div>
-                    <div class='col-1 qt-tile-col'>
-                        <span v-if='track.bpm'>{{track.bpm}}</span>
+                    <div class='mt-3 col-1 qt-tile-col text-caption text-grey-4 text-weight-medium'>
+                        <span class='monospace' v-if='track.bpm'>{{track.bpm}}</span>
                         <br v-if='track.bpm && track.key'>
                         <span :style='keyColor(track.key)'>{{track.key}}</span>
                     </div>
@@ -75,7 +75,7 @@
         </div>
 
         <!-- Custom tags -->
-        <div class='row q-mx-sm no-wrap overflow-hidden custom-tag-chips'>
+        <div class='row q-mx-sm no-wrap overflow-hidden custom-tag-chips text-subtitle2'>
             <div v-for='(tag, i) in track.getAllCustom()' :key='"qtc"+i'  @click='removeCustom(tag)'>
                 <q-chip 
                     icon='mdi-close'
@@ -180,13 +180,18 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.v
 }
 .qt-tile-chip {
     cursor: pointer;
+    font-size: 13px;
 }
+
 .qt-tile-chip div {
-    color: white;
+    color: #E0E0E0;
+    font-size: 13px;
 }
+
 .qt-tile-chip .q-icon {
     display: none;
 }
+
 .qt-tile-chip:hover .q-icon {
     display: inline;
     padding-top: 2px;
@@ -210,17 +215,24 @@ const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent(track.v
 }
 .custom-tag-chips {
     margin-top: -38px;
+    margin-left: 12px;
 }
+
 .hover-strike:hover {
-    text-decoration: line-through;
+    text-decoration: line-through;    
     cursor: pointer;
 }
 
 .qt-tile-main {
-    margin-top: -5px;
+    margin-top: -4px;
 }
+
 .qt-tile-col {
     margin-top: -41px;
+}
+
+.mt-3 {
+    margin-top: -40px;
 }
 
 </style>

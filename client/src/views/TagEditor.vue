@@ -22,7 +22,7 @@
                 <!-- Parent -->
                 <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
                     <q-icon size='xs' class='q-mb-xs text-grey-4' name='mdi-folder-upload'></q-icon>
-                    <span class='q-ml-sm text-subtitle2 text-grey-4'>Parent folder</span>
+                    <span class='q-ml-sm text-caption text-grey-4'>Parent folder</span>
                 </div>
 
                 <draggable 
@@ -41,7 +41,7 @@
                             <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='!file.dir && !file.playlist' name='mdi-music'></q-icon>
                             <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.dir' name='mdi-folder'></q-icon>
                             <q-icon size='xs' class='q-mb-xs text-grey-4' v-if='file.playlist' name='mdi-playlist-music'></q-icon>
-                            <span class='q-ml-sm text-subtitle2'>{{file.filename}}</span>
+                            <span class='q-ml-sm text-caption'>{{file.filename}}</span>
                         </div>
                     </template>
 
@@ -101,18 +101,20 @@
             style='max-height: 100%; overflow-y: scroll;'>
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 
-                <div class='col-12 text-subtitle1 text-bold text-primary text-center q-my-sm'>NO FILE SELECTED</div><br>
-                <span class='text-center text-subtitle1 text-grey-6'>Tip: Click the path to select folder using your OS's picker</span>
+                <div class='col-12 text-subtitle2 text-bold text-primary text-center q-my-sm'>NO FILE SELECTED</div><br>
+                <span class='text-center text-subtitle2 text-grey-6'>Tip: <span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> the path to open a folder and select an audio file</span>
             </div>
 
             <div v-if='file' class='q-px-md'>
-                <div class='text-center q-py-md text-subtitle1 text-primary'>{{file.filename}}</div>
+                <div class='text-center q-py-md text-subtitle2 text-grey-5 monospace'>{{file.filename}}</div>
                 <div class='q-mt-md'>
                     <div v-for='(tag, i) in Object.keys(file.tags)' :key='i' class='row q-my-sm'>
-                        <div class='col-3 text-subtitle2  text-grey-3 q-mt-sm q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
-                            <span v-if='ABSTRACTIONS[tag]'><span class='text-weight-bold'>{{ABSTRACTIONS[tag]}}</span> ({{tag}})</span>
+                        <div class='col-3 text-body2 text-uppercase text-primary text-weight-medium q-mt-sm q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
+                            
+                            <span v-if='ABSTRACTIONS[tag]'><span class='text-uppercase text-primary text-weight-medium'>{{ABSTRACTIONS[tag]}} </span><span class="text-grey-4 monospace text-caption"> {{tag}}</span></span>
                             <span v-if='!ABSTRACTIONS[tag]'>{{tag}}</span>
                         </div>
+                        
                         
                         <q-input
                             v-model='file.tags[tag]'
@@ -129,10 +131,10 @@
                         </div>
                     </div>
                 </div>
-
+                <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 40px;"' inset color="dark"/>
                 <!-- Add new tag -->
-                <div class='row q-mt-xl'>
-                    <div class='col-3 q-pt-sm text-uppercase text-primary text-subtitle2'>Add new text tag</div>
+                <div class='row q-mt-lg' style='margin-top: 40px;'>
+                    <div class='col-3 q-pt-sm text-weight-medium text-grey-4 text-body2'>Add new text tag</div>
                     <TagField tageditor class='col-8' dense :format='tagFormat!' @update:model-value='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
@@ -140,22 +142,22 @@
                         </q-btn>
                     </div>
                 </div>
-
+                <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 20px; margin-bottom: 25px;"' inset color="dark"/>
                 <!-- Album art -->
-                <div class='text-subtitle2 text-grey-3 text-weight-bold'>
+                <div class='text-uppercase text-primary text-weight-medium'>
                     Album art
                     <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
                         <q-icon name='mdi-plus' color='primary'></q-icon>
                     </q-btn>
                 </div>
-                <div class='q-mt-sm  text-grey-4 albumart-container text-center'>
+                <div class='text-grey-4 albumart-container text-center'>
                     <div v-for='(image, i) in file.images' :key='"art"+i' class='q-mr-md'>
                         <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
                         <div class='q-pt-sm q-mb-md'>
-                            <div v-if='file.format != "mp4"' class='text-subtitle1'>{{image.kind}}</div>
-                            <div v-if='file.format != "mp4"' class='text-subtitle1'>{{image.description}}</div>
-                            <div class='text-subtitle2 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
-                            <q-btn color='red' class='q-mt-sm' @click='removeArt(i)'>Remove</q-btn>
+                            <div v-if='file.format != "mp4"' class='text-caption'>{{image.kind}}</div>
+                            <div v-if='file.format != "mp4"' class='text-caption'>{{image.description}}</div>
+                            <div class='text-subtitle3 text-grey-6 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
+                            <q-btn dense push color='red' class='rounded-borders q-px-md q-mt-sm text-weight-medium' @click='removeArt(i)'>Remove</q-btn>
                         </div>
                     </div>
                 </div>
@@ -163,8 +165,8 @@
                 <!-- ID3 specific tags -->
                 <div v-if='file.id3'>
                     <!-- Comments -->
-                    <div class='text-subtitle2'>
-                        <span class='text-grey-3 text-weight-bold'>Comments</span> (COMM)
+                    <div class='text-uppercase text-primary text-weight-medium'>
+                        Comments <span class="text-grey-4 monospace text-caption q-pl-xs">COMM</span>
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3Comment'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -205,8 +207,8 @@
                     </div>
 
                     <!-- Unsynchronized lyrics -->
-                    <div class='text-subtitle2 text-grey-3'>
-                        <span class='text-weight-bold'>Unsynchronized lyrics</span> (USLT)
+                    <div class='text-uppercase text-primary text-weight-medium'>
+                        Unsynchronized lyrics <span class="text-grey-4 monospace text-caption q-pl-xs">USLT</span>
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3USLT'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -243,7 +245,7 @@
                                 label='Text'
                                 v-model='file.id3.unsync_lyrics[i].text'
                                 type='textarea'
-                                class='q-pt-sm'
+                                class='q-pt-sm q-pb-sm'
                                 @change='id3USLTChange'
                             ></q-input>
                         </div>
@@ -251,8 +253,8 @@
 
                     <!-- Popularimeter -->
                     <div>
-                        <div class='text-subtitle2 text-grey-3'>
-                            <span class='text-weight-bold'>Popularimeter</span> (POPM)
+                        <div class='text-uppercase text-primary text-weight-medium'>
+                            Popularimeter <span class="text-grey-4 monospace text-caption q-pl-xs">POPM</span>
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
                                 <q-icon name='mdi-plus' color='primary'></q-icon>
                             </q-btn>
@@ -294,39 +296,39 @@
                             </div>
                         </div>
                     </div>
-
+                    <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 32px; margin-bottom: 25px;"' inset color="dark"/>
+                   
                     <!-- ID3v2.4 -->
-                    <div class='q-mb-xl q-mt-sm'>
-                            <div class='text-subtitle2 text-grey-3'>
-                            <span class='text-weight-bold'>Options</span>
+                    <div class='q-mt-lg text-center'>
+                        <div class='text-subtitle2 text-bold text-primary custom-margin'>
+                            OPTIONS
                         </div>
-                        <q-toggle label='Use ID3v2.4' class='q-mt-md' v-model='id3v24'></q-toggle>
                     </div>
+                    <div class='column flex-center'>
+                        <q-toggle label='Use ID3v2.4' left-label style='width: 160px;' class='justify-between' v-model='id3v24'></q-toggle>
+                    </div>
+            </div>
 
+            <!-- Save, Manual tag -->
+            <q-page-sticky position='bottom-right' :offset='[36, 18]'>
+                <div class='row'>
+                    <q-btn dense
+                        push
+                        @click='manualTagPath = file.path'
+                        color="primary"
+                        class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium q-mr-md'
+                        label="Manual Tag"
+                    ></q-btn>
+
+                    <q-btn dense
+                        push
+                        @click='save'
+                        color="primary"
+                        class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium'
+                        label="Save"
+                    ></q-btn>
                 </div>
-
-
-
-                <!-- Save, Manual tag -->
-                <q-page-sticky position='bottom-right' :offset='[36, 18]'>
-                    <div class='row'>
-                        <q-btn 
-                            push
-                            @click='manualTagPath = file.path'
-                            color="primary"
-                            class='text-black q-mr-md'
-                            label="Manual Tag"
-                        ></q-btn>
-
-                        <q-btn 
-                            push
-                            @click='save'
-                            color="primary"
-                            class='text-black'
-                            label="Save"
-                        ></q-btn>
-                    </div>
-                </q-page-sticky>
+            </q-page-sticky>
 
             </div>
         </div>
@@ -610,6 +612,7 @@ function addID3USLT() {
 /*
     ID3 Popularimeter
 */
+
 function id3POPMChange() {
     // Remove existing popm changes
     let i = changes.value.findIndex((c) => c.type == 'id3Popularimeter');

@@ -7,7 +7,7 @@
             dense
             v-model='filter'
             :label-slot="true"
-            class='q-px-md q-pt-md'
+            class='q-px-md'
             @update:model-value='filterTracks()'
         >
             <template v-slot:label>
@@ -16,9 +16,9 @@
         </q-input>
     
         <!-- Sort -->
-        <div class='row text-grey-6 justify-between q-mx-lg q-mt-sm q-mb-xs'>
+        <div class='row text-grey-6 text-weight-medium justify-between q-mx-lg q-mt-sm q-mb-xs text-overline'>
             <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
-                <div :class='{"text-bold": sortOption == option}'>{{option}}</div>
+                <div :class='{"text-grey-4": sortOption == option}'>{{option}}</div>
                 <div v-if='sortOption == option' class='q-pl-xs'>
                     <q-icon class='q-pb-xs' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
                     <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
@@ -28,7 +28,7 @@
     </div>
 
     <!-- Stats -->
-    <div class='q-mx-lg text-grey-6 q-my-xs text-caption'>
+    <div class='q-mx-lg text-grey-7 q-my-xs text-caption text-center'>
         Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
             | Filtered: <span class='text-bold'>{{tracks.length}}</span>
         <span v-if='$1t.quickTag.value.failed.length != 0'> | Failed to load: 
@@ -38,7 +38,7 @@
         </span>
         
         <span class='q-px-sm text-bold cursor-pointer' v-if='$1t.quickTag.value.isLimited()' @click='$1t.loadQuickTag(undefined, false)'>
-            Loading was capped to 500 tracks! Click here to load all.
+            Loading was capped to 500 tracks! <span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> here to load all.
         </span>
     </div>
 
@@ -65,7 +65,7 @@
 
         <!-- No results -->
         <div v-if='tracks.length == 0'>
-            <div class='text-center text-h4 text-grey-6 q-my-lg'>No results!</div>
+            <div class='text-center text-h5 text-grey-6 q-my-lg'>No results!</div>
         </div>
     </div>
 
@@ -77,20 +77,80 @@
 
         <!-- No path selected -->
         <div @click='selectFolder' v-if='!$1t.lock.value.locked'>
-            <div class='text-center text-subtitle1 text-bold text-primary q-my-sm'>NO FOLDER SELECTED</div>
-            <div class='text-center text-subtitle1 text-grey-6'>Click here to select folder</div>
-            <div class='q-mt-xl text-subtitle1 text-grey-6 text-center'>
-                Play / Pause: <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon><br>
-                Seek back / forwards: <q-icon name='mdi-chevron-left' class='keybind-icon'></q-icon> / <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon> <br>
-                Change tracks: <q-icon name='mdi-chevron-up' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon> <br>
-                Select multiple: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>CLICK</span><br>
-                Save: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>S</span><br>                
-                Delete: <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-subtitle2'>DEL</span><br>
-                Confirm: <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon><br>
-                
+            <div class='text-center text-subtitle2 text-bold text-primary q-my-sm'>NO FOLDER SELECTED</div>
+            <div class='text-center text-subtitle2 text-grey-6'><span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> here to select folder</div>
+            
+            <div class="q-pa-lg q-mt-lg">
+                <div class="row q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Play / Pause:
+                    </div>
+
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                    <q-icon name='mdi-keyboard-space' class='keybind-icon'></q-icon>
+                    </div>            
+                </div>
+
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Seek back / forwards:        
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <q-icon name='mdi-chevron-left' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon>
+                    </div>           
+                </div>
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Switch Track:
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <q-icon name='mdi-chevron-up' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon>
+                    </div>           
+                </div>
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Select multiple:
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm'>CLICK</span>
+                    </div>           
+                </div>
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Save:      
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm'>S</span>
+                    </div>           
+                </div>
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Delete:
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm'>DEL</span>
+                    </div>           
+                </div>
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Confirm:
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon>
+                    </div> 
+                </div>
+                <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
+                    <div class="col">
+                        Context Menu:
+                    </div>
+                    <div class="col text-body text-weight-bold text-grey-6 text-left">
+                        <span class='keybind-icon q-pl-sm'>RIGHT</span><span class='keybind-icon q-px-sm'>CLICK</span>
+                    </div> 
+                </div>
             </div>
         </div>
     </div>
+            
     
     <!-- Save dialog -->
     <q-dialog v-model='saveDialog'>
@@ -133,12 +193,12 @@
     <q-dialog v-model='failedDialog'>
         <q-card class='q-pa-md'>
             <q-card-section>
-                <div class='text-h6'>Failed to load</div>
+                <div class='text-subtitle2 text-bold text-center text-red'>FAILED TO LOAD</div>
             </q-card-section>
             <q-card-section>
                 <div>
                     <div v-for='failed in $1t.quickTag.value.failed' class='q-my-sm'>
-                        <div class='text-body2 monospace'>{{failed.path}}</div>
+                        <div class='text-subtitle3 text-grey-4 monospace'>{{failed.path}}</div>
                         <div class='text-body2 text-red'>{{failed.error}}</div>
                     </div>
                 </div>
@@ -171,7 +231,7 @@ const { setVerticalScrollPosition } = scroll;
 
 const $1t = get1t();
 const $q = useQuasar();
-const sortOptions = ['title', 'artist', 'custom', 'mood', 'energy', 'genre', 'year', 'bpm', 'key'];
+const sortOptions = ['title', 'artist', 'mood', 'energy', 'genre', 'year', 'bpm', 'key', 'custom'];
 const saveDialog = ref(false);
 const noteDialog = ref(false);
 const filter = ref<string | undefined>(undefined);
@@ -477,14 +537,14 @@ onMounted(() => {
             case 'onDeleteTrack':
                 // Confirm dialog
                 $q.dialog({
-                    title: 'Delete Files',
-                    message: 'Do you really want to delete selected files?',
+                    title: 'Delete File',
+                    message: 'Do you really want to delete the selected file(s)?',
                     persistent: false,
                     ok: {
-                        color: 'red'
+                        color: 'red'                        
                     },
                     cancel: {
-                        color: 'primary'
+                        color: ''
                     }
                 }).onOk(() => {
                     $1t.player.value.stop();
@@ -551,6 +611,7 @@ watch($1t.quickTag.value.track, () => {
     flex-direction: column;
     justify-content: center;
     cursor: pointer;
+    margin-top: -30px;
 }
 
 .qt-full-height {

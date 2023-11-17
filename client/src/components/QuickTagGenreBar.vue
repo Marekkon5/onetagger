@@ -6,7 +6,7 @@
             <div 
                 @mouseenter="mouseOver = i"
                 class='q-mx-sm text-subtitle1 clickable text-no-wrap text-grey-4' 
-                :class='{"text-weight-bolder": isSelected(genre.genre) || mouseOver == i, "text-grey-7": !isSelected(genre.genre) && mouseOver != i}'
+                :class='{"text-weight-bold": isSelected(genre.genre) || mouseOver == i, "text-grey-7": !isSelected(genre.genre) && mouseOver != i}'
                 @click='setGenre(genre.genre)'
             >
                 {{genre.genre}}

@@ -11,7 +11,7 @@
         <!-- Tag title -->
         <q-expansion-item 
             :label='tag.name' 
-            class='text-subtitle1 text-bold q-pb-sm'
+            class='text-subtitle2 text-bold q-pb-sm'
             style='margin-bottom: -24px;'
             default-opened
             :model-value="true"
@@ -24,7 +24,7 @@
                     :model-value='selected(i, value.val)'
                     @update:model-value='valueClick(i, value.val)'
                     dense
-                    class='text-subtitle2 text-grey-5 full-width'
+                    class='text-subtitle2 text-grey-5 full-width q-mt-xs'
                 ></q-checkbox>
             </div>
 
@@ -47,7 +47,7 @@
 
     <!-- Manual tag -->
     <div class='full-width row justify-center' v-if='$1t.quickTag.value.track.tracks.length == 1'>
-        <q-btn outline color='primary' @click='$1t.onQuickTagEvent("onManualTag", {path: $1t.quickTag.value.track.tracks[0].path})'>MANUAL TAG</q-btn>
+        <q-btn outline color='primary' class='text-caption' @click='$1t.onQuickTagEvent("onManualTag", {path: $1t.quickTag.value.track.tracks[0].path})'>MANUAL TAG</q-btn>
     </div>
 
 </div>

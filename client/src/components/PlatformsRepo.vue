@@ -4,7 +4,7 @@
 
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle1 text-bold text-center text-primary'>CUSTOM PLATFORMS</div>
+        <div class='text-subtitle2 text-bold text-center text-primary'>CUSTOM PLATFORMS</div>
     </q-card-section>
 
     <!-- Platforms -->
@@ -19,7 +19,7 @@
                                 
                                 <!-- Speed icon -->
                                 <span>
-                                    <span class='q-pl-xs text-grey-8'>
+                                    <span class='q-pl-xs text-grey-7'>
                                         <q-icon v-if='platform.maxThreads == 1' name='mdi-speedometer-slow' size='xs' class='q-pb-xs'></q-icon>
                                         <q-icon v-if='platform.maxThreads > 1' name='mdi-speedometer-medium' size='xs' class='q-pb-xs'></q-icon>
                                         <q-icon v-if='platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
@@ -45,7 +45,7 @@
                         <span v-html='platform.description'></span>
                         <br>
                         <!-- Info -->
-                        <span>Author: {{ platform.author }}</span>
+                        <span class="text-grey-5">Author: {{ platform.author }}</span>
                         <div class='text-grey-8 text-bold monospace text-left' style='font-size: 10px;'>
                             {{platform.id}}@{{platform.version}}
                         </div>

@@ -4,8 +4,8 @@
     <div class='q-py-lg' v-if='!$1t.lock.value.locked'>
         <div style='max-width: 800px; margin: auto;'>
             <!-- Input and output folders -->
-            <div class='text-subtitle1 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
-            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or click the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
+            <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
+            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or<span class='keybind-icon text-caption text-bold'>CLICK</span> the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
                 <q-input filled class='col-10' label='Input folder' v-model='config.path' @update:model-value="updatePreview()">
@@ -22,13 +22,13 @@
                     </template>
                 </q-input>                
             </div>
-            <q-separator class='q-mx-auto q-mb-lg custom-separator' style='margin-top: 41px;' inset color="dark" />
+            <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 41px;"' inset color="dark"/>
     
             <!-- Template -->            
-            <div class='text-subtitle1 text-bold text-primary custom-margin'>TEMPLATE</div>
-                <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info? Click <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP on the right</div>
+            <div class='text-subtitle2 text-bold text-primary custom-margin'>TEMPLATE</div>
+                <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info?<span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> <span class="text-weight-bold text-caption"><q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP</span> on the right</div>
             
-            <div style='margin-top: -30px;'>
+            <div style='margin-top: -25px;'>
                 <div class='fake-cursor' :style='cursorStyle'>|</div>
                 <div class='template-text'>
                     <span v-if='config.template' v-html='highlighted'></span>
@@ -92,29 +92,27 @@
 
         <!-- Preview -->              
         <div class='full-width'>            
-            <div class='q-mt-md q-mb-sm text-subtitle1 text-bold text-primary custom-margin'>PREVIEW</div>
+            <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>PREVIEW</div>
             <div v-for='(file, i) in preview' :key='"prev"+i'>
-                <div class='text-caption monospace text-grey-5'>{{file[1]}}</div>
-                <br>
+                <div class='text-caption monospace text-grey-5 q-my-md'>{{file[1]}}</div>
+                
             </div>
         </div>
         
         
         <!-- Options -->
-        <div class='full-width'>    
-            <p></p><q-separator class='q-mb-lg custom-separator' inset color="dark" />
-            <div class='q-mb-sm text-subtitle1 text-bold text-primary custom-margin'>OPTIONS</div>
-
-            <q-toggle v-model='config.copy' label='Copy files instead of moving'></q-toggle>
-            <br>
-            <q-toggle v-model='config.subfolders' label='Include subfolders'></q-toggle>
-            <br>
-            <q-toggle v-model='config.overwrite' label='Overwrite existing target files'></q-toggle>
-            <br>
-            <q-toggle v-model='config.keepSubfolders' label='Keep original subfolders'></q-toggle>
-            <br>
-
-            <div class='row justify-center q-my-sm'>
+        <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 34px;"' inset color="dark"/>
+        
+        <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>OPTIONS</div>
+        
+        <div class='column flex-center'>
+            <q-toggle left-label class='justify-between' style='width: 240px;' label='Copy files instead of moving' v-model='config.copy'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: 240px;' label='Overwrite existing target files' v-model='config.overwrite'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: 240px;' label='Include subfolders' v-model='config.subfolders'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: 240px;' label='Keep original subfolders' v-model='config.keepSubfolders'></q-toggle>
+        </div>
+        
+        <div class='row justify-center q-my-md'>
                 <q-input
                     v-model='config.separator'
                     label='Separator'
@@ -122,7 +120,6 @@
                     style='max-width: 200px;'
                 ></q-input>
             </div>
-        </div>
 
 
 
@@ -141,7 +138,7 @@
                     @click='start(false)'>
         
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span class='text-weight-bold'>START</span>
+                        <span class='text-weight-medium'>START</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -172,7 +169,7 @@ import { useQuasar } from 'quasar';
 class RenamerConfig {
     path?: string;
     outDir?: string;
-    template = '';
+    template = '%artist% - %title%';
     copy = false;
     subfolders = true;
     overwrite = false;
@@ -541,7 +538,11 @@ watch(() => config.value.template, () => {
     margin-top: 35px !important;
 }
 
-.custom-separator {
-    width: 150px;
+.keybind-icon {
+    padding: 4px;
+    border-radius: 2px;
+    background: #262828;
+    margin-bottom: 4px;
+    margin-left: 4px;
 }
 </style>
