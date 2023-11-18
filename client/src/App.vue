@@ -220,7 +220,7 @@ function settingsClosed() {
 }
 
 function setWaveformWidth() {
-    document.documentElement.style.setProperty('--waveform-wave', Math.round(30 + ((window.innerWidth - 1200) / 10)).toString());
+    document.documentElement.style.setProperty('--waveform-wave', Math.min(Math.round(20 + ((window.innerWidth - 1200) / 10)), 70).toString());
 }
 
 // Setup

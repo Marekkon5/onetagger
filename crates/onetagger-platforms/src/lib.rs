@@ -16,5 +16,3 @@ pub mod musixmatch;
 pub mod bandcamp;
 mod bandcamp_genres;
 
-// Blocked
-//pub mod rateyourmusic;

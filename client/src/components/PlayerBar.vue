@@ -3,7 +3,7 @@
 
     <div class="row q-mx-md">
         <!-- Meta -->
-        <div class="row" style="width: 17vw; max-width: 17vw;">
+        <div class="row col-2">
 
             <!-- Album art -->
             <div class='q-mt-sm'>
@@ -36,9 +36,10 @@
 
         </div>
 
-        <div class="col row">
-            <!-- Play button -->
-            <q-btn
+        <div class="col-8">
+           <div class='row justify-center'>
+                <!-- Play button -->
+                <q-btn
                     round
                     flat
                     icon="mdi-play"
@@ -59,43 +60,46 @@
                     @click="$1t.player.value.pause()"
                     ref='playButton'
                 ></q-btn>
-
-            <div><Waveform></Waveform></div>
+    
+                <div><Waveform></Waveform></div>
+           </div>
         </div>
 
-        <!-- Browse button -->
-        <div class="q-mt-sm q-pr-sm">
-            <q-btn round icon="mdi-open-in-app" @click="browseQuickTag">
-                <q-tooltip>
-                    Click here to browse for new path
-                </q-tooltip>
-            </q-btn>
+        <div class='row col-2 justify-end'>
+            <!-- Browse button -->
+            <div class="q-mt-sm q-pr-sm">
+                <q-btn round icon="mdi-open-in-app" @click="browseQuickTag">
+                    <q-tooltip>
+                        Click here to browse for new path
+                    </q-tooltip>
+                </q-btn>
+            </div>
+    
+            <!-- Playlist -->
+            <div v-if='enablePlaylist'>
+                <PlaylistDropZone
+                    tiny
+                    v-model="qtPlaylist"
+                    @update:model-value="loadQTPlaylist(); $1t.quickTagUnfocus()"
+                    @click.native='$1t.quickTagUnfocus'
+                    class="q-mt-sm q-mr-sm"
+                ></PlaylistDropZone>
+            </div>
+    
+            <!-- Volume -->
+            <div class="q-pt-sm" style="width: 88px">
+                <q-slider
+                    v-model="$1t.player.value.volume"
+                    :min="0.0"
+                    :max="1.0"
+                    :step="0.01"
+                    @update:model-value="(v) => $1t.player.value.setVolume(v)"
+                    @change="$1t.saveSettings(false)"
+                    style="margin-top: 6px"
+                ></q-slider>
+            </div>
+    
         </div>
-
-        <!-- Playlist -->
-        <div v-if='enablePlaylist'>
-            <PlaylistDropZone
-                tiny
-                v-model="qtPlaylist"
-                @update:model-value="loadQTPlaylist(); $1t.quickTagUnfocus()"
-                @click.native='$1t.quickTagUnfocus'
-                class="q-mt-sm q-mr-sm"
-            ></PlaylistDropZone>
-        </div>
-
-        <!-- Volume -->
-        <div class="q-pt-sm" style="width: 88px">
-            <q-slider
-                v-model="$1t.player.value.volume"
-                :min="0.0"
-                :max="1.0"
-                :step="0.01"
-                @update:model-value="(v) => $1t.player.value.setVolume(v)"
-                @change="$1t.saveSettings(false)"
-                style="margin-top: 6px"
-            ></q-slider>
-        </div>
-
     </div>
 
 </div>

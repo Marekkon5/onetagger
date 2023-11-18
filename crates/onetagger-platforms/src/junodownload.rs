@@ -90,7 +90,7 @@ impl JunoDownload {
         let release_date = NaiveDate::parse_from_str(info_text[0], "%d %b %y").ok()?;
         let genres: Vec<String> = info_text[1].split("/").map(|g| g.to_string()).collect();
         // Album art
-        selector = Selector::parse("div.col img").unwrap();
+        selector = Selector::parse("img.lazy_img").unwrap();
         let image_elem = elem.select(&selector).next()?;
         let mut album_art_small = image_elem.value().attr("src")?;
         // Placeholder image
@@ -175,6 +175,7 @@ impl AutotaggerSource for JunoDownload {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
+        debug!("Juno query: {query}");
         let tracks = self.search(&query)?;
         Ok(MatchingUtils::match_track(&info, &tracks, &config, true))
     }

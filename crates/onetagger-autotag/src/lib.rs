@@ -342,7 +342,7 @@ impl TrackImpl for Track {
         }
         // Too small, most likely a text response
         if let Some(cl) = response.content_length() {
-            if cl < 2048 {
+            if cl < 4096 {
                 return Ok(None);
             }
         }

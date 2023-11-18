@@ -2,7 +2,7 @@ use anyhow::Error;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch, SupportedTag};
 
 pub struct Traxsource {
     client: Client
@@ -117,7 +117,7 @@ impl Traxsource {
     }
 
     // Tracks in search don't have album name and art
-    pub fn extend_track_traxsource(&self, track: &mut Track, album_meta: bool) -> Result<(), Error> {
+    pub fn extend_track_traxsource(&self, track: &mut Track, album_meta: bool, album_art: bool) -> Result<(), Error> {
         // Fetch
         let data = self.client.get(&track.url)
             .send()?
@@ -187,6 +187,11 @@ impl Traxsource {
         let art_url = img_element.value().attr("src").unwrap();
         track.art = Some(art_url.to_owned());
 
+        // Pre fetch album art since traxsource changed something
+        if album_art {
+            self.client.get(art_url).header("Referer", "https://www.traxsource.com/").send().ok();
+        }
+
         Ok(())
     }
 }
@@ -200,7 +205,12 @@ impl AutotaggerSource for Traxsource {
     }
 
     fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
-        Self::extend_track_traxsource(&self, track, config.any_tag_enabled(&supported_tags!(CatalogNumber, TrackNumber, AlbumArt, TrackTotal, AlbumArtist)))?;
+        Self::extend_track_traxsource(
+            &self, 
+            track, 
+            config.any_tag_enabled(&supported_tags!(CatalogNumber, TrackNumber, AlbumArt, TrackTotal, AlbumArtist)),
+            config.tag_enabled(SupportedTag::AlbumArt)    
+        )?;
         Ok(())
     }
 
