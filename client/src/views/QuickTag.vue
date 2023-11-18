@@ -50,7 +50,10 @@
         <div v-for='item in tracks' :key='item.path' v-if='!$1t.settings.value.quickTag.thinTracks'>
             <q-intersection style='height: 116px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                 <QuickTagTile :track='item' :no-art-cache="noArtCacheList.includes(item.path)"></QuickTagTile>
-                <QuickTagContextMenu @manual-tag="onManualTag(item.path)"></QuickTagContextMenu>
+                <QuickTagContextMenu 
+                    @manual-tag="onManualTag(item.path)"
+                    :path="item.path"
+                ></QuickTagContextMenu>
             </q-intersection>
         </div>
         <!-- Thin tracks -->
@@ -58,7 +61,10 @@
             <div v-for='(item, i) in tracks' :key='item.path' v-if='$1t.settings.value.quickTag.thinTracks'>
                 <q-intersection style='height: 32px;' @click.native='(e: MouseEvent) => trackClick(item, e)' once>
                     <QuickTagTileThin :track='item' :odd='i % 2 == 1'></QuickTagTileThin>
-                    <QuickTagContextMenu @manual-tag="onManualTag(item.path)"></QuickTagContextMenu>
+                    <QuickTagContextMenu 
+                        @manual-tag="onManualTag(item.path)"
+                        :path="item.path"
+                    ></QuickTagContextMenu>
                 </q-intersection>
             </div>
         </div>

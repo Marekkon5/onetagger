@@ -11,6 +11,9 @@ class QuickTag {
     /// Number of tracks to save
     saving: number = 0;
 
+    // Track to load in tag editor
+    toTagEditor?: string;
+
     constructor() {}
 
     /// Wait for saving to finish

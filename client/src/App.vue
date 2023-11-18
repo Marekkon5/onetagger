@@ -259,7 +259,10 @@ watch(useRoute(), (r) => {
     // @ts-ignore
     contentContainer.value!.$el.style.overflowY = "hidden";
     if (r.path == '/quicktag') showSide();
-    if (r.path == '/tageditor') footer.value = true;
+    if (r.path == '/tageditor') {
+        hideSide();
+        footer.value = true;
+    }
 });
 
 // Show again scrollbar after transition

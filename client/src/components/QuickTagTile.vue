@@ -94,7 +94,7 @@
 </template>
 
 <script lang='ts' setup>
-import { computed, ref, toRef } from 'vue';
+import { computed, toRef } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import { CAMELOT_KEYS, CustomTagInfo, KEY_COLORS, OPENKEY_KEYS, PLACEHOLDER_IMG, QTTrack } from '../scripts/quicktag.js';
 import { httpUrl } from '../scripts/utils.js';

@@ -3,8 +3,24 @@
 
     <div class="row q-mx-md">
         <!-- Meta -->
-        <div class="row q-mr-md" style="width: 17vw; max-width: 17vw;">
-            <div class="column q-mt-sm q-pt-xs" style="width: calc(100% - 50px);">
+        <div class="row" style="width: 17vw; max-width: 17vw;">
+
+            <!-- Album art -->
+            <div class='q-mt-sm'>
+                <q-img 
+                    :src='art' 
+                    width='46px' 
+                    height='46px' 
+                    class='rounded-borders' 
+                    :placeholder-src='PLACEHOLDER_IMG'
+                >
+                    <template v-slot:error>
+                        <q-img :src='PLACEHOLDER_IMG' width='46px' height='46px' class='rounded-borders'></q-img>
+                    </template>
+                </q-img>
+            </div>
+
+            <div class="column q-mt-sm q-pt-xs q-pl-sm" style="width: calc(100% - 50px);">
                 <div class="text-caption text-weight-bold full-width">
                     <div v-if="$1t.player.value.title" class="text-no-wrap overflow-hidden" style="text-overflow: ellipsis">
                         {{ $1t.player.value.title }}
@@ -18,10 +34,11 @@
                 </div>
             </div>
 
-            <!-- Controls -->
-            <div class="col q-mt-sm" style="margin-left: 16px">
-                <!-- Play button -->
-                <q-btn
+        </div>
+
+        <div class="col row">
+            <!-- Play button -->
+            <q-btn
                     round
                     flat
                     icon="mdi-play"
@@ -42,11 +59,8 @@
                     @click="$1t.player.value.pause()"
                     ref='playButton'
                 ></q-btn>
-            </div>
-        </div>
 
-        <div class="col">
-            <Waveform></Waveform>
+            <div><Waveform></Waveform></div>
         </div>
 
         <!-- Browse button -->
@@ -90,10 +104,11 @@
 <script lang='ts' setup>
 import Waveform from './Waveform.vue';
 import PlaylistDropZone from "./PlaylistDropZone.vue";
-import { Playlist } from '../scripts/utils';
-import { onDeactivated, onMounted, ref, watch } from 'vue';
+import { Playlist, httpUrl } from '../scripts/utils';
+import { computed, onDeactivated, onMounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { useRoute, useRouter } from 'vue-router';
+import { PLACEHOLDER_IMG } from '../scripts/quicktag';
 
 const $1t = get1t();
 const qtPlaylist = ref<Playlist>({});
@@ -130,4 +145,7 @@ watch(useRoute(), (r) => {
     if (r.path == '/quicktag') enablePlaylist.value = true;
     else enablePlaylist.value = false;
 });
+
+const art = computed(() => `${httpUrl()}/thumb?path=${encodeURIComponent($1t.player.value.path??'')}`);
+
 </script>
