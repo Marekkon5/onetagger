@@ -27,7 +27,7 @@ directories = "5.0"
 tungstenite = "0.20"
 tinyfiledialogs = "3.9"
 
-wry = { version = "0.33", features = ["devtools"] }
+wry = { version = "0.34", features = ["devtools"] }
 clap = { version = "4.1", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 
@@ -50,6 +50,7 @@ winres = "0.1"
 
 # MacOS specific
 [target.'cfg(target_os = "macos")'.dependencies]
+muda = "0.11"
 native-dialog = "0.6.3"
 
 
