@@ -53,6 +53,24 @@ pub fn start_webview() -> Result<(), Error> {
         })
         .with_web_context(&mut context);
 
+    
+    // Register menu for MacOS shortcuts to work
+    #[cfg(target_os = "macos")]
+    {
+        use muda::{Menu, Submenu, PredefinedMenuItem};
+        let menu = Menu::new();
+        let submenu = Submenu::new("&Edit", true);
+        submenu.append(&PredefinedMenuItem::copy(None)).ok();
+        submenu.append(&PredefinedMenuItem::paste(None)).ok();
+        submenu.append(&PredefinedMenuItem::cut(None)).ok();
+        submenu.append(&PredefinedMenuItem::select_all(None)).ok();
+        submenu.append(&PredefinedMenuItem::undo(None)).ok();
+        submenu.append(&PredefinedMenuItem::redo(None)).ok();
+        submenu.append(&PredefinedMenuItem::quit(None)).ok();
+        menu.append(&submenu).ok();
+        menu.init_for_nsapp();
+    }
+
     // Windows webview2 does NOT support custom DnD, janky workaround
     if cfg!(target_os = "windows") {
         // Handler
@@ -108,23 +126,6 @@ pub fn start_webview() -> Result<(), Error> {
         match event {
             Event::NewEvents(StartCause::Init) => {
                 debug!("Started webview!");
-
-                // Register menu for MacOS shortcuts to work
-                #[cfg(target_os = "macos")]
-                {
-                    use muda::{Menu, Submenu, PredefinedMenuItem};
-                    let mut menu = Menu::new();
-                    let mut submenu = Submenu::new("Edit", true);
-                    submenu.append(&PredefinedMenuItem::copy(None)).ok();
-                    submenu.append(&PredefinedMenuItem::paste(None)).ok();
-                    submenu.append(&PredefinedMenuItem::cut(None)).ok();
-                    submenu.append(&PredefinedMenuItem::select_all(None)).ok();
-                    submenu.append(&PredefinedMenuItem::undo(None)).ok();
-                    submenu.append(&PredefinedMenuItem::redo(None)).ok();
-                    submenu.append(&PredefinedMenuItem::quit(None)).ok();
-                    menu.append(&submenu).ok();
-                    menu.init_for_nsapp();
-                }
             },
             // Check for unsaved progress
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
