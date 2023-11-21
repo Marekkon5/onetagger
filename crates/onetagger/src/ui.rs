@@ -59,15 +59,32 @@ pub fn start_webview() -> Result<(), Error> {
     {
         use muda::{Menu, Submenu, PredefinedMenuItem};
         let menu = Menu::new();
-        let submenu = Submenu::new("&Edit", true);
-        submenu.append(&PredefinedMenuItem::copy(None)).ok();
-        submenu.append(&PredefinedMenuItem::paste(None)).ok();
-        submenu.append(&PredefinedMenuItem::cut(None)).ok();
-        submenu.append(&PredefinedMenuItem::select_all(None)).ok();
-        submenu.append(&PredefinedMenuItem::undo(None)).ok();
-        submenu.append(&PredefinedMenuItem::redo(None)).ok();
-        submenu.append(&PredefinedMenuItem::quit(None)).ok();
-        menu.append(&submenu).ok();
+
+        let app_submenu = Submenu::new("App", true);
+        menu.append(&app_submenu).ok();
+        
+        app_submenu.append_items(&[
+            &PredefinedMenuItem::about(None, None),
+            &PredefinedMenuItem::separator(),
+            &PredefinedMenuItem::hide(None),
+            &PredefinedMenuItem::hide_others(None),
+            &PredefinedMenuItem::show_all(None),
+            &PredefinedMenuItem::separator(),
+            &PredefinedMenuItem::quit(None),
+        ]).ok();
+
+        let edit_submenu = Submenu::new("&Edit", true);
+        edit_submenu.append_items(&[
+            &PredefinedMenuItem::undo(None),
+            &PredefinedMenuItem::redo(None),
+            &PredefinedMenuItem::separator(),
+            &PredefinedMenuItem::cut(None),
+            &PredefinedMenuItem::copy(None),
+            &PredefinedMenuItem::paste(None),
+            &PredefinedMenuItem::select_all(None),
+        ]).ok();
+
+        menu.append(&edit_submenu).ok();
         menu.init_for_nsapp();
     }
 
