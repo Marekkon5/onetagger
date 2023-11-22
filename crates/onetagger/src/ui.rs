@@ -42,6 +42,31 @@ pub fn start_webview() -> Result<(), Error> {
     window.set_inner_size(Size::Physical(PhysicalSize::new(1280, 720)));
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
     let p = proxy.clone();
+
+    // Register menu for MacOS shortcuts to work
+    #[cfg(target_os = "macos")]
+    let _menu = {
+        use muda::{Menu, Submenu, PredefinedMenuItem};
+        let menu = Menu::new();
+
+        let submenu = Submenu::new("Edit", true);
+        submenu.append_items(&[
+            &PredefinedMenuItem::undo(None),
+            &PredefinedMenuItem::redo(None),
+            &PredefinedMenuItem::separator(),
+            &PredefinedMenuItem::cut(None),
+            &PredefinedMenuItem::copy(None),
+            &PredefinedMenuItem::paste(None),
+            &PredefinedMenuItem::select_all(None),
+        ])?;
+
+        menu.append(&submenu)?;
+        menu.init_for_nsapp();
+	    debug!("Added menu");
+
+        menu
+    };
+
     let mut webview = WebViewBuilder::new(window)?
         .with_url("http://127.0.0.1:36913")?
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
@@ -52,41 +77,6 @@ pub fn start_webview() -> Result<(), Error> {
             }
         })
         .with_web_context(&mut context);
-
-    
-    // Register menu for MacOS shortcuts to work
-    #[cfg(target_os = "macos")]
-    {
-        use muda::{Menu, Submenu, PredefinedMenuItem};
-        let menu = Menu::new();
-
-        let app_submenu = Submenu::new("App", true);
-        menu.append(&app_submenu).ok();
-        
-        app_submenu.append_items(&[
-            &PredefinedMenuItem::about(None, None),
-            &PredefinedMenuItem::separator(),
-            &PredefinedMenuItem::hide(None),
-            &PredefinedMenuItem::hide_others(None),
-            &PredefinedMenuItem::show_all(None),
-            &PredefinedMenuItem::separator(),
-            &PredefinedMenuItem::quit(None),
-        ]).ok();
-
-        let edit_submenu = Submenu::new("&Edit", true);
-        edit_submenu.append_items(&[
-            &PredefinedMenuItem::undo(None),
-            &PredefinedMenuItem::redo(None),
-            &PredefinedMenuItem::separator(),
-            &PredefinedMenuItem::cut(None),
-            &PredefinedMenuItem::copy(None),
-            &PredefinedMenuItem::paste(None),
-            &PredefinedMenuItem::select_all(None),
-        ]).ok();
-
-        menu.append(&edit_submenu).ok();
-        menu.init_for_nsapp();
-    }
 
     // Windows webview2 does NOT support custom DnD, janky workaround
     if cfg!(target_os = "windows") {
