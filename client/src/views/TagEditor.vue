@@ -5,7 +5,7 @@
         <!-- File browser -->
         <div 
             @contextmenu.prevent="" 
-            class='q-px-md q-pt-sm bg-darker' 
+            class='q-px-md q-pt-md bg-darker' 
             :class='{"col-4": !$1t.settings.value.tagEditorDouble, "col-3": $1t.settings.value.tagEditorDouble}'
             style='max-height: 100%; overflow-y: scroll;'
         >
@@ -297,7 +297,7 @@
                         </div>
                     </div>
                     <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 32px; margin-bottom: 25px;"' inset color="dark"/>
-                   
+                    
                     <!-- ID3v2.4 -->
                     <div class='q-mt-lg text-center'>
                         <div class='text-subtitle2 text-bold text-primary custom-margin'>

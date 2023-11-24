@@ -1,6 +1,6 @@
 <template>
 <div>
-    <div class='q-mb-sm text-grey-5 row'>
+    <div class='q-mt-xs q-mb-sm text-grey-5 row'>
         <!-- Search -->
         <div class="col">
             <q-input 
@@ -12,32 +12,32 @@
                 @update:model-value='filterTracks()'
             >
                 <template v-slot:label>
-                    <q-icon name="mdi-magnify" size="xs" class="q-ml-sm" />
+                    <q-icon name="mdi-magnify" size="xs" class='q-pl-xs'></q-icon>
                 </template>
             </q-input>
         </div>
     
         <!-- Sort -->
-        <div class='col-9 row q-px-md text-caption bg-darker text-grey-6 text-capitalize justify-between clickable' :style='"margin-top: 14px"'>
-            <span v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row q-pl-sm q-mx-md'>
+        <div class='col-9 row q-pb-sm text-caption text-weight-medium bg-darker text-grey-6 text-capitalize justify-between clickable' :style='"margin-top: 13px"'>
+            <span v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row q-pl-xs'>
                 <div :class='{"text-grey-4 clickable": sortOption == option}'>{{option}}</div>
                 <div v-if='sortOption == option'>
-                    <q-icon class='q-pb-xs' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
-                    <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
+                    <q-icon style='margin-bottom: 2px;' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
+                    <q-icon style='margin-bottom: 2px;' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
                 </div>
             </span>
         </div>
 
         <!-- Dense tracks -->
         <div class="col-1 clickable q-mr-md text-right">
-            <div class='q-pr-sm'>
+            <div class='q-pr-xs'>
                 <q-btn 
                     :icon='$1t.settings.value.quickTag.thinTracks ? "mdi-view-list" : "mdi-format-list-bulleted-square"' 
                     round
                     flat
                     size='sm' 
                     color='text-grey-4' 
-                    :style='"margin-top: 10px"'
+                    :style='"margin-top: 8px"'
                     @click='$1t.settings.value.quickTag.thinTracks = !$1t.settings.value.quickTag.thinTracks'
                 ></q-btn>
             </div>
@@ -47,15 +47,15 @@
     <!-- Stats -->
     <div class='q-mx-lg text-grey-7 q-my-xs text-caption text-center'>
         Loaded files: <span class='monospace text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
-            | Filtered: <span class='monospace text-bold'>{{tracks.length}}</span>
-        <span v-if='$1t.quickTag.value.failed.length != 0'> | Failed to load: 
+        <span class='q-ml-md'>Filtered: </span><span class='monospace text-bold'>{{tracks.length}}</span>
+        <span v-if='$1t.quickTag.value.failed.length != 0'><span class='q-ml-md'>Failed to load: </span>
             <span class='monospace text-bold' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
                 <span class='text-weight-medium show-link cursor-pointer'>Show details</span>
             </span>
         </span>
         
-        <span class='q-px-sm text-bold cursor-pointer' v-if='$1t.quickTag.value.isLimited()' @click='$1t.loadQuickTag(undefined, false)'>
-            Loading was capped to 500 tracks! <span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> here to load all.
+        <span class='q-ml-md text-caption cursor-pointer' :style='"margin-left: 13px"' v-if='$1t.quickTag.value.isLimited()' @click='$1t.loadQuickTag(undefined, false)'>
+            Loading was capped to <span class='text-caption monospace text-bold'>500</span> tracks! <span class='q-ml-xs text-weight-medium show-link cursor-pointer'>Show all</span>
         </span>
     </div>
 
@@ -639,11 +639,11 @@ watch($1t.quickTag.value.track, () => {
 }
 
 .qt-full-height {
-    height: calc(100vh - 232px);
+    height: calc(100vh - 195px);
 }
 
 .qt-height {
-    height: calc(100vh - 316px);
+    height: calc(100vh - 279px);
 }
 
 .keybind-icon {
@@ -680,4 +680,3 @@ watch($1t.quickTag.value.track, () => {
 
 
 </style>
-

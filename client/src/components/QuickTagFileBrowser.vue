@@ -1,8 +1,8 @@
 <template>
-<div class='q-px-sm'>
+<div class='q-px-md'>
 
     <!-- Path -->
-    <div class='text-weight-bold clickable path-display q-my-sm' v-if='!editPath'>
+    <div class='text-weight-bold clickable path-display q-my-md' v-if='!editPath'>
         <div class='row inline'>
             <span style="direction:ltr;">
                 <span @click='browse' class='text-primary monospace q-pr-xs'>{{path}}</span>
