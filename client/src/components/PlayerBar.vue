@@ -37,7 +37,7 @@
         </div>
 
         <div class="col-8">
-           <div class='row justify-center'>
+            <div class='row justify-center'>
                 <div class='q-mt-sm'>
                     <!-- Play button -->
                     <q-btn
@@ -64,26 +64,17 @@
                 </div>
     
                 <div><Waveform></Waveform></div>
-           </div>
+            </div>
         </div>
 
         <div class='row col-2 justify-end'>
-            <!-- Browse button -->
-            <div class="q-mt-sm q-pr-sm">
-                <q-btn round icon="mdi-open-in-app" @click="browseQuickTag">
-                    <q-tooltip>
-                        Click here to browse for new path
-                    </q-tooltip>
-                </q-btn>
-            </div>
-    
             <!-- Playlist -->
             <div v-if='enablePlaylist'>
                 <PlaylistDropZone
                     tiny
                     v-model="qtPlaylist"
                     @update:model-value="loadQTPlaylist(); $1t.quickTagUnfocus()"
-                    @click.native='$1t.quickTagUnfocus'
+                    @click.native='$1t.quickTagUnfocus'                    
                     class="q-mt-sm q-mr-sm"
                 ></PlaylistDropZone>
             </div>

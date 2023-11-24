@@ -26,11 +26,12 @@
     <!-- Tiny mode -->
     <div v-if='tiny'>
         <q-btn
-            round
-            flat
+            dense
+            class='q-mr-sm text-body2 text-capitalize' :style='"margin-top: 4px;"'            
             icon='mdi-playlist-music'
             :color='(drag || filename) ? "primary" : undefined'
             @click='filename ? remove() : true'
+            label="Playlist"
         >
             <q-tooltip>
                 Drag & drop playlist here / click to remove it

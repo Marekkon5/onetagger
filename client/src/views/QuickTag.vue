@@ -1,39 +1,56 @@
 <template>
 <div>
-    <div>
+    <div class='q-mb-sm text-grey-5 row'>
         <!-- Search -->
-        <q-input
-            filled 
-            dense
-            v-model='filter'
-            :label-slot="true"
-            class='q-px-md'
-            @update:model-value='filterTracks()'
-        >
-            <template v-slot:label>
-                <q-icon name="mdi-magnify" size="sm"></q-icon>
-            </template>
-        </q-input>
+        <div class="col">
+            <q-input 
+                dense
+                v-model='filter'
+                :label-slot="true"
+                class='q-pl-md qt-search-bar'
+                filled
+                @update:model-value='filterTracks()'
+            >
+                <template v-slot:label>
+                    <q-icon name="mdi-magnify" size="xs" class="q-ml-sm" />
+                </template>
+            </q-input>
+        </div>
     
         <!-- Sort -->
-        <div class='row text-grey-6 text-weight-medium justify-between q-mx-lg q-mt-sm q-mb-xs text-overline'>
-            <div v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row clickable'>
-                <div :class='{"text-grey-4": sortOption == option}'>{{option}}</div>
-                <div v-if='sortOption == option' class='q-pl-xs'>
+        <div class='col-9 row q-px-md text-caption bg-darker text-grey-6 text-capitalize justify-between clickable' :style='"margin-top: 14px"'>
+            <span v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row q-pl-sm q-mx-md'>
+                <div :class='{"text-grey-4 clickable": sortOption == option}'>{{option}}</div>
+                <div v-if='sortOption == option'>
                     <q-icon class='q-pb-xs' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
                     <q-icon class='q-pb-xs' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
                 </div>
+            </span>
+        </div>
+
+        <!-- Dense tracks -->
+        <div class="col-1 clickable q-mr-md text-right">
+            <div class='q-pr-sm'>
+                <q-btn 
+                    :icon='$1t.settings.value.quickTag.thinTracks ? "mdi-view-list" : "mdi-format-list-bulleted-square"' 
+                    round
+                    flat
+                    size='sm' 
+                    color='text-grey-4' 
+                    :style='"margin-top: 10px"'
+                    @click='$1t.settings.value.quickTag.thinTracks = !$1t.settings.value.quickTag.thinTracks'
+                ></q-btn>
             </div>
         </div>
     </div>
 
     <!-- Stats -->
     <div class='q-mx-lg text-grey-7 q-my-xs text-caption text-center'>
-        Loaded files: <span class='text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
-            | Filtered: <span class='text-bold'>{{tracks.length}}</span>
+        Loaded files: <span class='monospace text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
+            | Filtered: <span class='monospace text-bold'>{{tracks.length}}</span>
         <span v-if='$1t.quickTag.value.failed.length != 0'> | Failed to load: 
-            <span class='text-bold cursor-pointer' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
-                <span class='text-underline q-pl-xs'>(show)</span>
+            <span class='monospace text-bold' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
+                <span class='text-weight-medium show-link cursor-pointer'>Show details</span>
             </span>
         </span>
         
@@ -610,6 +627,7 @@ watch($1t.quickTag.value.track, () => {
 <style lang='scss'>
 .tracklist {
     overflow-y: auto;
+    overflow-x: auto;
 }
 
 .qtbg-container {
@@ -640,4 +658,26 @@ watch($1t.quickTag.value.track, () => {
     background: #00ff00;
 }
 
+.show-link {
+    color: gray;
+    text-decoration-line: underline;
+}
+.show-link:hover {
+    color: #f0f0f0;
+    text-decoration-line: underline;
+}
+
+
+.qt-search-bar {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+.qt-search-bar * {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+
 </style>
+

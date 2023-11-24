@@ -44,9 +44,9 @@
 
         <!-- Year, BPM, Key -->
         <div class='text-no-wrap ellipsis row q-pl-sm' style='width: 132px;'>
-            <div class='col-4'><div class='monospace text-grey-6 text-weight-medium'>{{track.year}}</div></div>
-            <div class='col-4'><div class='monospace text-grey-4 text-weight-medium' v-if='track.bpm'>{{track.bpm}}</div></div>
-            <div class='col-4'><div class='monospace text-weight-medium' :style='keyColor(track.key)'>{{track.key}}</div></div>
+            <div class='col-4'><div class='text-caption monospace text-grey-6 text-weight-medium'>{{track.year}}</div></div>
+            <div class='col-4'><div class='text-caption monospace text-grey-4 text-weight-medium' v-if='track.bpm'>{{track.bpm}}</div></div>
+            <div class='col-4'><div class='text-caption monospace text-weight-medium' :style='keyColor(track.key)'>{{track.key}}</div></div>
         </div>
 
         <!-- Custom -->
