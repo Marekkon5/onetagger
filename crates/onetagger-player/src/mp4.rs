@@ -4,7 +4,7 @@ use rodio::decoder::Mp4Type;
 use std::io::BufReader;
 use std::fs::File;
 use std::path::{PathBuf, Path};
-use rodio::Source;
+use rodio::{Source, Decoder};
 
 use crate::AudioSource;
 use crate::alac::ALACSource;
@@ -49,24 +49,9 @@ impl AudioSource for MP4Source {
             return Ok(Box::new(alac));
         }
         
-        // AAC MP4
-        let f = File::open(&self.path)?;
-        let meta = f.metadata()?;
-        let reader = BufReader::new(f);
-
-        // Try redlux with fallback to symphonia
-        match redlux::Decoder::new_mpeg4(reader, meta.len()) {
-            Ok(mut decoder) => {
-                // Decode first sample otherwise for some reason the channels and sample rate is 0
-                decoder.decode_next_sample()?.ok_or(anyhow!("No samples!"))?;
-                return Ok(Box::new(decoder))
-            },
-            Err(e) => {
-                warn!("Fallback to aac symphonia because of: {e}");
-                let decoder = rodio::Decoder::new_mp4(BufReader::new(File::open(&self.path)?), Mp4Type::M4a)?;
-                return Ok(Box::new(decoder));
-            },
-        }
+        // Symphonia 
+        let decoder = Decoder::new_mp4(BufReader::new(File::open(&self.path)?), Mp4Type::M4a)?;
+        return Ok(Box::new(decoder));
         
     }
 }

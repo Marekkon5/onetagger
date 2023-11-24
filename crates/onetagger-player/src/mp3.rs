@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use anyhow::Error;
+use lofty::AudioFile;
 use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
@@ -12,11 +13,12 @@ pub struct MP3Source {
 impl MP3Source {
     pub fn new(path: impl AsRef<Path>) -> Result<MP3Source, Error> {
         // Get duration
-        let duration = mp3_duration::from_path(&path)?.as_millis();
+        let file = lofty::read_from_path(&path)?;
+        let duration = file.properties().duration();
 
         Ok(MP3Source {
             path: path.as_ref().to_owned(),
-            duration
+            duration: duration.as_millis()
         })
     }
 }

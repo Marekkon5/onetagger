@@ -10,13 +10,11 @@ log = "0.4"
 alac = "0.5"
 hound = "3.5"
 anyhow = "1.0"
-lofty = "0.15"
-redlux = "0.6"
+lofty = "0.17"
 pacmog = "0.4.1"
 mp4parse = "0.17"
-mp3-duration = "0.1"
 
-rodio = { version = "0.16", features = ["symphonia-aac", "symphonia-isomp4"] }
+rodio = { version = "0.17", features = ["symphonia-aac", "symphonia-isomp4", "symphonia-mp3"]}
 
 onetagger-shared = { path = "../onetagger-shared" }
 

@@ -38,28 +38,30 @@
 
         <div class="col-8">
            <div class='row justify-center'>
-                <!-- Play button -->
-                <q-btn
-                    round
-                    flat
-                    icon="mdi-play"
-                    class="q-mr-sm"
-                    :ripple="false"
-                    v-if="!$1t.player.value.playing"
-                    @click="$1t.player.value.play()"
-                    ref='playButton'
-                ></q-btn>
-                <!-- Pause -->
-                <q-btn
-                    round
-                    flat
-                    icon="mdi-pause"
-                    class="q-mr-sm"
-                    :ripple="false"
-                    v-else
-                    @click="$1t.player.value.pause()"
-                    ref='playButton'
-                ></q-btn>
+                <div class='q-mt-sm'>
+                    <!-- Play button -->
+                    <q-btn
+                        round
+                        flat
+                        icon="mdi-play"
+                        class="q-mr-sm"
+                        :ripple="false"
+                        v-if="!$1t.player.value.playing"
+                        @click="$1t.player.value.play()"
+                        ref='playButton'
+                    ></q-btn>
+                    <!-- Pause -->
+                    <q-btn
+                        round
+                        flat
+                        icon="mdi-pause"
+                        class="q-mr-sm"
+                        :ripple="false"
+                        v-else
+                        @click="$1t.player.value.pause()"
+                        ref='playButton'
+                    ></q-btn>
+                </div>
     
                 <div><Waveform></Waveform></div>
            </div>
