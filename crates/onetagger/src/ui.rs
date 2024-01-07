@@ -6,11 +6,11 @@ use onetagger_player::AudioSources;
 use onetagger_shared::Settings;
 use rouille::{router, Response};
 use serde::{Serialize, Deserialize};
-use wry::application::dpi::{Size, PhysicalSize};
-use wry::application::event::{StartCause, Event, WindowEvent};
-use wry::application::event_loop::{ControlFlow, EventLoopBuilder};
-use wry::application::window::{WindowBuilder, Theme, Icon};
-use wry::webview::{WebViewBuilder, FileDropEvent, WebContext};
+use wry::{WebViewBuilder, FileDropEvent, WebContext};
+use tao::dpi::{Size, PhysicalSize};
+use tao::event::{StartCause, Event, WindowEvent};
+use tao::event_loop::{EventLoopBuilder, ControlFlow};
+use tao::window::{WindowBuilder, Icon, Theme};
 
 use crate::quicktag::QuickTagFile;
 
@@ -67,10 +67,10 @@ pub fn start_webview() -> Result<(), Error> {
         menu
     };
 
-    let mut webview = WebViewBuilder::new(window)?
+    let mut webview = WebViewBuilder::new(&window)
         .with_url("http://127.0.0.1:36913")?
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
-        .with_ipc_handler(move |_window, message| {
+        .with_ipc_handler(move |message| {
             let proxy = &p;
             if message == "devtools" {
                 proxy.send_event(CustomWindowEvent::DevTools).ok();
@@ -100,7 +100,7 @@ pub fn start_webview() -> Result<(), Error> {
 
     // Handle dropped folders (for all other than Windows)
     if cfg!(not(target_os = "windows")) {
-        webview = webview.with_file_drop_handler(move |_window, event| {
+        webview = webview.with_file_drop_handler(move |event| {
             match event {
                 FileDropEvent::Dropped { mut paths, .. } => {
                     if paths.len() > 1 || paths.is_empty() {
@@ -160,6 +160,7 @@ pub fn start_webview() -> Result<(), Error> {
         }
 
     });
+
 }
 
 enum CustomWindowEvent {
