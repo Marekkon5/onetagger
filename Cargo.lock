@@ -5031,6 +5031,7 @@ dependencies = [
  "onetagger-renamer",
  "onetagger-shared",
  "onetagger-tagger",
+ "onetagger-ui",
  "serde_json",
  "winres",
 ]

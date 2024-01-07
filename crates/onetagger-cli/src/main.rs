@@ -2,6 +2,7 @@
 #[macro_use] extern crate onetagger_shared;
 
 use anyhow::Error;
+use onetagger_ui::StartContext;
 use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -13,7 +14,6 @@ use onetagger_shared::{VERSION, COMMIT};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_autotag::{Tagger, TaggerConfigExt, AudioFileInfoImpl};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
-
 
 fn main() {
     onetagger_python::python_hook();
@@ -125,6 +125,15 @@ fn main() {
         },
         Actions::Python { platform } => {
             onetagger_python::python_interpreter(platform).expect("Failed");
+        },
+        // Server mode
+        Actions::Server { expose, path, browser } => {
+            onetagger_ui::start_all(StartContext {
+                server_mode: true,
+                start_path: path.clone().map(String::from),
+                expose: *expose,
+                browser: *browser,
+            })
         }
     }
 }
@@ -328,6 +337,18 @@ enum Actions {
         /// Context of which platform
         #[clap(long, short)]
         platform: String,
+    },
+    /// Start OneTagger server mode
+    Server {
+        /// Expose the internal servers (WARNING: Unsecure)
+        #[clap(long, short)]
+        expose: bool,
+        /// Specify initial path to use in UI
+        #[clap(long, short)]
+        path: Option<String>,
+        /// Open web browser
+        #[clap(long, short)]
+        browser: bool,
     }
 }
 
