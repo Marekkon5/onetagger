@@ -135,9 +135,9 @@ impl FolderBrowser {
         // Windows root dir override
         #[cfg(target_os = "windows")]
         if path.as_ref().to_string_lossy() == "/" {
-            use sysinfo::{System, SystemExt, DiskExt};
-            let sys = System::new_all();
-            let disks = sys.disks().iter().map(|d| DirectoryEntry { 
+            use sysinfo::Disks;
+            let disks = Disks::new_with_refreshed_list();
+            let disks = disks.list().iter().map(|d| DirectoryEntry { 
                 path: d.mount_point().to_string_lossy().replace(":\\", ":").into(), children: None 
             }).collect::<Vec<_>>();
             return Ok(DirectoryEntry {
