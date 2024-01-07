@@ -148,7 +148,7 @@ impl InitData {
     pub fn new(start_context: StartContext) -> InitData {
         InitData {
             action: "init",
-            version: crate::VERSION,
+            version: onetagger_shared::VERSION,
             os: std::env::consts::OS,
             arch: std::env::consts::ARCH,
             custom_platform_compat: onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY,

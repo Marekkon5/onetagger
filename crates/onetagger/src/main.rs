@@ -1,21 +1,19 @@
 #![windows_subsystem = "windows"]
 
 #[macro_use] extern crate log;
-#[macro_use] extern crate anyhow;
-#[macro_use] extern crate include_dir;
-#[macro_use] extern crate onetagger_shared;
 
 use anyhow::Error;
 use clap::Parser;
+use std::path::PathBuf;
+use onetagger_shared::Settings;
+use wry::{WebViewBuilder, FileDropEvent, WebContext};
+use tao::dpi::{Size, PhysicalSize};
+use tao::event::{StartCause, Event, WindowEvent};
+use tao::event_loop::{EventLoopBuilder, ControlFlow};
+use tao::window::{WindowBuilder, Icon, Theme};
+
 use onetagger_shared::{VERSION, COMMIT};
-
-use crate::ui::StartContext;
-
-mod ui;
-mod socket;
-mod browser;
-mod quicktag;
-mod tageditor;
+use onetagger_ui::StartContext;
 
 fn main() {
     // Python
@@ -39,7 +37,11 @@ fn main() {
         expose: cli.expose,
         browser: cli.browser
     };
-    ui::start_all(context);
+
+    onetagger_ui::start_all(context);
+    if !cli.server {
+        start_webview().expect("Failed to start webview!");
+    }
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -100,3 +102,170 @@ fn old_macos_warning() -> Result<(), Error> {
 /// Show warning for old macOS
 #[cfg(not(target_os = "macos"))]
 fn old_macos_warning() -> Result<(), Error> { Ok(()) }
+
+
+/// Start webview window
+pub fn start_webview() -> Result<(), Error> {
+    // Setup wry
+    let event_loop = EventLoopBuilder::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+    let window = WindowBuilder::new()
+        .with_title("One Tagger")
+        .with_min_inner_size(Size::Physical(PhysicalSize::new(1150, 550)))
+        .with_inner_size(Size::Physical(PhysicalSize::new(1280, 720)))
+        .with_resizable(true)
+        .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
+        .with_theme(Some(Theme::Dark))
+        .build(&event_loop)?;
+    window.set_inner_size(Size::Physical(PhysicalSize::new(1280, 720)));
+    let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
+    let p = proxy.clone();
+
+    // Register menu for MacOS shortcuts to work
+    #[cfg(target_os = "macos")]
+    let _menu = {
+        use muda::{Menu, Submenu, PredefinedMenuItem};
+        let menu = Menu::new();
+
+        let submenu = Submenu::new("Edit", true);
+        submenu.append_items(&[
+            &PredefinedMenuItem::undo(None),
+            &PredefinedMenuItem::redo(None),
+            &PredefinedMenuItem::separator(),
+            &PredefinedMenuItem::cut(None),
+            &PredefinedMenuItem::copy(None),
+            &PredefinedMenuItem::paste(None),
+            &PredefinedMenuItem::select_all(None),
+        ])?;
+
+        menu.append(&submenu)?;
+        menu.init_for_nsapp();
+	    debug!("Added menu");
+
+        menu
+    };
+
+    // Non-linux Webview
+    #[cfg(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    ))]
+    let builder = WebViewBuilder::new(&window);
+    
+    // Linux Webview
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    )))]
+    let builder = {
+        use tao::platform::unix::WindowExtUnix;
+        use wry::WebViewBuilderExtUnix;
+        let vbox = window.default_vbox().unwrap();
+        WebViewBuilder::new_gtk(vbox)
+    };
+    
+    // Configure
+    let mut webview = builder
+        .with_url("http://127.0.0.1:36913")?
+        .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
+        .with_ipc_handler(move |message| {
+            let proxy = &p;
+            if message == "devtools" {
+                proxy.send_event(CustomWindowEvent::DevTools).ok();
+            }
+        })
+        .with_web_context(&mut context);
+
+    // Windows webview2 does NOT support custom DnD, janky workaround
+    if cfg!(target_os = "windows") {
+        // Handler
+        let proxy = proxy.clone();
+        let handle_url = move |url: String| -> bool {
+            debug!("Navigation/NewWindow to: {url}");
+            if url.starts_with("file://") {
+                let url = url.replace("file:///", "");
+                let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
+                proxy.send_event(CustomWindowEvent::DropFolder(path.into())).ok();
+                return false;
+            }
+            true
+        };
+        
+        // Register
+        webview = webview.with_navigation_handler(handle_url.clone());
+        webview = webview.with_new_window_req_handler(handle_url);
+    }
+
+    // Handle dropped folders (for all other than Windows)
+    if cfg!(not(target_os = "windows")) {
+        webview = webview.with_file_drop_handler(move |event| {
+            match event {
+                FileDropEvent::Dropped { mut paths, .. } => {
+                    if paths.len() > 1 || paths.is_empty() {
+                        warn!("Drop only 1 path!");
+                        return true;
+                    }
+                    let path = paths.remove(0);
+                    if path.is_dir() {
+                        proxy.send_event(CustomWindowEvent::DropFolder(path)).ok();
+                        return true;
+                    }
+                    if path.is_file() {
+                        return false;
+                    }
+                },
+                _ => {}
+            }
+
+            true
+        });
+    }
+
+    // Create webview
+    let webview = webview.build()?;
+
+    // Event loop
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        match event {
+            Event::NewEvents(StartCause::Init) => {
+                debug!("Started webview!");
+            },
+            // Check for unsaved progress
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                match webview.evaluate_script("window.onWebviewEvent({\"action\": \"exit\"})") {
+                    Ok(_) => {},
+                    Err(e) => {
+                        warn!("Failed to ask for exit: {e}");
+                        *control_flow = ControlFlow::Exit;
+                    }
+                }
+
+            },
+            // Drop folder to client
+            Event::UserEvent(CustomWindowEvent::DropFolder(path)) => {
+                match webview.evaluate_script(&format!("window.onWebviewEvent({{\"action\": \"browse\", \"path\": \"{}\"}})", path.to_string_lossy().replace("\\", "\\\\").replace("\"", "\\\""))) {
+                    Ok(_) => {},
+                    Err(e) => error!("Failed executing JS on webview: {e}"),
+                }
+            },
+            // Open devtools
+            Event::UserEvent(CustomWindowEvent::DevTools) => {
+                webview.open_devtools();
+            }
+            _ => ()
+        }
+
+    });
+
+}
+
+enum CustomWindowEvent {
+    DropFolder(PathBuf),
+    DevTools,
+}

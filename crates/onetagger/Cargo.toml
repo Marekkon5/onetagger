@@ -8,30 +8,15 @@ categories = ["multimedia::audio"]
 
 [dependencies]
 log = "0.4"
-mime = "0.3"
-dunce = "1.0"
-trash = "3.0"
-image = "0.24"
 anyhow = "1.0"
-opener = "0.6"
-base64 = "0.21"
-rouille = "3.6"
-walkdir = "2.3"
-tempfile = "3.3"
-serde_json = "1.0"
-webbrowser = "0.8"
-mime_guess = "2.0"
 urlencoding = "2.1"
-include_dir = "0.7"
-directories = "5.0"
-tungstenite = "0.21"
-tinyfiledialogs = "3.9"
 
 tao = { version = "0.24", features = ["rwh_05"] }
 wry = { version = "0.35", features = ["devtools"] }
 clap = { version = "4.1", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 
+onetagger-ui = { path = "../onetagger-ui" }
 onetagger-tag = { path = "../onetagger-tag" }
 onetagger-python = { path = "../onetagger-python" }
 onetagger-shared = { path = "../onetagger-shared" }
@@ -42,17 +27,13 @@ onetagger-renamer = { path = "../onetagger-renamer" }
 onetagger-playlist = { path = "../onetagger-playlist" }
 onetagger-platforms = { path = "../onetagger-platforms" }
 
-# Windows specific 
-[target.'cfg(windows)'.dependencies]
-sysinfo = "0.29"
-
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
 
 # MacOS specific
 [target.'cfg(target_os = "macos")'.dependencies]
 muda = "0.11"
-native-dialog = "0.6.3"
+native-dialog = "0.7.0"
 
 
 [package.metadata.bundle]

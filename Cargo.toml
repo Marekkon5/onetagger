@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/onetagger",
+     "crates/onetagger-ui",
     "crates/onetagger-cli",
     "crates/onetagger-tag",
     "crates/onetagger-shared",

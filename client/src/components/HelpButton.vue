@@ -766,7 +766,7 @@ function hide() {
 // Global override for homescreen
 const route = computed(() => {
     if ($1t.helpDialog.value.route) return $1t.helpDialog.value.route;
-    return useRoute().path.substring(1).split("/")[0];
+    return useRoute()?.path?.substring(1)?.split("/")[0];
 });
 
 // Get page count
