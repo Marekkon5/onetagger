@@ -1,6 +1,6 @@
 // Returns the WebSocket server URL
 function wsUrl(): string {
-    return `ws://${window.location.hostname}:36912`;
+    return `ws://${window.location.hostname}:36913/ws`;
 }
 
 // Returns the HTTP server URL
@@ -10,7 +10,7 @@ function httpUrl(): string {
 
 // Returns the Spotify redirect URL
 function spotifyUrl(): string {
-    return `http://127.0.0.1:36914/spotify`;
+    return `http://127.0.0.1:36913/spotify`;
 }
 
 // Tag value separators

@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 use anyhow::Error;
-use std::net::{TcpListener, TcpStream};
+use axum::extract::ws::{WebSocket, Message};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::path::{Path, PathBuf};
 use onetagger_renamer::ac::Autocomplete;
 use onetagger_renamer::docs::FullDocs;
 use onetagger_renamer::{Renamer, TemplateParser, RenamerConfig};
-use tungstenite::{Message, WebSocket, accept};
 use serde_json::{Value, json};
 use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
@@ -161,57 +159,44 @@ impl InitData {
     }
 }
 
-// Start WebSocket UI server
-pub fn start_socket_server(context: StartContext) {
-    let host = match context.expose {
-        true => "0.0.0.0:36912",
-        false => "127.0.0.1:36912"
-    };
-    let server = TcpListener::bind(host).unwrap();
-    for stream in server.incoming() {
-        let context = context.clone();
-        thread::spawn(move || {
-            // Create shared
-            let mut context = SocketContext::new(context);
-
-            // Websocket loop
-            let mut websocket = accept(stream.unwrap()).unwrap();
-            loop {
-                match websocket.read() {
-                    Ok(msg) => {
-                        if msg.is_text() {
-                            let text = msg.to_text().unwrap();
-                            match handle_message(text, &mut websocket, &mut context) {
-                                Ok(_) => {},
-                                Err(err) => {
-                                    // Send error to UI
-                                    error!("Websocket: {:?}, Data: {}", err, text);
-                                    send_socket(&mut websocket, json!({
-                                        "action": "error",
-                                        "message": &format!("{}", err)
-                                    })).ok();
-                                }
+pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: StartContext) -> Result<(), Error> {
+    let mut context = SocketContext::new(context);
+    
+    while let Some(message) = websocket.recv().await {
+        match message {
+            Ok(msg) => {
+                match msg.to_text() {
+                    Ok(text) => {
+                        // Handle the WS message
+                        match handle_message(text, &mut websocket, &mut context).await {
+                            Ok(_) => {},
+                            Err(err) => {
+                                // Send error to UI
+                                error!("Websocket: {:?}, Data: {}", err, text);
+                                send_socket(&mut websocket, json!({
+                                    "action": "error",
+                                    "message": &format!("{}", err)
+                                })).await.ok();
                             }
                         }
                     },
-                    Err(e) => {
-                        // Connection closed
-                        if !websocket.can_read() || !websocket.can_write() {
-                            warn!("{} - Websocket can't read or write, closing connection!", e);
-                            break;
-                        }
-                        warn!("Invalid websocket message, closing: {}", e);
-                        break;
-                    }
+                    Err(e) => warn!("WebSocket Message is not text: {e}"),
                 }
             }
-        });
+
+            Err(e) => {
+                warn!("WebSocket error: {e}");
+            }
+        }
+    
     }
+
+    Ok(())
 }
 
 /// Serialize and send to socket with warning intercept
-fn send_socket<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Error> {
-    match send_socket_inner(ws, json) {
+async fn send_socket<D: Serialize>(ws: &mut WebSocket, json: D) -> Result<(), Error> {
+    match send_socket_inner(ws, json).await {
         Ok(_) => Ok(()),
         Err(e) => {
             warn!("Failed sending to socket: {e}");
@@ -221,19 +206,18 @@ fn send_socket<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(
 }
 
 /// Serialize and send to socket
-fn send_socket_inner<D: Serialize>(ws: &mut WebSocket<TcpStream>, json: D) -> Result<(), Error> {
-    ws.write(Message::from(serde_json::to_string(&json)?))?;
-    ws.flush()?;
+async fn send_socket_inner<D: Serialize>(ws: &mut WebSocket, json: D) -> Result<(), Error> {
+    ws.send(Message::from(serde_json::to_string(&json)?)).await?;
     Ok(())
 }
 
-fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mut SocketContext) -> Result<(), Error> {
+async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut SocketContext) -> Result<(), Error> {
     // Parse JSON
     let action: Action = serde_json::from_str(text)?;
     match action {
         // Get initial info
         Action::Init => {
-            send_socket(websocket, InitData::new(context.start_context.clone())).ok();
+            send_socket(websocket, InitData::new(context.start_context.clone())).await.ok();
         },
         Action::Exit => std::process::exit(0),
         Action::SaveSettings { settings } => Settings::from_ui(&settings).save()?,
@@ -242,7 +226,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 send_socket(websocket, json!({
                     "action": "loadSettings",
                     "settings": settings.ui
-                })).ok();
+                })).await.ok();
             }
             // Ignore settings if they don't exist (might be initial load)
             Err(e) => error!("Failed loading settings, using defaults. {}", e)
@@ -252,7 +236,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "defaultCustomPlatformSettings",
                 "custom": TaggerConfig::custom_default().custom
-            })).ok();
+            })).await.ok();
         }
         // Browse for folder
         Action::Browse { path, context } => {
@@ -265,7 +249,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     "action": "browse",
                     "path": path,
                     "context": context
-                })).ok();
+                })).await.ok();
             }
         },
         // Get 1t Log
@@ -275,7 +259,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "log",
                 "log": log
-            })).ok();
+            })).await.ok();
         },
         // Open URL in external browser
         Action::Browser { url } => { webbrowser::open(&url)?; },
@@ -285,20 +269,31 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
         Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; }
 
         Action::LoadPlatforms => {
-            let mut platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
-            platforms.load_all();
+            let platforms = tokio::task::spawn_blocking(|| {
+                let mut platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
+                platforms.load_all();
+                platforms.platforms.iter().map(|p| p.info.clone()).collect::<Vec<_>>()
+            }).await?;
             send_socket(websocket, json!({
                 "action": "loadPlatforms",
-                "platforms": platforms.platforms.iter().map(|p| p.info.clone()).collect::<Vec<_>>()
-            })).ok();
+                "platforms": platforms
+            })).await.ok();
         },
         Action::ConfigCallback { config, platform, id } => {
-            if let Some(p) = AUTOTAGGER_PLATFORMS.lock().unwrap().get_builder(&platform) {
+            let platform_clone = platform.clone();
+            let response = tokio::task::spawn_blocking(move || {
+                if let Some(p) = AUTOTAGGER_PLATFORMS.lock().unwrap().get_builder(&platform) {
+                    Some(p.config_callback(&id, config))
+                } else {
+                    None
+                }
+            }).await?;
+            if let Some(r) = response {
                 send_socket(websocket, json!({
                     "action": "configCallback",
-                    "platform": platform,
-                    "response": p.config_callback(&id, config)
-                })).ok();
+                    "platform": platform_clone,
+                    "response": r
+                })).await.ok();
             }
         }
         Action::StartTagging { config, playlist } => {
@@ -344,13 +339,13 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "startTagging",
                 "files": file_count,
                 "type": tagger_type
-            })).ok();
+            })).await.ok();
             // Tagging
             for status in rx {
                 send_socket(websocket, json!({
                     "action": "taggingProgress",
                     "status": status
-                })).ok();
+                })).await.ok();
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             // Done
@@ -358,7 +353,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "taggingDone",
                 "path": folder_path,
                 "data": *tagger_finished.lock().unwrap()
-            })).ok();
+            })).await.ok();
         },
         Action::StopTagging => {
             onetagger_autotag::STOP_TAGGING.store(true, Ordering::SeqCst);
@@ -371,17 +366,16 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 send_socket(websocket, json!({
                     "action": "waveformWave",
                     "wave": wave
-                })).ok();
+                })).await.ok();
                 // Check reply
-                websocket.read().ok();
-                if !websocket.can_write() {
+                if websocket.recv().await.is_none() {
                     cancel_tx.send(true).ok();
                 }
             }
             // Done
             send_socket(websocket, json!({
                 "action": "waveformDone",
-            })).ok();
+            })).await.ok();
         },
         // Load player file
         Action::PlayerLoad { path } => {
@@ -396,7 +390,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "title": title,
                 "artists": artists,
                 "duration": source.duration() as u64
-            })).ok();
+            })).await.ok();
             // Load
             context.player.load_file(source);
         },
@@ -407,7 +401,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "playerSync",
                 "playing": context.player.seek(pos)
-            })).ok();
+            })).await.ok();
         },
         Action::PlayerVolume { volume } => context.player.volume(volume),
         Action::PlayerStop => context.player.stop(),
@@ -435,7 +429,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "quickTagLoad",
                 "data": data
-            })).ok();
+            })).await.ok();
         },
         // Save quicktag changes
         Action::QuickTagSave { changes } => {
@@ -444,7 +438,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "quickTagSaved",
                 "path": &changes.path,
                 "file": QuickTagFile::from_tag(&changes.path, &tag)?
-            })).ok();
+            })).await.ok();
         },
         // List dir
         Action::QuickTagFolder { path, subdir } => {
@@ -453,7 +447,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "quickTagFolder",
                 "files": files,
                 "path": new_path,
-            })).ok();
+            })).await.ok();
         }
         Action::SpotifyAuthorize { client_id, client_secret } => {
             // Authorize cached
@@ -463,13 +457,13 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             } else {
                 let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret)?;
                 webbrowser::open(&auth_url)?;
-                let spotify = Spotify::auth_server(client, context.start_context.expose)?;
+                let spotify = Spotify::auth_server(client)?;
                 context.spotify = Some(spotify);
             }
             send_socket(websocket, json!({
                 "action": "spotifyAuthorized",
                 "value": true
-            })).ok();
+            })).await.ok();
             debug!("Spotify Authorized!");
         },
         // Check if authorized
@@ -477,7 +471,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "spotifyAuthorized",
                 "value": context.spotify.is_some()
-            })).ok();
+            })).await.ok();
         },
         Action::TagEditorFolder { path, subdir, recursive } => {
             let recursive = recursive.unwrap_or(false);
@@ -488,7 +482,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "path": new_path,
                 // Stateless
                 "recursive": recursive
-            })).ok();
+            })).await.ok();
         },
         // Load tags of file
         Action::TagEditorLoad { path } => {
@@ -496,14 +490,14 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "tagEditorLoad",
                 "data": data
-            })).ok();
+            })).await.ok();
         },
         // Save changes
         Action::TagEditorSave { changes } => {
             let _tag = changes.commit()?;
             send_socket(websocket, json!({
                 "action": "tagEditorSave"
-            })).ok();
+            })).await.ok();
         },
         // Syntax highlight for renamer
         Action::RenamerSyntaxHighlight { template } => {
@@ -512,7 +506,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "renamerSyntaxHighlight",
                 "html": html
-            })).ok();
+            })).await.ok();
         },
         // Autocomplete data
         Action::RenamerAutocomplete { template } => {
@@ -522,7 +516,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "action": "renamerAutocomplete",
                 "suggestions": suggestions,
                 "offset": ac.suggestion_offset()
-            })).ok();
+            })).await.ok();
         },
         // Generate new names but don't rename
         Action::RenamerPreview { config } => {
@@ -531,7 +525,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "renamerPreview",
                 "files": files,
-            })).ok();
+            })).await.ok();
         },
         // Start renamer
         Action::RenamerStart { config } => {
@@ -539,7 +533,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             renamer.rename(&config)?;
             send_socket(websocket, json!({
                 "action": "renamerDone",
-            })).ok();
+            })).await.ok();
         },
         // File browser list dir
         Action::FolderBrowser { path, child , base } => {
@@ -564,7 +558,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                 "entry": e,
                 "base": base,
                 "path": path
-            })).ok();
+            })).await.ok();
         },
 
         // Manually tag a file
@@ -582,7 +576,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                             "platform": platform,
                             "status": "ok",
                             "matches": matches
-                        })).ok();
+                        })).await.ok();
                     },
                     Err(e) => {
                         send_socket(websocket, json!({
@@ -590,7 +584,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                             "platform": platform,
                             "status": "error",
                             "error": e.to_string()
-                        })).ok();
+                        })).await.ok();
                     },
                 }
             }
@@ -598,7 +592,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             // On done
             send_socket(websocket, json!({
                 "action": "manualTagDone"
-            })).ok();
+            })).await.ok();
         },
         // Apply the tags from manual tagger
         Action::ManualTagApply { matches, path, config } => {
@@ -607,7 +601,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                     send_socket(websocket, json!({
                         "action": "manualTagApplied",
                         "status": "ok"
-                    })).ok();
+                    })).await.ok();
                 },
                 Err(e) => {
                     error!("Failed applying manual tag: {e}");
@@ -615,7 +609,7 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
                         "action": "manualTagApplied",
                         "status": "error",
                         "error": e.to_string()
-                    })).ok();
+                    })).await.ok();
                 },
             }
         },
@@ -629,21 +623,21 @@ fn handle_message(text: &str, websocket: &mut WebSocket<TcpStream>, context: &mu
             send_socket(websocket, json!({
                 "action": "repoManifest",
                 "manifest": onetagger_autotag::repo::fetch_manifest()?
-            })).ok();
+            })).await.ok();
         },
         Action::InstallPlatform { id, version, is_native } => {
             match onetagger_autotag::repo::install_platform(&id, &version, is_native) {
                 Ok(_) => send_socket(websocket, json!({
                     "action": "installPlatform",
                     "status": "ok"
-                })).ok(),
+                })).await.ok(),
                 Err(e) => {
                     error!("Failed installing platform {id}@{version}: {e}");
                     send_socket(websocket, json!({
                         "action": "installPlatform",
                         "status": "error",
                         "error": e.to_string()
-                    })).ok()
+                    })).await.ok()
                 },
             };
         },

@@ -12,7 +12,7 @@ use tao::event::{StartCause, Event, WindowEvent};
 use tao::event_loop::{EventLoopBuilder, ControlFlow};
 use tao::window::{WindowBuilder, Icon, Theme};
 
-use onetagger_shared::{VERSION, COMMIT};
+use onetagger_shared::{VERSION, COMMIT, PORT};
 use onetagger_ui::StartContext;
 
 fn main() {
@@ -38,7 +38,7 @@ fn main() {
         browser: cli.browser
     };
 
-    onetagger_ui::start_all(context);
+    onetagger_ui::start_all(context).expect("Failed to start servers!");
     if !cli.server {
         start_webview().expect("Failed to start webview!");
     }
@@ -170,7 +170,7 @@ pub fn start_webview() -> Result<(), Error> {
     
     // Configure
     let mut webview = builder
-        .with_url("http://127.0.0.1:36913")?
+        .with_url(&format!("http://127.0.0.1:{PORT}"))?
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;

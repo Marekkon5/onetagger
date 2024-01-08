@@ -1,5 +1,4 @@
 use anyhow::Error;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use rspotify::clients::{BaseClient, OAuthClient};
 use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
@@ -9,22 +8,12 @@ use rspotify::model::artist::FullArtist;
 use rspotify::model::search::SearchResult;
 use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
-use rouille::{Server, router};
-use onetagger_shared::Settings;
+use onetagger_shared::{Settings, WEBSERVER_CALLBACKS, PORT};
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag, TrackMatch};
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
 
-static CALLBACK_PORT: u16 = 36914;
-static CALLBACK_HTML: &'static str = "
-<html>
-    <head><script>window.close();</script></head>
-    <body>
-        <h1>Spotify authorized successfully, you can close this window.</h1>
-    </body>
-</html>
-";
 
 static PITCH_CLASS_MAJOR: [&'static str; 12] = ["C", "C#",   "D",  "D#",  "E",  "F",  "F#",  "G",  "G#",  "A",  "A#",  "B" ];
 static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Gm", "Abm", "Am", "Bbm", "Bm"];
@@ -44,7 +33,7 @@ impl Spotify {
         config.token_refreshing = true;
         let mut oauth = OAuth::default();
         oauth.scopes = scopes!("user-read-private");
-        oauth.redirect_uri = format!("http://127.0.0.1:{}/spotify", CALLBACK_PORT);
+        oauth.redirect_uri = format!("http://127.0.0.1:{}/spotify", PORT);
         let client = AuthCodeSpotify::with_config(credentials, oauth, config);
         client
     }
@@ -66,38 +55,15 @@ impl Spotify {
     }
 
      /// Authentication server for callback from spotify
-     pub fn auth_server(spotify: AuthCodeSpotify, expose: bool) -> Result<Spotify, Error> {
-        // Prepare server
-        let token: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-        let token_clone = token.clone();
-
-        let host = match expose {
-            true => "0.0.0.0",
-            false => "127.0.0.1"
-        };
-        let server = Server::new(&format!("{}:{}", host, CALLBACK_PORT), move |request| {
-            router!(request, 
-                (GET) (/spotify) => {
-                    // Get token
-                    if request.get_param("code").is_some() {
-                        let mut t = token_clone.lock().unwrap();
-                        *t = Some(format!("http://127.0.0.1:{}{}", CALLBACK_PORT, request.raw_url()));
-                    }
-                },
-                _ => {}
-            );
-            // Navigate back
-            rouille::Response::html(CALLBACK_HTML)
-        }).unwrap();
-        // Run server
-        loop {
-            if token.lock().unwrap().is_some() {
-                break;
+     pub fn auth_server(spotify: AuthCodeSpotify) -> Result<Spotify, Error> {
+        // Wait for auth token
+        WEBSERVER_CALLBACKS.lock().unwrap().remove("spotify");
+        let token = loop {
+            if let Some(token) = WEBSERVER_CALLBACKS.lock().unwrap().get("spotify") {
+                break format!("http://127.0.0.1:{}{}", PORT, token);
             }
-            server.poll();
-        }
-        let token_lock = token.lock().unwrap();
-        let token = token_lock.as_ref().unwrap();
+            std::thread::sleep(Duration::from_millis(100));
+        };
 
         // Auth
         let code = spotify.parse_response_code(token.trim()).ok_or(anyhow!("Invalid token url!"))?;

@@ -81,7 +81,7 @@ fn main() {
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
         },
         // Spotify OAuth flow
-        Actions::AuthorizeSpotify { client_id, client_secret, expose, prompt } => {
+        Actions::AuthorizeSpotify { client_id, client_secret, prompt, .. } => {
             let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret).expect("Failed generating auth URL!");
             println!("\nPlease go to the following URL and authorize 1T:\n{auth_url}");
             // should cache the token
@@ -93,7 +93,9 @@ fn main() {
                     let _spotify = Spotify::auth_token_code(client, url.trim()).expect("Spotify authentication failed!");
                 },
                 false => {
-                    let _spotify = Spotify::auth_server(client, *expose).expect("Spotify authentication failed!");
+                    // TODO: fix auth server
+                    todo!("Auth server");
+                    // let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
                 }
             }
             info!("Succesfully authorized Spotify!");
@@ -133,7 +135,7 @@ fn main() {
                 start_path: path.clone().map(String::from),
                 expose: *expose,
                 browser: *browser,
-            })
+            }).expect("Failed starting the server");
         }
     }
 }

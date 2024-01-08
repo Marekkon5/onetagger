@@ -1,7 +1,9 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate anyhow;
 
+use std::collections::HashMap;
 use std::io::{Write, BufReader, BufWriter};
+use std::sync::{Arc, Mutex};
 use anyhow::Error;
 use std::path::PathBuf;
 use std::fs::File;
@@ -23,10 +25,17 @@ macro_rules! timestamp {
     };
 }
 
+/// OneTagger WebServer port
+pub const PORT: usize = 36913;
 /// Current onetagger version
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 /// Hash of commit used to build this version
 pub const COMMIT: &'static str = env!("COMMIT");
+
+lazy_static::lazy_static! {
+    /// Saved tokens and such from WebServer so other modules can access it
+    pub static ref WEBSERVER_CALLBACKS: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+}
 
 /// Setup onetagger logging and panic hooks
 pub fn setup() {
