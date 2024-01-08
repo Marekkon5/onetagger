@@ -57,9 +57,9 @@ impl Spotify {
      /// Authentication server for callback from spotify
      pub fn auth_server(spotify: AuthCodeSpotify) -> Result<Spotify, Error> {
         // Wait for auth token
-        WEBSERVER_CALLBACKS.lock().unwrap().remove("spotify");
+        { WEBSERVER_CALLBACKS.lock().unwrap().remove("spotify") };
         let token = loop {
-            if let Some(token) = WEBSERVER_CALLBACKS.lock().unwrap().get("spotify") {
+            if let Some(token) = { WEBSERVER_CALLBACKS.lock().unwrap().get("spotify").map(String::from) } {
                 break format!("http://127.0.0.1:{}{}", PORT, token);
             }
             std::thread::sleep(Duration::from_millis(100));

@@ -457,7 +457,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             } else {
                 let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret)?;
                 webbrowser::open(&auth_url)?;
-                let spotify = Spotify::auth_server(client)?;
+                let spotify = tokio::task::spawn_blocking(move || {
+                    Spotify::auth_server(client)
+                }).await??;
                 context.spotify = Some(spotify);
             }
             send_socket(websocket, json!({
