@@ -81,7 +81,7 @@ fn main() {
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
         },
         // Spotify OAuth flow
-        Actions::AuthorizeSpotify { client_id, client_secret, prompt, .. } => {
+        Actions::AuthorizeSpotify { client_id, client_secret, prompt, expose } => {
             let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret).expect("Failed generating auth URL!");
             println!("\nPlease go to the following URL and authorize 1T:\n{auth_url}");
             // should cache the token
@@ -93,12 +93,21 @@ fn main() {
                     let _spotify = Spotify::auth_token_code(client, url.trim()).expect("Spotify authentication failed!");
                 },
                 false => {
-                    // TODO: fix auth server
-                    todo!("Auth server");
-                    // let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
+                    let expose = *expose;
+                    std::thread::spawn(move || {
+                        onetagger_ui::start_all(StartContext {
+                            server_mode: true,
+                            start_path: None,
+                            expose,
+                            browser: false,
+                        }).expect("Failed starting server!");
+                    });
+                    let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
                 }
             }
             info!("Succesfully authorized Spotify!");
+            // Exit because of webserver
+            std::process::exit(0);
         },
         // Renamer
         Actions::Renamer { path, output, template, copy, no_subfolders, preview, overwrite, separator, keep_subfolders } => {
