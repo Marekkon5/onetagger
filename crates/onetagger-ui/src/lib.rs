@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 use std::time::Duration;
 use anyhow::Error;
 use axum::body::Body;
-use axum::extract::{Query, WebSocketUpgrade, State, Request, Path};
+use axum::extract::{Query, WebSocketUpgrade, State, Request};
 use axum::http::StatusCode;
 use axum::http::header::CONTENT_TYPE;
 use axum::response::IntoResponse;
@@ -38,7 +38,7 @@ pub struct StartContext {
     pub browser: bool,
 }
 
-fn start_async_thread(context: StartContext) -> Result<(), Error> {
+fn start_async_runtime(context: StartContext) -> Result<(), Error> {
     let expose = context.expose;
     Builder::new_multi_thread().enable_all().build()?.block_on(async move {
         // Register routes
@@ -48,6 +48,7 @@ fn start_async_thread(context: StartContext) -> Result<(), Error> {
             .route("/ws", get(get_ws))
             .route("/spotify", get(get_spotify_callback))
             .route("/*path", get(get_static_file))
+            .route("/", get(get_static_file))
             .with_state(context);
 
         // Start http server
@@ -65,7 +66,8 @@ fn start_async_thread(context: StartContext) -> Result<(), Error> {
 }
 
 /// Serve assets file
-async fn get_static_file(Path(mut path): Path<String>) -> impl IntoResponse {
+async fn get_static_file(request: Request<Body>) -> impl IntoResponse {
+    let mut path = request.uri().to_string();
     // Index HTML
     if path == "/" {
         path = "/index.html".to_string();
@@ -155,7 +157,7 @@ pub fn start_all(context: StartContext) -> Result<(), Error> {
         });
     }
 
-    start_async_thread(context.clone())?;
+    start_async_runtime(context.clone())?;
     Ok(())
 }
 

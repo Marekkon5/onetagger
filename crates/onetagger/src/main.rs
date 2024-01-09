@@ -38,10 +38,18 @@ fn main() {
         browser: cli.browser
     };
 
-    onetagger_ui::start_all(context).expect("Failed to start servers!");
-    if !cli.server {
-        start_webview().expect("Failed to start webview!");
+    // Server mode
+    if cli.server {
+        onetagger_ui::start_all(context).expect("Failed to start servers!");
+        return;
     }
+
+    // GUI Mode
+    std::thread::spawn(move || {
+        onetagger_ui::start_all(context).expect("Failed to start servers!");
+    });
+    start_webview().expect("Failed to start webview!");
+
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -170,7 +178,7 @@ pub fn start_webview() -> Result<(), Error> {
     
     // Configure
     let mut webview = builder
-        .with_url(&format!("http://127.0.0.1:{PORT}"))?
+        .with_url(&format!("http://127.0.0.1:{PORT}/"))?
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;
