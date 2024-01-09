@@ -42,7 +42,7 @@ lazy_static! {
         SymbolDoc::prop("last", "Get the last item in an array"),
     ];
 
-    pub static ref FUNCTIONS: [SymbolDoc; 14] = [
+    pub static ref FUNCTIONS: [SymbolDoc; 15] = [
         SymbolDoc::f("lower", "Convert all to lowercase", vec![]),
         SymbolDoc::f("lowercase", "Convert all to lowercase", vec![]),
         SymbolDoc::f("upper", "Convert all to uppercase", vec![]),
@@ -50,6 +50,7 @@ lazy_static! {
         SymbolDoc::f("slice", "Take a range out of array or substring", vec![DocParameter::n("start", true), DocParameter::n("end", false)]),
         SymbolDoc::f("range", "Take a range out of array or substring", vec![DocParameter::n("start", true), DocParameter::n("end", false)]),
         SymbolDoc::f("capitalize", "Convert first letter to uppercase", vec![]),
+        SymbolDoc::f("titlecase", "Conver to titlecase (Capitalize Every Word)", vec![]),
         SymbolDoc::f("replace", "Replace text. `from` parameter accepts regex expressions.", vec![DocParameter::s("from", true), DocParameter::s("to", true)]),
         SymbolDoc::f("pad", "Pad on the left side with given character to reach given length", vec![DocParameter::s("char", true), DocParameter::n("length", true)]),
         SymbolDoc::f("sort", "Sort the array alphabetically", vec![]),

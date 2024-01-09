@@ -699,6 +699,11 @@ impl Token for TokenFunction {
                 };
                 Some(Data::String(o))
             },
+            // Convert to title case
+            "titlecase" => {
+                let s = data.to_string(&config.separator);
+                Some(Data::String(titlecase::titlecase(&s)))
+            },
             // Replace string with string
             "replace" => {
                 let from = self.param_str(0, true)?;
