@@ -196,6 +196,17 @@
                             <q-btn flat round icon='mdi-plus' @click='addGenre' color='primary'></q-btn>
                         </div>
                     </div>
+                    
+                    <!-- Subgenre tag -->
+                    <div class='q-mt-md q-mb-sm'>
+                        <q-checkbox 
+                            label='Custom subgenre tag' 
+                            :model-value="!!$1t.settings.value.quickTag.subgenreTag"
+                            @update:model-value="(v) => enableCustomSubgenreTag(v)"
+                        ></q-checkbox>
+                        <TagFields v-if='$1t.settings.value.quickTag.subgenreTag' class='col-10 q-mt-sm q-mb-md' style='margin-bottom: 20px;' dense v-model='$1t.settings.value.quickTag.subgenreTag'></TagFields>
+                    </div>
+
                 </div>
             </div>
 
@@ -500,6 +511,15 @@ function onSubgenreInput(e: string | null, i: number) {
         return;
     }
     $1t.settings.value.quickTag.genres[i].subgenres = e.split(",");
+}
+
+/// Enable custom subgenre tag
+function enableCustomSubgenreTag(enable: boolean) {
+    if (enable) {
+        $1t.settings.value.quickTag.subgenreTag = new FrameName('TCON', 'GENRE', '©gen');
+    } else {
+        $1t.settings.value.quickTag.subgenreTag = undefined;
+    }
 }
 
 

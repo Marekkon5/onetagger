@@ -303,6 +303,12 @@ class QTTrack implements QuickTagFile {
         this.custom = this.loadCustom();
         // Stupid copy
         this.originalGenres = JSON.parse(JSON.stringify(this.genres));
+        // Add subgenres
+        if (settings.subgenreTag) {
+            let subgenres = (this.tags[this.removeAbstractions(settings.subgenreTag.byFormat(this.format))] ?? []);
+            this.originalGenres.push(...subgenres.filter(g => !this.genres.includes(g)));
+            this.genres.push(...subgenres.filter(g => !this.genres.includes(g)));
+        }
     }
 
 
@@ -472,10 +478,28 @@ class QTTrack implements QuickTagFile {
         }
         // Genre change
         if (this.genres.join('') != this.originalGenres.join('')) {
-            changes.push({
-                type: 'genre',
-                value: this.genres
-            })
+            // Subgenre custom tag
+            if (this.settings.subgenreTag) {
+
+                let subgenres = this.genres.filter((genre) => this.settings.genres.find((g) => g.subgenres.includes(genre)));
+                let genres = this.genres.filter((g) => !subgenres.includes(g));
+
+                changes.push({
+                    type: 'raw',
+                    tag: this.settings.subgenreTag.byFormat(this.format),
+                    value: subgenres
+                });
+                changes.push({
+                    type: 'genre',
+                    value: genres
+                });
+
+            } else {
+                changes.push({
+                    type: 'genre',
+                    value: this.genres
+                });
+            }
         }
         
         // Note change

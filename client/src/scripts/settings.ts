@@ -168,6 +168,9 @@ class QuickTagSettings {
         }
     ]
 
+    // Custom subgenre tag
+    subgenreTag?: FrameName;
+
     // Manually load from JSON to restore classes
     static fromJson(data: any): QuickTagSettings {
         let qt: QuickTagSettings = Object.assign(new QuickTagSettings(), data);
@@ -190,7 +193,8 @@ class QuickTagSettings {
                 return v;
             });
             return c;
-        })
+        });
+        qt.subgenreTag = qt.subgenreTag ? FrameName.fromJson(data.subgenreTag) : undefined;
         return qt;
     }
 }
