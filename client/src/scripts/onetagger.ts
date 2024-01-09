@@ -395,7 +395,12 @@ class OneTagger {
                 }
                 // Exit anyway
                 else {
-                    this.send('exit');
+                    try {
+                        // @ts-ignore
+                        window.ipc.postMessage('exit');
+                    } catch (e) {
+                        this.send('exit');
+                    }
                 }
                 break;
             default:

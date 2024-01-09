@@ -49,7 +49,7 @@ fn main() {
         onetagger_ui::start_all(context).expect("Failed to start servers!");
     });
     start_webview().expect("Failed to start webview!");
-
+    debug!("Exitting gracefully...");
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -185,6 +185,9 @@ pub fn start_webview() -> Result<(), Error> {
             if message == "devtools" {
                 proxy.send_event(CustomWindowEvent::DevTools).ok();
             }
+            if message == "exit" {
+                proxy.send_event(CustomWindowEvent::Exit).ok();
+            }
         })
         .with_web_context(&mut context);
 
@@ -265,6 +268,11 @@ pub fn start_webview() -> Result<(), Error> {
             // Open devtools
             Event::UserEvent(CustomWindowEvent::DevTools) => {
                 webview.open_devtools();
+            },
+            // Exit from UI
+            Event::UserEvent(CustomWindowEvent::Exit) => {
+                debug!("Exitting webview loop...");
+                *control_flow = ControlFlow::Exit;
             }
             _ => ()
         }
@@ -276,4 +284,5 @@ pub fn start_webview() -> Result<(), Error> {
 enum CustomWindowEvent {
     DropFolder(PathBuf),
     DevTools,
+    Exit
 }
