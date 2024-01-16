@@ -13,13 +13,13 @@
     "axios": "^1.6.5",
     "compare-versions": "^6.1.0",
     "quasar": "^2.14.2",
-    "vue": "^3.4.5",
+    "vue": "^3.4.14",
     "vue-router": "^4.2.5",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@quasar/vite-plugin": "^1.6.0",
-    "@vitejs/plugin-vue": "^5.0.2",
+    "@vitejs/plugin-vue": "^5.0.3",
     "sass": "1.69.7",
     "typescript": "^5.3.3",
     "vite": "^5.0.11",
