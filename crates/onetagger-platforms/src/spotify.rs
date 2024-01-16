@@ -129,7 +129,7 @@ impl Spotify {
 
     /// Fetch full album
     pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Error> {
-        self.rate_limit_wrap(|s| s.spotify.album(id.to_owned()))
+        self.rate_limit_wrap(|s| s.spotify.album(id.to_owned(), None))
     }
 
     /// Fetch full artist
@@ -145,19 +145,26 @@ impl Spotify {
             match self.album(&AlbumId::from_id(&track.release_id)?) {
                 Ok(album) => {
                     track.label = album.label;
-                    track.genres = album.genres;
+                    track.genres.extend(album.genres.into_iter());
                 }
                 Err(e) => warn!("Failed to fetch album data: {}", e),
             }
         }
 
         // Fetch genres from artist if album has them unavailable
-        if track.genres.is_empty() && config.tag_enabled(SupportedTag::Genre) && track.custom.get("artist_id").is_some() {
-            match self.artist(&ArtistId::from_id(track.custom.get("artist_id").unwrap())?) {
-                Ok(artist) => {
-                    track.genres = artist.genres;
-                },
-                Err(e) => warn!("Failed to fetch artist data: {e}"),
+        if config.tag_enabled(SupportedTag::Genre) && track.custom.get("artist_ids").is_some() {
+            for id in track.custom.get("artist_ids").unwrap().split("\0") {
+                debug!("artist id: {id}");
+                match self.artist(&ArtistId::from_uri(id)?) {
+                    Ok(artist) => {
+                        for genre in artist.genres {
+                            if !track.genres.contains(&genre) {
+                                track.genres.push(genre);
+                            }
+                        }
+                    },
+                    Err(e) => warn!("Failed to fetch artist data: {e}"),
+                }
             }
         }
 
@@ -219,7 +226,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         platform: "spotify".to_string(),
         title: track.name,
         version: None,
-        custom: track.artists.first().map(|a| a.id.as_ref().map(|id| id.id().to_string())).flatten().into_iter().map(|a| ("artist_id".to_string(), a)).collect(),
+        custom: [("artist_ids".to_string(), track.artists.iter().filter_map(|a| a.id.as_ref().map(|a| a.to_string())).collect::<Vec<_>>().join("\0"))].into_iter().collect(),
         artists: track.artists.into_iter().map(|a| a.name).collect(),
         album_artists: track.album.artists.into_iter().map(|a| a.name).collect(),
         album: Some(track.album.name),
@@ -232,7 +239,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
         release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
         explicit: Some(track.explicit),
-        thumbnail: track.album.images.iter().min_by(|a, b| a.width.unwrap_or(1000).cmp(&b.width.unwrap_or(1000))).map(|i| i.url.to_string()),
+        thumbnail: track.album.images.iter().min_by(|a, b| a.width.unwrap_or(1000.0).partial_cmp(&b.width.unwrap_or(1000.0)).unwrap()).map(|i| i.url.to_string()),
         ..Default::default()
     }
 }
