@@ -53,9 +53,11 @@ const ABSTRACTIONS: Record<string, string> = {
     "MVNM": "Movement Name",
     "©prd": "(Producer)",
     "©mvn": "(Movement Name)",
+    "©nam": "(Title)"
 };
 
 const MP4 = [
+    "©nam (Title)",
     "©alb (Album)", 
     "©ART (Artist)",
     "tmpo (BPM)", 
