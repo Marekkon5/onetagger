@@ -144,6 +144,13 @@
                         <q-btn flat round icon='mdi-plus' @click='addMood' color='primary'></q-btn>  
                         </div>                      
                     </div>
+
+                    <!-- Sort moods -->
+                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Sort moods</div>
+                    <div class='row'>
+                        <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-ascending' @click='sortMoods(1)'></q-btn>
+                        <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-descending' @click='sortMoods(-1)'></q-btn>
+                    </div>
                 </div>
                 
                 <!-- Genres -->
@@ -207,6 +214,13 @@
                         <TagFields v-if='$1t.settings.value.quickTag.subgenreTag' class='col-10 q-mt-sm q-mb-md' style='margin-bottom: 20px;' dense v-model='$1t.settings.value.quickTag.subgenreTag'></TagFields>
                     </div>
 
+                    <!-- Sort genres -->
+                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Sort moods</div>
+                    <div class='row'>
+                        <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-ascending' @click='sortGenres(1)'></q-btn>
+                        <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-descending' @click='sortGenres(-1)'></q-btn>
+                    </div>
+
                 </div>
             </div>
 
@@ -266,6 +280,8 @@
                             <!-- Reordering -->
                             <q-btn size='sm' class='q-mr-sm' flat round icon='mdi-chevron-up' color='primary' @click='reorderCustomQT(i, -1)' v-if='i > 0'></q-btn>
                             <q-btn size='sm' class='q-mr-sm' flat round icon='mdi-chevron-down' color='primary' @click='reorderCustomQT(i, 1)' v-if='i != $1t.settings.value.quickTag.custom.length - 1'></q-btn>
+                            <q-btn size='sm' class='q-mr-sm' flat round icon='mdi-sort-alphabetical-ascending' color='primary' @click='sortCustomQT(i, 1)'></q-btn>
+                            <q-btn size='sm' class='q-mr-sm' flat round icon='mdi-sort-alphabetical-descending' color='primary' @click='sortCustomQT(i, -1)'></q-btn>
                             <!-- Delete -->
                             <q-btn size='sm' flat round icon='mdi-delete' color='red' @click='deleteCustomQT(i)'></q-btn>
 
@@ -496,12 +512,38 @@ function addMood() {
     }
 }
 
+/// Sort moods
+function sortMoods(dir: 1 | -1 = 1) {
+    $1t.settings.value.quickTag.moods.sort((a, b) => {
+        if (a.mood.toLowerCase() > b.mood.toLowerCase()) {
+            return 1 * dir;
+        }
+        if (a.mood.toLowerCase() < b.mood.toLowerCase()) {
+            return -1 * dir;
+        }
+        return 0;
+    });
+}
+
 // Add new genre
 function addGenre() {
     if (!newGenre.value || newGenre.value.trim() == "") return;
     if ($1t.settings.value.quickTag.genres.find((g) => g.genre.toLowerCase() == newGenre.value!.toLowerCase())) return;
     $1t.settings.value.quickTag.genres.push({genre: newGenre.value, keybind: undefined, subgenres: []});
     newGenre.value = undefined;
+}
+
+/// Sort genres
+function sortGenres(dir: 1 | -1 = 1) {
+    $1t.settings.value.quickTag.genres.sort((a, b) => {
+        if (a.genre.toLowerCase() > b.genre.toLowerCase()) {
+            return 1 * dir;
+        }
+        if (a.genre.toLowerCase() < b.genre.toLowerCase()) {
+            return -1 * dir;
+        }
+        return 0;
+    });
 }
 
 // On subgenres changed
@@ -544,6 +586,19 @@ function deleteCustomQT(i: number) {
 
 function editCustomQT(i: number) {
     customQTEdit.value[i] = !customQTEdit.value[i];
+}
+
+/// Sort custom QT alphabetically
+function sortCustomQT(i: number, dir: 1 | -1 = 1) {
+    $1t.settings.value.quickTag.custom[i].values.sort((a, b) => {
+        if (a.val.toLowerCase() > b.val.toLowerCase()) {
+            return 1 * dir;
+        }
+        if (a.val.toLowerCase() < b.val.toLowerCase()) {
+            return -1 * dir;
+        }
+        return 0;
+    });
 }
 
 function addNewQTValue(i: number) {

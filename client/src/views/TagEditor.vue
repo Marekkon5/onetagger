@@ -132,6 +132,7 @@
                     </div>
                 </div>
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 40px;"' inset color="dark"/>
+                
                 <!-- Add new tag -->
                 <div class='row q-mt-lg' style='margin-top: 40px;'>
                     <div class='col-3 q-pt-sm text-weight-medium text-grey-4 text-body2'>Add new text tag</div>
@@ -143,6 +144,7 @@
                     </div>
                 </div>
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 20px; margin-bottom: 25px;"' inset color="dark"/>
+                
                 <!-- Album art -->
                 <div class='text-uppercase text-primary text-weight-medium'>
                     Album art
@@ -152,13 +154,19 @@
                 </div>
                 <div class='text-grey-4 albumart-container text-center'>
                     <div v-for='(image, i) in file.images' :key='"art"+i' class='q-mr-md'>
-                        <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
+                        <!-- <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
                         <div class='q-pt-sm q-mb-md'>
                             <div v-if='file.format != "mp4"' class='text-caption'>{{image.kind}}</div>
                             <div v-if='file.format != "mp4"' class='text-caption'>{{image.description}}</div>
                             <div class='text-subtitle3 text-grey-6 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
                             <q-btn dense push color='red' class='rounded-borders q-px-md q-mt-sm text-weight-medium' @click='removeArt(i)'>Remove</q-btn>
-                        </div>
+                        </div> -->
+                        <TagEditorAlbumArt 
+                            :image='image' 
+                            @click='albumArt = image.data; showAlbumArt = true' 
+                            @remove='removeArt(i)'
+                            @replace='addAlbumArt'
+                        ></TagEditorAlbumArt>
                     </div>
                 </div>
 
@@ -359,6 +367,7 @@ import { computed, onDeactivated, onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { useQuasar } from 'quasar';
 import ManualTag from '../components/ManualTag.vue';
+import TagEditorAlbumArt from '../components/TagEditorAlbumArt.vue';
 
 const $1t = get1t();
 const $q = useQuasar();
@@ -527,6 +536,11 @@ function onChange(tag: string) {
 
 // Add new album art
 function addAlbumArt(data: any) {
+    // Find old image
+    file.value.images = file.value.images.filter((i: any) => i.kind != data.kind);
+    changes.value = changes.value.filter((c) => c.type != 'addPictureBase64' || c.kind != data.kind);
+
+    // Add
     changes.value.push({
         type: 'addPictureBase64',
         mime: data.mime,
