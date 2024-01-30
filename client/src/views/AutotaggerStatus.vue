@@ -113,7 +113,7 @@
                             <span v-for='(i, index) in item'>
                                 <span v-if='$1t.taggerStatus.value.type != "audioFeatures"' class='selectable text-white'>{{platformText(i.platform)}}</span>
                                 <span v-if='$1t.taggerStatus.value.type == "audioFeatures"' class='selectable text-white'>AUDIO FEATURES</span>
-                                <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='i.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
+                                <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='i.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(i.status.status)' :color='statusColor(i.status.status)'>
                                     <q-tooltip v-if='i.status.message'>
                                         {{i.status.message}}
