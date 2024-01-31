@@ -22,12 +22,10 @@ impl Shazam {
         } else {
             conv.collect::<Vec<i16>>()
         };
-        // Calculating singnature requires 6MB stack, because it allocates >2MB of buffers for some reasno
+        // Calculating singnature requires 6MB stack, because it allocates >2MB of buffers for some reason
         let signature = Builder::new()
             .stack_size(1024 * 1024 * 6)
-            .spawn(move || {
-                SignatureGenerator::make_signature_from_buffer(&buffer)
-            })
+            .spawn(move || { SignatureGenerator::make_signature_from_buffer(&buffer) })
             .unwrap()
             .join()
             .unwrap();

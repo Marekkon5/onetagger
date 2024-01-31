@@ -64,6 +64,8 @@ pub fn setup() {
         .level_for("onetagger", level)
         // Custom platforms
         .level_for("onetagger_custom_platform", level)
+        // Songrec fork log
+        .level_for("songrec", level)
         // Colored
         .chain(
             Dispatch::new()
