@@ -88,7 +88,7 @@ impl Traxsource {
             
             // Genre
             selector = Selector::parse("div.genre").unwrap();
-            let genre = track_element.select(&selector).next().unwrap().text().collect::<Vec<_>>().first().unwrap().to_owned();
+            let genre = track_element.select(&selector).next().map(|e| e.text().collect::<Vec<_>>().first().map(|v| v.to_string())).flatten();
 
             // Release date
             selector = Selector::parse("div.r-date").unwrap();
@@ -103,9 +103,7 @@ impl Traxsource {
                 album_artists: vec![],
                 label: Some(label.to_string()),
                 release_date: NaiveDate::parse_from_str(&release_date, "%Y-%m-%d").ok(),
-                genres: vec![genre.to_owned()],
-                styles: vec![],
-                other: vec![],
+                genres: genre.map(|g| vec![g]).unwrap_or_default(),
                 track_id: Some(track_id),
                 release_id: String::new(),
                 duration: duration.into(),

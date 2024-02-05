@@ -167,7 +167,7 @@ impl TagImpl for VorbisTag {
         match self.tag.insert_picture(
             lofty::Picture::new_unchecked(
                 self.picture_type(&kind),
-                MimeType::from_str(&mime.trim().to_lowercase()),
+                Some(MimeType::from_str(&mime.trim().to_lowercase())),
                 description.map(String::from),
                 data
             ),
@@ -188,7 +188,7 @@ impl TagImpl for VorbisTag {
                 kind: self.cover_type(&p.pic_type()),
                 description: p.description().map(String::from).unwrap_or(String::new()),
                 data: p.data().to_vec(),
-                mime: p.mime_type().to_string()
+                mime: p.mime_type().unwrap_or(&MimeType::Jpeg).to_string()
             }
         ).collect()
     }

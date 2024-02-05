@@ -4294,8 +4294,23 @@ dependencies = [
  "flate2",
  "lofty_attr",
  "log",
- "ogg_pager",
+ "ogg_pager 0.5.0",
  "once_cell",
+ "paste",
+]
+
+[[package]]
+name = "lofty"
+version = "0.18.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f75066eb1d25a7047fb2667edb410ae2592439ed81546f95c28b0a1c7d7d3818"
+dependencies = [
+ "byteorder",
+ "data-encoding",
+ "flate2",
+ "lofty_attr",
+ "log",
+ "ogg_pager 0.6.0",
  "paste",
 ]
 
@@ -4982,6 +4997,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ogg_pager"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c949d63b387b25c332f6e39d1762dd4b405008289dd7681f02c258b1294653ca"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "oid-registry"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5100,7 +5124,7 @@ dependencies = [
  "alac",
  "anyhow",
  "hound",
- "lofty",
+ "lofty 0.17.1",
  "log",
  "mp4parse 0.17.0",
  "onetagger-shared",
@@ -5196,7 +5220,7 @@ dependencies = [
  "base64 0.21.7",
  "chrono",
  "id3",
- "lofty",
+ "lofty 0.18.2",
  "log",
  "metaflac",
  "mp4ameta",
