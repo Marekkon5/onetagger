@@ -343,11 +343,11 @@ function filterTracks() {
             let newFilter = filter.value.toLowerCase();
             // title, artist or track or tags
             tracks = $1t.quickTag.value.tracks.filter((t) => 
-                t.title.toLowerCase().includes(newFilter) || t.path.toLowerCase().includes(newFilter) ||
-                t.artists.filter((a: any) => a.toLowerCase().includes(newFilter)).length > 0 ||
-                (t.mood??'').toLowerCase().includes(newFilter) ||
-                t.getAllCustom().some((i: CustomTagInfo) => i.value.toLowerCase().includes(newFilter)) ||
-                (t.genres??[]).some((i: any) => i.toLowerCase().includes(newFilter)) 
+                t.title.toLowerCase().match(newFilter) || t.path.toLowerCase().match(newFilter) ||
+                t.artists.filter((a: any) => a.toLowerCase().match(newFilter)).length > 0 ||
+                (t.mood??'').toLowerCase().match(newFilter) ||
+                t.getAllCustom().some((i: CustomTagInfo) => i.value.toLowerCase().match(newFilter)) ||
+                (t.genres??[]).some((i: any) => i.toLowerCase().match(newFilter)) 
             );
         }
         if (!sortOption.value) return tracks;
