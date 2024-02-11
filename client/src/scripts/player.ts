@@ -18,6 +18,8 @@ class Player {
     // Using _ instead of private because of reactivity proxy
     _waveformLock: boolean[] = [];
     _waveformPath?: string;
+    _playerLoadPromise?: Promise<any>;
+    _playerLoadResolve?: any;
 
     constructor($1t: OneTagger) {
         // Setup
@@ -124,7 +126,7 @@ class Player {
     }
 
     // Start playback
-    play() {
+    async play() {
         const $1t = get1t();
 
         // External
@@ -140,7 +142,12 @@ class Player {
             return;
         }
 
-        // Normal
+        // Wait for load
+        if (this._playerLoadPromise) {
+            await this._playerLoadPromise;
+            this._playerLoadPromise = undefined;
+        }
+        // Start playing
         $1t.send("playerPlay");
         this.playing = true;
     }
@@ -191,6 +198,7 @@ class Player {
         }
 
         // Server side
+        this._playerLoadPromise = new Promise((res) => this._playerLoadResolve = res);
         $1t.send("playerLoad", { path });
         this.generateWaveform(path);
 

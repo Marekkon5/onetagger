@@ -226,6 +226,11 @@ class OneTagger {
                 this.player.value.playing = false;
                 this.player.value.title = json.title;
                 this.player.value.artists = json.artists;
+                // Resolve promise
+                if (this.player.value._playerLoadResolve) {
+                    this.player.value._playerLoadResolve();
+                    this.player.value._playerLoadResolve = undefined;
+                }
                 break;
             case 'playerSync':
                 this.player.value.playing = json.playing;
