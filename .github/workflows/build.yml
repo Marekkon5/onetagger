@@ -22,13 +22,6 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Node Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          client/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
-
     - name: Install dependencies
       run: |
         sudo apt update
@@ -94,13 +87,6 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Node Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          client/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
-      
     - name: Install NodeJS
       uses: actions/setup-node@v3
       with:
@@ -177,13 +163,6 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Node Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          client/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
-     
     - name: Install dependencies
       run: |
         brew install rustup nodejs pnpm
