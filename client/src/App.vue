@@ -44,13 +44,14 @@
 
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
-                <router-view v-slot='{ Component }' v-if='$1t.info.value.ready'>
+                <!-- <router-view v-slot='{ Component }' v-if='$1t.info.value.ready'>
                     <transition name="fade">
                         <keep-alive :include='["AudioFeatures"]'>
                             <component :is='Component'></component>
                         </keep-alive>
                     </transition>
-                </router-view>
+                </router-view> -->
+                <router-view></router-view>
                 <!-- Loading -->
                 <div v-if='!$1t.info.value.ready' class='row justify-center items-center' style='height: calc(100vh - 64px)'>
                     <q-circular-progress indeterminate color='primary' size='64px'></q-circular-progress>
