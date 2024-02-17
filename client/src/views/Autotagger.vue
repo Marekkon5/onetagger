@@ -166,7 +166,7 @@ async function startTagging() {
     $1t.config.value.type = 'autoTagger';
 
     // Tag playlist rather than folder
-    let playlist = null;
+    let playlist: any = null;
     if ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)
         playlist = $1t.autoTaggerPlaylist.value;
 
@@ -180,12 +180,19 @@ async function startTagging() {
         $1t.config.value.spotify = undefined;
     }
 
-    // Start
-    $1t.send('startTagging', {
-        config: $1t.config.value,
-        playlist
-    });
-    await $router.push('/autotagger/status');
+    // Start bit later because router wouldn't redirect
+    setTimeout(() => {
+        $1t.send('startTagging', {
+            config: $1t.config.value,
+            playlist
+        });
+    }, 100);
+
+    // Go to status page
+    setTimeout(async () => {
+        await $router.push('/autotagger/status');
+    }, 10);
+
 }
 
 const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)) 
