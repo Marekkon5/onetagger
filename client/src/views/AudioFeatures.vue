@@ -201,14 +201,20 @@ function start() {
     $1t.settings.value.audioFeatures.config = config.value;
     $1t.saveSettings();
 
-    let p = null;
+    let p: any = null;
     if (playlist.value && playlist.value.data)
         p = playlist.value;
 
-    // Start
+    // Start bit later because router wouldn't redirect
     config.value.type = 'audioFeatures';
-    $1t.send('startTagging', {config: config.value, playlist: p});
-    $router.push('/audiofeatures/status');
+    let c = JSON.parse(JSON.stringify(config.value));
+    
+    setTimeout(() => {
+        $1t.send('startTagging', {config: c, playlist: p});
+    }, 100);
+    setTimeout(() => {
+        $router.push('/audiofeatures/status');
+    }, 10);
 }
     
 
