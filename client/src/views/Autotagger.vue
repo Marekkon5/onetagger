@@ -160,7 +160,7 @@ const $router = useRouter();
 const step = ref(0);
 const cliDialog = ref(false);
 
-function startTagging() {
+async function startTagging() {
     // Save settings
     $1t.saveSettings();
     $1t.config.value.type = 'autoTagger';
@@ -185,7 +185,7 @@ function startTagging() {
         config: $1t.config.value,
         playlist
     });
-    $router.push('/autotagger/status');
+    await $router.push('/autotagger/status');
 }
 
 const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)) 

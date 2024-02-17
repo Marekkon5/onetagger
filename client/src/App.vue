@@ -44,8 +44,8 @@
 
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
-                <router-view v-slot='{ Component }'>
-                    <transition name="fade" v-if='$1t.info.value.ready'>
+                <router-view v-slot='{ Component }' v-if='$1t.info.value.ready'>
+                    <transition name="fade">
                         <keep-alive :include='["AudioFeatures"]'>
                             <component :is='Component'></component>
                         </keep-alive>
