@@ -1,7 +1,7 @@
 use anyhow::Error;
 use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
-use onetagger_tagger::{AutotaggerSourceBuilder, AutotaggerSource, TaggerConfig, PlatformInfo, Track, AudioFileInfo, MatchingUtils, supported_tags, TrackMatch};
+use onetagger_tagger::{supported_tags, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, TaggerConfig, Track, TrackMatch};
 use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
@@ -66,12 +66,13 @@ impl Bandcamp {
 
 impl AutotaggerSource for Bandcamp {
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        let bandcamp_config: BandcampConfig = config.get_custom("bandcamp")?;
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         debug!("Bandcamp q: {query}");
         let results = self.search_tracks(&query)?;
         let results: Vec<Track> = results.into_iter().map(|r| r.into()).collect();
-        Ok(MatchingUtils::match_track(info, &results, config, true))
+        Ok(MatchingUtils::match_track(info, &results, config, bandcamp_config.match_artist))
     }
 
     fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
@@ -82,6 +83,12 @@ impl AutotaggerSource for Bandcamp {
 
     
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BandcampConfig {
+    match_artist: bool
+}
+
 
 #[derive(Debug, Clone)]
 pub struct BandcampBuilder;
@@ -103,7 +110,8 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
             version: "1.0.0".to_string(),
             icon: include_bytes!("../assets/bandcamp.png"),
             max_threads: 4,
-            custom_options: Default::default(),
+            custom_options: PlatformCustomOptions::new()
+                .add("match_artist", "Match Artist", PlatformCustomOptionValue::Boolean { value: true }),
             requires_auth: false,
             supported_tags: supported_tags!(Title, Artist, ReleaseDate, Album, Artist, Label, AlbumArt, Style, Genre, TrackId, URL, ReleaseId, TrackTotal)
         }
