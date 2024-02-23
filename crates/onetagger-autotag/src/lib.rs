@@ -411,8 +411,8 @@ impl AudioFileInfoImpl for AudioFileInfo {
         // Parse filename
         if (title.is_none() || artists.is_none()) && filename_template.is_some() {
             let filename = path.as_ref().file_name().ok_or(anyhow!("Missing filename!"))?.to_str().ok_or(anyhow!("Missing filename"))?;
-
             if let Some(captures) = filename_template.unwrap().captures(filename) {                
+                
                 // Title
                 if title.is_none() {
                     if let Some(m) = captures.name("title") {
@@ -490,9 +490,9 @@ impl AudioFileInfoImpl for AudioFileInfo {
         let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
         template = re.replace_all(&template, "(.+)").to_string();
         // Extension
-        template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template);
+        template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template).trim().to_string();
         // Final regex
-        Regex::new(template.trim()).ok()
+        Regex::new(&template).ok()
     }
 
     // Recognize on Shazam

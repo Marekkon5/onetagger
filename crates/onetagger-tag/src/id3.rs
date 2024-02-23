@@ -64,7 +64,7 @@ impl ID3Tag {
         }
         // AIFF
         if ext == "aif" || ext == "aiff" {
-            let tag = Tag::read_from_aiff_path(path)?;
+            let tag = Tag::read_from_path(path)?;
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
@@ -220,7 +220,7 @@ impl TagImpl for ID3Tag {
                     .padding(2048)
                     .write_to_path(&self.tag, path)?;
             },
-            ID3AudioFormat::AIFF => self.tag.write_to_aiff_path(path, version)?,
+            ID3AudioFormat::AIFF => self.tag.write_to_path(path, version)?,
             ID3AudioFormat::WAV => crate::wav::write_wav(path, self.tag.clone(), version)?,
         }
         
