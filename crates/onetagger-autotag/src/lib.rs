@@ -475,22 +475,23 @@ impl AudioFileInfoImpl for AudioFileInfo {
 
     // Convert template into a regex
     fn parse_template(template: &str) -> Option<Regex> {
-        // Regex reserved
-        let reserved = ".?+*$^()[]/|";
+        // Regex reserved (skip ? because can be used)
+        let reserved = ".+*$^()[]/|";
         let mut template = template.to_string();
         for c in reserved.chars() {
             template = template.replace(c, &format!("\\{}", c));
         };
         // Replace variables
         template = template
-            .replace("%title%", "(?P<title>.+)")
-            .replace("%artist%", "(?P<artists>.+)")
-            .replace("%artists%", "(?P<artists>.+)");
+            .replace("%title%", "(?P<title>.+?)")
+            .replace("%artist%", "(?P<artists>.+?)")
+            .replace("%artists%", "(?P<artists>.+?)");
         // Remove all remaining variables
         let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
         template = re.replace_all(&template, "(.+)").to_string();
         // Extension
         template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template).trim().to_string();
+        debug!("Filename template regex: `{template}`");
         // Final regex
         Regex::new(&template).ok()
     }
