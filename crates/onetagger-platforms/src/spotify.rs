@@ -104,6 +104,11 @@ impl Spotify {
                         // Rate limit
                         if r.status() == 429 {
                             let delay = r.header("Retry-After").map(|v| v.parse().ok()).flatten().unwrap_or(3);
+                            if delay > 600 {
+                                error!("Spotify rate limit too high!: {delay}");
+                                return Err(anyhow!("Too high rate limit by Spotify"));
+                            }
+
                             warn!("Spotify rate limit hit, sleeping for: {delay}s...");
                             std::thread::sleep(Duration::from_secs(delay));
                             return self.rate_limit_wrap(f);
