@@ -93,7 +93,11 @@ impl Spotify {
         F: Fn(&Spotify) -> ClientResult<R>
     {
         match f(self) {
-            Ok(r) => Ok(r),
+            Ok(r) => {
+                // Intentionally slow down to prevent rate limits
+                std::thread::sleep(Duration::from_millis(250));
+                Ok(r)
+            },
             Err(ClientError::Http(http)) => {
                 match *http {
                     rspotify::http::HttpError::StatusCode(r) => {
