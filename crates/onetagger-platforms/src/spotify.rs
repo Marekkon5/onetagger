@@ -1,4 +1,5 @@
 use anyhow::Error;
+use chrono::NaiveDate;
 use std::time::Duration;
 use rspotify::clients::{BaseClient, OAuthClient};
 use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
@@ -237,7 +238,8 @@ fn full_track_to_track(track: FullTrack) -> Track {
         duration: track.duration.to_std().unwrap().into(),
         track_number: Some(TrackNumber::Number(track.track_number as i32)),
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),
-        release_year: track.album.release_date.map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
+        release_year: track.album.release_date.as_ref().map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
+        release_date: track.album.release_date.as_ref().map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()).flatten(),
         explicit: Some(track.explicit),
         thumbnail: track.album.images.iter().min_by(|a, b| a.width.unwrap_or(1000.0).partial_cmp(&b.width.unwrap_or(1000.0)).unwrap()).map(|i| i.url.to_string()),
         ..Default::default()
