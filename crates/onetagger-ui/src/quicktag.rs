@@ -5,7 +5,7 @@ use std::fs::read_dir;
 use std::path::Path;
 use std::io::Cursor;
 use walkdir::WalkDir;
-use image::ImageOutputFormat;
+use image::ImageFormat;
 use image::io::Reader as ImageReader;
 use serde::{Deserialize, Serialize};
 use onetagger_tag::{AudioFileFormat, Field, Tag, EXTENSIONS, TagSeparators};
@@ -168,7 +168,7 @@ impl QuickTagFile {
         // Downscale and save
         let scaled = img.thumbnail_exact(50, 50);
         let mut out = vec![];
-        scaled.write_to(&mut Cursor::new(&mut out), ImageOutputFormat::Jpeg(95))?;
+        scaled.write_to(&mut Cursor::new(&mut out), ImageFormat::Jpeg)?;
         Ok(out)
     }
 }
