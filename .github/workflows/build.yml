@@ -146,7 +146,7 @@ jobs:
 
   build-mac:
     name: Mac
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
 
