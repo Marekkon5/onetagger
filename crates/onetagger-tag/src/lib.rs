@@ -369,7 +369,7 @@ impl Field {
             Field::Key => "INITIALKEY",
             Field::BPM => "BPM",
             Field::Genre => "GENRE",
-            Field::Label => "LABEL",
+            Field::Label => "PUBLISHER",
             Field::Style => "STYLE",
             Field::ISRC => "ISRC",
             Field::CatalogNumber => "CATALOGNUMBER",
