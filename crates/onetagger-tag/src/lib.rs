@@ -27,9 +27,6 @@ pub mod vorbis;
 #[cfg(feature = "tag")]
 mod wav;
 
-#[cfg(feature = "python")]
-use pyo3::prelude::*;
-
 // Supported extensions
 pub static EXTENSIONS : [&'static str; 11] = ["mp3", "flac", "aif", "aiff", "m4a", 
     "mp4", "wav", "ogg", "opus", "spx", "oga"];
@@ -162,7 +159,6 @@ pub trait TagImpl {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub struct TagSeparators {
     pub id3: String,
     pub vorbis: Option<String>,
@@ -181,7 +177,6 @@ impl Default for TagSeparators {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub enum AudioFileFormat {
     FLAC, AIFF, MP3, MP4, WAV, OGG
 }
@@ -203,7 +198,6 @@ impl AudioFileFormat {
 
 /// Tag fields from UI
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct FrameName {
@@ -513,7 +507,6 @@ impl TagChanges {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct Lyrics {
@@ -560,117 +553,22 @@ impl Lyrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct LyricsLine {
     pub text: String,
-    pub start: Option<OTDuration>,
-    pub end: Option<OTDuration>,
+    pub start: Option<Duration>,
+    pub end: Option<Duration>,
     /// Optional
     pub parts: Vec<LyricsLinePart>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub struct LyricsLinePart {
     pub text: String,
-    pub start: Option<OTDuration>,
-    pub end: Option<OTDuration>
+    pub start: Option<Duration>,
+    pub end: Option<Duration>
 }
 
-/// Duration which can be used in Python as well
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-#[repr(transparent)]
-pub struct OTDuration(pub Duration);
-
-impl Deref for OTDuration {
-    type Target = Duration;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for OTDuration {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Into<Duration> for OTDuration {
-    fn into(self) -> Duration {
-        self.0
-    }
-}
-
-impl From<Duration> for OTDuration {
-    fn from(value: Duration) -> Self {
-        Self(value)
-    }
-}
-
-#[cfg(feature = "python")]
-impl IntoPy<PyObject> for OTDuration {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        self.0.as_secs_f64().to_object(py)
-    }
-}
-
-#[cfg(feature = "python")]
-impl<'a> FromPyObject<'a> for OTDuration {
-    fn extract(ob: &'a PyAny) -> PyResult<Self> {
-        Ok(OTDuration(Duration::from_secs_f64(ob.extract()?)))
-    }
-}
-
-impl Serialize for OTDuration {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer 
-    {
-        serializer.serialize_f64(self.as_secs_f64())
-    }
-}
-
-impl<'de> Deserialize<'de> for OTDuration {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de> 
-    {
-        deserializer.deserialize_f64(OTDurationVisitor)
-    }
-}
-
-struct OTDurationVisitor;
-
-impl<'de> Visitor<'de> for OTDurationVisitor {
-    type Value = OTDuration;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("Duration as f64 seconds")
-    }
-
-    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error, 
-    {
-        Ok(OTDuration(Duration::from_secs_f64(v)))    
-    }
-    
-    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error, 
-    {
-        Ok(OTDuration(Duration::from_secs(v as u64)))    
-    }
-
-    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error, 
-    {
-        Ok(OTDuration(Duration::from_secs(v)))
-    }
-}

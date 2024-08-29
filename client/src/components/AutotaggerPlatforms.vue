@@ -65,7 +65,7 @@
 
     <div v-if='!dense' class='q-mt-md q-mb-xl'>
         <div class='text-subtitle2 text-bold text-primary'>NEED MORE PLATFORMS?</div>
-        <div class='text-subtitle2 text-grey-6'>One Tagger supports custom platforms written in Rust or Python.<br>You can install them using the button below.</div>
+        <div class='text-subtitle2 text-grey-6'>One Tagger supports custom platforms written in Rust.<br>You can install them using the button below.</div>
 
         <div class="row items-center justify-center q-mt-md">
             <q-btn dense push color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="rounded-borders q-px-sm q-mb-xs text-black text-weight-medium text-caption" @click='openPlatformsRepo()'>Platforms Repository</q-btn>

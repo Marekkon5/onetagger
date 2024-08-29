@@ -251,7 +251,7 @@ interface RepoPlatform {
     author: string;
     description: string;
     requiresAuth: string;
-    language: 'rust' | 'python';
+    language: 'rust';
     version: string;
     maxThreads: number;
     versions: { [key: string]: number };

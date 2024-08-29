@@ -12,7 +12,6 @@ osxcross/
 test/
 vc_redist.x64.exe
 assets/vc_redist.x64.exe
-crates/onetagger-python/pyembedded
 *.dll
 
 perf.data

@@ -28,7 +28,6 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.35", features = ["rt-multi-thread"] }
 
 onetagger-tag = { path = "../onetagger-tag" }
-onetagger-python = { path = "../onetagger-python" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-tagger = { path = "../onetagger-tagger" }
 onetagger-player = { path = "../onetagger-player" }

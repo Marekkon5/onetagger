@@ -16,9 +16,6 @@ use onetagger_shared::{VERSION, COMMIT, PORT};
 use onetagger_ui::StartContext;
 
 fn main() {
-    // Python
-    onetagger_python::python_hook();
-
     // Setup 1T
     onetagger_shared::setup();
     let cli = Cli::parse();

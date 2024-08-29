@@ -41,9 +41,6 @@ SongRec (Shazam support) - https://github.com/marin-m/SongRec
 ## Support
 You can support this project by donating on [PayPal](https://paypal.me/marekkon5) or [Patreon](https://www.patreon.com/onetagger)
 
-## Custom Platforms
-You can now create custom platforms using Python or Rust. For guide on how to check [CUSTOM_PLATFORMS.md](https://github.com/Marekkon5/onetagger/blob/master/CUSTOM_PLATFORMS.md)
-
 ## Compilling
 
 ### Linux & Mac
@@ -64,7 +61,6 @@ cd ..
 
 **Compile**
 ```
-cargo run --bin onetagger-python-builder --release
 cargo build --release
 ```
 Output will be in: `target/release/onetagger`
@@ -83,7 +79,6 @@ cd ..
 
 **Compile OneTagger:**
 ```
-cargo run --bin onetagger-python-builder --release
 cargo build --release
 ```
 

@@ -54,11 +54,6 @@ impl AutotaggerPlatforms {
             Ok(_) => {},
             Err(e) => warn!("Failed loading custom platforms: {e}")
         };
-        #[cfg(feature = "python")]
-        match self.load_python() {
-            Ok(_) => {},
-            Err(e) => warn!("Failed loading Python platforms: {e}"),
-        }
     }
 
     /// Get the source
@@ -129,37 +124,6 @@ impl AutotaggerPlatforms {
         Ok(())
     }
 
-    /// Load python custom platforms
-    #[cfg(feature = "python")]
-    fn load_python(&mut self) -> Result<(), Error> {
-        let folder = Self::platforms_dir()?;
-        onetagger_python::setup()?;
-        
-        for entry in std::fs::read_dir(folder)?.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()) {
-            let platform = onetagger_python::load_python_platform(entry.path())?;
-            
-            // Load icon
-            let icon = match Self::reencode_image(&std::fs::read(&entry.path().join("icon.png")).unwrap_or(vec![])) {
-                Ok(icon) => icon,
-                Err(e) => {
-                    warn!("Failed generating icon for platform: {:?} {e}", entry.path());
-                    String::new()
-                },
-            };
-
-            // Generate info
-            let info = AutotaggerPlatformInfo {
-                built_in: false,
-                platform: platform.info.info.to_owned(),
-                icon,
-                requires_auth: platform.info.info.requires_auth,
-                supported_tags: platform.info.info.supported_tags.clone(),
-            };
-
-            self.platforms.push(AutotaggerPlatform { info, platform: Box::new(platform) });
-        }
-        Ok(())
-    }
 }
 
 /// Autotagger Platform

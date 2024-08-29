@@ -16,9 +16,6 @@ use serde_json::Value;
 use strsim::normalized_levenshtein;
 use unidecode::unidecode;
 
-#[cfg(feature = "python")]
-use pyo3::prelude::*;
-
 pub mod custom;
 
 const ATTRIBUTES_TO_REMOVE: [&'static str; 23] = ["(intro)", "(clean)", "(intro clean)", "(dirty)", "(intro dirty)", "(clean extended)",
@@ -26,10 +23,9 @@ const ATTRIBUTES_TO_REMOVE: [&'static str; 23] = ["(intro)", "(clean)", "(intro 
     "(radio edit)", "(ck cut)", "(super cut)", "(mega cutz)", "(snip hitz)", "(jd live cut)", "(djcity intro)", "(vdj jd edit)"];
 
 // Re-export
-pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field, Lyrics, LyricsLine, LyricsLinePart, OTDuration};
+pub use onetagger_tag::{TagSeparators, FrameName, AudioFileFormat, Field, Lyrics, LyricsLine, LyricsLinePart};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerConfig {
     // Global
@@ -117,17 +113,6 @@ impl TaggerConfig {
     }
 }
 
-#[cfg(feature = "python")]
-#[pymethods]
-impl TaggerConfig {
-    #[pyo3(name = "getcustom")]
-    fn get_custom_py(&self, platform_id: &str, py: Python<'_>) -> Result<Py<PyAny>, Error> {
-        let value = self.custom.get(platform_id).ok_or(anyhow!("Missing custom platform config for id: {platform_id}"))?;
-        let p = pythonize::pythonize(py, value)?;
-        Ok(p)
-    }
-
-}
 
 impl Default for TaggerConfig {
     fn default() -> Self {
@@ -204,24 +189,8 @@ impl Into<HashMap<String, Value>> for PlatformTaggerConfig {
     }
 }
 
-#[cfg(feature = "python")]
-impl IntoPy<PyObject> for PlatformTaggerConfig {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        None::<()>.into_py(py)
-    }
-}
-
-#[cfg(feature = "python")]
-impl<'a> FromPyObject<'a> for PlatformTaggerConfig {
-    fn extract(_ob: &'a PyAny) -> PyResult<Self> {
-        // TODO: Unimplemented
-        Ok(Self::default())
-    }
-}
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 pub struct SpotifyConfig {
     pub client_id: String,
@@ -230,7 +199,6 @@ pub struct SpotifyConfig {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub enum MultipleMatchesSort {
     Default,
     Oldest,
@@ -255,7 +223,6 @@ impl From<String> for MultipleMatchesSort {
 }
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 pub struct Track {
     /// Use platform id
@@ -278,7 +245,7 @@ pub struct Track {
     pub other: Vec<(FrameName, Vec<String>)>,
     pub track_id: Option<String>,
     pub release_id: String,
-    pub duration: OTDuration,
+    pub duration: Duration,
     pub remixers: Vec<String>,
     pub track_number: Option<TrackNumber>,
     pub track_total: Option<u16>,
@@ -303,7 +270,6 @@ pub struct Track {
     pub custom: HashMap<String, String>
 }
 
-#[cfg_attr(feature = "python", pymethods)]
 impl Track {
     /// Get title with version
     pub fn full_title(&self) -> String {
@@ -358,22 +324,11 @@ impl Track {
 
 /// Matched track
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 pub struct TrackMatch {
     pub accuracy: f64,
     pub track: Track,
     pub reason: MatchReason
-}
-
-#[cfg(feature = "python")]
-#[pymethods]
-impl TrackMatch {
-    #[new]
-    #[pyo3(signature = (track, accuracy, reason = None))]
-    fn new_py(track: Track, accuracy: f32, reason: Option<MatchReason>) -> TrackMatch {
-        TrackMatch { accuracy: accuracy as f64, track, reason: reason.unwrap_or(MatchReason::Fuzzy) }
-    }
 }
 
 impl TrackMatch {
@@ -401,8 +356,6 @@ impl PartialOrd for TrackMatch {
 
 /// Why was this track matched
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
-#[repr(C)]
 #[serde(rename_all = "camelCase")]
 pub enum MatchReason {
     Fuzzy,
@@ -445,29 +398,9 @@ impl ToString for TrackNumber {
     }
 }
 
-#[cfg(feature = "python")]
-impl IntoPy<PyObject> for TrackNumber {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self {
-            TrackNumber::Number(n) => n.to_object(py),
-            TrackNumber::Custom(n) => n.to_object(py),
-        }
-    }
-}
-
-#[cfg(feature = "python")]
-impl<'a> FromPyObject<'a> for TrackNumber {
-    fn extract(ob: &'a PyAny) -> PyResult<Self> {
-        match ob.extract::<String>() {
-            Ok(s) => return Ok(TrackNumber::Custom(s)),
-            Err(_) => return Ok(TrackNumber::Number(ob.extract::<i32>()?)),
-        }
-    }
-}
 
 /// For Discogs & Beatport
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub enum StylesOptions {
@@ -566,7 +499,7 @@ impl LyricsExt for Lyrics {
                 if let Some(artist) = track.artists.first() {
                     output.push_str(&format!("[ar:{artist}]\n"));
                 }
-                if *track.duration != Duration::ZERO {
+                if track.duration != Duration::ZERO {
                     output.push_str(&format!("[length: {}:{:02}]\n", track.duration.as_secs() / 60, track.duration.as_secs() % 60));
                 }
                 output.push('\n');
@@ -578,13 +511,13 @@ impl LyricsExt for Lyrics {
             if let Some(start) = line.start {
                 // Write normal
                 if !enhanced || line.parts.is_empty() {
-                    output.push_str(&format!("[{}]{}\n", format_lrc_ts(*start), line.text));
+                    output.push_str(&format!("[{}]{}\n", format_lrc_ts(start), line.text));
                 } else {
                     // Write enhanced
-                    output.push_str(&format!("[{}]", format_lrc_ts(*start)));
+                    output.push_str(&format!("[{}]", format_lrc_ts(start)));
                     for part in &line.parts {
                         if let Some(start) = part.start {
-                            output.push_str(&format!(" <{}> {}", format_lrc_ts(*start), part.text));
+                            output.push_str(&format!(" <{}> {}", format_lrc_ts(start), part.text));
                         } else {
                             output.push_str(&format!(" {}", part.text));
                         }
@@ -605,7 +538,6 @@ impl LyricsExt for Lyrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[repr(C)]
 pub struct AudioFileInfo {
     pub title: Option<String>,
@@ -613,13 +545,12 @@ pub struct AudioFileInfo {
     pub format: AudioFileFormat,
     pub path: PathBuf,
     pub isrc: Option<String>,
-    pub duration: Option<OTDuration>,
+    pub duration: Option<Duration>,
     pub track_number: Option<u16>,
     pub tagged: FileTaggedStatus,
     pub tags: HashMap<String, Vec<String>>
 }
 
-#[cfg_attr(feature = "python", pymethods)]
 impl AudioFileInfo {
     /// Get title (or error shorthand)
     pub fn title(&self) -> Result<&str, Error> {
@@ -639,10 +570,6 @@ impl AudioFileInfo {
         Ok(self.artists.first().unwrap().as_str())
     }
 
-    /// Get path (used in Python to convert PathBuf to String)
-    pub fn getpath(&self) -> String {
-        self.path.to_string_lossy().to_string()
-    }
 }
 
 impl AudioFileInfo {
@@ -668,7 +595,6 @@ impl AudioFileInfo {
 
 /// If the file was already tagged with OneTagger
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 pub enum FileTaggedStatus {
     /// Not tagged with 1T
     Untagged,
@@ -756,7 +682,6 @@ pub struct PlatformInfo {
 
 /// All the different tags a platform can support
 #[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "python", pyclass(set_all, get_all))]
 #[serde(rename_all = "camelCase")]
 #[repr(C)]
 pub enum SupportedTag {
@@ -1123,7 +1048,7 @@ impl MatchingUtils {
         }
         let duration = *info.duration.as_ref().unwrap();
         //  No duration available
-        if *duration == Duration::ZERO || *track.duration == Duration::ZERO {
+        if duration == Duration::ZERO || track.duration == Duration::ZERO {
             return true;
         }
         let diff = (duration.as_secs() as i64 - track.duration.as_secs() as i64).abs() as u64;

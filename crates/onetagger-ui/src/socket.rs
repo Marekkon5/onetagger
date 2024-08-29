@@ -41,7 +41,6 @@ enum Action {
     DeleteFiles { paths: Vec<String> },
     GetLog,
 
-    PythonDocs,
     LoadPlatforms,
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
     StopTagging,
@@ -616,15 +615,11 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             }
         },
 
-        // Generate and open Python documentation
-        Action::PythonDocs => {
-            webbrowser::open(&format!("file://{}", onetagger_python::generate_docs()?.to_string_lossy()))?;
-        },
 
         Action::RepoManifest => {
             send_socket(websocket, json!({
                 "action": "repoManifest",
-                "manifest": onetagger_autotag::repo::fetch_manifest()?
+                "manifest": onetagger_autotag::repo::fetch_manifest_async().await?
             })).await.ok();
         },
         Action::InstallPlatform { id, version, is_native } => {

@@ -17,7 +17,7 @@
         <div>Start Context: <span class='monospace'>{{ $1t.info.value.startContext }}</span></div>
         <div>Custom Platforms Compatibility: <span class='monospace'>{{ $1t.info.value.customPlatformCompat }}</span></div>
         <div>
-            <q-checkbox @update:model-value="(v) => {$1t.settings.value.devtools = v; $1t.saveSettings(true)}" :model-value='$1t.settings.value.devtools' label='Enable webview devtools (requires restart)'></q-checkbox>
+            <q-checkbox @update:model-value="(v: any) => {$1t.settings.value.devtools = v; $1t.saveSettings(true)}" :model-value='$1t.settings.value.devtools' label='Enable webview devtools (requires restart)'></q-checkbox>
         </div>
 
         <!-- Actions -->
@@ -26,7 +26,6 @@
         <q-btn class='q-mx-sm' outline color='primary' @click='devServer()'>Go to dev server</q-btn>
         <q-btn class='q-mx-sm' outline color='primary' @click='devtools()'>Open webview devtools</q-btn>
         <q-btn class='q-mx-sm' outline color='primary' @click='$1t.send("openSettingsFolder")'>Open data dir</q-btn>
-        <q-btn class='q-mx-sm' outline color='primary' @click='pythonDocs()'>Generate and open Python Docs</q-btn>
         <div class='q-my-sm'></div>
 
         <!-- Log -->
@@ -109,18 +108,6 @@ function devtools() {
 function logBottom() {
     //@ts-ignore
     logRef.value!.scrollTo(log.value.length);
-}
-
-// Generate python docs and show warning
-function pythonDocs() {
-    $1t.send('pythonDocs');
-    $q.dialog({
-        title: 'Python Docs',
-        message: 'Python docs are generating, which might take a while and will open once ready. You can also access them later from 1T folder',
-        ok: {
-            color: 'primary'
-        }
-    });
 }
 
 // Get color for level

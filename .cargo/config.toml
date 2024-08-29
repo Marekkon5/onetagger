@@ -1,6 +1,3 @@
-[env]
-PYO3_CONFIG_FILE = { value = "crates/onetagger-python/pyembedded/pyo3-build-config-file.txt", relative = true }
-
 # Mac OS libraries
 [target.x86_64-apple-darwin]
 rustflags = ["-lz", "-lbz2", "-llzma", "-C", "link-args=-framework AudioUnit"]

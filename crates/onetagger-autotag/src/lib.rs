@@ -35,8 +35,6 @@ pub mod audiofeatures;
 // Re-exports
 pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
 
-#[cfg(feature = "python")]
-pub use onetagger_python::python_process;
 
 lazy_static::lazy_static! {
     /// Stop tagging global variable

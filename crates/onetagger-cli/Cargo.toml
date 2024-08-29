@@ -15,7 +15,6 @@ clap = { version = "4.1", features = ["derive"] }
 
 onetagger-ui = { path = "../onetagger-ui" }
 onetagger-tagger = { path = "../onetagger-tagger" }
-onetagger-python = { path = "../onetagger-python" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-autotag = { path = "../onetagger-autotag" }
 onetagger-renamer = { path = "../onetagger-renamer" }

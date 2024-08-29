@@ -18,7 +18,6 @@ serde = { version = "1.0", features = ["derive"] }
 
 onetagger-ui = { path = "../onetagger-ui" }
 onetagger-tag = { path = "../onetagger-tag" }
-onetagger-python = { path = "../onetagger-python" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-tagger = { path = "../onetagger-tagger" }
 onetagger-player = { path = "../onetagger-player" }

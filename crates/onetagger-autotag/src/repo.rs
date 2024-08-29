@@ -1,10 +1,8 @@
-use std::io::{BufWriter, BufReader};
+use std::io::BufWriter;
 use std::fs::File;
 use anyhow::Error;
 use onetagger_shared::Settings;
 use serde_json::Value;
-use tempfile::NamedTempFile;
-use zip::ZipArchive;
 
 const MANIFEST_URL: &str = "https://raw.githubusercontent.com/Marekkon5/onetagger-platforms/master/platforms.json";
 const DOWNLOAD_URL: &str = "https://github.com/Marekkon5/onetagger-platforms/releases/download/platforms";
@@ -13,6 +11,11 @@ const DOWNLOAD_URL: &str = "https://github.com/Marekkon5/onetagger-platforms/rel
 /// TODO: Serialization not implemented right now since it just gets passed to UI
 pub fn fetch_manifest() -> Result<Value, Error> {
     Ok(reqwest::blocking::get(MANIFEST_URL)?.json()?)
+}
+
+/// Fetch custom platforms repo async version because WS is handled by async runtime
+pub async fn fetch_manifest_async() -> Result<Value, Error> {
+    Ok(reqwest::get(MANIFEST_URL).await?.error_for_status()?.json().await?)
 }
 
 /// Download and install custom platform
@@ -45,14 +48,5 @@ pub fn install_platform(id: &str, version: &str, is_native: bool) -> Result<(), 
         return Ok(())
     }
    
-    // Download Python
-    let mut tmp_file = NamedTempFile::new()?;
-    std::io::copy(&mut reqwest::blocking::get(format!("{DOWNLOAD_URL}/{name}.zip"))?, &mut BufWriter::new(File::create(tmp_file.path())?))?;
-    if path.exists() {
-        std::fs::create_dir_all(&path)?;
-    }
-    let mut zip = ZipArchive::new(BufReader::new(tmp_file.as_file_mut()))?;
-    zip.extract(path)?;
-
     Ok(())
 }
