@@ -254,6 +254,7 @@ class OneTagger {
                     // this.onError('quickTagSaved: Invalid track');
                 }
                 this.quickTag.value.saving -= 1;
+                this.onQuickTagEvent('quickTagSaved');
 
                 break;
             // Browser folder

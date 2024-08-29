@@ -586,7 +586,10 @@ onMounted(() => {
                         $1t.loadQuickTag();
                     }, 50);
                 });
+                break;
 
+            case 'quickTagSaved':
+                filterTracks();
                 break;
 
             // Manual tag trigger
