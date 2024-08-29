@@ -18,6 +18,7 @@ onetagger-tagger = { path = "../onetagger-tagger" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-autotag = { path = "../onetagger-autotag" }
 onetagger-renamer = { path = "../onetagger-renamer" }
+onetagger-playlist = { path = "../onetagger-playlist" }
 onetagger-platforms = { path = "../onetagger-platforms" }
 
 [target.'cfg(windows)'.build-dependencies]

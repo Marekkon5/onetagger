@@ -45,7 +45,14 @@ fn main() {
         Actions::Autotagger { path, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
             debug!("{:?}", config);
-            let files = AudioFileInfo::get_file_list(&path, config.include_subfolders);
+
+            // Get files
+            let files = if path.is_file() {
+                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
+            } else {
+                AudioFileInfo::get_file_list(&path, config.include_subfolders)
+            };
+
             let rx = Tagger::tag_files(&config, files, Arc::new(Mutex::new(None)));
             let start = timestamp!();
             for status in rx {
@@ -64,7 +71,14 @@ fn main() {
             // Auth spotify
             let spotify = Spotify::try_cached_token(client_id, client_secret)
                 .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
-            let files = AudioFileInfo::get_file_list(&path, subfolders);
+
+            // Get files
+            let files = if path.is_file() {
+                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
+            } else {
+                AudioFileInfo::get_file_list(&path, subfolders)
+            };
+
             let rx = AudioFeatures::start_tagging(config, spotify, files);
             let start = timestamp!();
             for status in rx {

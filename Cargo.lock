@@ -3337,6 +3337,7 @@ dependencies = [
  "log",
  "onetagger-autotag",
  "onetagger-platforms",
+ "onetagger-playlist",
  "onetagger-renamer",
  "onetagger-shared",
  "onetagger-tagger",
