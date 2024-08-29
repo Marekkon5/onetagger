@@ -42,7 +42,7 @@ lazy_static! {
         SymbolDoc::prop("last", "Get the last item in an array"),
     ];
 
-    pub static ref FUNCTIONS: [SymbolDoc; 15] = [
+    pub static ref FUNCTIONS: [SymbolDoc; 17] = [
         SymbolDoc::f("lower", "Convert all to lowercase", vec![]),
         SymbolDoc::f("lowercase", "Convert all to lowercase", vec![]),
         SymbolDoc::f("upper", "Convert all to uppercase", vec![]),
@@ -58,7 +58,8 @@ lazy_static! {
         SymbolDoc::f("join", "Join array into string with custom separator", vec![DocParameter::s("separator", true)]),
         SymbolDoc::f("parent", "Get parent folder of path", vec![]),
         SymbolDoc::f("filename", "Get file/folder name of path", vec![]),
-
+        SymbolDoc::f("camelot", "Convert key to camelot, or keep original", vec![DocParameter::s("value", true)]),
+        SymbolDoc::f("uncamelot", "Convert key from camelot, or keep original", vec![DocParameter::s("value", true)]),
     ];
 }
 

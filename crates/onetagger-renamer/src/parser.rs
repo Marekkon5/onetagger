@@ -786,6 +786,28 @@ impl Token for TokenFunction {
                         Some(Data::String(a.last()?.to_string()))
                     },
                 }
+            },
+            // Conver to camelot
+            "camelot" => {
+                match data {
+                    Data::String(s) => {
+                        Some(Data::String(onetagger_tagger::to_camelot(s).to_owned()))
+                    },
+                    Data::Array(a) => {
+                        Some(Data::Array(a.iter().map(|v| onetagger_tagger::to_camelot(v).to_owned()).collect()))
+                    }
+                }
+            },
+            // Convert from camelot
+            "uncamelot" => {
+                match data {
+                    Data::String(s) => {
+                        Some(Data::String(onetagger_tagger::from_camelot(s).to_owned()))
+                    },
+                    Data::Array(a) => {
+                        Some(Data::Array(a.iter().map(|v| onetagger_tagger::from_camelot(v).to_owned()).collect()))
+                    }
+                }
             }
             f => {
                 error!("Invalid function: {f}!");

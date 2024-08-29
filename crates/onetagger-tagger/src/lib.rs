@@ -474,6 +474,23 @@ pub const CAMELOT_NOTES: [(&str, &str); 35] = [
     ("E",   "12B"),
 ];
 
+/// Convert to camelot or return original
+pub fn to_camelot(key: &str) -> &str {
+    if let Some((_, v)) = CAMELOT_NOTES.iter().find(|(k, _)| *k == key.trim()) {
+        return *v;
+    }
+    key
+}
+
+/// Convert from camelot to normal key
+pub fn from_camelot(key: &str) -> &str {
+    if let Some((v, _)) = CAMELOT_NOTES.iter().find(|(_, k)| *k == key.trim()) {
+        return *v;
+    }
+    key
+}
+
+
 pub trait LyricsExt {
     /// Generate LRC data
     /// If meta is present, will be written

@@ -23,7 +23,7 @@ use crossbeam_channel::{unbounded, Sender, Receiver};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 use onetagger_shared::Settings;
 use onetagger_player::AudioSources;
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, StylesOptions, AutotaggerSource, AutotaggerSourceBuilder, CAMELOT_NOTES};
+use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, StylesOptions, AutotaggerSource, AutotaggerSourceBuilder};
 
 use crate::shazam::Shazam;
 mod shazam;
@@ -121,9 +121,7 @@ impl TrackImpl for Track {
             let mut value = self.key.as_ref().unwrap().to_string();
             // Convert to camelot
             if config.camelot {
-                if let Some((_, c)) = CAMELOT_NOTES.iter().find(|(o, _)| o == &value) {
-                    value = c.to_string();
-                }
+                value = onetagger_tagger::to_camelot(&value).to_owned();
             }
             tag.set_field(Field::Key, vec![value], config.overwrite_tag(SupportedTag::Key));
         }
