@@ -1,4 +1,5 @@
 use anyhow::Error;
+use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::Duration;
 use chrono::NaiveDate;
 use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber, supported_tags, TrackMatch};
@@ -17,8 +18,15 @@ struct Deezer {
 impl Deezer {
     /// Create new instance
     pub fn new(config: DeezerConfig) -> Deezer {
+        let mut headers = HeaderMap::new();
+        headers.append("Content-Language", HeaderValue::from_str(&config.content_language).unwrap());
+        headers.append("Accept-Language", HeaderValue::from_str(&config.content_language).unwrap());
+
         Deezer {
-            client: Client::new(),
+            client: Client::builder()
+                .default_headers(headers)
+                .build()
+                .unwrap(),
             config
         }
     }
@@ -286,7 +294,8 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
             requires_auth: false, 
             supported_tags: supported_tags!(Title, Version, Album, AlbumArtist, Artist, AlbumArt, URL, CatalogNumber, TrackId, ReleaseId, Duration, Genre, TrackTotal, Label, ISRC, ReleaseDate, TrackNumber, DiscNumber, Explicit, BPM),
             custom_options: PlatformCustomOptions::new()
-                .add("art_resolution", "Album Art Resolution", PlatformCustomOptionValue::Number { min: 100, max: 1600, step: 100, value: 1200 }),
+                .add("art_resolution", "Album Art Resolution", PlatformCustomOptionValue::Number { min: 100, max: 1600, step: 100, value: 1200 })
+                .add_tooltip("content_language", "Content Language", "Enter a locale to use with Deezer API", PlatformCustomOptionValue::String { value: "en-US".to_string(), hidden: Some(false) })
         }
     }
 }
@@ -294,5 +303,6 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DeezerConfig {
-    pub art_resolution: u16
+    pub art_resolution: u16,
+    pub content_language: String
 }

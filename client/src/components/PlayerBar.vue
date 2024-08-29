@@ -86,7 +86,7 @@
                     :min="0.0"
                     :max="1.0"
                     :step="0.01"
-                    @update:model-value="(v: number) => $1t.player.value.setVolume(v)"
+                    @update:model-value="(v: any) => $1t.player.value.setVolume(v)"
                     @change="$1t.saveSettings(false)"
                     style="margin-top: 6px"
                 ></q-slider>

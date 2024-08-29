@@ -12,7 +12,7 @@
     </div>
     <div class='q-my-sm' v-if='editPath'>
         <form @submit.prevent='loadFiles()'>
-            <q-input outlined dense v-model='path'></q-input>
+            <q-input outlined dense v-model='path' @blur='editPath = false'></q-input>
         </form>
     </div>
 
