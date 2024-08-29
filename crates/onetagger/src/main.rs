@@ -6,7 +6,7 @@ use anyhow::Error;
 use clap::Parser;
 use std::path::PathBuf;
 use onetagger_shared::Settings;
-use wry::{WebViewBuilder, FileDropEvent, WebContext};
+use wry::{DragDropEvent, WebContext, WebViewBuilder};
 use tao::dpi::{Size, PhysicalSize};
 use tao::event::{StartCause, Event, WindowEvent};
 use tao::event_loop::{EventLoopBuilder, ControlFlow};
@@ -175,14 +175,14 @@ pub fn start_webview() -> Result<(), Error> {
     
     // Configure
     let mut webview = builder
-        .with_url(&format!("http://127.0.0.1:{PORT}/"))?
+        .with_url(&format!("http://127.0.0.1:{PORT}/"))
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;
-            if message == "devtools" {
+            if message.body() == "devtools" {
                 proxy.send_event(CustomWindowEvent::DevTools).ok();
             }
-            if message == "exit" {
+            if message.body() == "exit" {
                 proxy.send_event(CustomWindowEvent::Exit).ok();
             }
         })
@@ -210,9 +210,9 @@ pub fn start_webview() -> Result<(), Error> {
 
     // Handle dropped folders (for all other than Windows)
     if cfg!(not(target_os = "windows")) {
-        webview = webview.with_file_drop_handler(move |event| {
+        webview = webview.with_drag_drop_handler(move |event| {
             match event {
-                FileDropEvent::Dropped { mut paths, .. } => {
+                DragDropEvent::Drop { mut paths, .. } => {
                     if paths.len() > 1 || paths.is_empty() {
                         warn!("Drop only 1 path!");
                         return true;

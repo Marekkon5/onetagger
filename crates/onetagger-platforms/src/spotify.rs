@@ -250,7 +250,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         release_year: track.album.release_date.as_ref().map(|d| if d.len() > 4 { d[0..4].to_string().parse().ok() } else { None }).flatten(),
         release_date: track.album.release_date.as_ref().map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()).flatten(),
         explicit: Some(track.explicit),
-        thumbnail: track.album.images.iter().min_by(|a, b| a.width.unwrap_or(1000.0).partial_cmp(&b.width.unwrap_or(1000.0)).unwrap()).map(|i| i.url.to_string()),
+        thumbnail: track.album.images.iter().min_by(|a, b| a.width.unwrap_or(1000).partial_cmp(&b.width.unwrap_or(1000)).unwrap()).map(|i| i.url.to_string()),
         ..Default::default()
     }
 }

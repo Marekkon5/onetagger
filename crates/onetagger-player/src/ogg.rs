@@ -1,9 +1,9 @@
 use std::time::Duration;
 use anyhow::Error;
+use lofty::file::AudioFile;
 use std::path::{PathBuf, Path};
 use std::io::BufReader;
 use std::fs::File;
-use lofty::AudioFile;
 use rodio::{Source, Decoder};
 
 use crate::AudioSource;

@@ -5,6 +5,7 @@ use onetagger_tagger::{supported_tags, AudioFileInfo, AutotaggerSource, Autotagg
 use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
+use serde::{Serialize, Deserialize};
 
 pub struct Bandcamp {
     client: Client

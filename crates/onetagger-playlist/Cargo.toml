@@ -12,5 +12,5 @@ base64 = "0.21"
 urlencoding = "2.1"
 
 serde = { version = "1.0", features = ["derive"] }
+
 onetagger-tag = { path = "../onetagger-tag" }
-onetagger-shared = { path = "../onetagger-shared" }

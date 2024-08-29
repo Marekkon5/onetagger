@@ -9,11 +9,11 @@ edition = "2021"
 log = "0.4"
 pad = "0.1"
 dunce = "1.0"
-regex = "1.7"
+regex = "1.10"
 anyhow = "1.0"
-titlecase = "2.2"
-lazy_static = "1.4"
-pulldown-cmark = "0.9"
+titlecase = "3.3"
+lazy_static = "1.5"
+pulldown-cmark = "0.12"
 
 serde = { version = "1.0", features = ["derive"] }
 

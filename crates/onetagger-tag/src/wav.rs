@@ -1,5 +1,5 @@
 use anyhow::Error;
-use std::io::{BufReader, BufWriter, Cursor};
+use std::io::{BufReader, BufWriter, Cursor, Seek, SeekFrom};
 use std::fs::File;
 use std::collections::HashMap;
 use std::path::Path;
@@ -153,8 +153,7 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
         offset += chunk.len() as u64;
     }
 
-    // Resolve nested chunks because SOME apps do that, also find ID3 chunk
-    let mut id3 = None;
+    // Resolve nested chunks because SOME apps do that
     let mut new_chunks = vec![];
     for chunk in chunks {
         // Resolve nested
@@ -164,18 +163,13 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
             }
             continue;
         }
-        // Resolve ID3
-        if id3.is_none() && (chunk.id() == ID3_ID_1 || chunk.id() == ID3_ID_2) {
-            let data = chunk.read_contents(&mut file)?;
-            id3 = Tag::read_from(&data[..]).ok();
-            continue;
-        }
-
         new_chunks.push(chunk);
     }
     let chunks = new_chunks;
-    // Create default if invalid
-    let mut id3 = id3.unwrap_or(Tag::new());
+
+    // Read ID3 using the new ID3 reader
+    file.seek(SeekFrom::Start(0))?;
+    let mut id3 = Tag::read_from2(&mut file).unwrap_or(Tag::new());
 
     // Copy tags from RIFF to ID3 if missing
     for (frame_name, chunk_id) in ID3_RIFF.iter() {

@@ -6,25 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-zip = "0.6"
 log = "0.4"
-regex = "1.7"
+regex = "1.10"
 dunce = "1.0"
-image = "0.24"
-rodio = "0.17"
+image = "0.25"
 anyhow = "1.0"
 chrono = "0.4"
-base64 = "0.21"
+base64 = "0.22"
 execute = "0.2"
-walkdir = "2.3"
-tempfile = "3.8"
+walkdir = "2.5"
 libloading = "0.8"
 serde_json = "1.0"
-lazy_static = "1.4"
+lazy_static = "1.5"
 crossbeam-channel = "0.5"
 
 serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.11", features = ["json", "blocking", "rustls-tls"], default-features = false }
+reqwest = { version = "0.12", features = ["json", "blocking", "rustls-tls"], default-features = false }
 
 songrec = { git = "https://github.com/Marekkon5/SongRec.git" }
 

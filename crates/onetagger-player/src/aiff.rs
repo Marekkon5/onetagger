@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 use anyhow::Error;
+use lofty::file::AudioFile;
 use std::fs::File;
 use std::io::Read;
 use std::time::Duration;
-use lofty::AudioFile;
 use pacmog::PcmReader;
 use rodio::Source;
 

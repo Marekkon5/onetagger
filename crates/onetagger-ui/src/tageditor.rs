@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use base64::Engine;
 use serde::{Serialize, Deserialize};
-use image::{GenericImageView, io::Reader as ImageReader};
+use image::{GenericImageView, ImageReader};
 
 use onetagger_tag::{AudioFileFormat, CoverType, Picture, Tag};
 use onetagger_tag::id3::{ID3Comment, ID3Popularimeter};

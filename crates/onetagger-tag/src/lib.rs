@@ -4,9 +4,7 @@
 #[cfg(feature = "tag")]
 #[macro_use] extern crate anyhow;
 
-use serde::de::Visitor;
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use std::ops::{Deref, DerefMut};
+use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use std::time::Duration;
 use anyhow::Error;

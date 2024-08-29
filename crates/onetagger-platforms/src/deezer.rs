@@ -4,6 +4,7 @@ use chrono::NaiveDate;
 use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfig, AutotaggerSource, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, MatchingUtils, TrackNumber, supported_tags, TrackMatch};
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
+use serde::{Serialize, Deserialize};
 
 /// Rate limit error code
 const RATE_LIMIT_CODE: i32 = 4;

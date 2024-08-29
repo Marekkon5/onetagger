@@ -7,11 +7,11 @@ use std::sync::{Arc, Mutex};
 use base64::Engine;
 use libloading::{Library, Symbol};
 use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp, deezer, musixmatch};
-use image::io::Reader as ImageReader;
-use image::ImageOutputFormat;
+use image::{ImageFormat, ImageReader};
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
 use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag, TrackMatch, ConfigCallbackResponse};
+use serde::{Serialize, Deserialize};
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
@@ -88,7 +88,7 @@ impl AutotaggerPlatforms {
     fn reencode_image(data: &[u8]) -> Result<String, Error> {
         let img = ImageReader::new(Cursor::new(data)).with_guessed_format()?.decode()?;
         let mut buf = vec![];
-        img.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png)?;
+        img.write_to(&mut Cursor::new(&mut buf), ImageFormat::Png)?;
         Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::engine::general_purpose::STANDARD.encode(buf)))
     }
 

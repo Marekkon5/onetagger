@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use anyhow::Error;
-use lofty::AudioFile;
+use lofty::file::AudioFile;
 use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
