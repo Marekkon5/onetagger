@@ -172,10 +172,8 @@ jobs:
         pnpm run build
         cd ..
         cargo update
-        cd crates/onetagger
+        cargo build --release
         cargo bundle --release
-        cd ../..
-        cargo build --release --bin onetagger-cli
 
     - name: Bundle
       run: |
