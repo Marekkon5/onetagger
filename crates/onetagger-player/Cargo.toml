@@ -14,5 +14,5 @@ anyhow = "1.0"
 pacmog = "0.4.2"
 mp4parse = "0.17"
 
-rodio = { version = "0.19", features = ["symphonia-aac", "symphonia-isomp4", "symphonia-mp3"] }
+rodio = { version = "0.19", features = ["symphonia-aac", "symphonia-isomp4", "flac", "vorbis", "wav", "minimp3"], default-features = false }
 

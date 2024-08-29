@@ -65,6 +65,7 @@ impl AIFFDecoder {
         let specs = reader.get_pcm_specs();
 
         // Decode the file (because the library is weeeird)
+        // TODO: Make better using symphonia / new rodio
         let mut samples = vec![0i16; specs.num_channels as usize * specs.num_samples as usize];
         let mut i = 0;
         for sample in 0..specs.num_samples {

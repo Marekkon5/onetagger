@@ -1,7 +1,7 @@
 use anyhow::Error;
 use std::path::Path;
 use std::thread::Builder;
-use rodio::source::UniformSourceIterator;
+use onetagger_player::rodio::source::UniformSourceIterator;
 use serde::{Serialize, Deserialize};
 use songrec::SignatureGenerator;
 use onetagger_player::AudioSources;
