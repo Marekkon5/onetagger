@@ -1,6 +1,7 @@
 import { toRaw } from "vue";
 import { QuickTagSettings } from "./settings";
-import { FrameName, Keybind, Separators } from "./utils";
+import { FrameName, Keybind } from "./utils";
+import { get1t } from "./onetagger";
 
 class QuickTag {
     tracks: QTTrack[] = [];

@@ -322,6 +322,16 @@ class OneTagger {
                 });
                 break;
 
+            // Show notification
+            case 'notify':
+                Notify.create({
+                    position: 'top-right',
+                    timeout: 5000,
+                    progress: true,
+                    message: json.message
+                });
+                break
+
             // Debug
             default:
                 // Tag editor

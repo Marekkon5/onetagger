@@ -34,7 +34,7 @@
             label="Playlist"
         >
             <q-tooltip>
-                Drag & drop playlist here / click to remove it
+                Drag & drop playlist here / click to remove it, or export playlist from selected / filtered tracks
             </q-tooltip>
         </q-btn>
     </div>

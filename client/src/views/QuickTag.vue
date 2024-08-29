@@ -443,6 +443,15 @@ function onManualTagDone() {
     $1t.loadQuickTag();
 }
 
+/// Export playlist from selected tracks or filtered
+function generatePlaylist() {
+    let paths = $1t.quickTag.value.track.tracks.map(t => t.path);
+    if (paths.length == 0) {
+        paths = tracks.value.map(t => t.path);
+    }
+    $1t.send('generatePlaylist', { paths });
+}
+
 // Scroll to track index
 const tracklist = ref<HTMLElement | undefined>();
 function scrollToIndex(index: number) {
@@ -584,6 +593,10 @@ onMounted(() => {
             case 'onManualTag':
                 onManualTag(data.path);
                 return;
+
+            case 'generatePlaylist':
+                generatePlaylist();
+                break;
                 
             default:
                 console.log(`Unknown QT Event: ${action} ${data}`);

@@ -40,6 +40,7 @@ enum Action {
     OpenFile { path: PathBuf },
     DeleteFiles { paths: Vec<String> },
     GetLog,
+    GeneratePlaylist { paths: Vec<String> },
 
     LoadPlatforms,
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
@@ -265,7 +266,23 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
         Action::OpenFolder { path } => { opener::open(&path).ok(); },
         Action::OpenFile { path } => { opener::open(&path).ok(); },
-        Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; }
+        Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; },
+
+        Action::GeneratePlaylist { paths } => {
+            let playlist = onetagger_playlist::create_m3u_playlist(&paths.into_iter().map(|i| i.into()).collect::<Vec<_>>());
+            if let Some(path) = tinyfiledialogs::save_file_dialog_with_filter(
+                "Save playlist", 
+                &std::env::current_dir()?.to_string_lossy().to_string(), 
+                &["m3u", "m3u8"], 
+                "Save playlist"
+            ) {
+                std::fs::write(&path, playlist)?;
+                send_socket(websocket, json!({
+                    "action": "notify",
+                    "message": format!("Playlist saved to: {path}")
+                })).await.ok();
+            }
+        }
 
         Action::LoadPlatforms => {
             let platforms = tokio::task::spawn_blocking(|| {

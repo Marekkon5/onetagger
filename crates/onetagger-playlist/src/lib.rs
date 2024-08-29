@@ -46,6 +46,7 @@ pub enum PlaylistFormat {
 }
 
 
+/// Get files from any playlist format
 pub fn get_files_from_playlist_file(path: impl AsRef<Path>) -> Result<Vec<PathBuf>, Error> {
     // Validate extension
     if !PLAYLIST_EXTENSIONS.iter().any(|e| &&path.as_ref().extension().unwrap_or_default().to_string_lossy().to_lowercase() == e) {
@@ -65,7 +66,7 @@ pub fn get_files_from_playlist_file(path: impl AsRef<Path>) -> Result<Vec<PathBu
 }
 
 
-// Get file list from M3U playlist
+/// Get file list from M3U playlist
 pub fn get_files_from_m3u(m3u: &str, base_path: Option<PathBuf>) -> Vec<PathBuf> {
     let clean = m3u.replace("\r", "\n").replace("\n\n", "\n");
     let entries = clean.split("\n");
@@ -90,4 +91,13 @@ pub fn get_files_from_m3u(m3u: &str, base_path: Option<PathBuf>) -> Vec<PathBuf>
         }
     }
     out.into_iter().map(|i| i.into()).collect()
+}
+
+/// Generate m3u playlist from paths
+pub fn create_m3u_playlist(paths: &Vec<PathBuf>) -> String {
+    let mut playlist = "#EXTM3U\r\n".to_string();
+    for path in paths {
+        playlist = format!("{playlist}{}\r\n", path.to_string_lossy());
+    }
+    playlist
 }
