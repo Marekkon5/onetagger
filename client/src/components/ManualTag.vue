@@ -29,7 +29,7 @@
                                 <div class='q-pr-sm'>
                                     <q-checkbox
                                         :model-value="selected.includes(match)"
-                                        @update:model-value="(v) => toggleMatch(match)"
+                                        @update:model-value="(v: any) => toggleMatch(match)"
                                     ></q-checkbox>
                                 </div>
                                 <!-- Open URL -->
@@ -58,12 +58,29 @@
                             <span class='q-px-sm' :class='accuracyColor(match.accuracy)'><span class='text-subtitle3'>{{ (match.accuracy * 100.0).toFixed(2) }}%</span></span>
                             <span v-if='match.reason != "fuzzy"'>{{ match.reason.toUpperCase() }}</span>
                         </q-item-label>
-                        <q-item-label class='title-span text-grey-6 text-weight-medium'>{{ match.track.artists.join(", ") }}  <span class='text-grey-4 text-weight-medium'> {{ match.track.title }}</span><span class='text-grey-4' v-if='match.track.version'> ({{ match.track.version }})</span></q-item-label>
-                        <q-item-label class='text-grey-6' v-if='match.track.album'><q-badge  outline color='grey-9'><span class='text-uppercase text-grey-6'>Album</span></q-badge>  <span class='text-caption text-weight-medium text-grey-5'>{{ match.track.album }}</span></q-item-label>
+                        <q-item-label class='title-span text-grey-6 text-weight-medium'>{{ match.track.artists.join(", ") }}
+                            <span class='text-grey-4 text-weight-medium'> {{ match.track.title }}</span>
+                            <span class='text-grey-4' v-if='match.track.version'> ({{ match.track.version }})</span>
+                        </q-item-label>
+                        <q-item-label class='text-grey-6' v-if='match.track.album'><q-badge  outline color='grey-9'><span class='text-uppercase text-grey-6'>Album</span></q-badge> <span class='text-caption text-weight-medium text-grey-5'>{{ match.track.album }}</span></q-item-label>
                         <q-item-label class='text-grey-6'>
-                            <span v-if='match.track.genres.length > 0'><q-badge outline color='grey-9'><span class='text-uppercase text-grey-6'>Genre</span></q-badge>  <span class='text-caption text-weight-bold text-grey-4'>{{ match.track.genres.join(", ") }}</span></span>
-                            <span v-if='match.track.bpm'>  <q-badge outline color='grey-9'><span class='text-uppercase text-grey-6'>BPM</span></q-badge>  <span class='text-caption monospace text-weight-medium text-grey-4'>{{ match.track.bpm }}</span></span>
-                            <span v-if='match.track.key'>  <q-badge outline color='grey-9'><span class='text-uppercase text-grey-6'>Key</span></q-badge>  <span class='text-caption monospace text-weight-medium' :style='keyColor(match.track.key)'>{{ match.track.key }}</span></span>
+                            <span v-if='match.track.genres.length > 0'>
+                                <q-badge outline color='grey-9' class='q-mr-xs'><span class='text-uppercase text-grey-6'>Genre</span></q-badge>
+                                <span class='text-caption text-weight-bold text-grey-4'>{{ match.track.genres.join(", ") }}</span>
+                            </span>
+                            <span v-if='match.track.bpm'>
+                                <q-badge outline color='grey-9' class='q-mx-xs'><span class='text-uppercase text-grey-6'>BPM</span></q-badge>
+                                <span class='text-caption monospace text-weight-medium text-grey-4'>{{ match.track.bpm }}</span>
+                            </span>
+                            <span v-if='match.track.key'>
+                                <q-badge outline color='grey-9' class='q-mx-xs'><span class='text-uppercase text-grey-6'>Key</span></q-badge>
+                                <span class='text-caption monospace text-weight-medium' :style='keyColor(match.track.key)'>{{ match.track.key }}</span>
+                            </span>
+                            <br>
+                            <span v-if='match.track.release_date'>
+                                <q-badge outline color='grey-9' class='q-mr-xs'><span class='text-uppercase text-grey-6'>Release Date</span></q-badge>
+                                <span class='text-caption monospace text-weight-medium text-grey-4'>{{ match.track.release_date }}</span>
+                            </span>
                         </q-item-label>
                     </q-item-section>
                 </q-item>

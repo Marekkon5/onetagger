@@ -96,6 +96,10 @@ impl Traxsource {
             let release_date_clean = release_date_raw.replace("Pre-order for ", "");
             let release_date = release_date_clean.trim().to_owned();
 
+            // Art
+            selector = Selector::parse("div.thumb img").unwrap();
+            let art_url = track_element.select(&selector).next().unwrap().attr("src").map(String::from);
+
             // Create track
             tracks.push(Track {
                 platform: "traxsource".to_string(),
@@ -107,6 +111,7 @@ impl Traxsource {
                 track_id: Some(track_id),
                 release_id: String::new(),
                 duration: duration.into(),
+                thumbnail: art_url,
                 ..Default::default()
             })
         }

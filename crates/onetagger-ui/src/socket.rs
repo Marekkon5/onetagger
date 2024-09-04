@@ -585,7 +585,10 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             info!("Manual tag starting for path: {path:?}");
             TaggerConfigs::AutoTagger(config.clone()).debug_print();
 
-            let rx = onetagger_autotag::manual_tagger(path, &config)?;
+            let rx = tokio::task::spawn_blocking(move || {
+                onetagger_autotag::manual_tagger(path, &config)
+            }).await.unwrap()?;
+
             for (platform, r) in rx {
                 match r {
                     Ok(matches) => {
