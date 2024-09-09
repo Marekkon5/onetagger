@@ -98,7 +98,7 @@ impl AutotaggerSource for Deezer {
 
         // Extend with album data
         if config.any_tag_enabled(&supported_tags!(Genre, TrackTotal, Label, AlbumArtist)) {
-            let id = track.release_id.parse().unwrap();
+            let id = track.release_id.as_ref().ok_or(anyhow!("Missing release_id"))?.parse()?;
             match self.album(id) {
                 Ok(album) => {
                     track.genres = album.genres.data.into_iter().map(|g| g.name).collect();
@@ -183,7 +183,7 @@ impl Into<Track> for DeezerTrack {
             url: self.link,
             catalog_number: Some(self.id.to_string()),
             track_id: Some(self.id.to_string()),
-            release_id: self.album.id.to_string(),
+            release_id: Some(self.album.id.to_string()),
             duration: Duration::from_secs(self.duration as u64).into(),
             explicit: self.explicit_lyrics.or(self.explicit_content_lyrics.map(|i| i == 1)),
             thumbnail: Some(Deezer::image_url("cover", &self.album.md5_image, 150)),

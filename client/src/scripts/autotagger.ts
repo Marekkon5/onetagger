@@ -80,6 +80,8 @@ class AutotaggerConfig {
     id3CommLang?: string;
     removeAllCovers: boolean = false;
     fetchAllResults: boolean = false;
+    albumTagging: boolean = false;
+    albumTaggingRatio: number = 0.5;
 
     spotify?: SpotifyConfig;
 

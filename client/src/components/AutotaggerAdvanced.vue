@@ -174,6 +174,26 @@
             v-model='$1t.config.value.capitalizeGenres'
         ></AdvancedSettingsToggle>
 
+        <!-- Album Tagging -->
+        <AdvancedSettingsToggle
+            label="Album Tagging"
+            tooltip="Treat folders as albums"
+            v-model='$1t.config.value.albumTagging'
+        ></AdvancedSettingsToggle>
+        <div class='row justify-center items-center q-px-md' v-if='$1t.config.value.albumTagging'>
+            <div class='q-pb-lg'>How many % of tracks must be from same album to be treated as album: </div>
+            <q-slider
+                class='q-mt-sm'
+                :min='0.0'
+                :max='1.0'
+                :step='0.02'
+                v-model='$1t.config.value.albumTaggingRatio'
+                label
+                label-always
+                :label-value="`${Math.round($1t.config.value.albumTaggingRatio  * 100)}%`"
+            ></q-slider>
+        </div>
+
         <!-- Duration -->   
         <div class='row justify-center items-center q-px-md'>
             <div>Match duration</div>

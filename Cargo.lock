@@ -3319,6 +3319,7 @@ dependencies = [
  "onetagger-shared",
  "onetagger-tag",
  "onetagger-tagger",
+ "rand 0.8.5",
  "regex",
  "reqwest",
  "serde",

@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use anyhow::Error;
+use rand::seq::SliceRandom;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
@@ -13,7 +14,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
 use execute::Execute;
-use onetagger_tagger::{FileTaggedStatus, LyricsExt, SupportedTag, MatchingUtils, TrackMatch};
+use onetagger_tagger::{FileTaggedStatus, LyricsExt, MatchReason, MatchingUtils, SupportedTag, TrackMatch};
 use regex::Regex;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
@@ -226,9 +227,9 @@ impl TrackImpl for Track {
             let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::TrackId));
         }
-        if config.tag_enabled(SupportedTag::ReleaseId) && !self.release_id.is_empty() {
+        if config.tag_enabled(SupportedTag::ReleaseId) && self.release_id.is_some() {
             let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
-            tag.set_raw(&t, vec![self.release_id.to_string()], config.overwrite_tag(SupportedTag::ReleaseId));
+            tag.set_raw(&t, vec![self.release_id.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::ReleaseId));
         }
         // Catalog number
         if config.tag_enabled(SupportedTag::CatalogNumber) && self.catalog_number.is_some() {
@@ -449,7 +450,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
         Ok(AudioFileInfo {
             format: tag_wrap.format(),
             title,
-            artists: artists.ok_or(anyhow!("Missing artist tag!"))?,
+            artists: artists.unwrap_or_default(),
             path: path.as_ref().to_owned(),
             isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
             duration: None,
@@ -566,6 +567,8 @@ pub struct TaggingStatus {
     pub message: Option<String>,
     pub accuracy: Option<f64>,
     pub used_shazam: bool,
+    pub release_id: Option<String>,
+    pub reason: Option<MatchReason>
 }
 
 // Wrap for sending into UI
@@ -593,6 +596,12 @@ impl Tagger {
     // Returtns progress receiver, and file count
     pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
+
+        // Shuffle so album tag is more "efficient"
+        if cfg.album_tagging {
+            let mut rng = rand::thread_rng();
+            files.shuffle(&mut rng);
+        }
         
         // let original_files = files.clone();
         let mut succesful_files = vec![];
@@ -634,7 +643,7 @@ impl Tagger {
                 if platform_info.max_threads > 0 && platform_info.max_threads < config.threads {
                     threads = platform_info.max_threads;
                 }
-                let rx = match Tagger::tag_dir(&files, tagger, &config, threads) {
+                let rx = match Tagger::tag_batch(&files, tagger, &config, threads) {
                     Some(t) => t,
                     None => {
                         error!("Failed creating platform: {platform:?}, skipping...");
@@ -656,7 +665,9 @@ impl Tagger {
                         }
                         // Fallback
                         if !config.multiplatform {
-                            files.remove(files.iter().position(|f| f == &status.path).unwrap());
+                            if let Some(index) = files.iter().position(|f| f == &status.path) {
+                                files.remove(index);
+                            }
                         }
                         // Remove from failed
                         if let Some(i) = failed_files.iter().position(|i| i == &status.path) {
@@ -771,7 +782,9 @@ impl Tagger {
             path: path.as_ref().to_owned(),
             accuracy: None,
             message: None,
-            used_shazam: false
+            used_shazam: false,
+            release_id: None,
+            reason: None
         };
 
         // Filename template
@@ -882,6 +895,8 @@ impl Tagger {
         }
 
         // Save
+        out.release_id = track.track.release_id.clone();
+        out.reason = Some(track.reason);
         match track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
             Ok(_) => {
                 out.accuracy = Some(track.accuracy);
@@ -897,16 +912,25 @@ impl Tagger {
     }
 
     // Tag all files with threads specified in config
-    pub fn tag_dir(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
+    pub fn tag_batch(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
         info!("Starting tagging: {} files, {} threads!", files.len(), threads);
         let (tx, rx) = unbounded();
         let (file_tx, file_rx): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+        let (finished_tx, finished_rx) = unbounded();
+
+        // Album tagging
+        let album_tagging = Arc::new(Mutex::new(AlbumTagContext::new()));
+        if config.album_tagging {
+            album_tagging.lock().unwrap().init(files);
+        }
 
         let mut ok_sources = 0;
         for _ in 0..threads {
             let tx = tx.clone();
             let file_rx = file_rx.clone();
             let config = config.clone();
+            let finished_tx = finished_tx.clone();
+            let album_tagging = album_tagging.clone();
             let mut source = match tagger.get_source(&config) {
                 Ok(s) => s,
                 Err(e) => {
@@ -922,11 +946,56 @@ impl Tagger {
                         break;
                     }
 
+                    // Check if not marked for album tagging
+                    if album_tagging.lock().unwrap().is_marked(&f) {
+                        continue;
+                    }
+
+                    // Tag
                     let res = Tagger::tag_track(&f, &mut source, &config);
+                    if config.album_tagging {
+                        album_tagging.lock().unwrap().process(&res, &config);
+                    }
                     tx.send(res).ok();
                 }
+                finished_tx.send(0u8).ok();
             });
         }
+
+        // Spawn album tag thread
+        if config.album_tagging {
+            let config = config.clone();
+            match tagger.get_source(&config) {
+                Ok(mut source) => {
+                    std::thread::spawn(move || {
+                        // Wait for all threads to finish
+                        for _ in finished_rx.into_iter() {}
+
+                        // Check all album statuses
+                        let album_tagging = album_tagging.lock().unwrap();
+                        for (path, stats) in &album_tagging.folders {
+                            if !stats.marked {
+                                continue;
+                            }
+
+                            // Tag
+                            match Self::tag_album(path, &stats.get_album_id().unwrap(), &mut source, &config) {
+                                Ok(statuses) => {
+                                    for status in statuses {
+                                        tx.send(status).ok();
+                                    }
+                                },
+                                Err(e) => error!("Album tagging failed: {e}, path: {}", path.display()),
+                            }
+                        }
+
+                    });
+                },
+                Err(e) => error!("Failed to get source for album tagging, album tagging will be disabled! {e}")
+            }
+        }
+ 
+
         if ok_sources == 0 {
             error!("All AT sources failed to create!");
             return None;
@@ -936,6 +1005,60 @@ impl Tagger {
             file_tx.send(f.to_owned()).ok();
         }
         Some(rx)
+    }
+
+    /// Tag an album by ID
+    pub fn tag_album(path: impl AsRef<Path>, release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
+        info!("Album tagging release: {release_id} in {}", path.as_ref().display());
+
+        // Change strictness since we're working in context of album, and just care about most likely match
+        let mut config = config.clone();
+        config.strictness = 0.0;
+        config.match_duration = false;
+        config.match_by_id = true;
+        config.enable_shazam = false;
+        config.force_shazam = false;
+
+        // Get album
+        let album = source.get_album(&release_id, &config)?.ok_or(anyhow!("Album with id: {release_id} not found"))?;
+        if album.tracks.is_empty() {
+            return Err(anyhow!("Album {release_id} has no tracks!"))
+        }
+
+        let mut statuses = vec![];
+
+        // Load files
+        let files = std::fs::read_dir(&path)?.filter_map(|e| e.ok()).map(|f| f.path()).collect::<Vec<_>>();
+        for file in files {
+            let (info, mut status) = Self::load_track(&file, &config);
+            let info = match info {
+                Some(i) => i,
+                None => {
+                    warn!("Failed to load track info for file: {}", file.display());
+                    continue;
+                }
+            };
+
+            // Find closest match
+            let mut tracks = MatchingUtils::match_track(&info, &album.tracks, &config, false);
+            MatchingUtils::sort_tracks(&mut tracks, &config);
+            let track = tracks.remove(0);
+            
+            // TODO: Extend track if needed (?)
+            if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
+                status.status = TaggingState::Error;
+                error!("Album tag writing tags failed: {e} ({})", file.display());
+            } else {
+                status.status = TaggingState::Ok;
+            }
+
+            // Save status
+            status.accuracy = Some(1.0);
+            status.reason = Some(MatchReason::Album);
+            statuses.push(status);
+        }
+
+        Ok(statuses)
     }
 
     /// Move file to target dir if enabled
@@ -959,6 +1082,96 @@ impl Tagger {
         Ok(target)
     }
 }
+
+/// For keeping track of per-album tagging
+struct AlbumTagContext {
+    /// path: stats
+    folders: HashMap<PathBuf, AlbumTagFolderStats>
+}
+
+impl AlbumTagContext {
+    /// Create new instance
+    pub fn new() -> AlbumTagContext {
+        AlbumTagContext {
+            folders: Default::default()
+        }
+    }
+
+    /// Initialize internal counters
+    pub fn init(&mut self, paths: &[PathBuf]) {
+        for path in paths {
+            if let Some(path) = path.parent() {
+                let stats = match self.folders.get_mut(path) {
+                    Some(v) => v,
+                    None => {
+                        self.folders.insert(path.to_owned(), AlbumTagFolderStats::default());
+                        self.folders.get_mut(path).unwrap()
+                    }
+                };
+                stats.files += 1;
+            }
+        }
+    }
+
+    /// Save info from tagging status data
+    /// Returns (Path, Release ID)
+    pub fn process(&mut self, status: &TaggingStatus, config: &TaggerConfig) -> Option<(PathBuf, String)> {
+        let release_id = status.release_id.as_ref()?;
+        // Get folder path
+        let path = status.path.parent()?;
+        let stats = self.folders.get_mut(path)?;
+        if stats.marked {
+            return None;
+        }
+
+        let count = match stats.albums.get_mut(release_id) {
+            Some(v) => {
+                *v = *v + 1;
+                *v
+            },
+            None => {
+                stats.albums.insert(release_id.to_string(), 1);
+                1
+            }
+        };
+
+        // Should be considered as 
+        if (count as f32 / stats.files as f32) >= config.album_tagging_ratio {
+            stats.marked = true;
+            return Some((path.to_owned(), release_id.to_owned()));
+        }
+        None
+    }
+
+    /// Check if path is marked
+    pub fn is_marked(&self, path: impl AsRef<Path>) -> bool {
+        if let Some(parent) = path.as_ref().parent() {
+            if let Some(stats) = self.folders.get(parent) {
+                return stats.marked;
+            }
+        }
+        false
+    }
+
+}
+
+#[derive(Debug, Clone, Default)]
+struct AlbumTagFolderStats {
+    /// How many files
+    pub files: usize,
+    /// album_id: count
+    pub albums: HashMap<String, usize>,
+    /// Is already marked as album
+    pub marked: bool,
+}
+
+impl AlbumTagFolderStats {
+    /// Get album ID with highest count
+    pub fn get_album_id(&self) -> Option<String> {
+        self.albums.iter().max_by_key(|(_, c)| **c).map(|(i, _)| i.to_string())
+    }
+}
+
 
 /// When AT finishes this will contain some extra data
 #[derive(Debug, Clone, Serialize, Deserialize)]

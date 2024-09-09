@@ -4,7 +4,7 @@ use log::{Record, Level, RecordBuilder};
 use crate::TrackMatch;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 43;
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 44;
 
 /// Logging from plugins
 #[no_mangle]

@@ -431,7 +431,7 @@ impl ReleaseMaster {
             release_date,
             catalog_number,
             track_id: None,
-            release_id: self.id.to_string(),
+            release_id: Some(self.id.to_string()),
             duration: MatchingUtils::parse_duration(&self.tracks[track_index].duration).unwrap_or(Duration::ZERO).into(),
             track_number: Some(track_number),
             disc_number,

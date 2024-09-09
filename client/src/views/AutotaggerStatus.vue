@@ -120,6 +120,7 @@
                                     </q-tooltip>
                                     <q-tooltip v-if='i.status.status == "ok"'>
                                         Accuracy: {{ (i.status.accuracy * 100).toFixed(2) }}%
+                                        <span v-if='i.status.reason'>, Reason: {{ i.status.reason }}</span>
                                     </q-tooltip>
                                 </q-icon>
                                 <span class='q-px-sm' v-if='index < item.length - 1'>|</span>

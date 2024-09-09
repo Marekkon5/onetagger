@@ -152,7 +152,7 @@ impl Spotify {
     fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Fetch album
         if config.tag_enabled(SupportedTag::Label) || config.tag_enabled(SupportedTag::Genre) {
-            match self.album(&AlbumId::from_id(&track.release_id)?) {
+            match self.album(&AlbumId::from_id(track.release_id.as_ref().ok_or(anyhow!("Missing release_id"))?)?) {
                 Ok(album) => {
                     track.label = album.label;
                     track.genres.extend(album.genres.into_iter());
@@ -243,7 +243,7 @@ fn full_track_to_track(track: FullTrack) -> Track {
         art: track.album.images.first().map(|i| i.url.to_string()),
         url: format!("https://open.spotify.com/track/{}", track.id.as_ref().map(|i| i.id()).unwrap_or("")),
         track_id: track.id.map(|i| i.id().to_string()),
-        release_id: track.album.id.map(|i| i.id().to_string()).unwrap_or(String::new()),
+        release_id: track.album.id.map(|i| i.id().to_string()),
         duration: track.duration.to_std().unwrap().into(),
         track_number: Some(TrackNumber::Number(track.track_number as i32)),
         isrc: track.external_ids.into_iter().find(|(k, _)| k == "isrc").map(|(_, v)| v.to_string()),

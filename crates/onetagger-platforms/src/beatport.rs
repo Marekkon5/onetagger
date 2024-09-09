@@ -8,7 +8,7 @@ use scraper::{Html, Selector};
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{Track, TaggerConfig, AutotaggerSource, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag, TrackMatch};
+use onetagger_tagger::{supported_tags, Album, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, SupportedTag, TaggerConfig, Track, TrackMatch, TrackNumber};
 use serde_json::Value;
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
@@ -100,6 +100,15 @@ impl Beatport {
             .bearer_auth(token)
             .send()?.json()?;
         Ok(response)
+    }
+
+    /// Get tracks from release
+    pub fn release_tracks(&self, id: i64) -> Result<Vec<BeatportTrack>, Error> {
+        let token = self.update_token()?;
+        let response: BeatportPagination<BeatportTrack> = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}/tracks?per_page=200", id))
+            .bearer_auth(token)
+            .send()?.json()?;
+        Ok(response.results)
     }
 
 
@@ -210,6 +219,11 @@ pub struct BeatportRelease {
     pub artists: Option<Vec<BeatportGeneric>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BeatportPagination<T> {
+    pub results: Vec<T>
+}
+
 impl BeatportTrackResult {
     pub fn to_track(self, include_version: bool) -> Track {
         Track {
@@ -257,7 +271,7 @@ impl BeatportTrack {
                 (FrameName::same("UNIQUEFILEID"), vec![format!("https://beatport.com|{}", &self.id)])
             ],
             track_id: Some(self.id.to_string()),
-            release_id: self.release.id.to_string(),
+            release_id: Some(self.release.id.to_string()),
             duration: Duration::from_millis(self.length_ms.unwrap_or(0)).into(),
             remixers: self.remixers.into_iter().map(|r| r.name).collect(),
             track_number: self.number.map(|n| TrackNumber::Number(n as i32)),
@@ -397,7 +411,7 @@ impl AutotaggerSource for Beatport {
             return Ok(());
         }
 
-        let release = self.release(track.release_id.parse()?)?;
+        let release = self.release(track.release_id.as_ref().ok_or(anyhow!("Missing release_id"))?.parse()?)?;
         track.track_total = release.track_count;
         track.album_artists = match release.artists {
             Some(a) => a.into_iter().map(|a| a.name).collect(),
@@ -406,6 +420,21 @@ impl AutotaggerSource for Beatport {
         Ok(())
     }
     
+    fn get_album(&mut self, id: &str, config: &TaggerConfig) -> Result<Option<Album>, Error> {
+        let custom_config: BeatportConfig = config.get_custom("beatport")?; 
+        let id: i64 = id.trim().parse()?;
+        let release = self.release(id)?;
+        let tracks = self.release_tracks(id)?;
+
+        let album = Album {
+            id: id.to_string(),
+            name: release.name,
+            tracks: tracks.into_iter().map(|t| t.to_track(custom_config.art_resolution)).collect()
+        };
+
+        Ok(Some(album))
+    }
+
 }
 
 /// For creating Beatport instances
@@ -458,4 +487,15 @@ struct BeatportConfig {
     pub art_resolution: u32,
     pub max_pages: i32,
     pub ignore_version: bool
+}
+
+#[test]
+fn test_album() {
+    let mut builder = BeatportBuilder::new();
+    let mut config = TaggerConfig::default();
+    let custom_config = builder.info().custom_options.get_defaults();
+    config.custom.0.insert("beatport".to_string(), custom_config);
+
+    let mut bp = builder.get_source(&config).unwrap();
+    bp.get_album("2174307", &config).unwrap();
 }

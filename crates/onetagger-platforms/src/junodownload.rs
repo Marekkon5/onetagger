@@ -154,7 +154,7 @@ impl JunoDownload {
                     url: format!("https://www.junodownload.com{}", url),
                     catalog_number: catalog_number.clone(),
                     other: vec![],
-                    release_id: release_id.clone(),
+                    release_id: Some(release_id.clone()),
                     duration: duration.into(),
                     track_number: Some(TrackNumber::Number((track_index + 1) as i32)),
                     track_total: Some(track_total),

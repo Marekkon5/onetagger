@@ -138,7 +138,7 @@ impl Into<Track> for BandcampSearchResult {
             title: self.name,
             artists: vec![self.band_name],
             album: self.album_name,
-            release_id: self.album_id.map(|a| a.to_string()).unwrap_or(String::new()),
+            release_id: self.album_id.map(|a| a.to_string()),
             url: self.item_url_path,
             ..Default::default()
         }
@@ -191,7 +191,7 @@ impl Into<Track> for BandcampTrack {
             genres: genre.map(|g| vec![g]).unwrap_or(vec![]),
             track_id: Some(self.id.clone()),
             url: self.id,
-            release_id: self.in_album.id.unwrap_or(String::new()),
+            release_id: self.in_album.id,
             track_total: self.in_album.num_tracks,
             thumbnail: Some(self.image.replace("_10.", "_23.")),
             art: Some(self.image),

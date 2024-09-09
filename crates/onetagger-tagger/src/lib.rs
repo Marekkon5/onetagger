@@ -82,6 +82,10 @@ pub struct TaggerConfig {
     /// Fetch all results instead of the most likely ones (used for (future) manual tag)
     pub fetch_all_results: bool,
 
+    pub album_tagging: bool,
+    /// % of tracks that have to be from one album to be considered as the correct
+    pub album_tagging_ratio: f32,
+
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
     pub custom: PlatformTaggerConfig,
     pub spotify: Option<SpotifyConfig>,
@@ -160,7 +164,9 @@ impl Default for TaggerConfig {
             capitalize_genres: false,
             remove_all_covers: false,
             id3_comm_lang: None,
-            fetch_all_results: false
+            fetch_all_results: false,
+            album_tagging: false,
+            album_tagging_ratio: 0.5
         }
     }
 }
@@ -244,7 +250,7 @@ pub struct Track {
     /// Tag name, Value
     pub other: Vec<(FrameName, Vec<String>)>,
     pub track_id: Option<String>,
-    pub release_id: String,
+    pub release_id: Option<String>,
     pub duration: Duration,
     pub remixers: Vec<String>,
     pub track_number: Option<TrackNumber>,
@@ -355,7 +361,7 @@ impl PartialOrd for TrackMatch {
 }
 
 /// Why was this track matched
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum MatchReason {
     Fuzzy,
@@ -363,6 +369,7 @@ pub enum MatchReason {
     ISRC,
     #[serde(rename = "id")]
     ID,
+    Album
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -554,6 +561,18 @@ impl LyricsExt for Lyrics {
 
 }
 
+/// Representation of an Album / Release. 
+/// Very slim, since `Track` should have all the relevant information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[repr(C)]
+pub struct Album {
+    pub id: String,
+    pub name: String,
+
+    pub tracks: Vec<Track>
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[repr(C)]
 pub struct AudioFileInfo {
@@ -657,8 +676,16 @@ pub trait AutotaggerSourceBuilder: Any + Send + Sync {
 pub trait AutotaggerSource: Any + Send + Sync {
     /// Returns (accuracy, track)
     fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error>;
+
     /// Extend track with extra metadata (match track should be as fast as possible)
     fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error>;
+
+    /// Get an album by ID (used for album tagging)
+    #[allow(unused_variables)]
+    fn get_album(&mut self, id: &str, config: &TaggerConfig) -> Result<Option<Album>, Error> {
+        warn!("Album tagging not supported on this platform!");
+        Ok(None)
+    }
 }
 
 /// Response from Config callback
@@ -808,6 +835,15 @@ impl PlatformCustomOptions {
     pub fn add_tooltip(mut self, id: &str, label: &str, tooltip: &str, value: PlatformCustomOptionValue) -> PlatformCustomOptions {
         self.options.push(PlatformCustomOption::new(id, label, value).tooltip(tooltip));
         self
+    }
+
+    /// Get the default config values
+    pub fn get_defaults(&self) -> Value {
+        let mut out = HashMap::new();
+        for option in &self.options {
+            out.insert(option.id.to_owned(), option.value.json_value());
+        }
+        serde_json::to_value(&out).unwrap()
     }
 }
 

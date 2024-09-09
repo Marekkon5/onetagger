@@ -109,7 +109,7 @@ impl Traxsource {
                 release_date: NaiveDate::parse_from_str(&release_date, "%Y-%m-%d").ok(),
                 genres: genre.map(|g| vec![g]).unwrap_or_default(),
                 track_id: Some(track_id),
-                release_id: String::new(),
+                release_id: None,
                 duration: duration.into(),
                 thumbnail: art_url,
                 ..Default::default()
@@ -139,7 +139,7 @@ impl Traxsource {
 
         // Get release id
         let release_id = album_url.replace("/title/", "");
-        track.release_id = release_id[..release_id.find("/").unwrap()].to_string();
+        track.release_id = Some(release_id[..release_id.find("/").unwrap()].to_string());
 
         // Album metadata
         if !album_meta { 

@@ -68,7 +68,7 @@ impl MusicBrainz {
                 }));
             }
             track.album = Some(release.title.to_string());
-            track.release_id = release.id.to_string();
+            track.release_id = Some(release.id.to_string());
             // Label
             if let Some(label_info) = match &release.label_info {
                 LabelInfoResult::Array(labels) => labels.first(),
@@ -163,7 +163,7 @@ impl Into<Track> for Recording {
             album: release.map(|a| a.title.to_string()),
             url: format!("https://musicbrainz.org/recording/{}", self.id),
             track_id: Some(self.id),
-            release_id: release.map(|r| r.id.to_string()).unwrap_or(String::new()),
+            release_id: release.map(|r| r.id.to_string()),
             duration: self.length.map(|l| Duration::from_millis(l)).unwrap_or(Duration::ZERO).into(),
             release_year: self.first_release_date.clone().map(|d| (d.len() >= 4).then(|| d[0..4].parse().ok()).flatten()).flatten(),
             release_date: self.first_release_date.map(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok()).flatten(),
