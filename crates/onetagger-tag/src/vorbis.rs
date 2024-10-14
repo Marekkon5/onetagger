@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use anyhow::Error;
+use lofty::config::WriteOptions;
+use lofty::file::{AudioFile, TaggedFileExt};
+use lofty::picture::{MimeType, PictureType};
 use std::path::Path;
-use lofty::{TagType, TaggedFileExt, AudioFile, PictureType, MimeType};
+use lofty::tag::TagType;
 use lofty::ogg::{VorbisComments, OggPictureStorage};
 
 use crate::{Lyrics, Picture};
@@ -75,7 +78,7 @@ impl TagImpl for VorbisTag {
         let mut file = lofty::read_from_path(path)?;
         file.remove(TagType::VorbisComments);
         file.insert_tag(self.tag.clone().into());
-        file.save_to_path(path)?;
+        file.save_to_path(path, WriteOptions::default())?;
         Ok(())
     }
 
@@ -165,7 +168,7 @@ impl TagImpl for VorbisTag {
     fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
         self.tag.remove_picture_type(self.picture_type(&kind));
         match self.tag.insert_picture(
-            lofty::Picture::new_unchecked(
+            lofty::picture::Picture::new_unchecked(
                 self.picture_type(&kind),
                 Some(MimeType::from_str(&mime.trim().to_lowercase())),
                 description.map(String::from),
