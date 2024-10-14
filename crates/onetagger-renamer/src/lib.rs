@@ -4,7 +4,6 @@
 
 use std::path::{Path, PathBuf};
 use anyhow::Error;
-use onetagger_autotag::AudioFileInfoImpl;
 use onetagger_tagger::AudioFileInfo;
 use serde::{Serialize, Deserialize};
 
@@ -42,7 +41,10 @@ impl Renamer {
 
 
     /// Generate names - output: [(from, to),...]
-    pub fn generate(&mut self, config: &RenamerConfig, limit: usize) -> Result<Vec<(PathBuf, PathBuf)>, Error> {
+    pub fn generate<I>(&mut self, files: I, config: &RenamerConfig) -> Result<Vec<(PathBuf, PathBuf)>, Error>
+    where
+        I: IntoIterator<Item = Result<AudioFileInfo, Error>>
+    {
         let input_path = dunce::canonicalize(&config.path)?;
         if !input_path.exists() {
             return Err(anyhow!("Invalid path!"));
@@ -54,16 +56,17 @@ impl Renamer {
             out_dir = config.path.to_owned();
         }
 
-        let files = AudioFileInfo::get_file_list(&config.path, config.subfolders);
         let mut output = vec![];
-        for (i, file) in files.iter().enumerate() {
-            let info = match AudioFileInfo::load_file(&file, None, None) {
-                Ok(info) => info,
+        for file in files.into_iter() {
+            // Load files
+            let info = match file {
+                Ok(i) => i,
                 Err(e) => {
-                    warn!("Failed loading: {file:?}. Skipping! {e}");
+                    warn!("Failed loading file: {e}");
                     continue;
-                }
+                },
             };
+            let file = &info.path;
 
             // Get output dir
             let mut output_dir = Path::new(&out_dir).to_owned();
@@ -84,16 +87,12 @@ impl Renamer {
 
             let new_name = self.generate_name(output_dir, &info, config);
             output.push((file.to_owned(), new_name));
-            if limit != 0 && i >= limit {
-                break
-            }
         }
         Ok(output)
     }
 
-    /// Rename files
-    pub fn rename(&mut self, config: &RenamerConfig) -> Result<(), Error> {
-        let files = self.generate(config, 0)?;
+    /// Rename files, files = output from generate
+    pub fn rename(&mut self, files: &[(PathBuf, PathBuf)], config: &RenamerConfig) -> Result<(), Error> {
         for (from, to) in files {
             // Don't overwrite
             if !config.overwrite && to.exists() {

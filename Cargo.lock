@@ -3376,7 +3376,6 @@ dependencies = [
  "dunce",
  "lazy_static",
  "log",
- "onetagger-autotag",
  "onetagger-tag",
  "onetagger-tagger",
  "pad",

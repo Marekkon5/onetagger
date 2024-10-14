@@ -128,17 +128,18 @@ fn main() {
                 keep_subfolders: *keep_subfolders,
             };
             let mut renamer = Renamer::new(TemplateParser::parse(&template));
+            let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
+            let names = renamer.generate(files, &config).expect("Failed generating filenames!");
 
             // Only preview
             if *preview {
-                let names = renamer.generate(&config, 0).expect("Failed generating filenames!");
                 for (i, (from, to)) in names.iter().enumerate() {
                     println!("{}. {:?} -> {:?}", i + 1, from, to);
                 }
                 return;
             }
 
-            renamer.rename(&config).expect("Failed renaming!");
+            renamer.rename(&names, &config).expect("Failed renaming!");
         },
         // Server mode
         Actions::Server { expose, path, browser } => {

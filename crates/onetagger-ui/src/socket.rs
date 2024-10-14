@@ -539,7 +539,8 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         // Generate new names but don't rename
         Action::RenamerPreview { config } => {
             let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
-            let files = renamer.generate(&config, 3).unwrap_or(vec![]);
+            let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
+            let files = renamer.generate(files.take(3), &config).unwrap_or(vec![]);
             send_socket(websocket, json!({
                 "action": "renamerPreview",
                 "files": files,
@@ -548,7 +549,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         // Start renamer
         Action::RenamerStart { config } => {
             let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
-            renamer.rename(&config)?;
+            let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
+            let files = renamer.generate(files, &config)?;
+            renamer.rename(&files, &config)?;
             send_socket(websocket, json!({
                 "action": "renamerDone",
             })).await.ok();

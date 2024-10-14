@@ -390,6 +390,8 @@ pub trait AudioFileInfoImpl {
     fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Error>;
     /// Get list of all files in with supported extensions
     fn get_file_list(path: impl AsRef<Path>, subfolders: bool) -> Vec<PathBuf>;
+    /// Get iterator of all audio files in path 
+    fn load_files_iter(path: impl AsRef<Path>, subfolders: bool, filename_template: Option<Regex>, title_regex: Option<Regex>) -> impl Iterator<Item = Result<AudioFileInfo, Error>>;
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {
@@ -549,6 +551,11 @@ impl AudioFileInfoImpl for AudioFileInfo {
                 }
             }
         }
+    }
+
+    fn load_files_iter(path: impl AsRef<Path>, subfolders: bool, filename_template: Option<Regex>, title_regex: Option<Regex>) -> impl Iterator<Item = Result<AudioFileInfo, Error>> {
+        let files = Self::get_file_list(path, subfolders);
+        files.into_iter().map(move |f| Self::load_file(&f, filename_template.clone(), title_regex.clone()))
     }
 }
 
