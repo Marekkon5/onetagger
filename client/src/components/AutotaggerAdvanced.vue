@@ -295,6 +295,14 @@
         class='input'
     ></q-input>
 
+    <!-- Cover filename -->
+    <q-input
+        v-model='$1t.config.value.coverFilename' 
+        filled 
+        label='Cover filename template'
+        class='input monospace'
+    ></q-input>
+
     
     <div class='row justify-center q-mt-sm' v-if='$1t.config.value.matchDuration'>
         <q-slider

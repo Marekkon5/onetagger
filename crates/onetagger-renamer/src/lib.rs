@@ -170,6 +170,22 @@ pub struct RenamerConfig {
     pub keep_subfolders: bool,
 }
 
+impl RenamerConfig {
+    /// Create new instance with default properties and paths
+    pub fn default_with_paths(path: impl AsRef<Path>, template: &str) -> RenamerConfig {
+        RenamerConfig {
+            path: path.as_ref().to_path_buf(),
+            out_dir: None,
+            template: template.to_string(),
+            copy: false,
+            overwrite: false,
+            keep_subfolders: false,
+            separator: ", ".to_owned(),
+            subfolders: true,
+        }
+    }
+}
+
 /// HTML generation test
 #[test]
 fn generate_html() {

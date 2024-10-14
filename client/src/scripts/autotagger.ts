@@ -82,6 +82,7 @@ class AutotaggerConfig {
     fetchAllResults: boolean = false;
     albumTagging: boolean = false;
     albumTaggingRatio: number = 0.5;
+    coverFilename: string | undefined = undefined;
 
     spotify?: SpotifyConfig;
 

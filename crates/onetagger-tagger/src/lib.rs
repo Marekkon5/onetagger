@@ -85,6 +85,8 @@ pub struct TaggerConfig {
     pub album_tagging: bool,
     /// % of tracks that have to be from one album to be considered as the correct
     pub album_tagging_ratio: f32,
+    /// Renamer template
+    pub cover_filename: Option<String>,
 
     /// Platform specific. Format: `{ platform: { custom_option: value }}`
     pub custom: PlatformTaggerConfig,
@@ -166,7 +168,8 @@ impl Default for TaggerConfig {
             id3_comm_lang: None,
             fetch_all_results: false,
             album_tagging: false,
-            album_tagging_ratio: 0.5
+            album_tagging_ratio: 0.5,
+            cover_filename: None
         }
     }
 }

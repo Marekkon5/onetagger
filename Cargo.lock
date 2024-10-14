@@ -3290,6 +3290,7 @@ dependencies = [
  "log",
  "onetagger-platforms",
  "onetagger-player",
+ "onetagger-renamer",
  "onetagger-shared",
  "onetagger-tag",
  "onetagger-tagger",

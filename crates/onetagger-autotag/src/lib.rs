@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use anyhow::Error;
+use onetagger_renamer::{Renamer, RenamerConfig, TemplateParser};
 use rand::seq::SliceRandom;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -275,6 +276,7 @@ impl TrackImpl for Track {
         }
 
         // Album art
+        let mut cover_data = None;
         if (config.overwrite_tag(SupportedTag::AlbumArt) || tag.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
             info!("Downloading art: {:?}", self.art);
             match self.download_art(self.art.as_ref().unwrap()) {
@@ -289,15 +291,7 @@ impl TrackImpl for Track {
                             }
 
                             tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
-                            // Save to file
-                            if config.album_art_file {
-                                let path = path.as_ref().parent().unwrap().join("cover.jpg");
-                                if !path.exists() {
-                                    if let Ok(mut file) = File::create(path) {
-                                        file.write_all(&data).ok();
-                                    }
-                                }
-                            }
+                            cover_data = Some(data);
                         },
                         None => warn!("Invalid album art!")
                     } 
@@ -327,7 +321,24 @@ impl TrackImpl for Track {
         }
 
         // Save
-        tag.save_file(path.as_ref())?;
+        tag.save_file(&path.as_ref())?;
+
+        // Cover file
+        if let Some(cover_data) = cover_data {
+            match AudioFileInfo::load_file(&path, None, None) {
+                Ok(info) => {
+                    let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
+                    match std::fs::write(&cover_path, cover_data) {
+                        Ok(_) => debug!("Cover written to: {}", cover_path.display()),
+                        Err(e) => error!("Failed to write cover file: {e}"),
+                    }
+                },
+                Err(e) => {
+                    error!("Failed generating cover path: {e}");
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -377,6 +388,23 @@ impl TrackImpl for Track {
         self
     }
 
+}
+
+/// Get path to cover file
+fn get_cover_path(info: &AudioFileInfo, folder: impl AsRef<Path>, config: &TaggerConfig) -> PathBuf {
+    let mut path = folder.as_ref().join("cover.jpg");
+
+    if let Some(template) = config.cover_filename.as_ref() {
+        if !template.trim().is_empty() {
+            // Generate new filename
+            let renamer_config = RenamerConfig::default_with_paths(&folder, template);
+            let mut renamer = Renamer::new(TemplateParser::parse(template));
+            let new_path = renamer.generate_name(folder.as_ref(), info, &renamer_config);
+            path = new_path.with_extension("jpg");
+        }
+    }
+
+    path
 }
 
 pub trait AudioFileInfoImpl {
