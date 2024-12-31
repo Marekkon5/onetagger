@@ -203,4 +203,3 @@ jobs:
       with:
         name: onetagger-mac-cli
         path: dist/OneTagger-mac-cli.zip
-
