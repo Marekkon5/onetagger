@@ -164,6 +164,7 @@ jobs:
         brew install rustup nodejs pnpm
         rustup install stable
         rustup default stable
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         source $HOME/.cargo/env
         cargo install cargo-bundle || true
     
