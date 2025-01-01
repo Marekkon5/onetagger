@@ -66,6 +66,7 @@ jobs:
         name: onetagger-linux-cli
         path: dist/OneTagger-linux-cli.tar.gz
 
+
   build-win:
     name: Windows
     runs-on: windows-2019
@@ -140,7 +141,7 @@ jobs:
 
   build-mac:
     name: Mac
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
 
@@ -159,16 +160,12 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Install dependencies
-      shell: bash -l {0}
       run: |
         brew install rustup nodejs pnpm
         rustup install stable
-        rustup default stable
-        echo "source $HOME/.cargo/env" >> $BASH_ENV
         cargo install cargo-bundle || true
     
     - name: Build
-      shell: bash -l {0}
       run: |
         cd client
         pnpm i
@@ -206,3 +203,4 @@ jobs:
       with:
         name: onetagger-mac-cli
         path: dist/OneTagger-mac-cli.zip
+
