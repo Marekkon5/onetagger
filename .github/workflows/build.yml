@@ -55,13 +55,13 @@ jobs:
         mv OneTagger-linux-cli.tar.gz dist/
     
     - name: Upload Linux
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-linux
         path: dist/OneTagger-linux.tar.gz
     
     - name: Upload Linux CLI
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-linux-cli
         path: dist/OneTagger-linux-cli.tar.gz
@@ -120,20 +120,20 @@ jobs:
         copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
 
     - name: Upload Archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-win
         path: | 
           dist/OneTagger-windows.exe
     
     - name: Upload Archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-win-setup
         path: dist/OneTagger-windows-setup.exe
 
     - name: Upload CLI
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-win-cli
         path: |
@@ -141,7 +141,7 @@ jobs:
 
   build-mac:
     name: Mac
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
 
@@ -193,13 +193,13 @@ jobs:
         mv target/release/OneTagger-mac-cli.zip dist/
 
     - name: Upload Mac
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-mac
         path: dist/OneTagger-mac.zip
 
     - name: Upload Mac CLI
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: onetagger-mac-cli
         path: dist/OneTagger-mac-cli.zip
