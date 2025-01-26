@@ -14,5 +14,9 @@ members = [
     "crates/onetagger-platforms"
 ]
 
+# Workaround for MacOS
+[workspace.dependencies]
+lzma-sys = { version = "*", features = ["static"] }
+
 [profile.release]
 opt-level = 3
