@@ -279,6 +279,29 @@ function trackClick(track: QTTrack, event: MouseEvent) {
         return;
     }
 
+    // Expand to add range of tracks to list
+    if (event.shiftKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        // No existing selection to expand
+        if (selectionCursor === -1) {
+            return;
+        }
+
+        const currentIndex = tracks.value.findIndex(t => t.path == track.path);
+        const startIndex = Math.min(selectionCursor, currentIndex);
+        const endIndex = Math.max(selectionCursor, currentIndex);
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            $1t.addQTTrack(tracks.value[i]);
+        }
+
+        selectionCursor = currentIndex;
+        return;
+    }
+
     // Prevent clicking on same track
     if ($1t.quickTag.value.track.isSelected(track)) return;
     selectionCursor = tracks.value.findIndex(t => t.path == track.path);

@@ -555,13 +555,17 @@ class OneTagger {
         });
     }
 
+    addQTTrack(track: QTTrack) {
+        this.quickTag.value.track.addTrack(new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag));
+    }
+
     /// Add or remove a track to the multitrack
     toggleQTTrack(track: QTTrack) {
         if (this.quickTag.value.track.getTrack(track.path)) {
             this.quickTag.value.track.removeTrack(track);
             return;
         }
-        this.quickTag.value.track.addTrack(new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag));
+        this.addQTTrack(track);
     }
 
     // Save quickTagTrack
