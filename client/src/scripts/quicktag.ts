@@ -507,12 +507,16 @@ class QTTrack implements QuickTagFile {
         if (this.originalNote != this.note) {
             let field = this.removeAbstractions(this.settings.noteTag.tag.byFormat(this.format));
             // Remove original note from tags, add new one
-            let original = (this.originalNote??'').split(',');
+            let original = (this.originalNote??'').split(',').map(n => n.trim()).filter(n => n);
             let value = (this.tags[field]??[]).filter(t => !original.includes(t));
+            
+            // Split note by comma, trim each part, and filter out empty strings
+            let noteValues = (this.note??'').split(',').map(n => n.trim()).filter(n => n);
+            
             changes.push({
                 type: 'raw',
                 tag: field,
-                value: value.concat((this.note??'').split(','))
+                value: value.concat(noteValues)
             })
         }
         
