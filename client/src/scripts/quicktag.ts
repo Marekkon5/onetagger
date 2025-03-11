@@ -325,13 +325,6 @@ class QTTrack implements QuickTagFile {
             .filter(g => g.length > 0);
     }
 
-    processGenreString(genreStr: string | undefined): string[] {
-        if (!genreStr) return [];
-        return genreStr.split(',')
-            .map(g => g.trim())
-            .filter(g => g.length > 0);
-    }
-
     // Check if genre was changed
     isGenreChanged(): boolean {
         // Process both arrays for consistent comparison
