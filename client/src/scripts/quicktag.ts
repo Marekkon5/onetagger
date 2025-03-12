@@ -310,13 +310,7 @@ class QTTrack implements QuickTagFile {
             this.originalGenres.push(...subgenres.filter(g => !this.genres.includes(g)));
             this.genres.push(...subgenres.filter(g => !this.genres.includes(g)));
         }
-    }
-
-    // Format genres for display
-    formatGenresString(genres: string[]): string {
-        // Filter out any empty strings, then join with comma + space
-        return this.processGenreArray(genres).join(', ');
-    }    
+    } 
     
     // Process genres
     processGenreArray(genres: string[]): string[] {
