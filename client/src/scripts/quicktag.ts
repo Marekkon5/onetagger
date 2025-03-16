@@ -3,7 +3,7 @@ import { QuickTagSettings } from "./settings";
 import { FrameName, Keybind } from "./utils";
 import { get1t } from "./onetagger";
 
-class QuickTag {
+class QuickTag { 
     tracks: QTTrack[] = [];
     track: QTMultiTrack = new QTMultiTrack();
     failed: QuickTagFailed[] = [];
@@ -191,7 +191,7 @@ class QTMultiTrack {
     /// Set note on all tracks
     setNote(note: string) {
         for (let i=0; i<this.tracks.length; i++) {
-            this.tracks[i].note = note;
+            this.tracks[i].setNote(note); // Use the sanitizing setNote method
         }
     }
 
@@ -296,7 +296,7 @@ class QTTrack implements QuickTagFile {
         // Data from backend
         Object.assign(this, data);
         this.settings = settings;
-
+        this.genres = this.processGenreArray(this.genres);
         this.mood = this.getMood();
         this.energy = this.getEnergy();
         this.note = this.getNote();
@@ -310,8 +310,38 @@ class QTTrack implements QuickTagFile {
             this.originalGenres.push(...subgenres.filter(g => !this.genres.includes(g)));
             this.genres.push(...subgenres.filter(g => !this.genres.includes(g)));
         }
+    } 
+    
+    // Process genres
+    processGenreArray(genres: string[]): string[] {
+        return genres
+            .map(g => g.trim())
+            .filter(g => g.length > 0);
     }
 
+    // Check if genre was changed
+    isGenreChanged(): boolean {
+        // Process both arrays for consistent comparison
+        const currentGenres = [...this.genres]
+            .map(g => g.trim())
+            .filter(g => g.length > 0)
+            .sort()
+            .join(',');
+        const originalGenres = [...this.originalGenres]
+            .map(g => g.trim())
+            .filter(g => g.length > 0)
+            .sort()
+            .join(',');
+        return currentGenres !== originalGenres;
+    }
+
+    // Process note string
+    processNoteString(noteStr: string | undefined): string[] {
+        if (!noteStr) return [];
+        return noteStr.split(',')
+            .map(n => n.trim())
+            .filter(n => n.length > 0);
+    }
 
     // Remove field name abstractions
     removeAbstractions(input: string): string {
@@ -329,19 +359,23 @@ class QTTrack implements QuickTagFile {
             return this.note;
         }
         let field = this.removeAbstractions(this.settings.noteTag.tag.byFormat(this.format));
-        let note = this.tags[field]??[];
+        let noteValues = this.tags[field] ?? [];
+        
         // Remove custom tags from note
         for (let custom of this.settings.custom) {
             if (custom.tag.byFormat(this.format) == field) {
-                note = note.filter(v => !custom.values.map(i => i.val).includes(v));
+                noteValues = noteValues.filter(v => !custom.values.map(i => i.val).includes(v));
             }
         }
-        return note.join(',');
+        
+        // Process and join the note values
+        return this.processNoteString(noteValues.join(',')).join(',');
     }
 
     // Update note field
     setNote(note: string) {
-        this.note = note;
+        const processedParts = this.processNoteString(note);
+        this.note = processedParts.join(',');
     }
 
     // Get mood tag value
@@ -441,9 +475,8 @@ class QTTrack implements QuickTagFile {
         // Add note tag
         // out = out.concat(this.note.split(',').filter(v => !out.includes(v) && v));
         i = 0;
-        for (let value of this.note.split(',')) {
-            if (value.trim())
-                out.push({value, type: 'note', index: i});
+        for (let value of this.processNoteString(this.note)) {
+            out.push({value: value, type: 'note', index: i});
             i += 1;
         }
         return out;
@@ -478,27 +511,36 @@ class QTTrack implements QuickTagFile {
             }
         }
         // Genre change
-        if (this.genres.join('') != this.originalGenres.join('')) {
+        if (this.isGenreChanged()) {
             // Subgenre custom tag
             if (this.settings.subgenreTag) {
-
-                let subgenres = this.genres.filter((genre) => this.settings.genres.find((g) => g.subgenres.includes(genre)));
-                let genres = this.genres.filter((g) => !subgenres.includes(g));
-
+                let subgenres = this.processGenreArray(
+                    this.genres.filter((genre) => 
+                        this.settings.genres.find((g) => g.subgenres.includes(genre))
+                    )
+                );
+                
+                let genres = this.processGenreArray(
+                    this.genres.filter((g) => !subgenres.includes(g))
+                );
+                
                 changes.push({
                     type: 'raw',
                     tag: this.settings.subgenreTag.byFormat(this.format),
                     value: subgenres
                 });
+                
                 changes.push({
                     type: 'genre',
                     value: genres
                 });
-
             } else {
+                // Process the genres array to remove empty strings
+                const cleanGenres = this.processGenreArray(this.genres);
+                
                 changes.push({
                     type: 'genre',
-                    value: this.genres
+                    value: cleanGenres
                 });
             }
         }
@@ -506,14 +548,21 @@ class QTTrack implements QuickTagFile {
         // Note change
         if (this.originalNote != this.note) {
             let field = this.removeAbstractions(this.settings.noteTag.tag.byFormat(this.format));
-            // Remove original note from tags, add new one
-            let original = (this.originalNote??'').split(',');
-            let value = (this.tags[field]??[]).filter(t => !original.includes(t));
+            
+            // Process original note consistently
+            let original = this.processNoteString(this.originalNote);
+            
+            // Filter out original note values from existing tags
+            let value = (this.tags[field] ?? []).filter(t => !original.includes(t));
+            
+            // Process new note consistently
+            let noteValues = this.processNoteString(this.note);
+            
             changes.push({
                 type: 'raw',
                 tag: field,
-                value: value.concat((this.note??'').split(','))
-            })
+                value: value.concat(noteValues)
+            });
         }
         
         // Custom tags

@@ -155,7 +155,10 @@ function removeCustom(tag: CustomTagInfo) {
         return;
     }    
     // Note
-    track.value.setNote(track.value.getNote().split(",").filter((i) => i != tag.value).join(","));
+    let values = track.value.getNote().split(",")
+                .map(n => n.trim())
+                .filter(n => n && n != tag.value);
+    track.value.setNote(values.join(", "));  // Note the space after comma
 }
 
 
