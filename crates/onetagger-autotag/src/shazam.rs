@@ -1,10 +1,10 @@
 use anyhow::Error;
+use onetagger_player::rodio::source::UniformSourceIterator;
+use onetagger_player::AudioSources;
+use serde::{Deserialize, Serialize};
+use songrec::SignatureGenerator;
 use std::path::Path;
 use std::thread::Builder;
-use onetagger_player::rodio::source::UniformSourceIterator;
-use serde::{Serialize, Deserialize};
-use songrec::SignatureGenerator;
-use onetagger_player::AudioSources;
 
 pub struct Shazam;
 
@@ -18,20 +18,25 @@ impl Shazam {
         // Get 12s part from middle
         let buffer = if duration >= 12000 {
             // ((duration / 1000) * 16KHz) / 2 (half duration) - (6 * 16KHz) seconds.
-            conv.skip((duration * 8 - 96000) as usize).take(16000 * 12).collect::<Vec<i16>>()
+            conv.skip((duration * 8 - 96000) as usize)
+                .take(16000 * 12)
+                .collect::<Vec<i16>>()
         } else {
             conv.collect::<Vec<i16>>()
         };
         // Calculating singnature requires 6MB stack, because it allocates >2MB of buffers for some reason
         let signature = Builder::new()
             .stack_size(1024 * 1024 * 6)
-            .spawn(move || { SignatureGenerator::make_signature_from_buffer(&buffer) })
+            .spawn(move || SignatureGenerator::make_signature_from_buffer(&buffer))
             .unwrap()
             .join()
             .unwrap();
-        let response = songrec::recognize_song_from_signature(&signature, 0).map_err(|e| anyhow!("{e:?}"))?;
+        let response =
+            songrec::recognize_song_from_signature(&signature, 0).map_err(|e| anyhow!("{e:?}"))?;
         let response: ShazamResponse = serde_json::from_value(response)?;
-        let track = response.track.ok_or(anyhow!("Shazam returned no matches!"))?;
+        let track = response
+            .track
+            .ok_or(anyhow!("Shazam returned no matches!"))?;
         Ok((track, duration))
     }
 }
@@ -40,7 +45,7 @@ impl Shazam {
 pub struct ShazamResponse {
     pub timestamp: u64,
     pub tagid: String,
-    pub track: Option<ShazamTrack>
+    pub track: Option<ShazamTrack>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,26 +67,26 @@ pub struct ShazamTrack {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShazamSmall {
     pub adamid: String,
-    pub id: String
+    pub id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShazamGenres {
-    pub primary: Option<String>
+    pub primary: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShazamImages {
     pub background: String,
     pub coverart: String,
-    pub coverarthq: String
+    pub coverarthq: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ShazamSection {
     MetaSection {
-        metadata: Vec<ShazamMetadataSection>
+        metadata: Vec<ShazamMetadataSection>,
     },
     ArtistSection {
         id: String,
@@ -89,13 +94,13 @@ pub enum ShazamSection {
         tabname: String,
         // Has to == "ARTIST"
         #[serde(rename = "type")]
-        _type: String
+        _type: String,
     },
-    Other {}
+    Other {},
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShazamMetadataSection {
     pub text: String,
-    pub title: String
+    pub title: String,
 }

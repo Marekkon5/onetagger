@@ -38,8 +38,13 @@ native-dialog = "0.7.0"
 [package.metadata.bundle]
 name = "OneTagger"
 identifier = "com.marekkon5.onetagger"
-icon = ["../../assets/32x32.png", "../../assets/128x128.png", "../../assets/128x128@2x.png", 
-    "../../assets/icon.icns", "../../assets/icon.ico"]
+icon = [
+    "../../assets/32x32.png",
+    "../../assets/128x128.png",
+    "../../assets/128x128@2x.png",
+    "../../assets/icon.icns",
+    "../../assets/icon.ico",
+]
 version = "1.7.0"
 resources = []
 copyright = "Copyright (c) Marekkon5 2022. All rights reserved."

@@ -1,31 +1,35 @@
-#[macro_use] extern crate log;
-#[macro_use] extern crate onetagger_shared;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate onetagger_shared;
 
 use anyhow::Error;
+use clap::{Parser, Subcommand};
+use convert_case::{Case, Casing};
+use onetagger_autotag::audiofeatures::{AudioFeatures, AudioFeaturesConfig};
+use onetagger_autotag::{AudioFileInfoImpl, Tagger, TaggerConfigExt};
+use onetagger_platforms::spotify::Spotify;
+use onetagger_renamer::{Renamer, RenamerConfig, TemplateParser};
+use onetagger_shared::{COMMIT, VERSION};
+use onetagger_tagger::{AudioFileInfo, SupportedTag, TaggerConfig};
 use onetagger_ui::StartContext;
 use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use clap::{Parser, Subcommand};
-use convert_case::{Casing, Case};
-use onetagger_platforms::spotify::Spotify;
-use onetagger_renamer::{RenamerConfig, Renamer, TemplateParser};
-use onetagger_shared::{VERSION, COMMIT};
-use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
-use onetagger_autotag::{Tagger, TaggerConfigExt, AudioFileInfoImpl};
-use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
 
 fn main() {
     let cli = Cli::parse();
 
     // Default configs
     if cli.autotagger_config {
-        let config = serde_json::to_string_pretty(&TaggerConfig::custom_default()).expect("Failed serializing default config!");
+        let config = serde_json::to_string_pretty(&TaggerConfig::custom_default())
+            .expect("Failed serializing default config!");
         println!("{config}");
         return;
     }
     if cli.audiofeatures_config {
-        let config = serde_json::to_string_pretty(&AudioFeaturesConfig::default()).expect("Failed serializing config!");
+        let config = serde_json::to_string_pretty(&AudioFeaturesConfig::default())
+            .expect("Failed serializing config!");
         println!("{config}");
         return;
     }
@@ -37,8 +41,10 @@ fn main() {
 
     // Setup logging
     onetagger_shared::setup();
-    info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
-
+    info!(
+        "\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n",
+        std::env::consts::OS
+    );
 
     let action = cli.action.unwrap();
     match &action {
@@ -48,7 +54,8 @@ fn main() {
 
             // Get files
             let files = if path.is_file() {
-                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
+                onetagger_playlist::get_files_from_playlist_file(path)
+                    .expect("Not a valid playlist file")
             } else {
                 AudioFileInfo::get_file_list(&path, config.include_subfolders)
             };
@@ -58,11 +65,21 @@ fn main() {
             for status in rx {
                 debug!("{status:?}");
             }
-            info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
-        },
-        Actions::Audiofeatures { path, config, client_id, client_secret, no_subfolders } => {
+            info!(
+                "Tagging finished, took: {} seconds.",
+                (timestamp!() - start) / 1000
+            );
+        }
+        Actions::Audiofeatures {
+            path,
+            config,
+            client_id,
+            client_secret,
+            no_subfolders,
+        } => {
             let file = File::open(config).expect("Failed reading config file!");
-            let config: AudioFeaturesConfig = serde_json::from_reader(&file).expect("Failed parsing config file!");
+            let config: AudioFeaturesConfig =
+                serde_json::from_reader(&file).expect("Failed parsing config file!");
             // Cli subfolders override
             let mut subfolders = config.include_subfolders;
             if *no_subfolders {
@@ -74,7 +91,8 @@ fn main() {
 
             // Get files
             let files = if path.is_file() {
-                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
+                onetagger_playlist::get_files_from_playlist_file(path)
+                    .expect("Not a valid playlist file")
             } else {
                 AudioFileInfo::get_file_list(&path, subfolders)
             };
@@ -84,20 +102,32 @@ fn main() {
             for status in rx {
                 debug!("{status:?}");
             }
-            info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
-        },
+            info!(
+                "Tagging finished, took: {} seconds.",
+                (timestamp!() - start) / 1000
+            );
+        }
         // Spotify OAuth flow
-        Actions::AuthorizeSpotify { client_id, client_secret, prompt, expose } => {
-            let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret).expect("Failed generating auth URL!");
+        Actions::AuthorizeSpotify {
+            client_id,
+            client_secret,
+            prompt,
+            expose,
+        } => {
+            let (auth_url, client) = Spotify::generate_auth_url(&client_id, &client_secret)
+                .expect("Failed generating auth URL!");
             println!("\nPlease go to the following URL and authorize 1T:\n{auth_url}");
             // should cache the token
             match prompt {
                 true => {
                     println!("\nEnter the URL you were redirected to and press enter: ");
                     let mut url = String::new();
-                    std::io::stdin().read_line(&mut url).expect("Couldn't read from stdin!");
-                    let _spotify = Spotify::auth_token_code(client, url.trim()).expect("Spotify authentication failed!");
-                },
+                    std::io::stdin()
+                        .read_line(&mut url)
+                        .expect("Couldn't read from stdin!");
+                    let _spotify = Spotify::auth_token_code(client, url.trim())
+                        .expect("Spotify authentication failed!");
+                }
                 false => {
                     let expose = *expose;
                     std::thread::spawn(move || {
@@ -106,17 +136,29 @@ fn main() {
                             start_path: None,
                             expose,
                             browser: false,
-                        }).expect("Failed starting server!");
+                        })
+                        .expect("Failed starting server!");
                     });
-                    let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
+                    let _spotify =
+                        Spotify::auth_server(client).expect("Spotify authentication failed!");
                 }
             }
             info!("Succesfully authorized Spotify!");
             // Exit because of webserver
             std::process::exit(0);
-        },
+        }
         // Renamer
-        Actions::Renamer { path, output, template, copy, no_subfolders, preview, overwrite, separator, keep_subfolders } => {
+        Actions::Renamer {
+            path,
+            output,
+            template,
+            copy,
+            no_subfolders,
+            preview,
+            overwrite,
+            separator,
+            keep_subfolders,
+        } => {
             let config = RenamerConfig {
                 path: path.to_owned(),
                 out_dir: output.to_owned(),
@@ -129,7 +171,9 @@ fn main() {
             };
             let mut renamer = Renamer::new(TemplateParser::parse(&template));
             let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
-            let names = renamer.generate(files, &config).expect("Failed generating filenames!");
+            let names = renamer
+                .generate(files, &config)
+                .expect("Failed generating filenames!");
 
             // Only preview
             if *preview {
@@ -140,19 +184,23 @@ fn main() {
             }
 
             renamer.rename(&names, &config).expect("Failed renaming!");
-        },
+        }
         // Server mode
-        Actions::Server { expose, path, browser } => {
+        Actions::Server {
+            expose,
+            path,
+            browser,
+        } => {
             onetagger_ui::start_all(StartContext {
                 server_mode: true,
                 start_path: path.clone().map(String::from),
                 expose: *expose,
                 browser: *browser,
-            }).expect("Failed starting the server");
+            })
+            .expect("Failed starting the server");
         }
     }
 }
-
 
 #[derive(Parser, Debug, Clone)]
 #[clap(version)]
@@ -160,7 +208,7 @@ struct Cli {
     /// What should OneTagger do
     #[clap(subcommand)]
     action: Option<Actions>,
-    
+
     /// Prints the default Autotagger config and exits
     #[clap(long)]
     autotagger_config: bool,
@@ -302,9 +350,9 @@ enum Actions {
         #[clap(long)]
         expose: bool,
 
-        /// Don't start server, prompt for the redirected URL 
+        /// Don't start server, prompt for the redirected URL
         #[clap(long)]
-        prompt: bool
+        prompt: bool,
     },
     Renamer {
         /// Path to input files
@@ -323,7 +371,7 @@ enum Actions {
         #[clap(long)]
         copy: bool,
 
-        /// Exclude subfolders 
+        /// Exclude subfolders
         #[clap(long)]
         no_subfolders: bool,
 
@@ -354,7 +402,7 @@ enum Actions {
         /// Open web browser
         #[clap(long, short)]
         browser: bool,
-    }
+    },
 }
 
 /// For easily generating CLI -> config
@@ -373,11 +421,31 @@ impl Actions {
     //. Create tagger config
     pub fn get_at_config(&self) -> Result<TaggerConfig, Error> {
         match self {
-            Actions::Autotagger { path, config, platforms, tags, id3v24, 
-                overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
-                short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
-                skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform } => {
-
+            Actions::Autotagger {
+                path,
+                config,
+                platforms,
+                tags,
+                id3v24,
+                overwrite,
+                threads,
+                strictness,
+                album_art_file,
+                merge_genres,
+                camelot,
+                short_title,
+                match_duration,
+                max_duration_difference,
+                match_by_id,
+                enable_shazam,
+                force_shazam,
+                skip_tagged,
+                parse_filename,
+                filename_template,
+                no_subfolders,
+                only_year,
+                multiplatform,
+            } => {
                 // Load config
                 let mut config = if let Some(config_path) = config {
                     let config = serde_json::from_reader(&File::open(config_path)?)?;
@@ -401,15 +469,30 @@ impl Actions {
                                 Err(_) => {
                                     warn!("Invalid tag: {t}");
                                     None
-                                },
+                                }
                             }
                         })
                         .collect();
                     config.tags = tags;
                 }
                 // Boolean options
-                config_option!(config, id3v24, overwrite, album_art_file, merge_genres, camelot, short_title, match_duration,
-                    match_by_id, enable_shazam, force_shazam, skip_tagged, parse_filename, only_year, multiplatform);
+                config_option!(
+                    config,
+                    id3v24,
+                    overwrite,
+                    album_art_file,
+                    merge_genres,
+                    camelot,
+                    short_title,
+                    match_duration,
+                    match_by_id,
+                    enable_shazam,
+                    force_shazam,
+                    skip_tagged,
+                    parse_filename,
+                    only_year,
+                    multiplatform
+                );
                 // Remaining options
                 if let Some(threads) = threads {
                     config.threads = *threads;
@@ -431,9 +514,8 @@ impl Actions {
                     config.include_subfolders = false;
                 }
                 return Ok(config);
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 }
-

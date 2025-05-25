@@ -7,200 +7,196 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Rust Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Rust Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
+      - name: Install NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Install NodeJS
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
+      - name: Build
+        run: |
+          cd client
+          pnpm i
+          pnpm run build
+          cd ..
+          cargo update
+          cargo build --release
 
-    - name: Build
-      run: |
-        cd client
-        pnpm i
-        pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
+      - name: Bundle
+        run: |
+          tar zcf OneTagger-linux.tar.gz -C target/release onetagger
+          tar zcf OneTagger-linux-cli.tar.gz -C target/release onetagger-cli
+          mkdir dist
+          mv OneTagger-linux.tar.gz dist/
+          mv OneTagger-linux-cli.tar.gz dist/
 
-    - name: Bundle
-      run: |
-        tar zcf OneTagger-linux.tar.gz -C target/release onetagger
-        tar zcf OneTagger-linux-cli.tar.gz -C target/release onetagger-cli
-        mkdir dist
-        mv OneTagger-linux.tar.gz dist/
-        mv OneTagger-linux-cli.tar.gz dist/
-    
-    - name: Upload Linux
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-linux
-        path: dist/OneTagger-linux.tar.gz
-    
-    - name: Upload Linux CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-linux-cli
-        path: dist/OneTagger-linux-cli.tar.gz
+      - name: Upload Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-linux
+          path: dist/OneTagger-linux.tar.gz
 
+      - name: Upload Linux CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-linux-cli
+          path: dist/OneTagger-linux-cli.tar.gz
 
   build-win:
     name: Windows
     runs-on: windows-2019
-    
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Rust Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Rust Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Install NodeJS
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Install NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
 
-    - name: Install Dependencies
-      run: |
-        choco install nsis -y
-        rustup update
+      - name: Install Dependencies
+        run: |
+          choco install nsis -y
+          rustup update
 
-    - name: Build
-      run: |
-        cd client
-        pnpm i
-        pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
-        
-    - name: Bundle
-      run: |
-        mkdir dist
-        powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
-        powershell -command "(new-object System.Net.WebClient).DownloadFile('https://go.microsoft.com/fwlink/p/?LinkId=2124703','MicrosoftEdgeWebview2Setup.exe')"
-        &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
-        copy target\release\onetagger.exe dist\OneTagger-windows.exe
-        copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
+      - name: Build
+        run: |
+          cd client
+          pnpm i
+          pnpm run build
+          cd ..
+          cargo update
+          cargo build --release
 
-    - name: Upload Archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-win
-        path: | 
-          dist/OneTagger-windows.exe
-    
-    - name: Upload Archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-win-setup
-        path: dist/OneTagger-windows-setup.exe
+      - name: Bundle
+        run: |
+          mkdir dist
+          powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
+          powershell -command "(new-object System.Net.WebClient).DownloadFile('https://go.microsoft.com/fwlink/p/?LinkId=2124703','MicrosoftEdgeWebview2Setup.exe')"
+          &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
+          copy target\release\onetagger.exe dist\OneTagger-windows.exe
+          copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
 
-    - name: Upload CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-win-cli
-        path: |
-          dist/OneTagger-windows-cli.exe
+      - name: Upload Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-win
+          path: |
+            dist/OneTagger-windows.exe
+
+      - name: Upload Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-win-setup
+          path: dist/OneTagger-windows-setup.exe
+
+      - name: Upload CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-win-cli
+          path: |
+            dist/OneTagger-windows-cli.exe
 
   build-mac:
     name: Mac
     runs-on: macos-13
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Rust Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Rust Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install dependencies
+        run: |
+          brew install rustup nodejs pnpm
+          rustup install stable
+          cargo install cargo-bundle || true
 
-    - name: Install dependencies
-      run: |
-        brew install rustup nodejs pnpm
-        rustup install stable
-        cargo install cargo-bundle || true
-    
-    - name: Build
-      run: |
-        cd client
-        pnpm i
-        pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
-        cargo bundle --release
+      - name: Build
+        run: |
+          cd client
+          pnpm i
+          pnpm run build
+          cd ..
+          cargo update
+          cargo build --release
+          cargo bundle --release
 
-    - name: Bundle
-      run: |
-        mkdir dist
+      - name: Bundle
+        run: |
+          mkdir dist
 
-        cd target/release/bundle/osx
-        chmod +x OneTagger.app/Contents/MacOS/onetagger
-        zip -r OneTagger-mac.zip .
-        cd -
+          cd target/release/bundle/osx
+          chmod +x OneTagger.app/Contents/MacOS/onetagger
+          zip -r OneTagger-mac.zip .
+          cd -
 
-        cd target/release
-        chmod +x onetagger-cli
-        zip OneTagger-mac-cli.zip onetagger-cli
-        cd -
+          cd target/release
+          chmod +x onetagger-cli
+          zip OneTagger-mac-cli.zip onetagger-cli
+          cd -
 
-        mv target/release/bundle/osx/OneTagger-mac.zip dist/
-        mv target/release/OneTagger-mac-cli.zip dist/
+          mv target/release/bundle/osx/OneTagger-mac.zip dist/
+          mv target/release/OneTagger-mac-cli.zip dist/
 
-    - name: Upload Mac
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-mac
-        path: dist/OneTagger-mac.zip
+      - name: Upload Mac
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-mac
+          path: dist/OneTagger-mac.zip
 
-    - name: Upload Mac CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-mac-cli
-        path: dist/OneTagger-mac-cli.zip
-
+      - name: Upload Mac CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: onetagger-mac-cli
+          path: dist/OneTagger-mac-cli.zip
