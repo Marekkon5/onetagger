@@ -1,212 +1,211 @@
-@import 'quasar.scss';
+@import "quasar.scss";
 
 @font-face {
-    font-family: Dosis;
-    src: url('./fonts/Dosis-Light.ttf');
-    font-weight: 300;
+  font-family: Dosis;
+  src: url("./fonts/Dosis-Light.ttf");
+  font-weight: 300;
 }
 
 @font-face {
-    font-family: Dosis;
-    src: url('./fonts/Dosis-Regular.ttf');
-    font-weight: 400;
+  font-family: Dosis;
+  src: url("./fonts/Dosis-Regular.ttf");
+  font-weight: 400;
 }
 
 @font-face {
-    font-family: Dosis;
-    src: url('./fonts/Dosis-Medium.ttf');
-    font-weight: 500;
+  font-family: Dosis;
+  src: url("./fonts/Dosis-Medium.ttf");
+  font-weight: 500;
 }
 
 @font-face {
-    font-family: Dosis;
-    src: url('./fonts/Dosis-SemiBold.ttf');
-    font-weight: 600;
+  font-family: Dosis;
+  src: url("./fonts/Dosis-SemiBold.ttf");
+  font-weight: 600;
 }
 
 @font-face {
-    font-family: Dosis;
-    src: url('./fonts/Dosis-Bold.ttf');
-    font-weight: 700;
+  font-family: Dosis;
+  src: url("./fonts/Dosis-Bold.ttf");
+  font-weight: 700;
 }
 
 @font-face {
-    font-family: Dosis;
-    src: url('./fonts/Dosis-ExtraBold.ttf');
-    font-weight: 800;
+  font-family: Dosis;
+  src: url("./fonts/Dosis-ExtraBold.ttf");
+  font-weight: 800;
 }
 
 @font-face {
-    font-family: wavefont;
-    src: url('./fonts/wavefont.woff2') format('woff2');
+  font-family: wavefont;
+  src: url("./fonts/wavefont.woff2") format("woff2");
 }
 
 @font-face {
-    font-family: blank;
-    /* src: url(./AdobeBlank2VF.ttf.woff2); */
-    src: url('data:application/x-font-woff;charset=utf-8;base64,d09GMgABAAAAAARMABMAAAAAC1AAAAPjAAEAxQAAAAAAAAAAAAAAAAAAAAAAAAAAGUYcID9IVkFSVAZgP1NUQVQkP1ZWQVJjAIIAL0YKWFwwLgE2AiQDCAsGAAQgBYsyBzEXJBgIGwEKEcXkJfmqgCdD4yWAULaeeBovVzstIc6riunXpnmtXivg+BLWsFA1x8PTXP+eO5PNAn8AUCwJsYCgqxxZ1JUELrLsXkOo3TUpDjbRB8Tvo61HSFe6NVBVO1SvlxDEvYxsxE4DfNN8ImIOJ0gqtv/9fq0+Wat/NsTds46FRuqU8lf0gse1iqY3dLfkGRqhqiTVConpREoxCY1FPHelp1Ny+uwFWpZYoBA7dh04oaUEhFLUFDri7o2bj2BaFYGOOeZ1vLhvdQ0IMAUABHoC6yWZLbYAgJ9NX06XhIBcaa5iDdL76Qz2k7njkrV+ci1cx5uLNbeOtx22hbrOrMaqxrO/9QL9NwVgAUJoSZgClkjP3HjyTmDP7j0nIoQAM3AGAJfCk0F+cI8EIeugpw/+AUwGvq0R/IaJbxBM/EE9gRAIQEJCRkaBAg00UKJEE0200EIbbXTQQRdd9NBDH30MMMAQQ4wwEuEmSaYkBnnYDCBXEDnpwW9EJK5WZJBAgQZGmA0oQIMiXw91sjku790e3LzZfHZ461Z5+/ozFVTN2diLFz9/ql67cl8k+nvMWO4OBBKYtXsY6LwaespXbYFXt+TqtTcIhK83bvTx5eGGf1s5V/D9qt/p9najlt/Mj6KUQFCxsYrB4sZY4VoloVbYkpHGKGGx3RT/yaJo4wSfCEucQDLwLLLV3u5asKHhhk9QmpVZaOnEerTNyqaunQW61ucM+umj+BAD6xtRwIJe7SdfPJ0j6BTPIkzxelO3WVhf//c2jpwWnwkGXVHJ7/FoDWDAQVkQ+OBTFKZJu8lXljDZnk7YqITmExH/y0MxUyoCDOBqChwdIU8mZhKKCJ2upGVgbGinpSoKOgThuVdIkAJUCkD1UYqNlj3J5kSRrqElYYogo7sLvSE3eCVefdEJa/SRA1H0BWVMIMAKSoG1TMqBSbtr5Q+DNGe+gASmqJQCTiiX8mISEDDtHgvYUEpCDjCuCZD0oQJ1YQ3sjHRPlXdfK+E/rSY28Bg4cI6cV00RDZaMcjGklsyXggUDJ2BRVwCGvwLAfxa/WTib27k4LwoOHB0NbJMLE/HNdo7AyM7W2AINfIZwPg2I0KNAtGALqE+jIEEkfiTfWAAkgSiiBZJkLDgSCXf6EaZ2NnDRspAUq7MFXOYSaLDGnozJK4dkPCmTRSmRKSxxWiDAMFMxKVLnoZ7iPA0oLgj+UBlRkrmlg3DbW9ieSDMnJbu4KqNIxL1kjISZ9GjJ5+t2TALq0U3AcYLmZeFeX9Ww6+F30lD/+kXetcg6ZJg3EalzO/5jvn7dbo3cSO6f/4dc8dJzzBkJMwsAAAA=') format('woff2');
+  font-family: blank;
+  /* src: url(./AdobeBlank2VF.ttf.woff2); */
+  src: url("data:application/x-font-woff;charset=utf-8;base64,d09GMgABAAAAAARMABMAAAAAC1AAAAPjAAEAxQAAAAAAAAAAAAAAAAAAAAAAAAAAGUYcID9IVkFSVAZgP1NUQVQkP1ZWQVJjAIIAL0YKWFwwLgE2AiQDCAsGAAQgBYsyBzEXJBgIGwEKEcXkJfmqgCdD4yWAULaeeBovVzstIc6riunXpnmtXivg+BLWsFA1x8PTXP+eO5PNAn8AUCwJsYCgqxxZ1JUELrLsXkOo3TUpDjbRB8Tvo61HSFe6NVBVO1SvlxDEvYxsxE4DfNN8ImIOJ0gqtv/9fq0+Wat/NsTds46FRuqU8lf0gse1iqY3dLfkGRqhqiTVConpREoxCY1FPHelp1Ny+uwFWpZYoBA7dh04oaUEhFLUFDri7o2bj2BaFYGOOeZ1vLhvdQ0IMAUABHoC6yWZLbYAgJ9NX06XhIBcaa5iDdL76Qz2k7njkrV+ci1cx5uLNbeOtx22hbrOrMaqxrO/9QL9NwVgAUJoSZgClkjP3HjyTmDP7j0nIoQAM3AGAJfCk0F+cI8EIeugpw/+AUwGvq0R/IaJbxBM/EE9gRAIQEJCRkaBAg00UKJEE0200EIbbXTQQRdd9NBDH30MMMAQQ4wwEuEmSaYkBnnYDCBXEDnpwW9EJK5WZJBAgQZGmA0oQIMiXw91sjku790e3LzZfHZ461Z5+/ozFVTN2diLFz9/ql67cl8k+nvMWO4OBBKYtXsY6LwaespXbYFXt+TqtTcIhK83bvTx5eGGf1s5V/D9qt/p9najlt/Mj6KUQFCxsYrB4sZY4VoloVbYkpHGKGGx3RT/yaJo4wSfCEucQDLwLLLV3u5asKHhhk9QmpVZaOnEerTNyqaunQW61ucM+umj+BAD6xtRwIJe7SdfPJ0j6BTPIkzxelO3WVhf//c2jpwWnwkGXVHJ7/FoDWDAQVkQ+OBTFKZJu8lXljDZnk7YqITmExH/y0MxUyoCDOBqChwdIU8mZhKKCJ2upGVgbGinpSoKOgThuVdIkAJUCkD1UYqNlj3J5kSRrqElYYogo7sLvSE3eCVefdEJa/SRA1H0BWVMIMAKSoG1TMqBSbtr5Q+DNGe+gASmqJQCTiiX8mISEDDtHgvYUEpCDjCuCZD0oQJ1YQ3sjHRPlXdfK+E/rSY28Bg4cI6cV00RDZaMcjGklsyXggUDJ2BRVwCGvwLAfxa/WTib27k4LwoOHB0NbJMLE/HNdo7AyM7W2AINfIZwPg2I0KNAtGALqE+jIEEkfiTfWAAkgSiiBZJkLDgSCXf6EaZ2NnDRspAUq7MFXOYSaLDGnozJK4dkPCmTRSmRKSxxWiDAMFMxKVLnoZ7iPA0oLgj+UBlRkrmlg3DbW9ieSDMnJbu4KqNIxL1kjISZ9GjJ5+t2TALq0U3AcYLmZeFeX9Ww6+F30lD/+kXetcg6ZJg3EalzO/5jvn7dbo3cSO6f/4dc8dJzzBkJMwsAAAA=")
+    format("woff2");
 }
 
 :root {
-    --waveform-wave: 40;
+  --waveform-wave: 40;
 }
 
 * {
-    font-family: Dosis !important;
-    user-select: none;
+  font-family: Dosis !important;
+  user-select: none;
 }
 
 .text-h5 {
-    padding-bottom: 6px;
+  padding-bottom: 6px;
 }
 
 .bg-darker {
-    background: #181818;
+  background: #181818;
 }
 
 .bg-highlight {
-    background: #303030;
+  background: #303030;
 }
 
 .bg-onetagger-icon {
-    background: #1A1A1A;
+  background: #1a1a1a;
 }
 
 .q-tab__indicator {
-    color: var(--q-color-primary);
+  color: var(--q-color-primary);
 }
 
 .q-field__control {
-    background-color: #99999910 !important;
+  background-color: #99999910 !important;
 }
 
 // Checkbox fix
 .checkbox svg {
-    color: #000;
+  color: #000;
 }
 
 // Input fix
 .input input {
-    color: #fff !important;
+  color: #fff !important;
 }
 
 // Select fix
 .select span {
-    color: #fff !important;
+  color: #fff !important;
 }
 
 // Tooltip fix
 .q-slider__pin-text {
-    color: #fff;
+  color: #fff;
 }
 
 .q-tooltip {
-    font-size: 13px !important;
+  font-size: 13px !important;
 }
 
 // Card shadow fix
 .q-card {
-    box-shadow: none !important;
+  box-shadow: none !important;
 }
 
 // https://medium.com/cloud-native-the-gathering/how-to-fix-your-angular-material-input-field-from-being-broken-in-safari-1419b12007ee
 input {
-    -webkit-user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 // Fix the input fields on Webkit
 input[type="search"] {
-    -webkit-appearance: textfield;
+  -webkit-appearance: textfield;
 }
 
 .selectable {
-    user-select: text !important;
-    cursor: text;
+  user-select: text !important;
+  cursor: text;
 }
 
 .clickable {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .monospace {
-    font-family: monospace !important;
+  font-family: monospace !important;
 }
 
-.dotted-underline { 
-    border-bottom: 1px dotted;
+.dotted-underline {
+  border-bottom: 1px dotted;
 }
-.dotted-underline:hover { 
-    border-bottom: 1px dotted white;    
+.dotted-underline:hover {
+  border-bottom: 1px dotted white;
 }
-
 
 /* Renamer syntax higlighting colors */
 .__renamer_syntax_text {
-    color: #9e9e9e;
-    font-family: monospace !important;
+  color: #9e9e9e;
+  font-family: monospace !important;
 }
 .__renamer_syntax_operator {
-    color: #78909c;
-    font-family: monospace !important;
+  color: #78909c;
+  font-family: monospace !important;
 }
 .__renamer_syntax_string {
-    color: #4caf50;
-    font-family: monospace !important;
+  color: #4caf50;
+  font-family: monospace !important;
 }
 .__renamer_syntax_number {
-    color: #ff5722;
-    font-family: monospace !important;
+  color: #ff5722;
+  font-family: monospace !important;
 }
 .__renamer_syntax_function {
-    color: #2196f3;
-    font-family: monospace !important;
+  color: #2196f3;
+  font-family: monospace !important;
 }
 .__renamer_syntax_property {
-    color: #cfd8dc;
-    font-family: monospace !important;
+  color: #cfd8dc;
+  font-family: monospace !important;
 }
 .__renamer_syntax_variable {
-    color: #cfd8dc;
-    font-family: monospace !important;
+  color: #cfd8dc;
+  font-family: monospace !important;
 }
 
 code {
-    font-family: monospace !important;
-    font-size: 85%;
+  font-family: monospace !important;
+  font-size: 85%;
 }
-
 
 // Scrollbar
 ::-webkit-scrollbar {
-    width: 10px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar:horizontal {
-    height: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background-color: #10101044;
-    border-radius: 5px;
+  background-color: #10101044;
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-    border-radius: 5px;
-    background-color: #363636;
+  border-radius: 5px;
+  background-color: #363636;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #404040;
+  background-color: #404040;
 }
 
 ::-webkit-scrollbar-thumb:horizontal {
-    background-color: #36363690;
+  background-color: #36363690;
 }
 
 ::-webkit-scrollbar-thumb:horizontal:hover {
-    background-color: #404040;
+  background-color: #404040;
 }
 
 ::-webkit-scrollbar-corner {
-    background-color: transparent !important;
+  background-color: transparent !important;
 }
