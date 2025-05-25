@@ -1,23 +1,28 @@
 use anyhow::Error;
-use serde_json::Value;
-use std::ffi::c_void;
-use std::path::PathBuf;
-use std::io::Cursor;
-use std::sync::{Arc, Mutex};
 use base64::Engine;
-use libloading::{Library, Symbol};
-use onetagger_platforms::{beatport, junodownload, spotify, traxsource, discogs, itunes, musicbrainz, beatsource, bpmsupreme, bandcamp, deezer, musixmatch};
 use image::{ImageFormat, ImageReader};
+use libloading::{Library, Symbol};
+use onetagger_platforms::{
+    bandcamp, beatport, beatsource, bpmsupreme, deezer, discogs, itunes, junodownload, musicbrainz,
+    musixmatch, spotify, traxsource,
+};
 use onetagger_shared::Settings;
 use onetagger_tagger::custom::MatchTrackResult;
-use onetagger_tagger::{AutotaggerSourceBuilder, PlatformInfo, AutotaggerSource, TaggerConfig, AudioFileInfo, Track, SupportedTag, TrackMatch, ConfigCallbackResponse};
-use serde::{Serialize, Deserialize};
+use onetagger_tagger::{
+    AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, ConfigCallbackResponse, PlatformInfo,
+    SupportedTag, TaggerConfig, Track, TrackMatch,
+};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::ffi::c_void;
+use std::io::Cursor;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 lazy_static::lazy_static! {
     /// Globally loaded all platforms
     pub static ref AUTOTAGGER_PLATFORMS: Arc<Mutex<AutotaggerPlatforms>> = Arc::new(Mutex::new(AutotaggerPlatforms::builtin()));
 }
-
 
 /// For passing platform list into UI
 pub struct AutotaggerPlatforms {
@@ -51,14 +56,19 @@ impl AutotaggerPlatforms {
         *self = Self::builtin();
         // Custom
         match self.load_custom() {
-            Ok(_) => {},
-            Err(e) => warn!("Failed loading custom platforms: {e}")
+            Ok(_) => {}
+            Err(e) => warn!("Failed loading custom platforms: {e}"),
         };
     }
 
     /// Get the source
-    pub fn get_builder(&mut self, id: &str) -> Option<&mut Box<dyn AutotaggerSourceBuilder + Send + Sync>> {
-        let platform = self.platforms.iter_mut()
+    pub fn get_builder(
+        &mut self,
+        id: &str,
+    ) -> Option<&mut Box<dyn AutotaggerSourceBuilder + Send + Sync>> {
+        let platform = self
+            .platforms
+            .iter_mut()
             .find(|p| p.info.platform.id == id)?;
         Some(&mut platform.platform)
     }
@@ -80,16 +90,21 @@ impl AutotaggerPlatforms {
                 requires_auth: info.requires_auth,
                 platform: info,
             },
-            platform: Box::new(P::new())
+            platform: Box::new(P::new()),
         })
     }
 
     /// Prepare image for the UI
     fn reencode_image(data: &[u8]) -> Result<String, Error> {
-        let img = ImageReader::new(Cursor::new(data)).with_guessed_format()?.decode()?;
+        let img = ImageReader::new(Cursor::new(data))
+            .with_guessed_format()?
+            .decode()?;
         let mut buf = vec![];
         img.write_to(&mut Cursor::new(&mut buf), ImageFormat::Png)?;
-        Ok(format!("data:image/png;charset=utf-8;base64,{}", base64::engine::general_purpose::STANDARD.encode(buf)))
+        Ok(format!(
+            "data:image/png;charset=utf-8;base64,{}",
+            base64::engine::general_purpose::STANDARD.encode(buf)
+        ))
     }
 
     /// Get custom platforms dir
@@ -111,11 +126,17 @@ impl AutotaggerPlatforms {
             }
             match CustomPlatform::open_platform(&entry.path()) {
                 Ok(p) => {
-                    info!("Loaded custom platform: {}@{}", p.info.platform.id, p.info.platform.version);
+                    info!(
+                        "Loaded custom platform: {}@{}",
+                        p.info.platform.id, p.info.platform.version
+                    );
                     self.platforms.push(p);
-                },
+                }
                 Err(e) => {
-                    error!("Failed loading custom platform from {:?}: {e}", entry.path());
+                    error!(
+                        "Failed loading custom platform from {:?}: {e}",
+                        entry.path()
+                    );
                     continue;
                 }
             }
@@ -123,13 +144,12 @@ impl AutotaggerPlatforms {
 
         Ok(())
     }
-
 }
 
 /// Autotagger Platform
 pub struct AutotaggerPlatform {
     pub info: AutotaggerPlatformInfo,
-    pub platform: Box<dyn AutotaggerSourceBuilder + Send + Sync>
+    pub platform: Box<dyn AutotaggerSourceBuilder + Send + Sync>,
 }
 
 /// For passing platform list into UI
@@ -144,13 +164,12 @@ pub struct AutotaggerPlatformInfo {
     pub supported_tags: Vec<SupportedTag>,
 }
 
-
 /// Wrapper for loaded custom platform
 pub struct CustomPlatform {
     library: Library,
     path: PathBuf,
     info: PlatformInfo,
-    builder: PtrWrap
+    builder: PtrWrap,
 }
 
 impl CustomPlatform {
@@ -161,24 +180,32 @@ impl CustomPlatform {
             // Check version compatibility
             let version: Symbol<*const i32> = lib.get(b"_1T_PLATFORM_COMPATIBILITY")?;
             if **version != onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY {
-                warn!("Plugin is incompatible! Plugin version: {}, Supported version: {}", **version, onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY);
+                warn!(
+                    "Plugin is incompatible! Plugin version: {}, Supported version: {}",
+                    **version,
+                    onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY
+                );
                 return Err(anyhow!("Plugin is incompatible!"));
             }
             // Setup logging
-            let logging_cb_fn: Symbol<unsafe extern fn(extern fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
+            let logging_cb_fn: Symbol<
+                unsafe extern "C" fn(extern "C" fn(*mut onetagger_tagger::custom::FFIRecord)),
+            > = lib.get(b"_1t_register_logger")?;
             logging_cb_fn(onetagger_tagger::custom::write_log);
             // Get builder
-            let builder_fn: Symbol<unsafe extern fn() -> *mut c_void> = lib.get(b"_1t_create_builder")?;
+            let builder_fn: Symbol<unsafe extern "C" fn() -> *mut c_void> =
+                lib.get(b"_1t_create_builder")?;
             let builder = builder_fn();
             // Get info
-            let info_fn: Symbol<unsafe extern fn(*mut std::ffi::c_void) -> *mut PlatformInfo> = lib.get(b"_1t_builder_info")?; 
+            let info_fn: Symbol<unsafe extern "C" fn(*mut std::ffi::c_void) -> *mut PlatformInfo> =
+                lib.get(b"_1t_builder_info")?;
             //TODO: unsure if doesn't leak memory or cause segfaults later on
             let info = (*Box::from_raw(info_fn(builder))).clone();
-            CustomPlatform { 
+            CustomPlatform {
                 library: lib,
                 path: path.clone(),
                 info,
-                builder: PtrWrap(builder)
+                builder: PtrWrap(builder),
             }
         };
         Ok(p)
@@ -196,12 +223,12 @@ impl CustomPlatform {
                     Err(e) => {
                         warn!("Failed loading custom platform icon: {e}");
                         String::new()
-                    },
+                    }
                 },
                 supported_tags: lib.info.supported_tags.clone(),
                 requires_auth: lib.info.requires_auth,
             },
-            platform: Box::new(lib)
+            platform: Box::new(lib),
         })
     }
 
@@ -213,7 +240,9 @@ impl CustomPlatform {
     /// Get source
     fn get_source_raw(&self, config: &TaggerConfig) -> Result<CustomPlatformSource, Error> {
         let ptr = unsafe {
-            let get_source_fn: Symbol<unsafe extern fn(*mut c_void, &TaggerConfig) -> *mut c_void> = self.library.get(b"_1t_builder_get_source")?;
+            let get_source_fn: Symbol<
+                unsafe extern "C" fn(*mut c_void, &TaggerConfig) -> *mut c_void,
+            > = self.library.get(b"_1t_builder_get_source")?;
             let source_ptr = get_source_fn(self.builder.0, config);
             if source_ptr.is_null() {
                 return Err(anyhow!("Failed creating custom platform source!"));
@@ -222,28 +251,43 @@ impl CustomPlatform {
         };
         // Lifetime fix
         let match_fn = unsafe {
-            let f: Symbol<unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult> = 
-                self.library.get(b"_1t_match_track")?;
+            let f: Symbol<
+                unsafe extern "C" fn(
+                    *mut c_void,
+                    &AudioFileInfo,
+                    &TaggerConfig,
+                ) -> *mut MatchTrackResult,
+            > = self.library.get(b"_1t_match_track")?;
             std::mem::transmute(f)
         };
         let extend_fn = unsafe {
-            let f: Symbol<unsafe extern fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut MatchTrackResult> = 
-                self.library.get(b"_1t_extend_track")?;
+            let f: Symbol<
+                unsafe extern "C" fn(
+                    *mut c_void,
+                    &mut Track,
+                    &TaggerConfig,
+                ) -> *mut MatchTrackResult,
+            > = self.library.get(b"_1t_extend_track")?;
             std::mem::transmute(f)
         };
         Ok(CustomPlatformSource {
             ptr: PtrWrap(ptr),
             extend_fn,
-            match_fn
+            match_fn,
         })
     }
 
     /// Get config callback
-    fn config_callback_raw(&self, name: &str, config: Value) -> Result<ConfigCallbackResponse, Error> {
+    fn config_callback_raw(
+        &self,
+        name: &str,
+        config: Value,
+    ) -> Result<ConfigCallbackResponse, Error> {
         let config = Box::new(config);
         let output = unsafe {
-            let f: Symbol<unsafe extern fn(*mut c_void, &str, *mut Value) -> *mut ConfigCallbackResponse> =
-                self.library.get(b"_1t_builder_config_callback")?;
+            let f: Symbol<
+                unsafe extern "C" fn(*mut c_void, &str, *mut Value) -> *mut ConfigCallbackResponse,
+            > = self.library.get(b"_1t_builder_config_callback")?;
             let response = Box::from_raw(f(self.builder.0, name, Box::into_raw(config)));
             let output = (*response).clone();
             drop(response);
@@ -257,14 +301,18 @@ impl Drop for CustomPlatform {
     fn drop(&mut self) {
         // Free the builder in the plugin itself
         unsafe {
-            let drop_fn: Symbol<unsafe extern fn(*mut std::ffi::c_void)> = self.library.get(b"_1t_free_builder").unwrap();
+            let drop_fn: Symbol<unsafe extern "C" fn(*mut std::ffi::c_void)> =
+                self.library.get(b"_1t_free_builder").unwrap();
             drop_fn(self.builder.0);
         }
     }
 }
 
 impl AutotaggerSourceBuilder for CustomPlatform {
-    fn new() -> Self where Self: Sized {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
         panic!("Not used / use CustomPlatform::load()");
     }
 
@@ -279,20 +327,31 @@ impl AutotaggerSourceBuilder for CustomPlatform {
     fn config_callback(&mut self, name: &str, config: Value) -> ConfigCallbackResponse {
         match self.config_callback_raw(name, config) {
             Ok(r) => r,
-            Err(e) => ConfigCallbackResponse::Error { error: e.to_string() },
+            Err(e) => ConfigCallbackResponse::Error {
+                error: e.to_string(),
+            },
         }
     }
-    
 }
 
 struct CustomPlatformSource {
     ptr: PtrWrap,
-    match_fn: Symbol<'static, unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult>,
-    extend_fn: Symbol<'static, unsafe extern fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut Option<String>>,
+    match_fn: Symbol<
+        'static,
+        unsafe extern "C" fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult,
+    >,
+    extend_fn: Symbol<
+        'static,
+        unsafe extern "C" fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut Option<String>,
+    >,
 }
 
 impl AutotaggerSource for CustomPlatformSource {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+    fn match_track(
+        &mut self,
+        info: &AudioFileInfo,
+        config: &TaggerConfig,
+    ) -> Result<Vec<TrackMatch>, Error> {
         unsafe {
             let f = &self.match_fn;
             let r = Box::from_raw(f(self.ptr.0, info, config));
@@ -313,10 +372,7 @@ impl AutotaggerSource for CustomPlatformSource {
             }
         }
     }
-
-    
 }
-
 
 /// Pointer wrapper
 struct PtrWrap(pub *mut c_void);

@@ -1,8 +1,8 @@
-use std::path::Path;
 use onetagger_tag::Tag;
 use onetagger_tagger::{AudioFileInfo, Field};
-use pad::{PadStr, Alignment};
+use pad::{Alignment, PadStr};
 use regex::Regex;
+use std::path::Path;
 
 use crate::RenamerConfig;
 
@@ -24,13 +24,12 @@ impl TemplateParser {
                 match token {
                     // Do not sanitize constants
                     TokenType::Constant(_) => output.push_str(&data.to_string(&config.separator)),
-                    _ => output.push_str(&data.sanitize().to_string(&config.separator))
+                    _ => output.push_str(&data.sanitize().to_string(&config.separator)),
                 }
             }
         }
         output
     }
-
 
     /// Parse the template
     pub fn parse(input: &str) -> TemplateParser {
@@ -47,7 +46,10 @@ impl TemplateParser {
                     // End of command
                     if command {
                         if !string {
-                            tokens.push(TokenType::Command(TokenCommand::parse(&buffer, &mut syntax)));
+                            tokens.push(TokenType::Command(TokenCommand::parse(
+                                &buffer,
+                                &mut syntax,
+                            )));
                             syntax.add(1, SyntaxType::Operator);
                             buffer.clear();
                             command = false;
@@ -64,17 +66,17 @@ impl TemplateParser {
                         command = true;
                         continue;
                     }
-                },
+                }
                 '\\' if command => {
                     escape = true;
-                },
+                }
                 '"' if command => {
                     if escape {
                         escape = false;
                     } else {
                         string = !string;
                     }
-                },
+                }
                 _ => {
                     escape = false;
                 }
@@ -87,7 +89,10 @@ impl TemplateParser {
             tokens.push(TokenType::Constant(TokenConstant::new(&buffer)));
             syntax.add(buffer.len(), SyntaxType::Text);
         }
-        TemplateParser { tokens, syntax: syntax.build() }
+        TemplateParser {
+            tokens,
+            syntax: syntax.build(),
+        }
     }
 }
 
@@ -96,13 +101,17 @@ impl TemplateParser {
 pub struct SyntaxData {
     pub start: usize,
     pub length: usize,
-    pub syntax: SyntaxType
+    pub syntax: SyntaxType,
 }
 
 impl SyntaxData {
     /// Create new instance
     pub fn new(start: usize, length: usize, syntax: SyntaxType) -> SyntaxData {
-        SyntaxData { start, length, syntax }
+        SyntaxData {
+            start,
+            length,
+            syntax,
+        }
     }
 }
 
@@ -121,18 +130,21 @@ pub enum SyntaxType {
     /// Property name
     Property,
     /// Variable name
-    Variable
+    Variable,
 }
 
 struct SyntaxBuilder {
     data: Vec<SyntaxData>,
-    index: usize
+    index: usize,
 }
 
 impl SyntaxBuilder {
     /// Create new empty instance
     pub fn new() -> SyntaxBuilder {
-        SyntaxBuilder { data: vec![], index: 0 }
+        SyntaxBuilder {
+            data: vec![],
+            index: 0,
+        }
     }
 
     /// Add new item
@@ -150,7 +162,7 @@ impl SyntaxBuilder {
 #[derive(Debug, Clone)]
 enum Data {
     String(String),
-    Array(Vec<String>)
+    Array(Vec<String>),
 }
 
 impl Data {
@@ -182,9 +194,13 @@ impl Data {
 /// Every token type should implement this
 trait Token {
     /// Evaluate the token
-    fn get_value(&self, input: Option<&Data>, info: &AudioFileInfo, config: &RenamerConfig) -> Option<Data>;
+    fn get_value(
+        &self,
+        input: Option<&Data>,
+        info: &AudioFileInfo,
+        config: &RenamerConfig,
+    ) -> Option<Data>;
 }
-
 
 /// Wrapper for all token types
 #[derive(Debug, Clone)]
@@ -193,7 +209,7 @@ enum TokenType {
     Constant(TokenConstant),
     Variable(TokenVariable),
     Property(TokenProperty),
-    Function(TokenFunction)
+    Function(TokenFunction),
 }
 
 impl TokenType {
@@ -209,12 +225,10 @@ impl TokenType {
     }
 }
 
-
-
 /// Token with everything inside % %
 #[derive(Debug, Clone)]
 struct TokenCommand {
-    tokens: Vec<TokenType>
+    tokens: Vec<TokenType>,
 }
 
 impl TokenCommand {
@@ -250,8 +264,7 @@ impl TokenCommand {
                         buffer.clear();
                         continue;
                     }
-
-                },
+                }
                 '(' if !string => function = true,
                 // Function end
                 ')' if !string => {
@@ -260,12 +273,12 @@ impl TokenCommand {
                         Some(f) => tokens.push(TokenType::Function(f)),
                         None => {
                             error!("Failed to parse function, will be empty: {buffer}");
-                        },
+                        }
                     }
                     buffer.clear();
                     function = false;
                     continue;
-                },
+                }
                 '\\' if !function => escape = true,
                 // Constant
                 '"' if !function => {
@@ -310,7 +323,7 @@ impl TokenCommand {
                     syntax.add(1, SyntaxType::Operator);
                     string = true;
                     continue;
-                },
+                }
                 _ => {}
             }
             buffer.push(c);
@@ -324,16 +337,19 @@ impl TokenCommand {
             } else {
                 tokens.push(TokenType::Variable(TokenVariable::new(&buffer)));
                 syntax.add(buffer.len(), SyntaxType::Variable);
-
             }
         }
         TokenCommand { tokens }
     }
 }
 
-
 impl Token for TokenCommand {
-    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, config: &RenamerConfig) -> Option<Data> {
+    fn get_value(
+        &self,
+        _input: Option<&Data>,
+        info: &AudioFileInfo,
+        config: &RenamerConfig,
+    ) -> Option<Data> {
         let mut output = vec![];
         let mut data = None;
         for t in &self.tokens {
@@ -366,34 +382,42 @@ impl Token for TokenCommand {
     }
 }
 
-
 /// Constant string value
 #[derive(Debug, Clone)]
 struct TokenConstant {
-    string: String
+    string: String,
 }
 
 impl TokenConstant {
     /// Create new one
     pub fn new(value: &str) -> TokenConstant {
-        TokenConstant { string: value.to_string() }
+        TokenConstant {
+            string: value.to_string(),
+        }
     }
 }
 
 impl Token for TokenConstant {
-    fn get_value(&self, _input: Option<&Data>, _info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
+    fn get_value(
+        &self,
+        _input: Option<&Data>,
+        _info: &AudioFileInfo,
+        _config: &RenamerConfig,
+    ) -> Option<Data> {
         Some(Data::String(self.string.to_string()))
     }
 }
 
 #[derive(Debug, Clone)]
 struct TokenVariable {
-    var: String
+    var: String,
 }
 
 impl TokenVariable {
     pub fn new(name: &str) -> TokenVariable {
-        TokenVariable { var: name.to_string() }
+        TokenVariable {
+            var: name.to_string(),
+        }
     }
 
     /// Get raw value
@@ -418,13 +442,14 @@ impl TokenVariable {
             "remixer" => Some(Field::Remixer),
             "total" | "tracktotal" => Some(Field::TrackTotal),
             "disc" | "disk" | "discnumber" | "disknumber" => Some(Field::DiscNumber),
-            _ => None
+            _ => None,
         };
         if let Some(field) = field {
             let tag = field.by_format(&info.format);
             if let Some(v) = info.tags.get(tag) {
                 // Artist/Album artist override
-                if self.var.to_lowercase() == "artists" || self.var.to_lowercase() == "albumartists" {
+                if self.var.to_lowercase() == "artists" || self.var.to_lowercase() == "albumartists"
+                {
                     if v.is_empty() {
                         return None;
                     }
@@ -442,7 +467,7 @@ impl TokenVariable {
                     "year" => Some(date.year),
                     "month" => date.month.map(|m| m as i32),
                     "day" => date.day.map(|d| d as i32),
-                    _ => None
+                    _ => None,
                 }?;
                 return Some(Data::String(val.to_string()));
             }
@@ -454,34 +479,56 @@ impl TokenVariable {
         }
         // Built-ins
         match &self.var.to_lowercase()[..] {
-            "filename" => Some(Data::String(Path::new(&info.path).file_stem().unwrap().to_string_lossy().to_string())),
+            "filename" => Some(Data::String(
+                Path::new(&info.path)
+                    .file_stem()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string(),
+            )),
             "path" => Some(Data::String(info.path.to_string_lossy().to_string())),
-            "abspath" => Some(Data::String(dunce::canonicalize(&info.path).ok()?.to_string_lossy().to_string())),
-            _ => None
+            "abspath" => Some(Data::String(
+                dunce::canonicalize(&info.path)
+                    .ok()?
+                    .to_string_lossy()
+                    .to_string(),
+            )),
+            _ => None,
         }
     }
 }
 
 impl Token for TokenVariable {
-    fn get_value(&self, _input: Option<&Data>, info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
+    fn get_value(
+        &self,
+        _input: Option<&Data>,
+        info: &AudioFileInfo,
+        _config: &RenamerConfig,
+    ) -> Option<Data> {
         Some(self.get_raw_value(info)?)
     }
 }
 
-
 #[derive(Debug, Clone)]
 struct TokenProperty {
-    property: String
+    property: String,
 }
 
 impl TokenProperty {
     fn new(property: &str) -> TokenProperty {
-        TokenProperty { property: property.to_string() }
+        TokenProperty {
+            property: property.to_string(),
+        }
     }
 }
 
 impl Token for TokenProperty {
-    fn get_value(&self, input: Option<&Data>, _info: &AudioFileInfo, _config: &RenamerConfig) -> Option<Data> {
+    fn get_value(
+        &self,
+        input: Option<&Data>,
+        _info: &AudioFileInfo,
+        _config: &RenamerConfig,
+    ) -> Option<Data> {
         match input? {
             Data::String(_) => None,
             Data::Array(a) => {
@@ -493,9 +540,9 @@ impl Token for TokenProperty {
                 match &self.property[..] {
                     "first" => a.first().map(|i| Data::String(i.to_string())),
                     "last" => a.last().map(|i| Data::String(i.to_string())),
-                    _ => None
+                    _ => None,
                 }
-            },
+            }
         }
     }
 }
@@ -503,7 +550,7 @@ impl Token for TokenProperty {
 #[derive(Debug, Clone)]
 enum FunctionParameter {
     Number(i32),
-    String(String)
+    String(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -511,7 +558,7 @@ enum FunctionParseState {
     Name,
     String,
     Number,
-    Params
+    Params,
 }
 
 #[derive(Debug, Clone)]
@@ -560,11 +607,14 @@ impl TokenFunction {
                         params.push(FunctionParameter::String(param.clone()));
                         syntax.add(1, SyntaxType::Operator);
                         // add escape char length coz it's double in shown, but only single in buffer
-                        syntax.add(param.len() + param.chars().filter(|c| c == &'\\').count(), SyntaxType::String);
+                        syntax.add(
+                            param.len() + param.chars().filter(|c| c == &'\\').count(),
+                            SyntaxType::String,
+                        );
                         syntax.add(1, SyntaxType::Operator);
                         param.clear();
                     }
-                },
+                }
                 // End of number parameter
                 ' ' | ',' | ')' if !escape => {
                     if state == FunctionParseState::Number {
@@ -573,14 +623,14 @@ impl TokenFunction {
                             Err(e) => {
                                 error!("Failed parsing number function parameter ({param}): {e}");
                                 return None;
-                            },
+                            }
                         }
                         syntax.add(param.len(), SyntaxType::Number);
                         state = FunctionParseState::Params;
                         param.clear();
                     }
                     syntax.add(1, SyntaxType::Operator);
-                },
+                }
                 '\\' => {
                     if escape {
                         param.push('\\');
@@ -588,7 +638,7 @@ impl TokenFunction {
                     } else {
                         escape = true;
                     }
-                },
+                }
                 // Number
                 c if c.is_digit(10) => {
                     if state == FunctionParseState::Params {
@@ -603,12 +653,12 @@ impl TokenFunction {
                             error!("Failed parsing number param: invalid end sequence: {c}");
                             return None;
                         }
-                        _ => {},
+                        _ => {}
                     }
                     escape = false;
                 }
             }
-        };
+        }
 
         Some(TokenFunction { name, params })
     }
@@ -626,7 +676,7 @@ impl TokenFunction {
                     error!("Function is missing int parameter in position: {index}");
                 }
                 None
-            },
+            }
         }
     }
 
@@ -643,24 +693,33 @@ impl TokenFunction {
                     error!("Function is missing str parameter in position: {index}");
                 }
                 None
-            },
+            }
         }
     }
 }
 
 impl Token for TokenFunction {
-    fn get_value(&self, input: Option<&Data>, _info: &AudioFileInfo, config: &RenamerConfig) -> Option<Data> {
+    fn get_value(
+        &self,
+        input: Option<&Data>,
+        _info: &AudioFileInfo,
+        config: &RenamerConfig,
+    ) -> Option<Data> {
         let data = input?;
 
         match &self.name.to_lowercase()[..] {
             // Lowercase
             "lower" | "lowercase" => {
-                return Some(Data::String(data.to_string(&config.separator).to_lowercase()));
-            },
+                return Some(Data::String(
+                    data.to_string(&config.separator).to_lowercase(),
+                ));
+            }
             // Uppercase
             "upper" | "uppercase" => {
-                return Some(Data::String(data.to_string(&config.separator).to_uppercase()));
-            },
+                return Some(Data::String(
+                    data.to_string(&config.separator).to_uppercase(),
+                ));
+            }
             // Substring or array range
             "slice" | "range" => {
                 let start = self.param_int(0, true)?;
@@ -676,7 +735,7 @@ impl Token for TokenFunction {
                             i.collect::<String>()
                         };
                         Some(Data::String(s))
-                    },
+                    }
                     // Subarray
                     Data::Array(a) => {
                         if start as usize > a.len() || (end <= start && end > 0) {
@@ -686,9 +745,9 @@ impl Token for TokenFunction {
                         } else {
                             Some(Data::Array(a[start as usize..end as usize].to_vec()))
                         }
-                    },
+                    }
                 }
-            },
+            }
             // Capitalize first letter
             "capitalize" => {
                 let s = data.to_string(&config.separator);
@@ -698,12 +757,12 @@ impl Token for TokenFunction {
                     Some(i) => i.to_uppercase().collect::<String>() + c.as_str(),
                 };
                 Some(Data::String(o))
-            },
+            }
             // Convert to title case
             "titlecase" => {
                 let s = data.to_string(&config.separator);
                 Some(Data::String(titlecase::titlecase(&s)))
-            },
+            }
             // Replace string with string
             "replace" => {
                 let from = self.param_str(0, true)?;
@@ -718,7 +777,7 @@ impl Token for TokenFunction {
                 let text = data.to_string(&config.separator);
                 let text = re.replace_all(&text, to);
                 Some(Data::String(text.to_string()))
-            },
+            }
             // Padding on beggining
             "pad" => {
                 let character = self.param_str(0, true)?;
@@ -726,8 +785,13 @@ impl Token for TokenFunction {
                 if len == 0 {
                     return Some(data.clone());
                 }
-                Some(Data::String(data.to_string(&config.separator).pad(len as usize, character.chars().next()?, Alignment::Right, false)))
-            },
+                Some(Data::String(data.to_string(&config.separator).pad(
+                    len as usize,
+                    character.chars().next()?,
+                    Alignment::Right,
+                    false,
+                )))
+            }
             // Sort array
             "sort" => {
                 if let Data::Array(arr) = data {
@@ -737,40 +801,42 @@ impl Token for TokenFunction {
                 } else {
                     Some(data.clone())
                 }
-            },
+            }
             // Reverse array or string
-            "reverse" => {
-                match data {
-                    Data::String(s) => Some(Data::String(s.chars().rev().collect::<String>())),
-                    Data::Array(a) => Some(Data::Array(a.iter().rev().map(String::from).collect::<Vec<_>>())),
-                }
+            "reverse" => match data {
+                Data::String(s) => Some(Data::String(s.chars().rev().collect::<String>())),
+                Data::Array(a) => Some(Data::Array(
+                    a.iter().rev().map(String::from).collect::<Vec<_>>(),
+                )),
             },
             // Join array
             "join" => {
                 let c = self.param_str(0, true)?;
                 match data {
                     Data::String(s) => Some(Data::String(s.to_string())),
-                    Data::Array(a) => Some(Data::String(a.join(c)))
+                    Data::Array(a) => Some(Data::String(a.join(c))),
                 }
-            },
+            }
             // Path parent
-            "parent" => {
-                match data {
-                    Data::String(s) => {
-                        let s = s.replace("\\", "/");
-                        let parts = s.split("/").collect::<Vec<_>>();
-                        if parts.len() < 2 {
-                            return None;
-                        }
-                        let count = parts.len() - 1;
-                        Some(Data::String(parts.into_iter().take(count).collect::<Vec<_>>().join("/")))
-                    },
-                    Data::Array(a) => {
-                        if a.len() < 2 {
-                            return None;
-                        }
-                        Some(Data::Array(a.iter().take(a.len() - 1).map(String::from).collect()))
+            "parent" => match data {
+                Data::String(s) => {
+                    let s = s.replace("\\", "/");
+                    let parts = s.split("/").collect::<Vec<_>>();
+                    if parts.len() < 2 {
+                        return None;
                     }
+                    let count = parts.len() - 1;
+                    Some(Data::String(
+                        parts.into_iter().take(count).collect::<Vec<_>>().join("/"),
+                    ))
+                }
+                Data::Array(a) => {
+                    if a.len() < 2 {
+                        return None;
+                    }
+                    Some(Data::Array(
+                        a.iter().take(a.len() - 1).map(String::from).collect(),
+                    ))
                 }
             },
             // Path file/folder name
@@ -780,35 +846,29 @@ impl Token for TokenFunction {
                         let s = s.replace("\\", "/");
                         let parts = s.split("/").collect::<Vec<_>>();
                         Some(Data::String(parts.last()?.to_string()))
-                    },
+                    }
                     // Same as array.last()
-                    Data::Array(a) => {
-                        Some(Data::String(a.last()?.to_string()))
-                    },
-                }
-            },
-            // Conver to camelot
-            "camelot" => {
-                match data {
-                    Data::String(s) => {
-                        Some(Data::String(onetagger_tagger::to_camelot(s).to_owned()))
-                    },
-                    Data::Array(a) => {
-                        Some(Data::Array(a.iter().map(|v| onetagger_tagger::to_camelot(v).to_owned()).collect()))
-                    }
-                }
-            },
-            // Convert from camelot
-            "uncamelot" => {
-                match data {
-                    Data::String(s) => {
-                        Some(Data::String(onetagger_tagger::from_camelot(s).to_owned()))
-                    },
-                    Data::Array(a) => {
-                        Some(Data::Array(a.iter().map(|v| onetagger_tagger::from_camelot(v).to_owned()).collect()))
-                    }
+                    Data::Array(a) => Some(Data::String(a.last()?.to_string())),
                 }
             }
+            // Conver to camelot
+            "camelot" => match data {
+                Data::String(s) => Some(Data::String(onetagger_tagger::to_camelot(s).to_owned())),
+                Data::Array(a) => Some(Data::Array(
+                    a.iter()
+                        .map(|v| onetagger_tagger::to_camelot(v).to_owned())
+                        .collect(),
+                )),
+            },
+            // Convert from camelot
+            "uncamelot" => match data {
+                Data::String(s) => Some(Data::String(onetagger_tagger::from_camelot(s).to_owned())),
+                Data::Array(a) => Some(Data::Array(
+                    a.iter()
+                        .map(|v| onetagger_tagger::from_camelot(v).to_owned())
+                        .collect(),
+                )),
+            },
             f => {
                 error!("Invalid function: {f}!");
                 None

@@ -1,42 +1,48 @@
-#[macro_use] extern crate log;
-#[macro_use] extern crate anyhow;
-#[macro_use] extern crate onetagger_shared;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate anyhow;
+#[macro_use]
+extern crate onetagger_shared;
 
-use std::collections::HashMap;
 use anyhow::Error;
-use onetagger_renamer::{Renamer, RenamerConfig, TemplateParser};
-use rand::seq::SliceRandom;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::time::Duration;
-use std::default::Default;
-use std::io::prelude::*;
+use chrono::Datelike;
 use chrono::Local;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use execute::Execute;
-use onetagger_tagger::{FileTaggedStatus, LyricsExt, MatchReason, MatchingUtils, SupportedTag, TrackMatch};
+use onetagger_player::AudioSources;
+use onetagger_renamer::{Renamer, RenamerConfig, TemplateParser};
+use onetagger_shared::Settings;
+use onetagger_tag::{AudioFileFormat, CoverType, Field, Tag, TagDate, TagImpl, EXTENSIONS};
+use onetagger_tagger::{
+    AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, StylesOptions, TaggerConfig, Track,
+};
+use onetagger_tagger::{
+    FileTaggedStatus, LyricsExt, MatchReason, MatchingUtils, SupportedTag, TrackMatch,
+};
+use rand::seq::SliceRandom;
 use regex::Regex;
 use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::default::Default;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use walkdir::WalkDir;
-use chrono::Datelike;
-use serde::{Serialize, Deserialize};
-use crossbeam_channel::{unbounded, Sender, Receiver};
-use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
-use onetagger_shared::Settings;
-use onetagger_player::AudioSources;
-use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, StylesOptions, AutotaggerSource, AutotaggerSourceBuilder};
 
 use crate::shazam::Shazam;
 mod shazam;
 
-pub mod repo;
-pub mod platforms;
 pub mod audiofeatures;
+pub mod platforms;
+pub mod repo;
 
 // Re-exports
-pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
-
+pub use platforms::{AutotaggerPlatforms, AUTOTAGGER_PLATFORMS};
 
 lazy_static::lazy_static! {
     /// Stop tagging global variable
@@ -57,15 +63,17 @@ impl TaggerConfigExt for TaggerConfig {
                 for option in &platform.info.platform.custom_options.options {
                     options.insert(option.id.to_string(), option.value.json_value());
                 }
-                custom.insert(platform.info.platform.id.to_string(), serde_json::to_value(options).unwrap());
+                custom.insert(
+                    platform.info.platform.id.to_string(),
+                    serde_json::to_value(options).unwrap(),
+                );
             }
         }
         let mut default = TaggerConfig::default();
         default.custom = custom.into();
         default
     }
-} 
-
+}
 
 pub trait TrackImpl {
     fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error>;
@@ -75,7 +83,7 @@ pub trait TrackImpl {
 
 impl TrackImpl for Track {
     // Write tags to file
-    fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {        
+    fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {
         // Get tag
         let mut tag_wrap = Tag::load_file(&path, true)?;
         tag_wrap.set_separators(&config.separators);
@@ -93,31 +101,58 @@ impl TrackImpl for Track {
         // MP4 Album art override
         if let Tag::MP4(mp4) = &mut tag_wrap {
             // Has art
-            if (config.overwrite_tag(SupportedTag::AlbumArt) || mp4.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
+            if (config.overwrite_tag(SupportedTag::AlbumArt) || mp4.get_art().is_empty())
+                && self.art.is_some()
+                && config.tag_enabled(SupportedTag::AlbumArt)
+            {
                 mp4.remove_all_artworks();
             }
         }
-        
+
         let tag = tag_wrap.tag_mut();
         // Set tags
         if config.tag_enabled(SupportedTag::Title) {
             match config.short_title {
-                true => tag.set_field(Field::Title, vec![self.title.to_string()], config.overwrite_tag(SupportedTag::Title)),
-                false => tag.set_field(Field::Title, vec![self.full_title()], config.overwrite_tag(SupportedTag::Title))
+                true => tag.set_field(
+                    Field::Title,
+                    vec![self.title.to_string()],
+                    config.overwrite_tag(SupportedTag::Title),
+                ),
+                false => tag.set_field(
+                    Field::Title,
+                    vec![self.full_title()],
+                    config.overwrite_tag(SupportedTag::Title),
+                ),
             }
         }
         // Version
         if config.tag_enabled(SupportedTag::Version) && self.version.is_some() {
-            tag.set_field(Field::Version, vec![self.version.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::Version));
+            tag.set_field(
+                Field::Version,
+                vec![self.version.as_ref().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::Version),
+            );
         }
         if config.tag_enabled(SupportedTag::Artist) {
-            tag.set_field(Field::Artist, self.artists.clone(), config.overwrite_tag(SupportedTag::Artist));
+            tag.set_field(
+                Field::Artist,
+                self.artists.clone(),
+                config.overwrite_tag(SupportedTag::Artist),
+            );
         }
         if config.tag_enabled(SupportedTag::AlbumArtist) && !self.album_artists.is_empty() {
-            tag.set_field(Field::AlbumArtist, self.album_artists.clone(), config.overwrite_tag(SupportedTag::AlbumArtist));
+            tag.set_field(
+                Field::AlbumArtist,
+                self.album_artists.clone(),
+                config.overwrite_tag(SupportedTag::AlbumArtist),
+            );
         }
-        if self.album.is_some() && config.tag_enabled(SupportedTag::Album)  {
-            tag.set_field(Field::Album, vec![self.album.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::Album));
+        if self.album.is_some() && config.tag_enabled(SupportedTag::Album) {
+            tag.set_field(
+                Field::Album,
+                vec![self.album.as_ref().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::Album),
+            );
         }
         if config.tag_enabled(SupportedTag::Key) && self.key.is_some() {
             let mut value = self.key.as_ref().unwrap().to_string();
@@ -125,19 +160,41 @@ impl TrackImpl for Track {
             if config.camelot {
                 value = onetagger_tagger::to_camelot(&value).to_owned();
             }
-            tag.set_field(Field::Key, vec![value], config.overwrite_tag(SupportedTag::Key));
+            tag.set_field(
+                Field::Key,
+                vec![value],
+                config.overwrite_tag(SupportedTag::Key),
+            );
         }
         if config.tag_enabled(SupportedTag::BPM) && self.bpm.is_some() {
-            tag.set_field(Field::BPM, vec![self.bpm.unwrap().to_string()], config.overwrite_tag(SupportedTag::BPM));
+            tag.set_field(
+                Field::BPM,
+                vec![self.bpm.unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::BPM),
+            );
         }
         if config.tag_enabled(SupportedTag::Label) && self.label.is_some() {
-            tag.set_field(Field::Label, vec![self.label.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::Label));
+            tag.set_field(
+                Field::Label,
+                vec![self.label.as_ref().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::Label),
+            );
         }
         if config.tag_enabled(SupportedTag::Genre) && !self.genres.is_empty() {
             let mut genres = if config.merge_genres {
                 // Merge with existing ones
-                let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
-                let mut genres = self.genres.clone().into_iter().filter(|g| !current.iter().any(|i| i.to_lowercase() == g.to_lowercase())).collect();
+                let mut current: Vec<String> = tag
+                    .get_field(Field::Genre)
+                    .unwrap_or(vec![])
+                    .into_iter()
+                    .filter(|i| !i.trim().is_empty())
+                    .collect::<Vec<_>>();
+                let mut genres = self
+                    .genres
+                    .clone()
+                    .into_iter()
+                    .filter(|g| !current.iter().any(|i| i.to_lowercase() == g.to_lowercase()))
+                    .collect();
                 current.append(&mut genres);
                 current
             } else {
@@ -146,129 +203,248 @@ impl TrackImpl for Track {
 
             // Capitalize genres
             if config.capitalize_genres {
-                genres = genres.into_iter().map(|g| onetagger_shared::capitalize(&g)).collect();
+                genres = genres
+                    .into_iter()
+                    .map(|g| onetagger_shared::capitalize(&g))
+                    .collect();
             }
 
-            tag.set_field(Field::Genre, genres, config.overwrite_tag(SupportedTag::Genre));
+            tag.set_field(
+                Field::Genre,
+                genres,
+                config.overwrite_tag(SupportedTag::Genre),
+            );
         }
         if config.tag_enabled(SupportedTag::Style) && !self.styles.is_empty() {
-            if config.styles_options == StylesOptions::CustomTag && config.styles_custom_tag.is_some() {
+            if config.styles_options == StylesOptions::CustomTag
+                && config.styles_custom_tag.is_some()
+            {
                 // Custom style tag
                 let ui_tag = config.styles_custom_tag.as_ref().unwrap();
-                tag.set_raw(&ui_tag.by_format(&format), self.styles.clone(), config.overwrite_tag(SupportedTag::Style));
-
+                tag.set_raw(
+                    &ui_tag.by_format(&format),
+                    self.styles.clone(),
+                    config.overwrite_tag(SupportedTag::Style),
+                );
             } else if config.merge_genres {
                 // Merge with existing ones
-                let mut current: Vec<String> = tag.get_field(Field::Style).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
-                let mut styles = self.styles.clone().into_iter().filter(|s| !current.iter().any(|i| i.to_lowercase() == s.to_lowercase())).collect();
+                let mut current: Vec<String> = tag
+                    .get_field(Field::Style)
+                    .unwrap_or(vec![])
+                    .into_iter()
+                    .filter(|i| !i.trim().is_empty())
+                    .collect::<Vec<_>>();
+                let mut styles = self
+                    .styles
+                    .clone()
+                    .into_iter()
+                    .filter(|s| !current.iter().any(|i| i.to_lowercase() == s.to_lowercase()))
+                    .collect();
                 current.append(&mut styles);
-                tag.set_field(Field::Style, current, config.overwrite_tag(SupportedTag::Style)); 
-
+                tag.set_field(
+                    Field::Style,
+                    current,
+                    config.overwrite_tag(SupportedTag::Style),
+                );
             } else {
                 // Default write to style
-                tag.set_field(Field::Style, self.styles.clone(), config.overwrite_tag(SupportedTag::Style));
+                tag.set_field(
+                    Field::Style,
+                    self.styles.clone(),
+                    config.overwrite_tag(SupportedTag::Style),
+                );
             }
         }
         // Release dates
         if config.tag_enabled(SupportedTag::ReleaseDate) {
             if let Some(date) = self.release_date {
-                tag.set_date(&TagDate {
-                    year: date.year() as i32,
-                    month: match config.only_year {
-                        true => None,
-                        false => Some(date.month() as u8)
+                tag.set_date(
+                    &TagDate {
+                        year: date.year() as i32,
+                        month: match config.only_year {
+                            true => None,
+                            false => Some(date.month() as u8),
+                        },
+                        day: match config.only_year {
+                            true => None,
+                            false => Some(date.day() as u8),
+                        },
                     },
-                    day: match config.only_year {
-                        true => None,
-                        false => Some(date.day() as u8)
-                    }
-                }, config.overwrite_tag(SupportedTag::ReleaseDate));
+                    config.overwrite_tag(SupportedTag::ReleaseDate),
+                );
             } else if let Some(year) = self.release_year {
-                tag.set_date(&TagDate {
-                    year: year as i32,
-                    month: None,
-                    day: None
-                }, config.overwrite_tag(SupportedTag::ReleaseDate));
+                tag.set_date(
+                    &TagDate {
+                        year: year as i32,
+                        month: None,
+                        day: None,
+                    },
+                    config.overwrite_tag(SupportedTag::ReleaseDate),
+                );
             }
         }
         // Publish date
         if config.tag_enabled(SupportedTag::PublishDate) {
             if let Some(date) = self.publish_date {
-                tag.set_publish_date(&TagDate {
-                    year: date.year() as i32,
-                    month: match config.only_year {
-                        true => None,
-                        false => Some(date.month() as u8)
+                tag.set_publish_date(
+                    &TagDate {
+                        year: date.year() as i32,
+                        month: match config.only_year {
+                            true => None,
+                            false => Some(date.month() as u8),
+                        },
+                        day: match config.only_year {
+                            true => None,
+                            false => Some(date.day() as u8),
+                        },
                     },
-                    day: match config.only_year {
-                        true => None,
-                        false => Some(date.day() as u8)
-                    }
-                }, config.overwrite_tag(SupportedTag::PublishDate));
+                    config.overwrite_tag(SupportedTag::PublishDate),
+                );
             } else if let Some(year) = self.publish_year {
-                tag.set_publish_date(&TagDate {
-                    year: year as i32,
-                    month: None,
-                    day: None
-                }, config.overwrite_tag(SupportedTag::PublishDate));
+                tag.set_publish_date(
+                    &TagDate {
+                        year: year as i32,
+                        month: None,
+                        day: None,
+                    },
+                    config.overwrite_tag(SupportedTag::PublishDate),
+                );
             }
         }
         // URL
         if config.tag_enabled(SupportedTag::URL) {
-            tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite_tag(SupportedTag::URL));
+            tag.set_raw(
+                "WWWAUDIOFILE",
+                vec![self.url.to_string()],
+                config.overwrite_tag(SupportedTag::URL),
+            );
         }
         // Other tags
         if config.tag_enabled(SupportedTag::OtherTags) {
             for (t, value) in &self.other {
-                tag.set_raw(&t.by_format(&format), value.to_owned(), config.overwrite_tag(SupportedTag::OtherTags));
+                tag.set_raw(
+                    &t.by_format(&format),
+                    value.to_owned(),
+                    config.overwrite_tag(SupportedTag::OtherTags),
+                );
             }
         }
         // IDs
         if config.tag_enabled(SupportedTag::TrackId) && self.track_id.is_some() {
-            let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
-            tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::TrackId));
+            let t = format!(
+                "{}_TRACK_ID",
+                serde_json::to_value(self.platform.clone())
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_uppercase()
+            );
+            tag.set_raw(
+                &t,
+                vec![self.track_id.as_ref().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::TrackId),
+            );
         }
         if config.tag_enabled(SupportedTag::ReleaseId) && self.release_id.is_some() {
-            let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
-            tag.set_raw(&t, vec![self.release_id.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::ReleaseId));
+            let t = format!(
+                "{}_RELEASE_ID",
+                serde_json::to_value(self.platform.clone())
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_uppercase()
+            );
+            tag.set_raw(
+                &t,
+                vec![self.release_id.as_ref().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::ReleaseId),
+            );
         }
         // Catalog number
         if config.tag_enabled(SupportedTag::CatalogNumber) && self.catalog_number.is_some() {
-            tag.set_field(Field::CatalogNumber, vec![self.catalog_number.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::CatalogNumber));
+            tag.set_field(
+                Field::CatalogNumber,
+                vec![self.catalog_number.as_ref().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::CatalogNumber),
+            );
         }
         // Duration
         if config.tag_enabled(SupportedTag::Duration) && self.duration.as_secs() > 0 {
-            tag.set_field(Field::Duration, vec![self.duration.as_secs().to_string()], config.overwrite_tag(SupportedTag::Duration));
+            tag.set_field(
+                Field::Duration,
+                vec![self.duration.as_secs().to_string()],
+                config.overwrite_tag(SupportedTag::Duration),
+            );
         }
         // Remixers
         if config.tag_enabled(SupportedTag::Remixer) && !self.remixers.is_empty() {
-            tag.set_field(Field::Remixer, self.remixers.clone(), config.overwrite_tag(SupportedTag::Remixer));
+            tag.set_field(
+                Field::Remixer,
+                self.remixers.clone(),
+                config.overwrite_tag(SupportedTag::Remixer),
+            );
         }
         // ISRC
         if config.tag_enabled(SupportedTag::ISRC) && self.isrc.is_some() {
-            tag.set_field(Field::ISRC, vec![self.isrc.clone().unwrap()], config.overwrite_tag(SupportedTag::ISRC));
+            tag.set_field(
+                Field::ISRC,
+                vec![self.isrc.clone().unwrap()],
+                config.overwrite_tag(SupportedTag::ISRC),
+            );
         }
         // Mood
         if config.tag_enabled(SupportedTag::Mood) && self.mood.is_some() {
-            tag.set_field(Field::Mood, vec![self.mood.clone().unwrap()], config.overwrite_tag(SupportedTag::Mood));
+            tag.set_field(
+                Field::Mood,
+                vec![self.mood.clone().unwrap()],
+                config.overwrite_tag(SupportedTag::Mood),
+            );
         }
         // Disc number
         if config.tag_enabled(SupportedTag::DiscNumber) && self.disc_number.is_some() {
-            tag.set_field(Field::DiscNumber, vec![self.disc_number.clone().unwrap().to_string()], config.overwrite_tag(SupportedTag::DiscNumber));
+            tag.set_field(
+                Field::DiscNumber,
+                vec![self.disc_number.clone().unwrap().to_string()],
+                config.overwrite_tag(SupportedTag::DiscNumber),
+            );
         }
         // Track number
         if config.tag_enabled(SupportedTag::TrackNumber) && self.track_number.is_some() {
             match config.tag_enabled(SupportedTag::TrackTotal) {
-                true => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), self.track_total.clone(), config.overwrite_tag(SupportedTag::TrackNumber)),
-                false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), None, config.overwrite_tag(SupportedTag::TrackNumber)),
+                true => tag.set_track_number(
+                    &self
+                        .track_number
+                        .as_ref()
+                        .unwrap()
+                        .to_string_with_zeroes(config.track_number_leading_zeroes),
+                    self.track_total.clone(),
+                    config.overwrite_tag(SupportedTag::TrackNumber),
+                ),
+                false => tag.set_track_number(
+                    &self
+                        .track_number
+                        .as_ref()
+                        .unwrap()
+                        .to_string_with_zeroes(config.track_number_leading_zeroes),
+                    None,
+                    config.overwrite_tag(SupportedTag::TrackNumber),
+                ),
             }
         }
         // Lyrics
         if config.tag_enabled(SupportedTag::SyncedLyrics) && self.lyrics.is_some() {
-            tag.set_lyrics(self.lyrics.as_ref().unwrap(), true, config.overwrite_tag(SupportedTag::SyncedLyrics));
+            tag.set_lyrics(
+                self.lyrics.as_ref().unwrap(),
+                true,
+                config.overwrite_tag(SupportedTag::SyncedLyrics),
+            );
         }
         if config.tag_enabled(SupportedTag::UnsyncedLyrics) && self.lyrics.is_some() {
-            tag.set_lyrics(self.lyrics.as_ref().unwrap(), false, config.overwrite_tag(SupportedTag::UnsyncedLyrics));
+            tag.set_lyrics(
+                self.lyrics.as_ref().unwrap(),
+                false,
+                config.overwrite_tag(SupportedTag::UnsyncedLyrics),
+            );
         }
         // Explicit
         if config.tag_enabled(SupportedTag::Explicit) && self.explicit.is_some() {
@@ -277,7 +453,10 @@ impl TrackImpl for Track {
 
         // Album art
         let mut cover_data = None;
-        if (config.overwrite_tag(SupportedTag::AlbumArt) || tag.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
+        if (config.overwrite_tag(SupportedTag::AlbumArt) || tag.get_art().is_empty())
+            && self.art.is_some()
+            && config.tag_enabled(SupportedTag::AlbumArt)
+        {
             info!("Downloading art: {:?}", self.art);
             match self.download_art(self.art.as_ref().unwrap()) {
                 Ok(data) => {
@@ -290,27 +469,41 @@ impl TrackImpl for Track {
                                 }
                             }
 
-                            tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
+                            tag.set_art(
+                                CoverType::CoverFront,
+                                "image/jpeg",
+                                Some("Cover"),
+                                data.clone(),
+                            );
                             cover_data = Some(data);
-                        },
-                        None => warn!("Invalid album art!")
-                    } 
-                },
-                Err(e) => warn!("Error downloading album art! {}", e)
+                        }
+                        None => warn!("Invalid album art!"),
+                    }
+                }
+                Err(e) => warn!("Error downloading album art! {}", e),
             }
         }
 
         // Meta tags (date / success)
         if config.tag_enabled(SupportedTag::MetaTags) {
             let time = Local::now();
-            tag.set_raw("1T_TAGGEDDATE", vec![format!("{}_AT", time.format("%Y-%m-%d %H:%M:%S"))], true);
+            tag.set_raw(
+                "1T_TAGGEDDATE",
+                vec![format!("{}_AT", time.format("%Y-%m-%d %H:%M:%S"))],
+                true,
+            );
         }
 
         // LRC
         if config.write_lrc && self.lyrics.is_some() {
             let path = path.as_ref().with_extension("lrc");
             if !path.exists() {
-                if let Some(lrc) = self.lyrics.as_ref().unwrap().generate_lrc(Some(&self), config.enhanced_lrc) {
+                if let Some(lrc) = self
+                    .lyrics
+                    .as_ref()
+                    .unwrap()
+                    .generate_lrc(Some(&self), config.enhanced_lrc)
+                {
                     info!("Writing LRC");
                     match std::fs::write(&path, lrc) {
                         Ok(_) => {}
@@ -332,7 +525,7 @@ impl TrackImpl for Track {
                         Ok(_) => debug!("Cover written to: {}", cover_path.display()),
                         Err(e) => error!("Failed to write cover file: {e}"),
                     }
-                },
+                }
                 Err(e) => {
                     error!("Failed generating cover path: {e}");
                 }
@@ -354,7 +547,7 @@ impl TrackImpl for Track {
                 return Ok(None);
             }
         }
-       
+
         Ok(Some(response.bytes()?.to_vec()))
     }
 
@@ -368,30 +561,33 @@ impl TrackImpl for Track {
             StylesOptions::MergeToGenres => {
                 self.genres.extend(styles);
                 self.styles = vec![];
-            },
+            }
             StylesOptions::MergeToStyles => {
                 self.styles.extend(genres);
                 self.genres = vec![];
-            },
+            }
             StylesOptions::StylesToGenre => {
                 self.genres = styles;
                 self.styles = vec![];
-            },
+            }
             StylesOptions::GenresToStyle => {
                 self.styles = genres;
                 self.genres = vec![];
-            },
-            StylesOptions::Default => {},
+            }
+            StylesOptions::Default => {}
             // Is written separately
-            StylesOptions::CustomTag => {},
+            StylesOptions::CustomTag => {}
         }
         self
     }
-
 }
 
 /// Get path to cover file
-fn get_cover_path(info: &AudioFileInfo, folder: impl AsRef<Path>, config: &TaggerConfig) -> PathBuf {
+fn get_cover_path(
+    info: &AudioFileInfo,
+    folder: impl AsRef<Path>,
+    config: &TaggerConfig,
+) -> PathBuf {
     let mut path = folder.as_ref().join("cover.jpg");
 
     if let Some(template) = config.cover_filename.as_ref() {
@@ -409,7 +605,11 @@ fn get_cover_path(info: &AudioFileInfo, folder: impl AsRef<Path>, config: &Tagge
 
 pub trait AudioFileInfoImpl {
     /// Load audio file info from path
-    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Error>;
+    fn load_file(
+        path: impl AsRef<Path>,
+        filename_template: Option<Regex>,
+        title_regex: Option<Regex>,
+    ) -> Result<AudioFileInfo, Error>;
     /// Load duration from file
     fn load_duration(&mut self);
     /// Parse the filename template
@@ -418,28 +618,45 @@ pub trait AudioFileInfoImpl {
     fn shazam(path: impl AsRef<Path>) -> Result<AudioFileInfo, Error>;
     /// Get list of all files in with supported extensions
     fn get_file_list(path: impl AsRef<Path>, subfolders: bool) -> Vec<PathBuf>;
-    /// Get iterator of all audio files in path 
-    fn load_files_iter(path: impl AsRef<Path>, subfolders: bool, filename_template: Option<Regex>, title_regex: Option<Regex>) -> impl Iterator<Item = Result<AudioFileInfo, Error>>;
+    /// Get iterator of all audio files in path
+    fn load_files_iter(
+        path: impl AsRef<Path>,
+        subfolders: bool,
+        filename_template: Option<Regex>,
+        title_regex: Option<Regex>,
+    ) -> impl Iterator<Item = Result<AudioFileInfo, Error>>;
 }
 
 impl AudioFileInfoImpl for AudioFileInfo {
-    fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Error> {
+    fn load_file(
+        path: impl AsRef<Path>,
+        filename_template: Option<Regex>,
+        title_regex: Option<Regex>,
+    ) -> Result<AudioFileInfo, Error> {
         let tag_wrap = Tag::load_file(&path, true)?;
         let tag = tag_wrap.tag();
         let separator = tag.get_separator().unwrap_or(" ".to_string());
         // Get title artist from tag
-        let mut title = tag.get_field(Field::Title).map(|t| match t.is_empty() {
-            true => None,
-            false => Some(t.join(&separator))
-        }).flatten();
-        let mut artists = tag.get_field(Field::Artist)
+        let mut title = tag
+            .get_field(Field::Title)
+            .map(|t| match t.is_empty() {
+                true => None,
+                false => Some(t.join(&separator)),
+            })
+            .flatten();
+        let mut artists = tag
+            .get_field(Field::Artist)
             .map(|a| AudioFileInfo::parse_artist_tag(a.iter().map(|a| a.as_str()).collect()));
 
         // Parse filename
         if (title.is_none() || artists.is_none()) && filename_template.is_some() {
-            let filename = path.as_ref().file_name().ok_or(anyhow!("Missing filename!"))?.to_str().ok_or(anyhow!("Missing filename"))?;
-            if let Some(captures) = filename_template.unwrap().captures(filename) {                
-                
+            let filename = path
+                .as_ref()
+                .file_name()
+                .ok_or(anyhow!("Missing filename!"))?
+                .to_str()
+                .ok_or(anyhow!("Missing filename"))?;
+            if let Some(captures) = filename_template.unwrap().captures(filename) {
                 // Title
                 if title.is_none() {
                     if let Some(m) = captures.name("title") {
@@ -456,7 +673,11 @@ impl AudioFileInfoImpl for AudioFileInfo {
         }
 
         // Get tagging status
-        let tagged = match tag.get_raw("1T_TAGGEDDATE").map(|t| t.first().map(String::from)).flatten() {
+        let tagged = match tag
+            .get_raw("1T_TAGGEDDATE")
+            .map(|t| t.first().map(String::from))
+            .flatten()
+        {
             Some(val) => {
                 if val.ends_with("_AT") {
                     FileTaggedStatus::AutoTagger
@@ -465,7 +686,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
                 } else {
                     FileTaggedStatus::Tagged
                 }
-            },
+            }
             None => FileTaggedStatus::Untagged,
         };
 
@@ -474,19 +695,26 @@ impl AudioFileInfoImpl for AudioFileInfo {
             title = title.map(|t| re.replace_all(&t, "").to_string());
         }
 
-
         // Track number
-        let track_number = tag.get_field(Field::TrackNumber).unwrap_or(vec![String::new()])[0].parse().ok();
+        let track_number = tag
+            .get_field(Field::TrackNumber)
+            .unwrap_or(vec![String::new()])[0]
+            .parse()
+            .ok();
         Ok(AudioFileInfo {
             format: tag_wrap.format(),
             title,
             artists: artists.unwrap_or_default(),
             path: path.as_ref().to_owned(),
-            isrc: tag.get_field(Field::ISRC).unwrap_or(vec![]).first().map(String::from),
+            isrc: tag
+                .get_field(Field::ISRC)
+                .unwrap_or(vec![])
+                .first()
+                .map(String::from),
             duration: None,
             track_number,
             tagged,
-            tags: tag.all_tags()
+            tags: tag.all_tags(),
         })
     }
 
@@ -507,7 +735,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
         let mut template = template.to_string();
         for c in reserved.chars() {
             template = template.replace(c, &format!("\\{}", c));
-        };
+        }
         // Replace variables
         template = template
             .replace("%title%", "(?P<title>.+?)")
@@ -517,7 +745,9 @@ impl AudioFileInfoImpl for AudioFileInfo {
         let re = Regex::new("%[a-zA-Z0-9 ]+%").unwrap();
         template = re.replace_all(&template, "(.+)").to_string();
         // Extension
-        template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template).trim().to_string();
+        template = format!("{}\\.[a-zA-Z0-9]{{2,4}}$", template)
+            .trim()
+            .to_string();
         debug!("Filename template regex: `{template}`");
         // Final regex
         Regex::new(&template).ok()
@@ -528,11 +758,23 @@ impl AudioFileInfoImpl for AudioFileInfo {
         info!("Recognizing on Shazam: {:?}", path.as_ref());
         match Shazam::recognize_from_file(&path) {
             Ok((shazam_track, duration)) => {
-                info!("Recognized on Shazam: {:?}: {} - {}", path.as_ref(), shazam_track.title, shazam_track.subtitle);
+                info!(
+                    "Recognized on Shazam: {:?}: {} - {}",
+                    path.as_ref(),
+                    shazam_track.title,
+                    shazam_track.subtitle
+                );
                 return Ok(AudioFileInfo {
                     title: Some(shazam_track.title),
                     artists: AudioFileInfo::parse_artist_tag(vec![&shazam_track.subtitle]),
-                    format: AudioFileFormat::from_extension(&path.as_ref().extension().unwrap_or_default().to_string_lossy()).unwrap(),
+                    format: AudioFileFormat::from_extension(
+                        &path
+                            .as_ref()
+                            .extension()
+                            .unwrap_or_default()
+                            .to_string_lossy(),
+                    )
+                    .unwrap(),
                     path: path.as_ref().to_owned(),
                     isrc: shazam_track.isrc,
                     duration: Some(Duration::from_millis(duration as u64).into()),
@@ -540,7 +782,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
                     tagged: FileTaggedStatus::Untagged,
                     tags: Default::default(),
                 });
-            },
+            }
             // Mark as failed
             Err(e) => {
                 warn!("Shazam failed: {}", e);
@@ -559,20 +801,34 @@ impl AudioFileInfoImpl for AudioFileInfo {
             WalkDir::new(path)
                 .into_iter()
                 .filter_map(|e| e.ok())
-                .filter(|e| EXTENSIONS.iter().any(|ext| e.path().extension().unwrap_or_default().to_ascii_lowercase() == *ext))
+                .filter(|e| {
+                    EXTENSIONS.iter().any(|ext| {
+                        e.path()
+                            .extension()
+                            .unwrap_or_default()
+                            .to_ascii_lowercase()
+                            == *ext
+                    })
+                })
                 .map(|e| e.into_path())
                 .collect()
         } else {
             // No subfolders
             match std::fs::read_dir(path) {
-                Ok(readdir) => {
-                    readdir
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                        .filter(|p| EXTENSIONS.iter().any(|i| p.path().extension().unwrap_or_default().to_ascii_lowercase() == *i))
-                        .map(|e| e.path())
-                        .collect()
-                },
+                Ok(readdir) => readdir
+                    .into_iter()
+                    .filter_map(|e| e.ok())
+                    .filter(|p| {
+                        EXTENSIONS.iter().any(|i| {
+                            p.path()
+                                .extension()
+                                .unwrap_or_default()
+                                .to_ascii_lowercase()
+                                == *i
+                        })
+                    })
+                    .map(|e| e.path())
+                    .collect(),
                 Err(e) => {
                     warn!("Failed loading folder: {e}");
                     vec![]
@@ -581,17 +837,25 @@ impl AudioFileInfoImpl for AudioFileInfo {
         }
     }
 
-    fn load_files_iter(path: impl AsRef<Path>, subfolders: bool, filename_template: Option<Regex>, title_regex: Option<Regex>) -> impl Iterator<Item = Result<AudioFileInfo, Error>> {
+    fn load_files_iter(
+        path: impl AsRef<Path>,
+        subfolders: bool,
+        filename_template: Option<Regex>,
+        title_regex: Option<Regex>,
+    ) -> impl Iterator<Item = Result<AudioFileInfo, Error>> {
         let files = Self::get_file_list(path, subfolders);
-        files.into_iter().map(move |f| Self::load_file(&f, filename_template.clone(), title_regex.clone()))
+        files
+            .into_iter()
+            .map(move |f| Self::load_file(&f, filename_template.clone(), title_regex.clone()))
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum TaggingState {
-    Ok, Error, Skipped
+    Ok,
+    Error,
+    Skipped,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -603,7 +867,7 @@ pub struct TaggingStatus {
     pub accuracy: Option<f64>,
     pub used_shazam: bool,
     pub release_id: Option<String>,
-    pub reason: Option<MatchReason>
+    pub reason: Option<MatchReason>,
 }
 
 // Wrap for sending into UI
@@ -616,20 +880,30 @@ pub struct TaggingStatusWrap {
 }
 impl TaggingStatusWrap {
     // pi = platform index, pl = platforms length, p = processed, total = total tracks in this platform
-    pub fn wrap(platform: &str, status: &TaggingStatus, pi: usize, pl: usize, p: i64, total: usize) -> TaggingStatusWrap {
+    pub fn wrap(
+        platform: &str,
+        status: &TaggingStatus,
+        pi: usize,
+        pl: usize,
+        p: i64,
+        total: usize,
+    ) -> TaggingStatusWrap {
         TaggingStatusWrap {
             platform: platform.to_string(),
             status: status.to_owned(),
-            progress: (pi as f64 / pl as f64) + ((p as f64 / total as f64) / pl as f64)
+            progress: (pi as f64 / pl as f64) + ((p as f64 / total as f64) / pl as f64),
         }
     }
 }
 
 pub struct Tagger {}
 impl Tagger {
-
     // Returtns progress receiver, and file count
-    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
+    pub fn tag_files(
+        cfg: &TaggerConfig,
+        mut files: Vec<PathBuf>,
+        finished: Arc<Mutex<Option<TaggerFinishedData>>>,
+    ) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
 
         // Shuffle so album tag is more "efficient"
@@ -637,7 +911,7 @@ impl Tagger {
             let mut rng = rand::thread_rng();
             files.shuffle(&mut rng);
         }
-        
+
         // let original_files = files.clone();
         let mut succesful_files = vec![];
         let mut failed_files = vec![];
@@ -688,10 +962,21 @@ impl Tagger {
                 // Start tagging
                 info!("Starting {platform}");
                 for status in rx {
-                    info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}", status.status, status.accuracy, status.path);
+                    info!(
+                        "[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}",
+                        status.status, status.accuracy, status.path
+                    );
                     processed += 1;
                     // Send to UI
-                    tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
+                    tx.send(TaggingStatusWrap::wrap(
+                        &platform_info.name,
+                        &status,
+                        platform_index,
+                        config.platforms.len(),
+                        processed,
+                        total,
+                    ))
+                    .ok();
 
                     if status.status == TaggingState::Ok {
                         // Save good files
@@ -710,10 +995,11 @@ impl Tagger {
                         }
                     }
                     // Log failed
-                    if status.status == TaggingState::Error && !succesful_files.contains(&status.path) {
+                    if status.status == TaggingState::Error
+                        && !succesful_files.contains(&status.path)
+                    {
                         failed_files.push(status.path.to_owned());
                     }
-
                 }
             }
 
@@ -747,24 +1033,31 @@ impl Tagger {
             // Tagging ended, save lists of files
             match Self::write_results(successful_paths, failed_paths, &config) {
                 Ok((failed, success)) => {
-                    info!("Written failed songs to: {}, successful to: {}", failed, success);
+                    info!(
+                        "Written failed songs to: {}, successful to: {}",
+                        failed, success
+                    );
                     *finished.lock().unwrap() = Some(TaggerFinishedData {
-                        failed_file: failed, success_file: success
+                        failed_file: failed,
+                        success_file: success,
                     });
-                },
-                Err(e) => warn!("Failed writing failed songs to file! {}", e)
+                }
+                Err(e) => warn!("Failed writing failed songs to file! {}", e),
             };
-            
-
         });
-        
+
         rx
     }
 
     /// Write playlists & execute command
-    fn write_results(successful_paths: Vec<PathBuf>, failed_paths: Vec<PathBuf>, config: &TaggerConfig) -> Result<(String, String), Error> {
+    fn write_results(
+        successful_paths: Vec<PathBuf>,
+        failed_paths: Vec<PathBuf>,
+        config: &TaggerConfig,
+    ) -> Result<(String, String), Error> {
         let time = timestamp!();
-        let folder = PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
+        let folder =
+            PathBuf::from(Settings::get_folder()?.to_str().unwrap().to_string()).join("runs");
         if !folder.exists() {
             std::fs::create_dir_all(&folder)?;
         }
@@ -772,25 +1065,37 @@ impl Tagger {
         let success_file = folder.join(format!("success-{}.m3u", time));
         {
             let mut file = File::create(&failed_file)?;
-            file.write_all(failed_paths
-                .iter()
-                .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
-                .collect::<Vec<_>>()
-                .join("\r\n")
-                .as_bytes()
+            file.write_all(
+                failed_paths
+                    .iter()
+                    .filter_map(|f| {
+                        dunce::canonicalize(f)
+                            .ok()
+                            .map(|p| p.to_string_lossy().to_string())
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\r\n")
+                    .as_bytes(),
             )?;
         }
         {
             let mut file = File::create(&success_file)?;
             let files: Vec<String> = successful_paths
                 .iter()
-                .filter_map(|f| dunce::canonicalize(f).ok().map(|p| p.to_string_lossy().to_string()))
+                .filter_map(|f| {
+                    dunce::canonicalize(f)
+                        .ok()
+                        .map(|p| p.to_string_lossy().to_string())
+                })
                 .collect();
             file.write_all(files.join("\r\n").as_bytes())?;
         }
-        
+
         // Run command
-        let (failed_file, success_file) = (failed_file.to_str().unwrap().to_string(), success_file.to_str().unwrap().to_string());
+        let (failed_file, success_file) = (
+            failed_file.to_str().unwrap().to_string(),
+            success_file.to_str().unwrap().to_string(),
+        );
         if let Some(command) = &config.post_command {
             if !command.trim().is_empty() {
                 let command = command
@@ -806,11 +1111,13 @@ impl Tagger {
         }
 
         Ok((failed_file, success_file))
-
     }
 
     /// Load track, shazam, prepare output
-    pub fn load_track(path: impl AsRef<Path>, config: &TaggerConfig) -> (Option<AudioFileInfo>, TaggingStatus) {
+    pub fn load_track(
+        path: impl AsRef<Path>,
+        config: &TaggerConfig,
+    ) -> (Option<AudioFileInfo>, TaggingStatus) {
         // Output
         let mut out = TaggingStatus {
             status: TaggingState::Error,
@@ -819,7 +1126,7 @@ impl Tagger {
             message: None,
             used_shazam: false,
             release_id: None,
-            reason: None
+            reason: None,
         };
 
         // Filename template
@@ -831,7 +1138,11 @@ impl Tagger {
         }
 
         // Title cleanup regex
-        let title_regex = config.title_regex.as_ref().map(|r| Regex::new(&r).ok()).flatten();
+        let title_regex = config
+            .title_regex
+            .as_ref()
+            .map(|r| Regex::new(&r).ok())
+            .flatten();
 
         // Load audio file info by shazam or tags
         let mut info = if config.enable_shazam && config.force_shazam {
@@ -839,7 +1150,7 @@ impl Tagger {
                 Ok(i) => {
                     out.used_shazam = true;
                     i
-                },
+                }
                 Err(e) => {
                     out.status = TaggingState::Skipped;
                     out.message = Some(format!("Error Shazaming file: {}", e));
@@ -856,7 +1167,7 @@ impl Tagger {
                             Ok(info) => {
                                 out.used_shazam = true;
                                 info
-                            },
+                            }
                             // Mark as failed
                             Err(e) => {
                                 out.status = TaggingState::Skipped;
@@ -891,8 +1202,13 @@ impl Tagger {
     }
 
     /// Tag single track
-    pub fn tag_track<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
-    where T: AutotaggerSource + ?Sized
+    pub fn tag_track<T>(
+        path: impl AsRef<Path>,
+        tagger: &mut Box<T>,
+        config: &TaggerConfig,
+    ) -> TaggingStatus
+    where
+        T: AutotaggerSource + ?Sized,
     {
         info!("Tagging: {:?}", path.as_ref());
         // Load track
@@ -901,7 +1217,7 @@ impl Tagger {
             Some(info) => info,
             None => return out,
         };
-       
+
         // Match track
         let result = tagger.match_track(&info, &config);
         let mut tracks = match result {
@@ -911,7 +1227,7 @@ impl Tagger {
                     return out;
                 }
                 o
-            },
+            }
             // Failed matching track
             Err(e) => {
                 error!("Matching error: {} ({:?})", e, path.as_ref());
@@ -925,18 +1241,22 @@ impl Tagger {
         let mut track = tracks.remove(0);
         drop(tracks);
         match tagger.extend_track(&mut track.track, config) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => warn!("Failed extending track: {e}"),
         }
 
         // Save
         out.release_id = track.track.release_id.clone();
         out.reason = Some(track.reason);
-        match track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
+        match track
+            .track
+            .merge_styles(&config.styles_options)
+            .write_to_file(&info.path, &config)
+        {
             Ok(_) => {
                 out.accuracy = Some(track.accuracy);
                 out.status = TaggingState::Ok;
-            },
+            }
             Err(e) => {
                 error!("Failed writing tags to file: {e}");
                 out.message = Some(format!("Failed writing tags to file: {}", e));
@@ -947,8 +1267,17 @@ impl Tagger {
     }
 
     // Tag all files with threads specified in config
-    pub fn tag_batch(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
-        info!("Starting tagging: {} files, {} threads!", files.len(), threads);
+    pub fn tag_batch(
+        files: &Vec<PathBuf>,
+        tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>,
+        config: &TaggerConfig,
+        threads: u16,
+    ) -> Option<Receiver<TaggingStatus>> {
+        info!(
+            "Starting tagging: {} files, {} threads!",
+            files.len(),
+            threads
+        );
         let (tx, rx) = unbounded();
         let (file_tx, file_rx): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
         let (finished_tx, finished_rx) = unbounded();
@@ -1014,22 +1343,29 @@ impl Tagger {
                             }
 
                             // Tag
-                            match Self::tag_album(path, &stats.get_album_id().unwrap(), &mut source, &config) {
+                            match Self::tag_album(
+                                path,
+                                &stats.get_album_id().unwrap(),
+                                &mut source,
+                                &config,
+                            ) {
                                 Ok(statuses) => {
                                     for status in statuses {
                                         tx.send(status).ok();
                                     }
-                                },
-                                Err(e) => error!("Album tagging failed: {e}, path: {}", path.display()),
+                                }
+                                Err(e) => {
+                                    error!("Album tagging failed: {e}, path: {}", path.display())
+                                }
                             }
                         }
-
                     });
-                },
-                Err(e) => error!("Failed to get source for album tagging, album tagging will be disabled! {e}")
+                }
+                Err(e) => error!(
+                    "Failed to get source for album tagging, album tagging will be disabled! {e}"
+                ),
             }
         }
- 
 
         if ok_sources == 0 {
             error!("All AT sources failed to create!");
@@ -1043,8 +1379,16 @@ impl Tagger {
     }
 
     /// Tag an album by ID
-    pub fn tag_album(path: impl AsRef<Path>, release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
-        info!("Album tagging release: {release_id} in {}", path.as_ref().display());
+    pub fn tag_album(
+        path: impl AsRef<Path>,
+        release_id: &str,
+        source: &mut Box<dyn AutotaggerSource>,
+        config: &TaggerConfig,
+    ) -> Result<Vec<TaggingStatus>, Error> {
+        info!(
+            "Album tagging release: {release_id} in {}",
+            path.as_ref().display()
+        );
 
         // Change strictness since we're working in context of album, and just care about most likely match
         let mut config = config.clone();
@@ -1055,15 +1399,20 @@ impl Tagger {
         config.force_shazam = false;
 
         // Get album
-        let album = source.get_album(&release_id, &config)?.ok_or(anyhow!("Album with id: {release_id} not found"))?;
+        let album = source
+            .get_album(&release_id, &config)?
+            .ok_or(anyhow!("Album with id: {release_id} not found"))?;
         if album.tracks.is_empty() {
-            return Err(anyhow!("Album {release_id} has no tracks!"))
+            return Err(anyhow!("Album {release_id} has no tracks!"));
         }
 
         let mut statuses = vec![];
 
         // Load files
-        let files = std::fs::read_dir(&path)?.filter_map(|e| e.ok()).map(|f| f.path()).collect::<Vec<_>>();
+        let files = std::fs::read_dir(&path)?
+            .filter_map(|e| e.ok())
+            .map(|f| f.path())
+            .collect::<Vec<_>>();
         for file in files {
             let (info, mut status) = Self::load_track(&file, &config);
             let info = match info {
@@ -1078,9 +1427,13 @@ impl Tagger {
             let mut tracks = MatchingUtils::match_track(&info, &album.tracks, &config, false);
             MatchingUtils::sort_tracks(&mut tracks, &config);
             let track = tracks.remove(0);
-            
+
             // TODO: Extend track if needed (?)
-            if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
+            if let Err(e) = track
+                .track
+                .merge_styles(&config.styles_options)
+                .write_to_file(&info.path, &config)
+            {
                 status.status = TaggingState::Error;
                 error!("Album tag writing tags failed: {e} ({})", file.display());
             } else {
@@ -1121,14 +1474,14 @@ impl Tagger {
 /// For keeping track of per-album tagging
 struct AlbumTagContext {
     /// path: stats
-    folders: HashMap<PathBuf, AlbumTagFolderStats>
+    folders: HashMap<PathBuf, AlbumTagFolderStats>,
 }
 
 impl AlbumTagContext {
     /// Create new instance
     pub fn new() -> AlbumTagContext {
         AlbumTagContext {
-            folders: Default::default()
+            folders: Default::default(),
         }
     }
 
@@ -1139,7 +1492,8 @@ impl AlbumTagContext {
                 let stats = match self.folders.get_mut(path) {
                     Some(v) => v,
                     None => {
-                        self.folders.insert(path.to_owned(), AlbumTagFolderStats::default());
+                        self.folders
+                            .insert(path.to_owned(), AlbumTagFolderStats::default());
                         self.folders.get_mut(path).unwrap()
                     }
                 };
@@ -1150,7 +1504,11 @@ impl AlbumTagContext {
 
     /// Save info from tagging status data
     /// Returns (Path, Release ID)
-    pub fn process(&mut self, status: &TaggingStatus, config: &TaggerConfig) -> Option<(PathBuf, String)> {
+    pub fn process(
+        &mut self,
+        status: &TaggingStatus,
+        config: &TaggerConfig,
+    ) -> Option<(PathBuf, String)> {
         let release_id = status.release_id.as_ref()?;
         // Get folder path
         let path = status.path.parent()?;
@@ -1163,14 +1521,14 @@ impl AlbumTagContext {
             Some(v) => {
                 *v = *v + 1;
                 *v
-            },
+            }
             None => {
                 stats.albums.insert(release_id.to_string(), 1);
                 1
             }
         };
 
-        // Should be considered as 
+        // Should be considered as
         if (count as f32 / stats.files as f32) >= config.album_tagging_ratio {
             stats.marked = true;
             return Some((path.to_owned(), release_id.to_owned()));
@@ -1187,7 +1545,6 @@ impl AlbumTagContext {
         }
         false
     }
-
 }
 
 #[derive(Debug, Clone, Default)]
@@ -1203,44 +1560,52 @@ struct AlbumTagFolderStats {
 impl AlbumTagFolderStats {
     /// Get album ID with highest count
     pub fn get_album_id(&self) -> Option<String> {
-        self.albums.iter().max_by_key(|(_, c)| **c).map(|(i, _)| i.to_string())
+        self.albums
+            .iter()
+            .max_by_key(|(_, c)| **c)
+            .map(|(i, _)| i.to_string())
     }
 }
-
 
 /// When AT finishes this will contain some extra data
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaggerFinishedData {
     pub failed_file: String,
-    pub success_file: String
+    pub success_file: String,
 }
-
 
 /// Start manual tagging mode
 /// Return: receiver with results for every platform
-pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Receiver<(String, Result<Vec<TrackMatch>, Error>)>, Error> {
+pub fn manual_tagger(
+    path: impl AsRef<Path>,
+    config: &TaggerConfig,
+) -> Result<Receiver<(String, Result<Vec<TrackMatch>, Error>)>, Error> {
     // Get filename template
-    let filename_template = config.filename_template.as_ref().map(|template| {
-        match AudioFileInfo::parse_template(template) {
+    let filename_template = config
+        .filename_template
+        .as_ref()
+        .map(|template| match AudioFileInfo::parse_template(template) {
             Some(template) => Some(template),
             None => {
                 warn!("Failed parsing filename template");
                 None
-            },
-        }
-    }).flatten();
+            }
+        })
+        .flatten();
 
     // Title regex
-    let title_regex = config.title_regex.as_ref().map(|re| {
-        match Regex::new(re) {
+    let title_regex = config
+        .title_regex
+        .as_ref()
+        .map(|re| match Regex::new(re) {
             Ok(r) => Some(r),
             Err(e) => {
                 warn!("Failed parsing title regex: \"{re}\": {e}");
                 None
-            },
-        }
-    }).flatten();
+            }
+        })
+        .flatten();
 
     // Load file
     let file = AudioFileInfo::load_file(path, filename_template, title_regex)?;
@@ -1255,7 +1620,7 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
             None => {
                 warn!("Invalid platform: {platform}");
                 continue;
-            },
+            }
         };
 
         // Get platform
@@ -1275,7 +1640,10 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
         let platform = platform.to_string();
         platforms.push(std::thread::spawn(move || {
             // Match
-            let r = s.match_track(&info, &config).map(|mut m| { m.dedup(); m });
+            let r = s.match_track(&info, &config).map(|mut m| {
+                m.dedup();
+                m
+            });
             tx.send((platform, r)).ok();
         }));
     }
@@ -1284,11 +1652,15 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
 }
 
 /// Apply manual tag results
-pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {
+pub fn manual_tagger_apply(
+    mut matches: Vec<TrackMatch>,
+    path: impl AsRef<Path>,
+    config: &TaggerConfig,
+) -> Result<(), Error> {
     if matches.is_empty() {
-        return Ok(())
+        return Ok(());
     }
-    
+
     // Extend each match
     for m in matches.iter_mut() {
         // Get platform
@@ -1298,19 +1670,22 @@ pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>,
             None => {
                 warn!("Invalid platform: {}", m.track.platform);
                 continue;
-            },
+            }
         };
         let mut s = match p.get_source(config) {
             Ok(s) => s,
             Err(e) => {
-                error!("Failed creating platform source for platform: {}. {e}", m.track.platform);
+                error!(
+                    "Failed creating platform source for platform: {}. {e}",
+                    m.track.platform
+                );
                 continue;
             }
         };
         // Extend
         debug!("Extending track on: {}", m.track.platform);
         match s.extend_track(&mut m.track, config) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => warn!("Failed extending track using: {}. {e}", m.track.platform),
         }
     }
@@ -1322,6 +1697,8 @@ pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>,
     }
 
     // Save
-    track.merge_styles(&config.styles_options).write_to_file(&path, &config)?;
+    track
+        .merge_styles(&config.styles_options)
+        .write_to_file(&path, &config)?;
     Ok(())
 }

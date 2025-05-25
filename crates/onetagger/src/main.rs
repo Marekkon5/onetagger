@@ -1,18 +1,19 @@
 #![windows_subsystem = "windows"]
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 use anyhow::Error;
 use clap::Parser;
-use std::path::PathBuf;
 use onetagger_shared::Settings;
+use std::path::PathBuf;
+use tao::dpi::{PhysicalSize, Size};
+use tao::event::{Event, StartCause, WindowEvent};
+use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tao::window::{Icon, Theme, WindowBuilder};
 use wry::{DragDropEvent, WebContext, WebViewBuilder};
-use tao::dpi::{Size, PhysicalSize};
-use tao::event::{StartCause, Event, WindowEvent};
-use tao::event_loop::{EventLoopBuilder, ControlFlow};
-use tao::window::{WindowBuilder, Icon, Theme};
 
-use onetagger_shared::{VERSION, COMMIT, PORT};
+use onetagger_shared::{COMMIT, PORT, VERSION};
 use onetagger_ui::StartContext;
 
 fn main() {
@@ -20,19 +21,22 @@ fn main() {
     onetagger_shared::setup();
     let cli = Cli::parse();
 
-    info!("\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n", std::env::consts::OS);
-    
+    info!(
+        "\n\nStarting OneTagger v{VERSION} Commit: {COMMIT} OS: {}\n\n",
+        std::env::consts::OS
+    );
+
     // MacOS
     if !cli.server {
         old_macos_warning().ok();
     }
-            
+
     // Start
     let context = StartContext {
-        start_path: cli.path, 
-        server_mode: cli.server, 
+        start_path: cli.path,
+        server_mode: cli.server,
         expose: cli.expose,
-        browser: cli.browser
+        browser: cli.browser,
     };
 
     // Server mode
@@ -72,8 +76,8 @@ struct Cli {
 /// Show warning for old macOS
 #[cfg(target_os = "macos")]
 fn old_macos_warning() -> Result<(), Error> {
-    use std::process::Command;
     use native_dialog::MessageDialog;
+    use std::process::Command;
 
     // Get version
     let output = Command::new("sw_vers")
@@ -101,13 +105,13 @@ fn old_macos_warning() -> Result<(), Error> {
         }
     }
     Ok(())
-
 }
 
 /// Show warning for old macOS
 #[cfg(not(target_os = "macos"))]
-fn old_macos_warning() -> Result<(), Error> { Ok(()) }
-
+fn old_macos_warning() -> Result<(), Error> {
+    Ok(())
+}
 
 /// Start webview window
 pub fn start_webview() -> Result<(), Error> {
@@ -119,7 +123,9 @@ pub fn start_webview() -> Result<(), Error> {
         .with_min_inner_size(Size::Physical(PhysicalSize::new(1150, 550)))
         .with_inner_size(Size::Physical(PhysicalSize::new(1280, 720)))
         .with_resizable(true)
-        .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
+        .with_window_icon(Some(
+            Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap(),
+        ))
         .with_theme(Some(Theme::Dark))
         .build(&event_loop)?;
     window.set_inner_size(Size::Physical(PhysicalSize::new(1280, 720)));
@@ -129,7 +135,7 @@ pub fn start_webview() -> Result<(), Error> {
     // Register menu for MacOS shortcuts to work
     #[cfg(target_os = "macos")]
     let _menu = {
-        use muda::{Menu, Submenu, PredefinedMenuItem};
+        use muda::{Menu, PredefinedMenuItem, Submenu};
         let menu = Menu::new();
 
         let submenu = Submenu::new("Edit", true);
@@ -145,7 +151,7 @@ pub fn start_webview() -> Result<(), Error> {
 
         menu.append(&submenu)?;
         menu.init_for_nsapp();
-	    debug!("Added menu");
+        debug!("Added menu");
 
         menu
     };
@@ -158,7 +164,7 @@ pub fn start_webview() -> Result<(), Error> {
         target_os = "android"
     ))]
     let builder = WebViewBuilder::new(&window);
-    
+
     // Linux Webview
     #[cfg(not(any(
         target_os = "windows",
@@ -172,7 +178,7 @@ pub fn start_webview() -> Result<(), Error> {
         let vbox = window.default_vbox().unwrap();
         WebViewBuilder::new_gtk(vbox)
     };
-    
+
     // Configure
     let mut webview = builder
         .with_url(&format!("http://127.0.0.1:{PORT}/"))
@@ -196,13 +202,18 @@ pub fn start_webview() -> Result<(), Error> {
             debug!("Navigation/NewWindow to: {url}");
             if url.starts_with("file://") {
                 let url = url.replace("file:///", "");
-                let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
-                proxy.send_event(CustomWindowEvent::DropFolder(path.into())).ok();
+                let path = urlencoding::decode(&url)
+                    .map(|r| r.to_string())
+                    .unwrap_or(url)
+                    .replace("/", "\\");
+                proxy
+                    .send_event(CustomWindowEvent::DropFolder(path.into()))
+                    .ok();
                 return false;
             }
             true
         };
-        
+
         // Register
         webview = webview.with_navigation_handler(handle_url.clone());
         webview = webview.with_new_window_req_handler(handle_url);
@@ -225,7 +236,7 @@ pub fn start_webview() -> Result<(), Error> {
                     if path.is_file() {
                         return false;
                     }
-                },
+                }
                 _ => {}
             }
 
@@ -243,43 +254,46 @@ pub fn start_webview() -> Result<(), Error> {
         match event {
             Event::NewEvents(StartCause::Init) => {
                 debug!("Started webview!");
-            },
+            }
             // Check for unsaved progress
-            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                match webview.evaluate_script("window.onWebviewEvent({\"action\": \"exit\"})") {
-                    Ok(_) => {},
-                    Err(e) => {
-                        warn!("Failed to ask for exit: {e}");
-                        *control_flow = ControlFlow::Exit;
-                    }
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => match webview.evaluate_script("window.onWebviewEvent({\"action\": \"exit\"})") {
+                Ok(_) => {}
+                Err(e) => {
+                    warn!("Failed to ask for exit: {e}");
+                    *control_flow = ControlFlow::Exit;
                 }
-
             },
             // Drop folder to client
             Event::UserEvent(CustomWindowEvent::DropFolder(path)) => {
-                match webview.evaluate_script(&format!("window.onWebviewEvent({{\"action\": \"browse\", \"path\": \"{}\"}})", path.to_string_lossy().replace("\\", "\\\\").replace("\"", "\\\""))) {
-                    Ok(_) => {},
+                match webview.evaluate_script(&format!(
+                    "window.onWebviewEvent({{\"action\": \"browse\", \"path\": \"{}\"}})",
+                    path.to_string_lossy()
+                        .replace("\\", "\\\\")
+                        .replace("\"", "\\\"")
+                )) {
+                    Ok(_) => {}
                     Err(e) => error!("Failed executing JS on webview: {e}"),
                 }
-            },
+            }
             // Open devtools
             Event::UserEvent(CustomWindowEvent::DevTools) => {
                 webview.open_devtools();
-            },
+            }
             // Exit from UI
             Event::UserEvent(CustomWindowEvent::Exit) => {
                 debug!("Exitting webview loop...");
                 *control_flow = ControlFlow::Exit;
             }
-            _ => ()
+            _ => (),
         }
-
     });
-
 }
 
 enum CustomWindowEvent {
     DropFolder(PathBuf),
     DevTools,
-    Exit
+    Exit,
 }
