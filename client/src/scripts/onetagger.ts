@@ -284,6 +284,10 @@ class OneTagger {
                         this.onError(response.error);
                         break;
                     case 'updateConfig':
+                        if (['__proto__', 'constructor', 'prototype'].includes(json.platform)) {
+                            console.error(`Invalid platform key: ${json.platform}`);
+                            break;
+                        }
                         Object.assign(this.config.value.custom[json.platform], response.config);
                         break;
                 }
