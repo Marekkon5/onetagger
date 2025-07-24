@@ -10,10 +10,10 @@ log = "0.4"
 anyhow = "1.0"
 chrono = "0.4"
 backtrace = "0.3"
-crossterm = "0.28"
+crossterm = "0.29"
 serde_json = "1.0"
-directories = "5.0"
+directories = "6.0"
 lazy_static = "1.5"
 
-fern = { version = "0.6", features = ["colored"] }
+fern = { version = "0.7", features = ["colored"] }
 serde = { version = "1.0", features = ["derive"] }
