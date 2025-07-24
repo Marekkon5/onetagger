@@ -12,7 +12,7 @@ anyhow = "1.0"
 urlencoding = "2.1"
 
 tao = { version = "0.33", features = ["rwh_05"] }
-wry = { version = "0.51", features = ["devtools"] }
+wry = { version = "0.42", features = ["devtools"] }
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 

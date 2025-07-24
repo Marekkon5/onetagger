@@ -61,7 +61,7 @@ impl AIFFDecoder {
         // Parse metadata (catch panic, because weird library)
         let reader = std::panic::catch_unwind(|| {
             PcmReader::new(&data)
-        }).map_err(|e| anyhow!("Not an AIFF file: {e:?}"))?;
+        }).map_err(|e| anyhow!("Not an AIFF file: {e:?}"))??;
         let specs = reader.get_pcm_specs();
 
         // Decode the file (because the library is weeeird)
@@ -71,7 +71,7 @@ impl AIFFDecoder {
         for sample in 0..specs.num_samples {
             for channel in 0..specs.num_channels {
                 let s = std::panic::catch_unwind(|| {
-                    reader.read_sample(channel as u32, sample)
+                    reader.read_sample(channel, sample)
                 }).map_err(|e| anyhow!("Failed decoding AIFF: {e:?}"))?.map_err(|e| anyhow!("Failed decoding AIFF: {e}"))?;
                 samples[i] = (s * i16::MAX as f32) as i16;
                 i += 1;

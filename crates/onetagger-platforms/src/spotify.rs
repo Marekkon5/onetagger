@@ -133,8 +133,9 @@ impl Spotify {
     }
 
     /// Fetch audio features for track id
-    pub fn audio_features(&self, id: &TrackId) -> Result<AudioFeatures, Error> {
-        self.rate_limit_wrap(|s| s.spotify.track_features(id.to_owned()))
+    pub fn audio_features(&self, _id: &TrackId) -> Result<AudioFeatures, Error> {
+        // self.rate_limit_wrap(|s| s.spotify.track_features(id.to_owned()))
+        return Err(anyhow!("Spotify deprecated AudioFeatures"))
     }
 
     /// Fetch full album

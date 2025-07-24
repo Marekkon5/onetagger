@@ -50,12 +50,12 @@ impl MP4Tag {
         if ident.starts_with("iTunes:") {
             ident = format!("com.apple.{}", ident);
         }
-        let mut mean = "com.apple.iTunes";
+        let mut mean = "com.apple.iTunes".to_string();
         let mut name = ident.to_string();
         let split: Vec<&str> = ident.split(":").collect();
         if split.len() > 1 {
-            mean = split[0];
-            name = split[1].to_owned();
+            mean = split[0].to_string();
+            name = split[1].to_string();
         }
         DataIdent::freeform(mean, name)
     }

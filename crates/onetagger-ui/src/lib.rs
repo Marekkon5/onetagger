@@ -47,7 +47,7 @@ fn start_async_runtime(context: StartContext) -> Result<(), Error> {
             .route("/audio", get(get_audio))
             .route("/ws", get(get_ws))
             .route("/spotify", get(get_spotify_callback))
-            .route("/*path", get(get_static_file))
+            .route("/{*path}", get(get_static_file))
             .route("/", get(get_static_file))
             .with_state(context);
 

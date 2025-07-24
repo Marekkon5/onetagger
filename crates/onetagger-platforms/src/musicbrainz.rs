@@ -33,7 +33,7 @@ impl MusicBrainz {
         if response.status() == StatusCode::SERVICE_UNAVAILABLE {
             warn!("MusicBrainz rate limit hit! Waiting...");
             // Use random rate limit delay because threading
-            std::thread::sleep(Duration::from_millis(rand::thread_rng().gen_range(1000..3000)));
+            std::thread::sleep(Duration::from_millis(rand::rng().random_range(1000..3000)));
             return self.get(path, &query);
         }
         Ok(response.error_for_status()?.json()?)

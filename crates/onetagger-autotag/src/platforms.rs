@@ -165,13 +165,13 @@ impl CustomPlatform {
                 return Err(anyhow!("Plugin is incompatible!"));
             }
             // Setup logging
-            let logging_cb_fn: Symbol<unsafe extern fn(extern fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
+            let logging_cb_fn: Symbol<unsafe extern "C" fn(extern "C" fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
             logging_cb_fn(onetagger_tagger::custom::write_log);
             // Get builder
-            let builder_fn: Symbol<unsafe extern fn() -> *mut c_void> = lib.get(b"_1t_create_builder")?;
+            let builder_fn: Symbol<unsafe extern "C" fn() -> *mut c_void> = lib.get(b"_1t_create_builder")?;
             let builder = builder_fn();
             // Get info
-            let info_fn: Symbol<unsafe extern fn(*mut std::ffi::c_void) -> *mut PlatformInfo> = lib.get(b"_1t_builder_info")?; 
+            let info_fn: Symbol<unsafe extern "C" fn(*mut std::ffi::c_void) -> *mut PlatformInfo> = lib.get(b"_1t_builder_info")?; 
             //TODO: unsure if doesn't leak memory or cause segfaults later on
             let info = (*Box::from_raw(info_fn(builder))).clone();
             CustomPlatform { 
@@ -213,7 +213,7 @@ impl CustomPlatform {
     /// Get source
     fn get_source_raw(&self, config: &TaggerConfig) -> Result<CustomPlatformSource, Error> {
         let ptr = unsafe {
-            let get_source_fn: Symbol<unsafe extern fn(*mut c_void, &TaggerConfig) -> *mut c_void> = self.library.get(b"_1t_builder_get_source")?;
+            let get_source_fn: Symbol<unsafe extern "C" fn(*mut c_void, &TaggerConfig) -> *mut c_void> = self.library.get(b"_1t_builder_get_source")?;
             let source_ptr = get_source_fn(self.builder.0, config);
             if source_ptr.is_null() {
                 return Err(anyhow!("Failed creating custom platform source!"));
@@ -222,12 +222,12 @@ impl CustomPlatform {
         };
         // Lifetime fix
         let match_fn = unsafe {
-            let f: Symbol<unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult> = 
+            let f: Symbol<unsafe extern "C" fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult> = 
                 self.library.get(b"_1t_match_track")?;
             std::mem::transmute(f)
         };
         let extend_fn = unsafe {
-            let f: Symbol<unsafe extern fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut MatchTrackResult> = 
+            let f: Symbol<unsafe extern "C" fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut MatchTrackResult> = 
                 self.library.get(b"_1t_extend_track")?;
             std::mem::transmute(f)
         };
@@ -242,7 +242,7 @@ impl CustomPlatform {
     fn config_callback_raw(&self, name: &str, config: Value) -> Result<ConfigCallbackResponse, Error> {
         let config = Box::new(config);
         let output = unsafe {
-            let f: Symbol<unsafe extern fn(*mut c_void, &str, *mut Value) -> *mut ConfigCallbackResponse> =
+            let f: Symbol<unsafe extern "C" fn(*mut c_void, &str, *mut Value) -> *mut ConfigCallbackResponse> =
                 self.library.get(b"_1t_builder_config_callback")?;
             let response = Box::from_raw(f(self.builder.0, name, Box::into_raw(config)));
             let output = (*response).clone();
@@ -257,7 +257,7 @@ impl Drop for CustomPlatform {
     fn drop(&mut self) {
         // Free the builder in the plugin itself
         unsafe {
-            let drop_fn: Symbol<unsafe extern fn(*mut std::ffi::c_void)> = self.library.get(b"_1t_free_builder").unwrap();
+            let drop_fn: Symbol<unsafe extern "C" fn(*mut std::ffi::c_void)> = self.library.get(b"_1t_free_builder").unwrap();
             drop_fn(self.builder.0);
         }
     }
@@ -287,8 +287,8 @@ impl AutotaggerSourceBuilder for CustomPlatform {
 
 struct CustomPlatformSource {
     ptr: PtrWrap,
-    match_fn: Symbol<'static, unsafe extern fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult>,
-    extend_fn: Symbol<'static, unsafe extern fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut Option<String>>,
+    match_fn: Symbol<'static, unsafe extern "C" fn(*mut c_void, &AudioFileInfo, &TaggerConfig) -> *mut MatchTrackResult>,
+    extend_fn: Symbol<'static, unsafe extern "C" fn(*mut c_void, &mut Track, &TaggerConfig) -> *mut Option<String>>,
 }
 
 impl AutotaggerSource for CustomPlatformSource {

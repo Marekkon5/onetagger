@@ -40,7 +40,7 @@ impl JunoDownload {
 
         // Minify and parse
         let data = response.text()?;
-        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
+        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::new()))?;
         let document = Html::parse_document(&data);
 
         let mut out = vec![];

@@ -634,7 +634,7 @@ impl Tagger {
 
         // Shuffle so album tag is more "efficient"
         if cfg.album_tagging {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             files.shuffle(&mut rng);
         }
         

@@ -29,7 +29,7 @@ impl Traxsource {
             .text()?;
 
         // Minify and parse
-        let data = String::from_utf8(minify_html::minify(&data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
+        let data = String::from_utf8(minify_html::minify(&data.as_bytes(), &minify_html::Cfg::new()))?;
         let document = Html::parse_document(&data);
 
         // Track list
@@ -127,7 +127,7 @@ impl Traxsource {
             .text()?;
         
         // Minify and parse
-        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
+        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::new()))?;
         let document = Html::parse_document(&data);
 
         // Select album element
@@ -149,7 +149,7 @@ impl Traxsource {
             .send()?
             .text()?;
         // Minify and parse
-        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::spec_compliant()))?;
+        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::new()))?;
         let document = Html::parse_document(&data);
 
         // Select catalog number
