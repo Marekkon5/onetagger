@@ -73,7 +73,7 @@ struct Cli {
 #[cfg(target_os = "macos")]
 fn old_macos_warning() -> Result<(), Error> {
     use std::process::Command;
-    use native_dialog::MessageDialogBuilder;
+    use native_dialog::DialogBuilder;
 
     // Get version
     let output = Command::new("sw_vers")
@@ -83,7 +83,7 @@ fn old_macos_warning() -> Result<(), Error> {
     let version = String::from_utf8(output)?;
     // Show warning
     if version.starts_with("10.") && !version.contains("10.15") {
-        let server_version = MessageDialogBuilder::new()
+        let server_version = DialogBuilder::message()
             .set_title("Unsupported version")
             .set_text("In order to use One Tagger on older macOS, install a more recent browser like Google Chrome and set it as default browser. Click Yes to restart One Tagger into server mode and open in browser, No to open normally.")
             .confirm()
