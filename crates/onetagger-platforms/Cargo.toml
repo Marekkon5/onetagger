@@ -22,7 +22,7 @@ reqwest = { version = "0.12", features = [
     "blocking",
     "rustls-tls",
 ], default-features = false }
-rspotify = { version = "0.14", features = [
+rspotify = { version = "0.15", features = [
     "client-ureq",
     "ureq-rustls-tls",
 ], default-features = false }

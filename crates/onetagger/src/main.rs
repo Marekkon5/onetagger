@@ -150,32 +150,9 @@ pub fn start_webview() -> Result<(), Error> {
 
         menu
     };
-
-    // Non-linux Webview
-    #[cfg(any(
-        target_os = "windows",
-        target_os = "macos",
-        target_os = "ios",
-        target_os = "android"
-    ))]
-    let builder = WebViewBuilder::new(&window);
-    
-    // Linux Webview
-    #[cfg(not(any(
-        target_os = "windows",
-        target_os = "macos",
-        target_os = "ios",
-        target_os = "android"
-    )))]
-    let builder = {
-        use tao::platform::unix::WindowExtUnix;
-        use wry::WebViewBuilderExtUnix;
-        let vbox = window.default_vbox().unwrap();
-        WebViewBuilder::new_gtk(vbox)
-    };
     
     // Configure
-    let mut webview = builder
+    let mut webview = WebViewBuilder::new_with_web_context(&mut context)
         .with_url(&format!("http://127.0.0.1:{PORT}/"))
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
@@ -186,8 +163,7 @@ pub fn start_webview() -> Result<(), Error> {
             if message.body() == "exit" {
                 proxy.send_event(CustomWindowEvent::Exit).ok();
             }
-        })
-        .with_web_context(&mut context);
+        });
 
     // Windows webview2 does NOT support custom DnD, janky workaround
     if cfg!(target_os = "windows") {
@@ -234,8 +210,27 @@ pub fn start_webview() -> Result<(), Error> {
         });
     }
 
-    // Create webview
-    let webview = webview.build()?;
+    // Non-linux Webview
+    #[cfg(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android",
+    ))]
+    let webview = webview.build_as_child(&window)?;
+
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    )))]
+    let webview = {
+        use tao::platform::unix::WindowExtUnix;
+        use wry::WebViewBuilderExtUnix;
+        let vbox = window.default_vbox().unwrap();
+        webview.build_gtk(vbox).unwrap()
+    };
 
     // Event loop
     event_loop.run(move |event, _, control_flow| {

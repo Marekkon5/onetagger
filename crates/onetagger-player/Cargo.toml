@@ -11,7 +11,7 @@ alac = "0.5"
 hound = "3.5"
 lofty = "0.22"
 anyhow = "1.0"
-pacmog = "0.5.0"
+pacmog = "0.6.0"
 mp4parse = "0.17"
 
 rodio = { version = "0.20", features = ["symphonia-aac", "symphonia-isomp4", "flac", "vorbis", "wav", "minimp3"], default-features = false }
