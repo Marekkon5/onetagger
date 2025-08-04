@@ -9,7 +9,7 @@ use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{supported_tags, Album, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, SupportedTag, TaggerConfig, Track, TrackMatch, TrackNumber};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
@@ -23,7 +23,7 @@ impl Beatport {
     /// Create new instance
     pub fn new(access_token: Arc<Mutex<Option<BeatportOAuth>>>) -> Beatport {
         let client = Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
             .timeout(Duration::from_secs(60))
             .build()
             .unwrap();
@@ -63,9 +63,16 @@ impl Beatport {
         let mut token = self.access_token.lock().unwrap();
         // Fetch new if doesn't exist
         if (*token).is_none() {
-            let mut response: BeatportOAuth = self.client.get("https://embed.beatport.com/token")
-                .send()?.json()?;
-            response.expires_in = response.expires_in * 1000 + timestamp!() - 60000;
+            // Taken from https://embed.beatport.com/?id=4418593&type=release
+            let mut response: BeatportOAuth = self.client.post("https://account.beatport.com/o/token/")
+                .form(&json!({
+                    "client_id": "2tiTbKxmQFwnbFjMONU4k7njMRZmV3ZMwRBndiZs",
+                    "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
+                    "grant_type": "client_credentials"
+                }))
+                .send()?
+                .json()?;
+            response.expires_in = response.expires_in * 1000 + timestamp!() - 10_000;
             *token = Some(response);
             debug!("OAuth: {:?}", token);
         }
