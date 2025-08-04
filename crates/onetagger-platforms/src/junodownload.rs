@@ -16,7 +16,7 @@ impl JunoDownload {
     // New instance
     pub fn new() -> JunoDownload {
         let client = Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
             .build()
             .unwrap();
 
@@ -30,13 +30,17 @@ impl JunoDownload {
         let response = self.client
             .get("https://www.junodownload.com/search/")
             .query(&[("q[all][]", query), ("solrorder", "relevancy"), ("items_per_page", "50")])
+            .header("Referer", "https://www.junodownload.com/")
             .send()?;
+
         // Rate limitting
         if response.status() == StatusCode::TOO_MANY_REQUESTS {
             warn!("JunoDownload rate limit! Sleeping for 2s!");
             sleep(Duration::from_secs(2));
             return self.search(query);
         }
+
+        let response = response.error_for_status()?;
 
         // Minify and parse
         let data = response.text()?;
@@ -90,7 +94,7 @@ impl JunoDownload {
         let release_date = NaiveDate::parse_from_str(info_text[0], "%d %b %y").ok()?;
         let genres: Vec<String> = info_text[1].split("/").map(|g| g.to_string()).collect();
         // Album art
-        selector = Selector::parse("img.lazy_img").unwrap();
+        selector = Selector::parse("img.li-img").unwrap();
         let image_elem = elem.select(&selector).next()?;
         let mut album_art_small = image_elem.value().attr("src")?;
         // Placeholder image
