@@ -217,7 +217,7 @@ pub fn start_webview() -> Result<(), Error> {
         target_os = "ios",
         target_os = "android",
     ))]
-    let webview = webview.build_as_child(&window)?;
+    let webview = webview.build(&window)?;
 
     #[cfg(not(any(
         target_os = "windows",
