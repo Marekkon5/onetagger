@@ -7,7 +7,7 @@ use clap::Parser;
 use std::path::PathBuf;
 use onetagger_shared::Settings;
 use wry::{DragDropEvent, WebContext, WebViewBuilder};
-use tao::dpi::{Size, PhysicalSize};
+use tao::dpi::{LogicalSize, Size};
 use tao::event::{StartCause, Event, WindowEvent};
 use tao::event_loop::{EventLoopBuilder, ControlFlow};
 use tao::window::{WindowBuilder, Icon, Theme};
@@ -117,13 +117,13 @@ pub fn start_webview() -> Result<(), Error> {
     let proxy = event_loop.create_proxy();
     let window = WindowBuilder::new()
         .with_title("One Tagger")
-        .with_min_inner_size(Size::Physical(PhysicalSize::new(1150, 550)))
-        .with_inner_size(Size::Physical(PhysicalSize::new(1280, 720)))
+        .with_min_inner_size(Size::Logical(LogicalSize::new(1150.0, 550.0)))
+        .with_inner_size(Size::Logical(LogicalSize::new(1280.0, 720.0)))
         .with_resizable(true)
         .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
         .with_theme(Some(Theme::Dark))
         .build(&event_loop)?;
-    window.set_inner_size(Size::Physical(PhysicalSize::new(1280, 720)));
+    window.set_inner_size(Size::Logical(LogicalSize::new(1280.0, 720.0)));
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
     let p = proxy.clone();
 
