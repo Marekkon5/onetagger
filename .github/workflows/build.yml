@@ -143,7 +143,7 @@ jobs:
 
   build-mac:
     name: Mac
-    runs-on: macos-14-large
+    runs-on: macos-13
 
     steps:
 
