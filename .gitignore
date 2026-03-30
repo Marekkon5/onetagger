@@ -5,6 +5,7 @@ GPUCache/
 client/node_modules/
 client/dist/
 .idea/
+.DS_Store
 .spotify*
 dist/
 osxcross/

@@ -324,17 +324,19 @@ impl TrackImpl for Track {
         tag.save_file(&path.as_ref())?;
 
         // Cover file
-        if let Some(cover_data) = cover_data {
-            match AudioFileInfo::load_file(&path, None, None) {
-                Ok(info) => {
-                    let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
-                    match std::fs::write(&cover_path, cover_data) {
-                        Ok(_) => debug!("Cover written to: {}", cover_path.display()),
-                        Err(e) => error!("Failed to write cover file: {e}"),
+        if should_write_cover_file(config, &cover_data) {
+            if let Some(cover_data) = cover_data {
+                match AudioFileInfo::load_file(&path, None, None) {
+                    Ok(info) => {
+                        let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
+                        match std::fs::write(&cover_path, cover_data) {
+                            Ok(_) => debug!("Cover written to: {}", cover_path.display()),
+                            Err(e) => error!("Failed to write cover file: {e}"),
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed generating cover path: {e}");
                     }
-                },
-                Err(e) => {
-                    error!("Failed generating cover path: {e}");
                 }
             }
         }
@@ -405,6 +407,37 @@ fn get_cover_path(info: &AudioFileInfo, folder: impl AsRef<Path>, config: &Tagge
     }
 
     path
+}
+
+fn should_write_cover_file(config: &TaggerConfig, cover_data: &Option<Vec<u8>>) -> bool {
+    config.album_art_file && cover_data.is_some()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_write_cover_file;
+    use onetagger_tagger::TaggerConfig;
+
+    #[test]
+    fn cover_file_is_not_written_when_album_art_file_is_disabled() {
+        let config = TaggerConfig {
+            album_art_file: false,
+            ..Default::default()
+        };
+
+        assert!(!should_write_cover_file(&config, &Some(vec![1, 2, 3])));
+    }
+
+    #[test]
+    fn cover_file_is_written_only_when_enabled_and_cover_data_exists() {
+        let config = TaggerConfig {
+            album_art_file: true,
+            ..Default::default()
+        };
+
+        assert!(should_write_cover_file(&config, &Some(vec![1, 2, 3])));
+        assert!(!should_write_cover_file(&config, &None));
+    }
 }
 
 pub trait AudioFileInfoImpl {

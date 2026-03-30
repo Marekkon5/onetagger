@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1
+
+FROM debian:bookworm-slim AS runtime
+
+LABEL org.opencontainers.image.source="https://github.com/Marekkon5/onetagger"
+
+ENV HOME=/tmp/onetagger-home \
+    XDG_CONFIG_HOME=/data
+
+WORKDIR /music
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        gosu \
+        libasound2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /data /music /tmp/onetagger-home \
+    && chmod 1777 /tmp
+
+COPY dist/OneTagger-linux-cli.tar.gz /tmp/OneTagger-linux-cli.tar.gz
+RUN tar -xzf /tmp/OneTagger-linux-cli.tar.gz -C /usr/local/bin onetagger-cli \
+    && chmod +x /usr/local/bin/onetagger-cli \
+    && rm -f /tmp/OneTagger-linux-cli.tar.gz
+
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["--help"]

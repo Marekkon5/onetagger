@@ -1,0 +1,7 @@
+.docker/
+.git
+.github
+target
+client/dist
+client/node_modules
+

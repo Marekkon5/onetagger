@@ -1,7 +1,20 @@
 name: Build
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/onetagger-cli
 
 jobs:
   build-linux:
@@ -11,10 +24,10 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
 
     - name: Rust Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
         path: |
           ~/.cargo/bin/
@@ -23,6 +36,8 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
 
     - name: Install dependencies
       run: |
@@ -30,12 +45,12 @@ jobs:
         sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
 
     - name: Install NodeJS
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v6
       with:
         node-version: 18
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@v4
       with:
         version: 8
 
@@ -45,7 +60,6 @@ jobs:
         pnpm i
         pnpm run build
         cd ..
-        cargo update
         cargo build --release
 
     - name: Bundle
@@ -57,16 +71,70 @@ jobs:
         mv OneTagger-linux-cli.tar.gz dist/
     
     - name: Upload Linux
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-linux
         path: dist/OneTagger-linux.tar.gz
+        compression-level: 0
     
     - name: Upload Linux CLI
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-linux-cli
         path: dist/OneTagger-linux-cli.tar.gz
+        compression-level: 0
+
+  build-docker:
+    name: Docker
+    needs: build-linux
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Download Linux CLI artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: onetagger-linux-cli
+        path: dist
+
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GHCR
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Docker metadata
+      id: docker_meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=ref,event=branch
+          type=ref,event=tag
+          type=sha,prefix=sha-
+
+    - name: Build and publish CLI image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile.ghcr
+        push: ${{ github.event_name != 'pull_request' }}
+        platforms: linux/amd64
+        tags: ${{ steps.docker_meta.outputs.tags }}
+        labels: ${{ steps.docker_meta.outputs.labels }}
+        cache-from: type=gha,scope=onetagger-cli
+        cache-to: type=gha,mode=max,scope=onetagger-cli
 
 
   build-win:
@@ -75,10 +143,10 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
 
     - name: Rust Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
         path: |
           ~/.cargo/bin/
@@ -87,21 +155,22 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
 
     - name: Install NodeJS
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v6
       with:
         node-version: 18
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@v4
       with:
         version: 8
 
     - name: Install Dependencies
       run: |
         choco install nsis -y
-        rustup update
 
     - name: Build
       run: |
@@ -109,7 +178,6 @@ jobs:
         pnpm i
         pnpm run build
         cd ..
-        cargo update
         cargo build --release
         
     - name: Bundle
@@ -122,36 +190,39 @@ jobs:
         copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
 
     - name: Upload Archive
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-win
         path: | 
           dist/OneTagger-windows.exe
+        compression-level: 0
     
     - name: Upload Archive
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-win-setup
         path: dist/OneTagger-windows-setup.exe
+        compression-level: 0
 
     - name: Upload CLI
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-win-cli
         path: |
           dist/OneTagger-windows-cli.exe
+        compression-level: 0
 
   build-mac:
     name: Mac
-    runs-on: macos-13
+    runs-on: macos-15-intel
 
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
 
     - name: Rust Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
         path: |
           ~/.cargo/bin/
@@ -160,11 +231,21 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Install NodeJS
+      uses: actions/setup-node@v6
+      with:
+        node-version: 18
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
 
     - name: Install dependencies
       run: |
-        brew install rustup nodejs pnpm
-        rustup install stable
         cargo install cargo-bundle --version 0.6.1 --locked || true
     
     - name: Build
@@ -173,7 +254,6 @@ jobs:
         pnpm i
         pnpm run build
         cd ..
-        cargo update
         cargo build --release
         cargo bundle --release
 
@@ -195,14 +275,15 @@ jobs:
         mv target/release/OneTagger-mac-cli.zip dist/
 
     - name: Upload Mac
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-mac
         path: dist/OneTagger-mac.zip
+        compression-level: 0
 
     - name: Upload Mac CLI
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: onetagger-mac-cli
         path: dist/OneTagger-mac-cli.zip
-
+        compression-level: 0

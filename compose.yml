@@ -1,0 +1,13 @@
+# Override ONETAGGER_IMAGE while testing a fork, for example:
+# ONETAGGER_IMAGE=ghcr.io/timothe/onetagger-cli:master
+services:
+  onetagger:
+    image: ${ONETAGGER_IMAGE:-ghcr.io/marekkon5/onetagger-cli:latest}
+    init: true
+    working_dir: /music
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      - ${ONETAGGER_DATA_DIR:?Set ONETAGGER_DATA_DIR to a folder containing config.json}:/data
+      - ${ONETAGGER_MUSIC_DIR:?Set ONETAGGER_MUSIC_DIR to the folder you want to tag}:/music
