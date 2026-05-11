@@ -1,35 +1,41 @@
 services:
   onetagger:
     build:
-      # Context is this repo. The Dockerfile builds from local source (COPY .), so uncommitted
-      # edits to the wss/http handling are picked up on the next `docker compose build`.
+      # Builds from local source (COPY . in the Dockerfile), so local edits to the source
+      # tree are picked up on the next `docker compose build`.
       context: .
       dockerfile: Dockerfile
-    image: onetagger-local:latest
+    image: onetagger:latest
     container_name: onetagger
     restart: unless-stopped
 
-    # Bind to localhost only. The external Nginx (TLS + Authelia) proxies HTTPS to this,
-    # same shape as the systemd setup it replaces. OneTagger speaks plain HTTP; the patched
-    # client picks ws:// vs wss:// from window.location.protocol, so it works behind both.
+    # Bind to localhost by default — OneTagger has no built-in authentication. Put a
+    # reverse proxy in front (Nginx/Caddy/Traefik) for TLS and any auth, or change to
+    # "36913:36913" to expose directly on the LAN. The web client picks ws:// vs wss://
+    # automatically from window.location.protocol, so HTTP and HTTPS proxies both work.
     ports:
       - "127.0.0.1:36913:36913"
 
     volumes:
       # OneTagger config (Spotify/Discogs OAuth tokens, custom platform settings, etc).
-      # Pre-create: `mkdir -p ./data/config && sudo chown -R 1000:1000 ./data/config`
-      # otherwise compose creates it as root and the container user can't write to it.
+      # Pre-create with the right ownership so the container user (UID 1000) can write:
+      #   mkdir -p ./data/config && sudo chown -R 1000:1000 ./data/config
       - ./data/config:/home/onetagger/.config/onetagger
-      # Library mounts mirror the host's ReadWritePaths= policy:
-      # on-hold is where tagging happens (rw), main is browsable but never written (ro).
-      - /mnt/music/on-hold:/mnt/music/on-hold
-      - /mnt/music/main:/mnt/music/main:ro
 
-    # Run as host UID:GID so tag writes keep correct ownership on the mounted music tree.
+      # Music library. Adjust to point at your collection. OneTagger writes tags in
+      # place, so anything mounted read-write here will be modified. A common pattern
+      # is to mount a small writable "staging" path for new files plus the rest of the
+      # collection read-only, e.g.:
+      #   - ./music/staging:/music/staging
+      #   - /path/to/main/library:/music/main:ro
+      - ./music:/music
+
+    # Run as host UID:GID so tag writes keep correct ownership on the mounted library.
     # Change if your host user isn't 1000:1000.
     user: "1000:1000"
 
-    # Hardening the user-mode systemd unit couldn't apply (the AGENT.md "move to Docker" rationale).
+    # Hardening: root filesystem read-only with /tmp on tmpfs, no Linux capabilities,
+    # no new privileges. OneTagger doesn't need any of these.
     read_only: true
     tmpfs:
       - /tmp
