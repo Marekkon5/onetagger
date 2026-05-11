@@ -1,6 +1,7 @@
 // Returns the WebSocket server URL
 function wsUrl(): string {
-    return import.meta.env.DEV ? `ws://${window.location.hostname}:36913/ws` : `ws://${window.location.host}/ws`;
+    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    return import.meta.env.DEV ? `${scheme}://${window.location.hostname}:36913/ws` : `${scheme}://${window.location.host}/ws`;
 }
 
 // Returns the HTTP server URL
