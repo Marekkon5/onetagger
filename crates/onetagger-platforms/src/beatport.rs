@@ -1,18 +1,19 @@
 use std::sync::{Arc, Mutex};
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use std::time::Duration;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
-use scraper::{Html, Selector};
-use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
-use onetagger_tagger::{supported_tags, Album, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, SupportedTag, TaggerConfig, Track, TrackMatch, TrackNumber};
-use serde_json::{json, Value};
+use onetagger_tagger::{
+    supported_tags, Album, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder,
+    MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo,
+    SupportedTag, TaggerConfig, Track, TrackMatch, TrackNumber
+};
+use serde_json::json;
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
-
 
 pub struct Beatport {
     client: Client,
@@ -27,41 +28,38 @@ impl Beatport {
             .timeout(Duration::from_secs(60))
             .build()
             .unwrap();
+
         Beatport {
-            client, access_token
+            client,
+            access_token
         }
     }
 
-    /// Search for tracks on beatport
+    /// Search for tracks on Beatport using the catalog API
     pub fn search(&self, query: &str, page: i32, results_per_page: usize) -> Result<BeatportTrackResults, Error> {
         let query = Self::clear_search_query(query);
-        let response = self.client.get("https://www.beatport.com/search/tracks")
+        let token = self.update_token()?;
+
+        let response: BeatportTrackResults = self.client
+            .get("https://api.beatport.com/v4/catalog/search/")
+            .bearer_auth(token)
             .query(&[
-                ("q", &query), 
+                ("q", query.as_str()),
+                ("type", "tracks"),
                 ("page", &page.to_string()),
-                ("per-page", &results_per_page.to_string())
+                ("per_page", &results_per_page.to_string())
             ])
             .send()?
-            .text()?;
-        
-        // Parse JSON
-        let results: BeatportTrackResults = self.get_next_data(&response)?;
-        Ok(results)
-    }
-    
-    /// Extract next hydratation data from html
-    fn get_next_data<T: DeserializeOwned>(&self, response: &str) -> Result<T, Error> {
-        let document = Html::parse_document(&response);
-        let selector = Selector::parse("script#__NEXT_DATA__").unwrap();
-        let script = document.select(&selector).next().ok_or(anyhow!("Missing __NEXT_DATA__"))?.text().collect::<String>();
-        let value: Value = serde_json::from_str(&script)?;
-        Ok(serde_json::from_value(value["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"].to_owned())?)
+            .json()?;
+
+        Ok(response)
     }
 
     /// Update embed auth token
     pub fn update_token(&self) -> Result<String, Error> {
         let mut token = self.access_token.lock().unwrap();
-        // Fetch new if doesn't exist
+
+        // Fetch new token if it does not exist
         if (*token).is_none() {
             // Taken from https://embed.beatport.com/?id=4418593&type=release
             let mut response: BeatportOAuth = self.client.post("https://account.beatport.com/o/token/")
@@ -72,23 +70,28 @@ impl Beatport {
                 }))
                 .send()?
                 .json()?;
+
             response.expires_in = response.expires_in * 1000 + timestamp!() - 10_000;
             *token = Some(response);
             debug!("OAuth: {:?}", token);
         }
-        // Expired
+
+        // Refresh if expired
         let t = token.clone().unwrap();
         if t.expires_in <= timestamp!() {
             *token = None;
             return self.update_token();
         }
+
         Ok(t.access_token)
     }
 
     /// Fetch track using API
     pub fn track(&self, id: i64) -> Result<Option<BeatportTrack>, Error> {
         let token = self.update_token()?;
-        let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
+
+        let response = self.client
+            .get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
             .bearer_auth(token)
             .send()?;
 
@@ -103,23 +106,30 @@ impl Beatport {
     /// Fetch release using API
     pub fn release(&self, id: i64) -> Result<BeatportRelease, Error> {
         let token = self.update_token()?;
-        let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
+
+        let response = self.client
+            .get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
             .bearer_auth(token)
-            .send()?.json()?;
+            .send()?
+            .json()?;
+
         Ok(response)
     }
 
     /// Get tracks from release
     pub fn release_tracks(&self, id: i64) -> Result<Vec<BeatportTrack>, Error> {
         let token = self.update_token()?;
-        let response: BeatportPagination<BeatportTrack> = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}/tracks?per_page=200", id))
+
+        let response: BeatportPagination<BeatportTrack> = self.client
+            .get(&format!("https://api.beatport.com/v4/catalog/releases/{}/tracks?per_page=200", id))
             .bearer_auth(token)
-            .send()?.json()?;
+            .send()?
+            .json()?;
+
         Ok(response.results)
     }
 
-
-    /// Beatport returns 403 if you have more than single () pair
+    /// Beatport returns 403 if you have more than a single () pair
     pub fn clear_search_query(query: &str) -> String {
         let mut open = 0;
         let mut closed = 0;
@@ -127,15 +137,20 @@ impl Beatport {
         query.chars().filter(|c| {
             match c {
                 '(' if open > 0 => false,
-                '(' => { open += 1; true },
+                '(' => {
+                    open += 1;
+                    true
+                },
                 ')' if closed > 0 => false,
-                ')' => { closed += 1; true },
+                ')' => {
+                    closed += 1;
+                    true
+                },
                 _ => true
             }
         }).collect()
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportOAuth {
@@ -146,39 +161,9 @@ pub struct BeatportOAuth {
 /// When searching for tracks
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportTrackResults {
-    pub data: Vec<BeatportTrackResult>
+    #[serde(rename = "tracks")]
+    pub data: Vec<BeatportTrack>
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportTrackResult {
-    pub track_id: i64,
-    pub track_name: String,
-    pub artists: Option<Vec<BeatportArtist>>,
-    pub isrc: Option<String>,
-    pub length: Option<u64>,
-    pub mix_name: Option<String>,
-    pub release: Option<BeatportTrackResultRelease>,
-    pub genre: Option<Vec<BeatportTrackResultsGenre>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportTrackResultRelease {
-    pub release_id: i64,
-    pub release_image_uri: Option<String>
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportTrackResultsGenre {
-    pub genre_name: String
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeatportArtist {
-    pub artist_id: i64,
-    pub artist_name: String,
-    pub artist_type_name: String,
-}
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BeatportTrack {
@@ -231,27 +216,6 @@ struct BeatportPagination<T> {
     pub results: Vec<T>
 }
 
-impl BeatportTrackResult {
-    pub fn to_track(self, include_version: bool) -> Track {
-        Track {
-            platform: "beatport".to_string(),
-            url: format!("https://www.beatport.com/track/{}/{}", self.track_name.to_lowercase().replace(" ", "-"), self.track_id),
-            title: self.track_name,
-            track_id: Some(self.track_id.to_string()),
-            artists: self.artists.unwrap_or(vec![]).into_iter().map(|a| a.artist_name).collect(),
-            version: match include_version {
-                true => self.mix_name,
-                false => None
-            },
-            duration: Duration::from_millis(self.length.unwrap_or(0)).into(),
-            isrc: self.isrc,
-            thumbnail: self.release.map(|r| r.release_image_uri).flatten(),
-            genres: self.genre.map(|g| g.into_iter().map(|g| g.genre_name).collect()).unwrap_or(vec![]),
-            ..Default::default()
-        }
-    }
-}
-
 impl BeatportTrack {
     pub fn to_track(self, art_resolution: u32) -> Track {
         let art = self.get_art(art_resolution);
@@ -283,10 +247,10 @@ impl BeatportTrack {
             remixers: self.remixers.into_iter().map(|r| r.name).collect(),
             track_number: self.number.map(|n| TrackNumber::Number(n as i32)),
             isrc: self.isrc,
-            release_year: self.new_release_date.as_ref().map(|d| d.chars().take(4).collect::<String>().parse().ok()).flatten(),
-            publish_year: self.publish_date.as_ref().map(|d| d.chars().take(4).collect::<String>().parse().ok()).flatten(),
-            release_date: self.new_release_date.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-            publish_date: self.publish_date.as_ref().map_or(None, |d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+            release_year: self.new_release_date.as_ref().and_then(|d| d.chars().take(4).collect::<String>().parse().ok()),
+            publish_year: self.publish_date.as_ref().and_then(|d| d.chars().take(4).collect::<String>().parse().ok()),
+            release_date: self.new_release_date.as_ref().and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+            publish_date: self.publish_date.as_ref().and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
             thumbnail,
             ..Default::default()
         };
@@ -304,26 +268,35 @@ impl BeatportTrack {
         if self.release.image.dynamic_uri.contains(&INVALID_ART) {
             return None;
         }
+
         let r = art_resolution.to_string();
-        Some(self.release.image.dynamic_uri.replace("{w}", &r).replace("{h}", &r).replace("{x}", &r).replace("{y}", &r))
+
+        Some(
+            self.release.image.dynamic_uri
+                .replace("{w}", &r)
+                .replace("{h}", &r)
+                .replace("{x}", &r)
+                .replace("{y}", &r)
+        )
     }
 }
 
 // Match track
 impl AutotaggerSource for Beatport {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {       
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         // Load custom config
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
         let mut output = vec![];
 
         // Fetch by ID
-        if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().map(|id| id.trim().replace("\0", "").parse().ok()).flatten()).flatten() {
+        if let Some(id) = info.tags.get("BEATPORT_TRACK_ID").map(|t| t.first().and_then(|id| id.trim().replace("\0", "").parse().ok())).flatten() {
             info!("Fetching by ID: {}", id);
+
             match self.track(id) {
                 Ok(Some(api_track)) => {
                     let track = TrackMatch::new_id(api_track.to_track(custom_config.art_resolution));
                     if !config.fetch_all_results {
-                        return Ok(vec![track]);   
+                        return Ok(vec![track]);
                     }
                     output.push(track);
                 },
@@ -339,12 +312,13 @@ impl AutotaggerSource for Beatport {
             match self.search(isrc, 1, 25) {
                 Ok(results) => {
                     if !results.data.is_empty() {
-                        let track = self.track(results.data[0].track_id)?;
+                        let track = self.track(results.data[0].id)?;
+
                         match track {
                             Some(track) => {
                                 let track = TrackMatch::new_isrc(track.to_track(custom_config.art_resolution));
                                 if !config.fetch_all_results {
-                                    return Ok(vec![track]);   
+                                    return Ok(vec![track]);
                                 }
                                 output.push(track);
                             },
@@ -361,18 +335,23 @@ impl AutotaggerSource for Beatport {
         // Search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         debug!("BP Query: {}", query);
-        for page in 1..custom_config.max_pages+1 {
+
+        for page in 1..custom_config.max_pages + 1 {
             match self.search(&query, page, 50) {
                 Ok(res) => {
                     // Match
                     let tracks = res.data
                         .into_iter()
-                        .map(|t| t.to_track(true))
+                        .map(|t| t.to_track(custom_config.art_resolution))
                         .collect::<Vec<_>>();
 
                     // Ignore version match
                     let tracks = if custom_config.ignore_version {
-                        let t = tracks.clone().into_iter().map(|mut t| { t.version = None; t }).collect();
+                        let t = tracks.clone().into_iter().map(|mut t| {
+                            t.version = None;
+                            t
+                        }).collect();
+
                         // Copy back versions
                         MatchingUtils::match_track(info, &t, config, true)
                             .into_iter()
@@ -389,9 +368,11 @@ impl AutotaggerSource for Beatport {
 
                     // Return
                     output.extend(tracks);
+
                     if config.fetch_all_results {
                         continue;
                     }
+
                     return Ok(output);
                 },
                 Err(e) => {
@@ -400,9 +381,9 @@ impl AutotaggerSource for Beatport {
                 }
             }
         }
+
         Ok(output)
     }
-
 
     fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
@@ -424,11 +405,12 @@ impl AutotaggerSource for Beatport {
             Some(a) => a.into_iter().map(|a| a.name).collect(),
             None => vec![],
         };
+
         Ok(())
     }
-    
+
     fn get_album(&mut self, id: &str, config: &TaggerConfig) -> Result<Option<Album>, Error> {
-        let custom_config: BeatportConfig = config.get_custom("beatport")?; 
+        let custom_config: BeatportConfig = config.get_custom("beatport")?;
         let id: i64 = id.trim().parse()?;
         let release = self.release(id)?;
         let tracks = self.release_tracks(id)?;
@@ -441,7 +423,6 @@ impl AutotaggerSource for Beatport {
 
         Ok(Some(album))
     }
-
 }
 
 /// For creating Beatport instances
@@ -468,26 +449,36 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
             description: "Overall more specialized in Techno, can match using ISRC".to_string(),
             icon: include_bytes!("../assets/beatport.png"),
             max_threads: 0,
-            version: "1.0.0".to_string(),
+            version: "1.0.1".to_string(),
             requires_auth: false,
-            supported_tags: supported_tags!(Title, Version, Artist, AlbumArtist, Album, BPM, Genre, Style, Label, URL, ReleaseDate, PublishDate, Key, AlbumArt, OtherTags, TrackId, ReleaseId, Duration, Remixer, CatalogNumber, TrackTotal, ISRC, TrackNumber),
+            supported_tags: supported_tags!(
+                Title, Version, Artist, AlbumArtist, Album, BPM, Genre, Style,
+                Label, URL, ReleaseDate, PublishDate, Key, AlbumArt, OtherTags,
+                TrackId, ReleaseId, Duration, Remixer, CatalogNumber, TrackTotal,
+                ISRC, TrackNumber
+            ),
             custom_options: PlatformCustomOptions::new()
                 // Album art resolution
                 .add("art_resolution", "Album art resolution", PlatformCustomOptionValue::Number {
-                    min: 200, max: 1600, step: 100, value: 500 
+                    min: 200,
+                    max: 1600,
+                    step: 100,
+                    value: 500
                 })
                 // Max pages to search
                 .add_tooltip("max_pages", "Max pages", "How many pages of search results to scan for tracks", PlatformCustomOptionValue::Number {
-                    min: 1, max: 10, step: 1, value: 1
+                    min: 1,
+                    max: 10,
+                    step: 1,
+                    value: 1
                 })
                 // Ignore version
-                .add_tooltip("ignore_version", "Ignore version when matching", "Ignores (Extended Mix), (Original Mix) and such", PlatformCustomOptionValue::Boolean { 
+                .add_tooltip("ignore_version", "Ignore version when matching", "Ignores (Extended Mix), (Original Mix) and such", PlatformCustomOptionValue::Boolean {
                     value: false
                 })
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BeatportConfig {

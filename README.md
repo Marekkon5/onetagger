@@ -17,6 +17,7 @@
 <h3 align='center'><b></b></h3>
 <hr>
 
+Temporary Beatport fix build May 2026
 Cross-platform music tagger.
 It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
 It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
