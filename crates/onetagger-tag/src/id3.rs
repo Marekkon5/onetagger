@@ -395,11 +395,15 @@ impl TagImpl for ID3Tag {
         // TXXX
         if tag.len() != 4 {
             if overwrite || self.get_raw(tag).is_none() {
+                
+                // FIX: Remove existing frame FIRST to prevent duplicates
+                self.tag.remove_extended_text(Some(tag), None);
+                
                 // Remove if empty
                 if value.is_empty() {
-                    self.tag.remove_extended_text(Some(tag), None);
-                    return;
+                    return; 
                 }
+                
                 self.tag.add_frame(ExtendedText {
                     description: tag.to_string(),
                     value: value.join(&self.id3_separator),

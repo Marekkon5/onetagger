@@ -9,10 +9,9 @@ edition = "2021"
 log = "0.4"
 alac = "0.5"
 hound = "3.5"
-lofty = "0.22"
+lofty = "0.24"
 anyhow = "1.0"
 pacmog = "0.6.0"
 mp4parse = "0.17"
 
-rodio = { version = "0.20", features = ["symphonia-aac", "symphonia-isomp4", "flac", "vorbis", "wav", "minimp3"], default-features = false }
-
+rodio = { version = "0.22", features = ["playback", "symphonia-aac", "symphonia-isomp4", "flac", "vorbis", "wav", "minimp3"], default-features = false }

@@ -169,20 +169,20 @@ impl TrackImpl for Track {
                 tag.set_field(Field::Style, self.styles.clone(), config.overwrite_tag(SupportedTag::Style));
             }
         }
+
         // Release dates
         if config.tag_enabled(SupportedTag::ReleaseDate) {
             if let Some(date) = self.release_date {
+                // Force Month and Day to None so standard ID3 YEAR is only YYYY
                 tag.set_date(&TagDate {
                     year: date.year() as i32,
-                    month: match config.only_year {
-                        true => None,
-                        false => Some(date.month() as u8)
-                    },
-                    day: match config.only_year {
-                        true => None,
-                        false => Some(date.day() as u8)
-                    }
+                    month: None,
+                    day: None
                 }, config.overwrite_tag(SupportedTag::ReleaseDate));
+
+                // Write the full YYYY-MM-DD date to a custom RELEASETIME tag
+                let date_str = date.format("%Y-%m-%d").to_string();
+                tag.set_raw("RELEASETIME", vec![date_str], config.overwrite_tag(SupportedTag::ReleaseDate));
             } else if let Some(year) = self.release_year {
                 tag.set_date(&TagDate {
                     year: year as i32,
@@ -191,20 +191,20 @@ impl TrackImpl for Track {
                 }, config.overwrite_tag(SupportedTag::ReleaseDate));
             }
         }
+        
         // Publish date
         if config.tag_enabled(SupportedTag::PublishDate) {
             if let Some(date) = self.publish_date {
+                // Force Month and Day to None so standard ID3 PUBLISH YEAR is only YYYY
                 tag.set_publish_date(&TagDate {
                     year: date.year() as i32,
-                    month: match config.only_year {
-                        true => None,
-                        false => Some(date.month() as u8)
-                    },
-                    day: match config.only_year {
-                        true => None,
-                        false => Some(date.day() as u8)
-                    }
+                    month: None,
+                    day: None
                 }, config.overwrite_tag(SupportedTag::PublishDate));
+
+                // Write the full YYYY-MM-DD date to a custom PUBLISHTIME tag
+                let date_str = date.format("%Y-%m-%d").to_string();
+                tag.set_raw("PUBLISHTIME", vec![date_str], config.overwrite_tag(SupportedTag::PublishDate));
             } else if let Some(year) = self.publish_year {
                 tag.set_publish_date(&TagDate {
                     year: year as i32,
@@ -213,6 +213,7 @@ impl TrackImpl for Track {
                 }, config.overwrite_tag(SupportedTag::PublishDate));
             }
         }
+
         // URL
         if config.tag_enabled(SupportedTag::URL) {
             tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite_tag(SupportedTag::URL));
@@ -325,16 +326,19 @@ impl TrackImpl for Track {
 
         // Cover file
         if let Some(cover_data) = cover_data {
-            match AudioFileInfo::load_file(&path, None, None) {
-                Ok(info) => {
-                    let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
-                    match std::fs::write(&cover_path, cover_data) {
-                        Ok(_) => debug!("Cover written to: {}", cover_path.display()),
-                        Err(e) => error!("Failed to write cover file: {e}"),
+            // --- FIXED: Only generate path and write file if album_art_file configuration is enabled ---
+            if config.album_art_file {
+                match AudioFileInfo::load_file(&path, None, None) {
+                    Ok(info) => {
+                        let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
+                        match std::fs::write(&cover_path, cover_data) {
+                            Ok(_) => debug!("Cover written to: {}", cover_path.display()),
+                            Err(e) => error!("Failed to write cover file: {e}"),
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed generating cover path: {e}");
                     }
-                },
-                Err(e) => {
-                    error!("Failed generating cover path: {e}");
                 }
             }
         }

@@ -157,7 +157,7 @@ impl CustomPlatform {
     /// Load library
     pub fn open(path: &PathBuf) -> Result<CustomPlatform, Error> {
         let p = unsafe {
-            let lib = Library::new(&path)?;
+            let lib = Library::new(path)?;
             // Check version compatibility
             let version: Symbol<*const i32> = lib.get(b"_1T_PLATFORM_COMPATIBILITY")?;
             if **version != onetagger_tagger::custom::CUSTOM_PLATFORM_COMPATIBILITY {

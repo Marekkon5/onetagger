@@ -1,7 +1,8 @@
 use anyhow::Error;
 use std::path::Path;
 use std::thread::Builder;
-use onetagger_player::rodio::source::UniformSourceIterator;
+use std::num::{NonZeroU16, NonZeroU32};
+use onetagger_player::rodio::source::{Source, UniformSourceIterator};
 use serde::{Serialize, Deserialize};
 use songrec::SignatureGenerator;
 use onetagger_player::AudioSources;
@@ -14,21 +15,34 @@ impl Shazam {
         // Load file
         let source = AudioSources::from_path(path)?;
         let duration = source.duration();
-        let conv = UniformSourceIterator::new(source.get_source()?, 1, 16000);
-        // Get 12s part from middle
-        let buffer = if duration >= 12000 {
+        
+        // Wrap sample rate and channel conversions using modern NonZero rules
+        let conv = UniformSourceIterator::new(
+            source.get_source()?, 
+            NonZeroU16::new(1).unwrap(), 
+            NonZeroU32::new(16000).unwrap()
+        );
+        
+        // Extract 12s segment from middle and down-scale floating samples back to standard i16 bounds
+        let buffer: Vec<i16> = if duration >= 12000 {
             // ((duration / 1000) * 16KHz) / 2 (half duration) - (6 * 16KHz) seconds.
-            conv.skip((duration * 8 - 96000) as usize).take(16000 * 12).collect::<Vec<i16>>()
+            conv.skip((duration * 8 - 96000) as usize)
+                .take(16000 * 12)
+                .map(|s| (s * 32767.0) as i16)
+                .collect()
         } else {
-            conv.collect::<Vec<i16>>()
+            conv.map(|s| (s * 32767.0) as i16)
+                .collect()
         };
-        // Calculating singnature requires 6MB stack, because it allocates >2MB of buffers for some reason
+        
+        // Calculating signature requires 6MB stack, because it allocates >2MB of buffers for some reason
         let signature = Builder::new()
             .stack_size(1024 * 1024 * 6)
             .spawn(move || { SignatureGenerator::make_signature_from_buffer(&buffer) })
             .unwrap()
             .join()
             .unwrap();
+            
         let response = songrec::recognize_song_from_signature(&signature, 0).map_err(|e| anyhow!("{e:?}"))?;
         let response: ShazamResponse = serde_json::from_value(response)?;
         let track = response.track.ok_or(anyhow!("Shazam returned no matches!"))?;

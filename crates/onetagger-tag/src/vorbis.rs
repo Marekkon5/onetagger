@@ -165,17 +165,19 @@ impl TagImpl for VorbisTag {
         }
     }
 
-    fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
+ fn set_art(&mut self, kind: CoverType, mime: &str, description: Option<&str>, data: Vec<u8>) {
         self.tag.remove_picture_type(self.picture_type(&kind));
-        match self.tag.insert_picture(
-            lofty::picture::Picture::new_unchecked(
-                self.picture_type(&kind),
-                Some(MimeType::from_str(&mime.trim().to_lowercase())),
-                description.map(String::from),
-                data
-            ),
-            None
-        ) {
+
+        // Use the new Lofty 0.24 PictureBuilder pattern with .pic_type
+        let mut builder = lofty::picture::Picture::unchecked(data)
+            .pic_type(self.picture_type(&kind))
+            .mime_type(MimeType::from_str(&mime.trim().to_lowercase()));
+
+        if let Some(desc) = description {
+            builder = builder.description(String::from(desc));
+        }
+
+        match self.tag.insert_picture(builder.build(), None) {
             Ok(_) => {},
             Err(e) => error!("Error adding picture to Vorbis tag: {e}"),
         }

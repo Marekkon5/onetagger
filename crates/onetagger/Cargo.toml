@@ -11,9 +11,9 @@ log = "0.4"
 anyhow = "1.0"
 urlencoding = "2.1"
 
-tao = { version = "0.34", features = ["rwh_05"] }
-wry = { version = "0.52", features = ["devtools"] }
-clap = { version = "4.5", features = ["derive"] }
+tao = { version = "0.35", features = ["rwh_05"] }
+wry = { version = "0.55", features = ["devtools"] }
+clap = { version = "4.6", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 
 onetagger-ui = { path = "../onetagger-ui" }
@@ -31,8 +31,8 @@ winres = "0.1"
 
 # MacOS specific
 [target.'cfg(target_os = "macos")'.dependencies]
-muda = "0.16"
-native-dialog = "0.9.0"
+muda = "0.19"
+native-dialog = "0.9.6"
 
 
 [package.metadata.bundle]
