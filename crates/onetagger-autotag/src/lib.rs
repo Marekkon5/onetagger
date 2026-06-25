@@ -169,6 +169,8 @@ impl TrackImpl for Track {
                 tag.set_field(Field::Style, self.styles.clone(), config.overwrite_tag(SupportedTag::Style));
             }
         }
+
+        
         // Release dates
         if config.tag_enabled(SupportedTag::ReleaseDate) {
             if let Some(date) = self.release_date {
@@ -213,6 +215,7 @@ impl TrackImpl for Track {
                 }, config.overwrite_tag(SupportedTag::PublishDate));
             }
         }
+
         // URL
         if config.tag_enabled(SupportedTag::URL) {
             tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite_tag(SupportedTag::URL));
@@ -325,16 +328,19 @@ impl TrackImpl for Track {
 
         // Cover file
         if let Some(cover_data) = cover_data {
-            match AudioFileInfo::load_file(&path, None, None) {
-                Ok(info) => {
-                    let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
-                    match std::fs::write(&cover_path, cover_data) {
-                        Ok(_) => debug!("Cover written to: {}", cover_path.display()),
-                        Err(e) => error!("Failed to write cover file: {e}"),
+            // --- FIXED: Only generate path and write file if album_art_file configuration is enabled ---
+            if config.album_art_file {
+                match AudioFileInfo::load_file(&path, None, None) {
+                    Ok(info) => {
+                        let cover_path = get_cover_path(&info, path.as_ref().parent().unwrap(), config);
+                        match std::fs::write(&cover_path, cover_data) {
+                            Ok(_) => debug!("Cover written to: {}", cover_path.display()),
+                            Err(e) => error!("Failed to write cover file: {e}"),
+                        }
+                    },
+                    Err(e) => {
+                        error!("Failed generating cover path: {e}");
                     }
-                },
-                Err(e) => {
-                    error!("Failed generating cover path: {e}");
                 }
             }
         }

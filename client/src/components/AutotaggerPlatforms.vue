@@ -1,6 +1,6 @@
 <template>
     <div class='row justify-center'>
-        <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' item-key='id'>
+        <draggable v-model='localPlatforms' @change='syncPlatforms' item-key='platform.id' :animation='200'>
             <template #item='{ element: platform }'>
                 <q-card flat class='card q-ma-md'>
                     <q-card-section horizontal class='row justify-between'>
@@ -80,7 +80,7 @@
 </template>
 
 <script lang='ts' setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
 import { AutotaggerPlatform, SupportedTag } from '../scripts/autotagger';
@@ -91,6 +91,21 @@ const { dense } = defineProps({
 });
 const $1t = get1t();
 const platformsRepoButtonLoading = ref(false);
+const localPlatforms = ref<AutotaggerPlatform[]>([]);
+const isSyncing = ref(false);
+
+function sortPlatforms() {
+    console.log('sortPlatforms() called');
+    localPlatforms.value = $1t.info.value.platforms.slice();
+    localPlatforms.value.sort((a, b) => {
+        let x = $1t.config.value.platforms.indexOf(a.platform.id);
+        let y = $1t.config.value.platforms.indexOf(b.platform.id);
+        if (x == -1) x = 1000;
+        if (y == -1) y = 1000;
+        return x - y;
+    });
+    console.log('Sorted platforms:', localPlatforms.value.map(p => p.platform.id));
+}
 
 // Update config
 function update(platform: string) {
@@ -99,6 +114,7 @@ function update(platform: string) {
         $1t.config.value.platforms.push(platform);
     else
         $1t.config.value.platforms.splice(i, 1);
+    $1t.saveSettings(false);
 }
 
 // Is platform enabled
@@ -108,7 +124,19 @@ function isEnabled(platform: string) {
 
 // Sync platforms order to config
 function syncPlatforms() {
-    $1t.config.value.platforms = $1t.info.value.platforms.map((p) => p.platform.id).filter((p) => $1t.config.value.platforms.includes(p));
+    console.log('syncPlatforms called from draggable, platforms:', localPlatforms.value.map(p => p.platform.id));
+    // Set flag to prevent re-sort from watcher
+    isSyncing.value = true;
+    // Update config with new order - only keep enabled platforms in the new order
+    const newOrder = localPlatforms.value.map((p) => p.platform.id).filter((p) => $1t.config.value.platforms.includes(p));
+    console.log('New config order:', newOrder, 'Old order:', $1t.config.value.platforms);
+    $1t.config.value.platforms = newOrder;
+    $1t.saveSettings(false);
+    console.log('Settings saved');
+    // Reset flag after a tick
+    setTimeout(() => {
+        isSyncing.value = false;
+    }, 0);
 }
 
 /// Does the platform have lyrics
@@ -126,14 +154,18 @@ function openPlatformsRepo() {
 }
 
 onMounted(() => {
-    $1t.info.value.platforms.sort((a, b) => {
-        let x = $1t.config.value.platforms.indexOf(a.platform.id);
-        let y = $1t.config.value.platforms.indexOf(b.platform.id);
-        if (x == -1) x = 1000;
-        if (y == -1) y = 1000;
-        return x - y;
-    });
+    sortPlatforms();
 });
+
+// Watch for changes to the platform list or config order
+watch(() => [$1t.info.value.platforms, $1t.config.value.platforms], () => {
+    if (isSyncing.value) {
+        console.log('Skipping re-sort because syncing');
+        return;
+    }
+    console.log('Platforms or config changed externally, re-sorting');
+    sortPlatforms();
+}, { deep: true });
 
 </script>
 

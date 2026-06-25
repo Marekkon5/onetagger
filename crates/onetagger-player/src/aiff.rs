@@ -4,6 +4,7 @@ use lofty::file::AudioFile;
 use std::fs::File;
 use std::io::Read;
 use std::time::Duration;
+use std::num::{NonZeroU16, NonZeroU32};
 use pacmog::PcmReader;
 use rodio::Source;
 
@@ -26,20 +27,18 @@ impl AIFFSource {
             duration
         })
     }
-
 }
 
 impl AudioSource for AIFFSource {
     // Get duration
     fn duration(&self) -> u128 {
         self.duration.as_millis()
-
     }
 
     // Get rodio source
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = f32> + Send>, Error> {
         let source = AIFFDecoder::load(&self.path)?;
-        Ok(Box::new(source.convert_samples()))
+        Ok(Box::new(source))
     }
 }
 
@@ -48,7 +47,7 @@ struct AIFFDecoder {
     samples: u32,
     sample_rate: u32,
     index: usize,
-    buffer: Vec<i16>
+    buffer: Vec<f32>
 }
 
 impl AIFFDecoder {
@@ -66,14 +65,14 @@ impl AIFFDecoder {
 
         // Decode the file (because the library is weeeird)
         // TODO: Make better using symphonia / new rodio
-        let mut samples = vec![0i16; specs.num_channels as usize * specs.num_samples as usize];
+        let mut samples = vec![0f32; specs.num_channels as usize * specs.num_samples as usize];
         let mut i = 0;
         for sample in 0..specs.num_samples {
             for channel in 0..specs.num_channels {
                 let s = std::panic::catch_unwind(|| {
                     reader.read_sample::<f32>(channel, sample)
                 }).map_err(|e| anyhow!("Failed decoding AIFF: {e:?}"))?.map_err(|e| anyhow!("Failed decoding AIFF: {e}"))?;
-                samples[i] = (s * i16::MAX as f32) as i16;
+                samples[i] = s;
                 i += 1;
             }
         }
@@ -89,16 +88,16 @@ impl AIFFDecoder {
 }
 
 impl Source for AIFFDecoder {
-    fn current_frame_len(&self) -> Option<usize> {
+    fn current_span_len(&self) -> Option<usize> {
         None
     }
 
-    fn channels(&self) -> u16 {
-        self.channels as u16
+    fn channels(&self) -> NonZeroU16 {
+        NonZeroU16::new(self.channels as u16).unwrap_or(NonZeroU16::new(1).unwrap())
     }
 
-    fn sample_rate(&self) -> u32 {
-        self.sample_rate
+    fn sample_rate(&self) -> NonZeroU32 {
+        NonZeroU32::new(self.sample_rate).unwrap_or(NonZeroU32::new(44100).unwrap())
     }
 
     fn total_duration(&self) -> Option<Duration> {
@@ -107,7 +106,7 @@ impl Source for AIFFDecoder {
 }
 
 impl Iterator for AIFFDecoder {
-    type Item = i16;
+    type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.buffer.len() {

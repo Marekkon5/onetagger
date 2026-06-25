@@ -5,7 +5,6 @@
 pub mod beatport;
 pub mod traxsource;
 pub mod discogs;
-pub mod junodownload;
 pub mod spotify;
 pub mod itunes;
 pub mod musicbrainz;

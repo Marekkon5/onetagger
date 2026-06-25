@@ -30,7 +30,7 @@ impl AudioSource for WAVSource {
     }
 
     // Get rodio decoder
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = f32> + Send>, Error> {
         Ok(Box::new(Decoder::new_wav(BufReader::new(File::open(&self.path)?))?))
     }
 }

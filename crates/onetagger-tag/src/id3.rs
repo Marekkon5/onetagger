@@ -246,49 +246,73 @@ impl TagImpl for ID3Tag {
         tags
     }
 
+    
     // Set date to tag
-    fn set_date(&mut self, date: &TagDate, overwrite: bool) {
-        // ID3 v2.3
-        if !self.id3v24 {
-            // Year
-            if overwrite || self.tag.get("TYER").is_none() {
-                // Remove v2.4
-                self.tag.remove_date_recorded();
-                self.tag.set_text("TYER", date.year.to_string());
-            }
-            // Date
-            if date.has_md() && (overwrite || self.tag.get("TDAT").is_none()) {
-                self.tag.remove_date_recorded();
-                self.tag.set_text("TDAT", &format!("{:02}{:02}", date.day.unwrap(), date.month.unwrap()));
-            }
-            return;
-        }
-        // ID3 v2.4
-        if overwrite || self.tag.date_recorded().is_none() {
-            let ts = Timestamp {
-                year: date.year,
-                month: date.month,
-                day: date.day,
-                hour: None,
-                minute: None,
-                second: None
-            };
-            self.tag.set_date_recorded(ts);
-        }
-    }
+	fn set_date(&mut self, date: &TagDate, overwrite: bool) {
+		  // ID3 v2.3
+			  if !self.id3v24 {
+				// Year
+				if overwrite || self.tag.get("TYER").is_none() {
+					// Remove v2.4 date fields
+					self.tag.remove_date_recorded();
+					self.tag.set_text("TYER", date.year.to_string());
+				}
 
-    // Set publish date
-    fn set_publish_date(&mut self, date: &TagDate, overwrite: bool) {
-        if overwrite || self.tag.date_released().is_none() {
+				// Day + Month
+				if date.has_md() && (overwrite || self.tag.get("TDAT").is_none()) {
+					self.tag.remove_date_recorded();
+					self.tag.set_text(
+						"TDAT",
+						&format!("{:02}{:02}", date.day.unwrap(), date.month.unwrap())
+					);
+				}
+
+				return;
+			}
+
+		// =========================
+		// ID3 v2.4
+		// TDRC = YEAR ONLY
+		// TDRL = FULL RELEASE DATE
+		// =========================
+
+		// TDRC
+		if overwrite || self.tag.date_recorded().is_none() {
+			self.tag.set_date_recorded(Timestamp {
+				year: date.year,
+				month: date.month,
+				day: date.day,
+				hour: None,
+				minute: None,
+				second: None,
+			});
+		}
+
+		// TDRL
+		if overwrite || self.tag.date_released().is_none() {
+			self.tag.set_date_released(Timestamp {
+				year: date.year,
+				month: date.month,
+				day: date.day,
+				hour: None,
+				minute: None,
+				second: None,
+			});
+		}
+	}
+
+	// Set publish date
+	fn set_publish_date(&mut self, date: &TagDate, overwrite: bool) {
+		if overwrite || self.tag.original_date_released().is_none() {
             let ts = Timestamp {
                 year: date.year,
                 month: date.month,
                 day: date.day,
                 hour: None,
                 minute: None,
-                second: None
+                second: None,
             };
-            self.tag.set_date_released(ts);
+            self.tag.set_original_date_released(ts);
         }
     }
 
@@ -395,11 +419,15 @@ impl TagImpl for ID3Tag {
         // TXXX
         if tag.len() != 4 {
             if overwrite || self.get_raw(tag).is_none() {
+                
+                // FIX: Remove existing frame FIRST to prevent duplicates
+                self.tag.remove_extended_text(Some(tag), None);
+                
                 // Remove if empty
                 if value.is_empty() {
-                    self.tag.remove_extended_text(Some(tag), None);
-                    return;
+                    return; 
                 }
+                
                 self.tag.add_frame(ExtendedText {
                     description: tag.to_string(),
                     value: value.join(&self.id3_separator),
