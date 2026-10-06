@@ -1,85 +1,75 @@
-<p align='center'>
-    <img alt='Logo' src='https://raw.githubusercontent.com/Marekkon5/onetagger/master/assets/onetagger-logo-github.png'>
-</p>
-<h1 align='center'>The ultimate cross-platform tagger for DJs</h1>
+# SYCO23 Mixsets
 
-<h3 align='center'><b>
-<a href='https://onetagger.github.io/'>Website</a> | <a href='https://github.com/Marekkon5/onetagger/releases/'>Latest Release</a>
-</b></h3>
-<br>
+A long-form DJ/live-mix archive manager derived from the provider and review ideas in [OneTagger](https://github.com/Marekkon5/onetagger), rebuilt for one-to-two-hour mixes instead of individual track tagging.
 
-<p align='center'>
-    <img alt='Version Badge' src='https://img.shields.io/github/v/release/marekkon5/onetagger?label=Latest%20Release'>
-    <img alt='Supported OS' src='https://img.shields.io/badge/OS-Windows%2C%20Mac%20OS%2C%20Linux-orange'>
-    <img alt='Build Status' src='https://img.shields.io/github/actions/workflow/status/marekkon5/onetagger/build.yml?branch=master'>
-</p>
+## Product model
 
-<h3 align='center'><b></b></h3>
-<hr>
+SYCO23 Mixsets is a shared archive of long-form DJ and live mixes. Each recording has one canonical mix entry, linked to independently browsable artist, crew, label and event indexes. Provider data becomes validated, attributable claims: a proven match fills a missing field, while a conflict or an uncertain identity stays in Review until a curator decides.
 
-Cross-platform music tagger.
-It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
-It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
-There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts. Written in Rust, Vue.js and Quasar.
+The archive lives in the worker, not in the browser. The browser is a public reader and a curator control surface; it caches what it fetched and keeps a browser-local copy of your own library only until you have migrated it into the shared archive. A write that fails is never shown as committed.
 
-MP3, AIFF, FLAC, M4A (AAC, ALAC) supported.
+Fields are allowed to stay missing. The interface distinguishes missing, disputed and unavailable information and never reports that a record is complete just because an enrichment run found nothing new.
 
-*For more info and tutorials check out our [website](https://onetagger.github.io/).*
+The active web product no longer contains OneTagger's AutoTagger, QuickTag, track renamer, Spotify AudioFeatures or desktop WebView/socket flows.
 
-https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-bdbf-5a1dca2d99c8.mp4
+## Providers
 
+- **archive.freeteknomusic.org** — bounded HTTP directory crawler; never treated as FTP and never downloads complete audio just to discover metadata.
+- **SoundCloud** — official API only; long-form discovery uses duration filtering and private app credentials. Already-linked public tracks can supply cover art through oEmbed.
+- **Internet Archive** — Advanced Search + Metadata API.
+- **Discogs** — artist / crew-like artist / label enrichment and images, not long-mix track matching.
+- **YouTube** — known public video metadata and thumbnails without credentials; text search with a private Data API key.
+- **hearthis.at** — public track search, metadata and track artwork without credentials, subject to provider limits.
 
-## Installing
+See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
-You can download latest binaries from [releases](https://github.com/Marekkon5/onetagger/releases)
+The Providers screen links to setup guides for SoundCloud, Discogs and YouTube. Credentials are entered only in an interactive VPS terminal, never in the public web app. A known public SoundCloud, YouTube or hearthis.at link can be previewed as artwork from a mix detail view. Direct public Freeteknomusic and Archive.org audio can be analyzed into a real waveform on demand.
 
+## Local development
 
-## Credits
-Bas Curtiz - UI, Idea, Help  
-SongRec (Shazam support) - https://github.com/marin-m/SongRec
-
-## Support
-You can support this project by donating on [PayPal](https://paypal.me/marekkon5) or [Patreon](https://www.patreon.com/onetagger)
-
-## Compilling
-
-### Linux & Mac
-Install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
-
-**Install remaining dependencies**
-```
-sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
+```bash
+pnpm install
+cp .env.example .env
+python3 deploy/vps/setup_curator.py .env
+pnpm dev:api
+# second terminal
+pnpm dev:web
 ```
 
-**Compile UI**
-```
-cd client
-pnpm i
-pnpm run build
-cd ..
+Web: http://localhost:5173
+
+API: http://localhost:8787
+
+The local API reads `.env` at startup. Set `CURATOR_PASSWORD_HASH` with a private password hash before using catalog write routes; generate it interactively with `python3 deploy/vps/setup_curator.py .env`. The setup routine never prints the password or hash.
+
+The shared catalog starts empty. Public provider metadata is fetched by the worker; curator login is required for imports, edits, enrichment and review decisions.
+
+## Browsing and curating
+
+- `/` lists mixes; `/artists`, `/crews`, `/labels` and `/events` list the other indexes. Each supports search and pagination.
+- A mix detail links to its performers, crews, labels and events. An artist, crew or label page lists the mixes that reference it, and its sourced fields with the claim behind each selected value.
+- **Enrich missing fields** runs every usable provider capability against one record and reports what was applied, what agreed, what needs review and which fields remain missing. Runs are recorded: an interrupted run is visible and retryable.
+- **Review** shows field conflicts and uncertain identities across all index types, with the current and proposed value, the source link and why the match was proposed.
+- **Merge duplicates** compares two confirmed records side by side before confirming. Fields both records state differently stay in Review instead of being resolved by merge order, and the duplicate's old link keeps working.
+
+## Validation
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-**Compile**
-```
-cargo build --release
-```
-Output will be in: `target/release/onetagger`
+`pnpm test` runs the shared-domain, client API/store, server, import-worker and deployment suites. The SQLite Node API emits Node's experimental SQLite warning on Node 22; production is pinned to Node 22.23.3. Durable import jobs stay disabled unless `IMPORTS_ENABLED` is set and curator authentication is configured.
 
+## Verification status
 
-### Windows
-You need to install dependencies: [rustup](https://rustup.rs), [nodejs](https://nodejs.org/en/download/), [Visual Studio 2019 Build Tools](https://aka.ms/vs/16/release/vs_buildtools.exe), [pnpm](https://pnpm.io/installation)
+Local gates (typecheck, tests, build) pass. Production has **not** been deployed: the worker still runs an older commit, and the rollout is blocked on a privately configured curator hash and the persistent data volume. See [docs/PRODUCTION_VERIFICATION.md](docs/PRODUCTION_VERIFICATION.md) for what has and has not been exercised in a browser or against the live host.
 
-**Compile UI:**
-```
-cd client
-pnpm i
-pnpm run build
-cd ..
-```
+## Architecture
 
-**Compile OneTagger:**
-```
-cargo build --release
-```
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/MIGRATION_FROM_ONETAGGER.md](docs/MIGRATION_FROM_ONETAGGER.md).
 
-Output will be inside `target\release` folder.
+## License and attribution
+
+This repository is a fork of OneTagger by Marekkon5 and contributors and retains the upstream **GPL-3.0** license. The SYCO23 branch replaces the active desktop/track product with a web-focused long-form mix manager while preserving attribution and the fork's license obligations.

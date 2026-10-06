@@ -1,0 +1,14 @@
+{
+  "name": "syco23-mixsets",
+  "private": true,
+  "version": "0.1.0",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "dev:web": "pnpm --dir client dev",
+    "dev:api": "pnpm --dir server dev",
+    "build": "pnpm --dir packages/domain build && pnpm --dir client build && pnpm --dir server build && pnpm --dir worker build",
+    "test": "pnpm --dir packages/domain test && pnpm --dir client test && pnpm --dir server test && pnpm --dir worker test && pnpm test:deploy",
+    "test:deploy": "cd deploy/vps && python3 -m unittest discover -p \"test_*.py\"",
+    "typecheck": "pnpm --dir packages/domain build && pnpm --dir client exec vue-tsc --noEmit && pnpm --dir server typecheck && pnpm --dir worker typecheck"
+  }
+}

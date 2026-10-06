@@ -1,0 +1,123 @@
+name: syco23-mixsets
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: server/Dockerfile
+    image: syco23-mixsets-api:${MIXSETS_IMAGE_TAG:-local}
+    container_name: syco23-mixsets-api
+    restart: unless-stopped
+    volumes:
+      - mixsets_data:/app/data
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.75
+    stop_grace_period: 30s
+    environment:
+      PORT: 8787
+      NODE_ENV: production
+      CATALOG_DB_PATH: /app/data/catalog.sqlite
+      CURATOR_PASSWORD_HASH: ${CURATOR_PASSWORD_HASH:?Configure with python3 setup_curator.py}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://mixsets.syco23.org,https://syco23-mixsets.vercel.app,https://syco23-mixsets-system-corrupt.vercel.app}
+      SOUNDCLOUD_ACCESS_TOKEN: ${SOUNDCLOUD_ACCESS_TOKEN:-}
+      SOUNDCLOUD_CLIENT_ID: ${SOUNDCLOUD_CLIENT_ID:-}
+      SOUNDCLOUD_CLIENT_SECRET: ${SOUNDCLOUD_CLIENT_SECRET:-}
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      # Audit gate: import jobs stay dark (503) unless explicitly enabled AND
+      # curator authentication is configured in the same environment.
+      IMPORTS_ENABLED: ${IMPORTS_ENABLED:-false}
+      IMPORT_WORKER_SECRET: ${IMPORT_WORKER_SECRET:-}
+    ports:
+      - "127.0.0.1:8793:8787"
+    networks:
+      - proxy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/api/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Import data plane: stateless worker, no SQLite access. Reads leased job
+  # specs only through the signed internal API and writes binaries only to
+  # private object storage. Same hardening profile as the catalog API.
+  worker:
+    build:
+      context: ../..
+      dockerfile: worker/Dockerfile
+    image: syco23-import-worker:${MIXSETS_IMAGE_TAG:-local}
+    container_name: syco23-import-worker
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - mixsets_imports:/app/data/imports
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 1g
+    cpus: 1.5
+    stop_grace_period: 120s
+    environment:
+      NODE_ENV: production
+      IMPORT_API_BASE: http://api:8787
+      IMPORT_WORKER_SECRET: ${IMPORT_WORKER_SECRET:?Configure with a random 32-byte secret}
+      IMPORT_WORKER_ID: ${IMPORT_WORKER_ID:-import-worker-1}
+      IMPORT_POLL_INTERVAL_MS: ${IMPORT_POLL_INTERVAL_MS:-2000}
+      IMPORT_HEARTBEAT_MS: ${IMPORT_HEARTBEAT_MS:-20000}
+      IMPORT_STORAGE_DRIVER: ${IMPORT_STORAGE_DRIVER:-local}
+      IMPORT_STORAGE_LOCAL_ROOT: /app/data/imports
+      IMPORT_S3_ENDPOINT: ${IMPORT_S3_ENDPOINT:-}
+      IMPORT_S3_BUCKET: ${IMPORT_S3_BUCKET:-}
+      IMPORT_S3_ACCESS_KEY: ${IMPORT_S3_ACCESS_KEY:-}
+      IMPORT_S3_SECRET_KEY: ${IMPORT_S3_SECRET_KEY:-}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "node -e \"process.exit(0)\""
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    profiles:
+      # Opt-in: the catalog runs without the worker until imports are enabled.
+      - imports
+
+networks:
+  proxy:
+    external: true
+    name: syco23-ftm_default
+
+volumes:
+  mixsets_data:
+  mixsets_imports:
