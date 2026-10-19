@@ -41,9 +41,13 @@ impl Beatport {
                 ("page", &page.to_string()),
                 ("per-page", &results_per_page.to_string())
             ])
-            .send()?
-            .text()?;
-        
+            .send()?;
+        let status = response.status();
+        let response = response.text()?;
+        if !status.is_success() {
+            return Err(anyhow!("Beatport search returned {status}: {}", response.chars().take(300).collect::<String>()));
+        }
+
         // Parse JSON
         let results: BeatportTrackResults = self.get_next_data(&response)?;
         Ok(results)
