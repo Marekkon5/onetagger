@@ -3484,6 +3484,7 @@ dependencies = [
  "serde",
  "serde_json",
  "songrec",
+ "uuid",
  "walkdir",
 ]
 
