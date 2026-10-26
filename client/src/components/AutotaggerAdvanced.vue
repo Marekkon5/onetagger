@@ -221,6 +221,7 @@
             standout='text-grey-4 bg-dark'
             v-model='stylesOption'
             :options='stylesOptions'
+            :disable='!$1t.config.value.tags.includes(SupportedTag.Genre) && !$1t.config.value.tags.includes(SupportedTag.Style)'
             class='select'
             label='Genres/Styles tag'
             style='margin-bottom: 40px;'

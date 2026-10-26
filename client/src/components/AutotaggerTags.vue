@@ -77,6 +77,7 @@
 </template>
 
 <script lang='ts' setup>
+import { watch } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 import PlaylistDropZone from './PlaylistDropZone.vue';
@@ -97,6 +98,16 @@ function isSupported(tag: SupportedTag) {
     return ($1t.info.value.platforms.find(p => $1t.config.value.platforms.includes(p.platform.id) && p.supportedTags.includes(tag))) != null;
 }
 
+function removeUnsupportedTags() {
+    if ($1t.info.value.platforms.length == 0) return;
+    $1t.config.value.tags = $1t.config.value.tags.filter(tag => isSupported(tag));
+    if (!$1t.config.value.tags.includes(SupportedTag.Genre)) {
+        $1t.config.value.multiplatform = false;
+    }
+}
+
+watch(() => `${$1t.config.value.platforms.join(',')}|${$1t.info.value.platforms.length}|${$1t.config.value.tags.join(',')}`, removeUnsupportedTags, { immediate: true });
+
 /// Toggle tag on and off
 function toggleTag(tag: SupportedTag) {
     let i = $1t.config.value.tags.indexOf(tag)
@@ -111,13 +122,13 @@ function toggleTag(tag: SupportedTag) {
 function toggleTags(mode: string) {
     switch (mode) {
         case 'enableAll':
-            $1t.config.value.tags = SUPPORTED_TAGS.map(t => t.tag);
+            $1t.config.value.tags = SUPPORTED_TAGS.map(t => t.tag).filter(isSupported);
             break;
         case 'disableAll':
             $1t.config.value.tags.length = 0;
             break;
         case 'toggle':
-            $1t.config.value.tags = SUPPORTED_TAGS.map(t => t.tag).filter(t => !$1t.config.value.tags.includes(t));
+            $1t.config.value.tags = SUPPORTED_TAGS.map(t => t.tag).filter(t => isSupported(t) && !$1t.config.value.tags.includes(t));
             break;
     }
 }

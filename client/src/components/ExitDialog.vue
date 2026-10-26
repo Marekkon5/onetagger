@@ -42,12 +42,23 @@ defineEmits([...useDialogPluginComponent.emits]);
 
 // Exit
 function exit() {
-    // Use another connection because main thread is locked in AT
     if (!isQt.value) {
-        let ws = new WebSocket(wsUrl());
+        // Use the native IPC channel when available. The main websocket is
+        // busy while tagging and cannot process an exit request.
+        try {
+            // @ts-ignore
+            window.ipc.postMessage('exit');
+            return;
+        } catch (_) {
+            // Browser/server mode has no native IPC channel.
+        }
+
+        const ws = new WebSocket(wsUrl());
         ws.onopen = () => {
             ws.send(JSON.stringify({action: 'exit'}));
+            ws.close();
         }
+        ws.onerror = () => ws.close();
         return;
     }
 

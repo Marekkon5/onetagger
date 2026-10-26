@@ -390,7 +390,7 @@ class OneTagger {
             // Exit app
             case 'exit':
                 // QT pending changes
-                if (route == 'quicktag' && this.quickTag.value.track.isChanged()) {
+                if (route == 'quicktag' && this.quickTag.value.track?.isChanged()) {
                     Dialog.create({
                         component: ExitDialog,
                         componentProps: {

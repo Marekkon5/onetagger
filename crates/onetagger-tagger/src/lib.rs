@@ -117,6 +117,21 @@ impl TaggerConfig {
         }
         self.overwrite_tags.contains(&tag)
     }
+
+    /// Configuration used to enrich matches with genre/style data only.
+    pub fn genre_only(&self) -> TaggerConfig {
+        let mut config = self.clone();
+        config.tags.retain(|tag| matches!(tag, SupportedTag::Genre | SupportedTag::Style));
+        config.merge_genres = true;
+        config.overwrite = true;
+        config.multiplatform = true;
+        config.album_tagging = false;
+        config.skip_tagged = false;
+        config.move_success = false;
+        config.move_failed = false;
+        config.post_command = None;
+        config
+    }
 }
 
 

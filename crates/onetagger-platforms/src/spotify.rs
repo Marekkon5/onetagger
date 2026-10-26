@@ -1,6 +1,7 @@
 use anyhow::Error;
 use chrono::NaiveDate;
 use std::time::Duration;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use rspotify::clients::{BaseClient, OAuthClient};
 use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
 use rspotify::{Credentials, Config, AuthCodeSpotify, OAuth, scopes, ClientError, ClientResult};
@@ -21,8 +22,12 @@ static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", 
 
 #[derive(Clone)]
 pub struct Spotify {
-    pub spotify: AuthCodeSpotify
+    pub spotify: AuthCodeSpotify,
+    rate_limited: Arc<AtomicBool>,
 }
+
+const SPOTIFY_REQUEST_DELAY: Duration = Duration::from_secs(1);
+const MAX_SPOTIFY_RETRY_DELAY: u64 = 30;
 
 impl Spotify {
     /// Create AuthCodeSpotify with parameters
@@ -52,7 +57,10 @@ impl Spotify {
         *client.token.lock().unwrap() = Some(token);
         client.refresh_token().ok()?;
         client.auto_reauth().ok()?;
-        Some(Spotify { spotify: client })
+        Some(Spotify {
+            spotify: client,
+            rate_limited: Arc::new(AtomicBool::new(false)),
+        })
     }
 
      /// Authentication server for callback from spotify
@@ -72,7 +80,8 @@ impl Spotify {
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
         Ok(Spotify {
-            spotify
+            spotify,
+            rate_limited: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -83,7 +92,8 @@ impl Spotify {
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
         Ok(Spotify {
-            spotify
+            spotify,
+            rate_limited: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -92,33 +102,47 @@ impl Spotify {
     where
         F: Fn(&Spotify) -> ClientResult<R>
     {
-        match f(self) {
-            Ok(r) => {
-                // Intentionally slow down to prevent rate limits
-                std::thread::sleep(Duration::from_millis(250));
-                Ok(r)
-            },
-            Err(ClientError::Http(http)) => {
-                match *http {
-                    rspotify::http::HttpError::StatusCode(r) => {
-                        // Rate limit
-                        if r.status() == 429 {
-                            let delay = r.header("Retry-After").map(|v| v.parse().ok()).flatten().unwrap_or(3);
-                            if delay > 600 {
-                                error!("Spotify rate limit too high!: {delay}");
-                                return Err(anyhow!("Too high rate limit by Spotify"));
-                            }
+        if self.rate_limited.load(Ordering::Acquire) {
+            return Err(anyhow!("Spotify rate limit active; skipping Spotify for this run"));
+        }
 
-                            warn!("Spotify rate limit hit, sleeping for: {delay}s...");
-                            std::thread::sleep(Duration::from_secs(delay));
-                            return self.rate_limit_wrap(f);
+        loop {
+            match f(self) {
+                Ok(r) => {
+                    // Keep the request rate below Spotify's rolling API limit.
+                    std::thread::sleep(SPOTIFY_REQUEST_DELAY);
+                    return Ok(r);
+                },
+                Err(ClientError::Http(http)) => match *http {
+                    rspotify::http::HttpError::StatusCode(r) => {
+                        let status = r.status();
+                        if status == 429 {
+                            let retry_after = r.header("Retry-After")
+                                .and_then(|value| value.parse::<u64>().ok())
+                                .unwrap_or(3);
+                            if retry_after > MAX_SPOTIFY_RETRY_DELAY {
+                                warn!(
+                                    "Spotify rate limit requested {retry_after}s; skipping Spotify for this run"
+                                );
+                                self.rate_limited.store(true, Ordering::Release);
+                                return Err(anyhow!(
+                                    "Spotify rate limit active for {retry_after}s; skipping Spotify for this run"
+                                ));
+                            } else {
+                                let delay = retry_after;
+                                warn!("Spotify rate limit hit, sleeping for: {delay}s...");
+                                std::thread::sleep(Duration::from_secs(delay));
+                                continue;
+                            }
                         }
-                        return Err(anyhow!("Unknown Spotify status code: {}", r.status()));
+                        let body = r.into_string().unwrap_or_else(|e| format!("<unable to read response body: {e}>"));
+                        error!("Spotify returned HTTP {status}: {body}");
+                        return Err(anyhow!("Spotify status code {status}: {body}"));
                     },
                     e => return Err(e.into())
                 }
-            },
-            Err(e) => Err(e.into()),
+                Err(e) => return Err(e.into()),
+            }
         }
     }
 
@@ -152,30 +176,12 @@ impl Spotify {
     /// Extend track for autotagger
     fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Fetch album
-        if config.tag_enabled(SupportedTag::Label) || config.tag_enabled(SupportedTag::Genre) {
+        if config.tag_enabled(SupportedTag::Genre) {
             match self.album(&AlbumId::from_id(track.release_id.as_ref().ok_or(anyhow!("Missing release_id"))?)?) {
                 Ok(album) => {
-                    track.label = album.label;
                     track.genres.extend(album.genres.into_iter());
                 }
                 Err(e) => warn!("Failed to fetch album data: {}", e),
-            }
-        }
-
-        // Fetch genres from artist if album has them unavailable
-        if config.tag_enabled(SupportedTag::Genre) && track.custom.get("artist_ids").is_some() {
-            for id in track.custom.get("artist_ids").unwrap().split("\0") {
-                debug!("artist id: {id}");
-                match self.artist(&ArtistId::from_uri(id)?) {
-                    Ok(artist) => {
-                        for genre in artist.genres {
-                            if !track.genres.contains(&genre) {
-                                track.genres.push(genre);
-                            }
-                        }
-                    },
-                    Err(e) => warn!("Failed to fetch artist data: {e}"),
-                }
             }
         }
 
@@ -208,7 +214,7 @@ impl AutotaggerSource for Spotify {
         // Try ISRC
         if let Some(isrc) = info.isrc.as_ref() {
             let query = format!("isrc:{isrc}");
-            let results = self.search_tracks(&query, 20)?;
+            let results = self.search_tracks(&query, 10)?;
             let tracks: Vec<Track> = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
             if let Some(track) = tracks.first() {
                 return Ok(vec![TrackMatch::new_isrc(track.clone())]);
@@ -217,7 +223,7 @@ impl AutotaggerSource for Spotify {
 
         // Normal search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
-        let results = self.search_tracks(&query, 20)?;
+        let results = self.search_tracks(&query, 10)?;
         let tracks = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
@@ -281,7 +287,7 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
             version: "1.0.0".to_string(),
             custom_options: Default::default(),
             requires_auth: true,
-            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, AlbumArt, URL, TrackId, ReleaseId, Duration, TrackNumber, ISRC, ReleaseDate, Genre, Key, Label, Explicit)
+            supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, AlbumArt, URL, TrackId, ReleaseId, Duration, TrackNumber, ISRC, ReleaseDate, Key, Label, Explicit)
         }
     }
 }

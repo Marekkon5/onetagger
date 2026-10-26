@@ -21,7 +21,7 @@ use reqwest::StatusCode;
 use walkdir::WalkDir;
 use chrono::Datelike;
 use serde::{Serialize, Deserialize};
-use crossbeam_channel::{unbounded, Sender, Receiver};
+use crossbeam_channel::{unbounded, Receiver, RecvTimeoutError, Sender};
 use onetagger_tag::{AudioFileFormat, Tag, Field, TagDate, CoverType, TagImpl, EXTENSIONS};
 use onetagger_shared::Settings;
 use onetagger_player::AudioSources;
@@ -642,26 +642,23 @@ impl Tagger {
         let mut succesful_files = vec![];
         let mut failed_files = vec![];
         let total_files = files.len();
+        let genre_files = files.clone();
         info!("Starting tagger with: {} files!", total_files);
 
         // Create thread
         let (tx, rx) = unbounded();
         let config = cfg.clone();
         std::thread::spawn(move || {
-            // Tag
-            for (platform_index, platform) in config.platforms.iter().enumerate() {
+            let mut process_platform = |platform_index: usize, platform: &str, run_config: &TaggerConfig, run_files: &mut Vec<PathBuf>| {
                 // For progress
                 let mut processed = 0;
-                let total = files.len();
+                let total = run_files.len();
                 // No more files
-                if files.is_empty() {
-                    info!("All tagged succesfully!");
-                    break;
-                }
+                if run_files.is_empty() { return; }
 
                 // Stop
                 if STOP_TAGGING.load(Ordering::SeqCst) {
-                    continue;
+                    return;
                 }
 
                 // Get tagger
@@ -670,26 +667,47 @@ impl Tagger {
                     Some(tagger) => tagger,
                     None => {
                         error!("Invalid platform: {platform}");
-                        continue;
+                        return;
                     }
                 };
                 let platform_info = tagger.info();
-                let mut threads = config.threads;
-                if platform_info.max_threads > 0 && platform_info.max_threads < config.threads {
+                let mut threads = run_config.threads;
+                if platform_info.max_threads > 0 && platform_info.max_threads < run_config.threads {
                     threads = platform_info.max_threads;
                 }
-                let rx = match Tagger::tag_batch(&files, tagger, &config, threads) {
+                let rx = match Tagger::tag_batch(run_files, tagger, run_config, threads) {
                     Some(t) => t,
                     None => {
                         error!("Failed creating platform: {platform:?}, skipping...");
-                        continue;
+                        return;
                     }
                 };
                 // Start tagging
                 info!("Starting {platform}");
-                for status in rx {
+                let mut rate_limit_notice_sent = false;
+                for mut status in rx {
                     info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}", status.status, status.accuracy, status.path);
                     processed += 1;
+
+                    if platform == "spotify"
+                        && !rate_limit_notice_sent
+                        && status.message.as_deref().is_some_and(|message| message.contains("rate limit"))
+                    {
+                        rate_limit_notice_sent = true;
+                        if let Some(next_platform) = config.platforms.get(platform_index + 1) {
+                            let message = format!(
+                                "Spotify was skipped due to rate limiting. Continuing with {}.",
+                                platform_display_name(next_platform)
+                            );
+                            warn!("{message}");
+                            status.message = Some(message);
+                        } else {
+                            let message = "Spotify was skipped due to rate limiting.".to_string();
+                            warn!("{message}");
+                            status.message = Some(message);
+                        }
+                    }
+
                     // Send to UI
                     tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
 
@@ -699,9 +717,9 @@ impl Tagger {
                             succesful_files.push(status.path.to_owned());
                         }
                         // Fallback
-                        if !config.multiplatform {
-                            if let Some(index) = files.iter().position(|f| f == &status.path) {
-                                files.remove(index);
+                        if !run_config.multiplatform {
+                            if let Some(index) = run_files.iter().position(|f| f == &status.path) {
+                                run_files.remove(index);
                             }
                         }
                         // Remove from failed
@@ -714,6 +732,32 @@ impl Tagger {
                         failed_files.push(status.path.to_owned());
                     }
 
+                    if STOP_TAGGING.load(Ordering::SeqCst) {
+                        break;
+                    }
+
+                }
+            };
+
+            // Normal fallback behavior: a successful first source removes the file
+            // from the remaining normal platform passes.
+            for (platform_index, platform) in config.platforms.iter().enumerate() {
+                if STOP_TAGGING.load(Ordering::SeqCst) {
+                    break;
+                }
+                process_platform(platform_index, platform, &config, &mut files);
+            }
+
+            // Genre/style enrichment is deliberately separate so other sources can
+            // add metadata without rewriting the Spotify match.
+            let genre_fallback = config.tag_enabled(SupportedTag::Genre)
+                && config.platforms.len() > 1
+                && !config.multiplatform;
+            if genre_fallback && !STOP_TAGGING.load(Ordering::SeqCst) {
+                let genre_config = config.genre_only();
+                let mut genre_files = genre_files;
+                for (platform_index, platform) in config.platforms.iter().enumerate().skip(1) {
+                    process_platform(platform_index, platform, &genre_config, &mut genre_files);
                 }
             }
 
@@ -929,6 +973,18 @@ impl Tagger {
             Err(e) => warn!("Failed extending track: {e}"),
         }
 
+        // A genre-only fallback is successful only when it actually found data.
+        let genre_only = !config.tags.is_empty()
+            && config.tags.iter().all(|tag| matches!(tag, SupportedTag::Genre | SupportedTag::Style));
+        if genre_only {
+            let has_genres = !config.tag_enabled(SupportedTag::Genre) || !track.track.genres.is_empty();
+            let has_styles = !config.tag_enabled(SupportedTag::Style) || !track.track.styles.is_empty();
+            if !has_genres || !has_styles {
+                out.message = Some("No genre or style data found".to_owned());
+                return out;
+            }
+        }
+
         // Save
         out.release_id = track.track.release_id.clone();
         out.reason = Some(track.reason);
@@ -975,8 +1031,18 @@ impl Tagger {
             };
             ok_sources += 1;
             std::thread::spawn(move || {
-                while let Ok(f) = file_rx.recv() {
-                    // Stop tagging
+                loop {
+                    let f = match file_rx.recv_timeout(Duration::from_millis(100)) {
+                        Ok(f) => f,
+                        Err(RecvTimeoutError::Timeout) => {
+                            if STOP_TAGGING.load(Ordering::SeqCst) {
+                                break;
+                            }
+                            continue;
+                        },
+                        Err(RecvTimeoutError::Disconnected) => break,
+                    };
+
                     if STOP_TAGGING.load(Ordering::SeqCst) {
                         break;
                     }
@@ -1115,6 +1181,16 @@ impl Tagger {
         std::fs::remove_file(source.as_ref())?;
 
         Ok(target)
+    }
+}
+
+fn platform_display_name(platform: &str) -> String {
+    match platform {
+        "itunes" => "iTunes".to_string(),
+        "junodownload" => "Juno Download".to_string(),
+        "musicbrainz" => "MusicBrainz".to_string(),
+        "musixmatch" => "Musixmatch".to_string(),
+        _ => platform.to_string(),
     }
 }
 
