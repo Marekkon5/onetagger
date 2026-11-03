@@ -72,7 +72,9 @@ Discovery jobs and waveform jobs remain in memory and are scoped to the single r
 
 ## Import control plane
 
-Durable metadata/audio imports are a separate, opt-in plane. They stay dark (`503`) unless `IMPORTS_ENABLED` is set **and** a real curator password hash is configured, so `AUTH_MODE=off` deployments cannot expose acquisition anonymously. Curator sessions own `/api/imports`; the import worker authenticates to `/internal/imports` with HMAC-SHA256 over timestamp, method, path and body.
+Durable metadata/audio imports are a separate, opt-in plane. They stay dark (`503`) unless `IMPORTS_ENABLED` is set **and** a real curator password hash is configured. Curator sessions own `/api/imports`; the import worker authenticates to `/internal/imports` with HMAC-SHA256 over timestamp, method, path and body.
+
+**Current gap:** with `AUTH_MODE=off`, every request authenticates as the curator (`server/src/auth/curator.ts`), so a deployment that enables imports with a configured hash still exposes creation/finalize anonymously. Do not combine `AUTH_MODE=off` with an enabled import plane until this is fixed; see `docs/AUDIT.md` H4.
 
 Provider policy is shared domain code: SoundCloud/YouTube/hearthis expose metadata only; Freeteknomusic and Archive.org may acquire audio when an explicit non-metadata rights basis is attested. User uploads store a private `urn:syco23:upload:…` handle, never a filesystem path. The worker never opens SQLite: it leases jobs, writes private artifacts, scores evidence and reports completion. Non-retryable failures (blocked URLs, rejected media, policy) stay `failed`; retryable failures re-queue with backoff.
 

@@ -94,6 +94,7 @@ test('discovery import enrichment and shared reload use committed catalog record
   await expect(page.getByRole('heading', { name: 'Imported Click Recording', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to index', exact: true }).click();
   await page.getByRole('link', { name: 'Open indexed', exact: true }).click();
+  await expect(page).toHaveURL(/\/mix\//);
   await expect(page.getByRole('heading', { name: 'Imported Click Recording', exact: true })).toBeVisible();
   const detailUrl = page.url();
   await page.getByRole('button', { name: 'Enrich missing fields' }).click();
