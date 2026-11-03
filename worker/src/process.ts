@@ -108,12 +108,15 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
 
     await client.event(job.id, 'converting', { state: 'converting', durationMs: probe.durationMs });
     const outPath = join(workdir, 'normalized.mp3');
-    await boundedFFmpegConvert({
+    const { readFile, stat } = await import('node:fs/promises');
+    const conversion = await boundedFFmpegConvert({
       inputPath: rawPath,
       outputPath: outPath,
       bitrateKbps: 320,
       maxOutputBytes: limits.maxOutputBytes,
       timeoutMs: conversionTimeoutMs(probe.durationMs),
+      source: probe,
+      limits,
       metadata: {
         ...(source.facts?.title ? { title: source.facts.title } : {}),
         ...(source.facts?.artists?.length ? { artist: source.facts.artists.join(', ') } : {}),
@@ -121,7 +124,6 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
       },
     });
     if (!heartbeat.alive) throw new RetryableError('Lease lost during conversion');
-    const { readFile, stat } = await import('node:fs/promises');
     const normalized = await readFile(outPath);
     const stated = await stat(outPath);
     if (stated.size > limits.maxOutputBytes) throw new NonRetryableError('Converted output exceeds the output quota');
@@ -151,7 +153,9 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
       identityGate: true, rightsGate: true, noDirectConflict: true, providerPolicyAllowsUse: true,
     });
     await client.submitEvidence(job.id, [{ ...scored, field: 'audio' }]);
-    await client.event(job.id, 'acquisition', { finalUrl, rawSha, normalizedSha });
+    await client.event(job.id, 'acquisition', {
+      finalUrl, rawSha, normalizedSha, conversionMode: conversion.mode, outputBitrateKbps: conversion.bitrateKbps,
+    });
   } finally {
     heartbeat.stop();
     await rm(workdir, { recursive: true, force: true });

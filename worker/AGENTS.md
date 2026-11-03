@@ -22,7 +22,7 @@ Leases durable import jobs from the API, resolves and bounds provider media, tra
 - Discogs and MusicBrainz resolvers send a descriptive User-Agent; Discogs may use `DISCOGS_TOKEN` and SoundCloud uses `SOUNDCLOUD_CLIENT_ID`/`SECRET` or `SOUNDCLOUD_ACCESS_TOKEN`.
 - Every fetch is bounded: scheme/host/port validation, DNS resolution checks, redirect re-validation, byte cap and timeout. Private/loopback/link-local/metadata addresses are rejected.
 - Object keys are derived only from job id, role and content hash. Never use an original filename or path.
-- Audio jobs heartbeat the lease, stop on lease loss, probe duration, convert to 320 kbps MP3, re-probe and reject >2% drift (with a 2 s tolerance).
+- Audio jobs heartbeat the lease, stop on lease loss, probe duration, normalize to MP3 following the sc-suite audio-generation policy (stream-copy a bit-exact MP3 source otherwise encode at the highest CBR rate not above the 320 kbps ceiling or the measured source bitrate — never upscaling; when a stream omits `bit_rate`, derive it from audio packet size sums), run a full decode check, re-probe and reject >2% drift (with a 2 s tolerance) or any encode output exceeding the source bitrate.
 - Metadata and audio jobs must snapshot the full sourced facts (`ImportMetadataFactsSchema`, not only title/artwork) so finalize can create a real record, and submit per-field evidence carrying the sourced `value`.
 - Keep configured limits within the deployed container: API 768 MB, worker 1.5 GB, `/tmp` tmpfs 640 MB. Input and output quotas default to 256 MiB each.
 - S3-compatible storage is signed with AWS Signature V4 (`IMPORT_S3_REGION`); never send unsigned private-object requests.
