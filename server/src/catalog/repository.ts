@@ -78,7 +78,7 @@ export interface CatalogTransaction {
   saveImportProvenance(jobId: RecordId, row: { provider: string; sourceUrl: string; externalId?: string | null; retrievalMethod: string; observedAt: string; termsVersion?: string | null; snapshot: Record<string, unknown> }): void;
   saveImportRightsConsent(input: { id: RecordId; jobId: RecordId; requestedBy: string; basis: string; provider: string; sourceUrl?: string | null; attestationVersion: string; proofObjectKey?: string | null }): void;
   saveImportEvidenceScore(input: { id: RecordId; jobId: RecordId; claimId?: string | null; field: string; scored: ScoredEvidence }): ScoredEvidence & { id: RecordId; jobId: RecordId };
-  listImportEvidenceScores(jobId: RecordId): Array<{ id: string; jobId: string; claimId: string | null; field: string; score: number; algorithmVersion: string; components: Record<string, unknown>; hardGates: Record<string, unknown>; decision: string; evaluatedAt: string }>;
+  listImportEvidenceScores(jobId: RecordId): Array<{ id: string; jobId: string; claimId: string | null; field: string; score: number; algorithmVersion: string; components: Record<string, unknown>; hardGates: Record<string, unknown>; decision: string; evaluatedAt: string; value?: unknown }>;
 }
 
 export type ClaimDisposition = 'selected' | 'corroborated' | 'pending' | 'rejected';
@@ -193,7 +193,7 @@ export interface CatalogRepository {
   saveImportProvenance(jobId: RecordId, row: { provider: string; sourceUrl: string; externalId?: string | null; retrievalMethod: string; observedAt: string; termsVersion?: string | null; snapshot: Record<string, unknown> }): void;
   saveImportRightsConsent(input: { id: RecordId; jobId: RecordId; requestedBy: string; basis: string; provider: string; sourceUrl?: string | null; attestationVersion: string; proofObjectKey?: string | null }): void;
   saveImportEvidenceScore(input: { id: RecordId; jobId: RecordId; claimId?: string | null; field: string; scored: ScoredEvidence }): ScoredEvidence & { id: RecordId; jobId: RecordId };
-  listImportEvidenceScores(jobId: RecordId): Array<{ id: string; jobId: string; claimId: string | null; field: string; score: number; algorithmVersion: string; components: Record<string, unknown>; hardGates: Record<string, unknown>; decision: string; evaluatedAt: string }>;
+  listImportEvidenceScores(jobId: RecordId): Array<{ id: string; jobId: string; claimId: string | null; field: string; score: number; algorithmVersion: string; components: Record<string, unknown>; hardGates: Record<string, unknown>; decision: string; evaluatedAt: string; value?: unknown }>;
   listImportJobs(options?: { state?: ImportJobState; limit?: number }): ImportJob[];
   transaction<T>(operation: (tx: CatalogTransaction) => T): T;
   close(): void;
@@ -481,11 +481,13 @@ function createTransaction(database: DatabaseSync): CatalogTransaction {
       id: string; jobId: string; claimId: string | null; field: string;
       score: number; algorithmVersion: string; components: Record<string, unknown>;
       hardGates: Record<string, unknown>; decision: string; evaluatedAt: string;
+      value?: unknown;
     }> {
       return listEvidenceScoresV2(database, jobId) as unknown as Array<{
         id: string; jobId: string; claimId: string | null; field: string;
         score: number; algorithmVersion: string; components: Record<string, unknown>;
         hardGates: Record<string, unknown>; decision: string; evaluatedAt: string;
+        value?: unknown;
       }>;
     }
   };

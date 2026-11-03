@@ -165,10 +165,11 @@ export function saveEvidenceScoreV2(database: DatabaseSync, input: {
   const scored = ScoredEvidenceSchema.parse(input.scored);
   database.prepare(`INSERT INTO evidence_scores(id, job_id, claim_id, field,
     score, algorithm_version, components_json, hard_gates_json, decision,
-    evaluated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    evaluated_at, value_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(input.id, input.jobId, input.claimId ?? null, input.field,
       scored.score, scored.algorithmVersion, JSON.stringify(scored.components),
-      JSON.stringify(scored.hardGates), scored.decision, scored.evaluatedAt);
+      JSON.stringify(scored.hardGates), scored.decision, scored.evaluatedAt,
+      scored.value === undefined ? null : JSON.stringify(scored.value));
   return { ...scored, id: input.id, jobId: input.jobId };
 }
 
@@ -206,12 +207,14 @@ export function listImportArtifactsV2(database: DatabaseSync, jobId: RecordId) {
 
 export function listEvidenceScoresV2(database: DatabaseSync, jobId: RecordId) {
   const rows = database.prepare(`SELECT id, job_id, claim_id, field, score,
-    algorithm_version, components_json, hard_gates_json, decision, evaluated_at
+    algorithm_version, components_json, hard_gates_json, decision, evaluated_at,
+    value_json
     FROM evidence_scores WHERE job_id = ? ORDER BY field, evaluated_at`)
     .all(jobId) as Array<{
       id: string; job_id: string; claim_id: string | null; field: string;
       score: number; algorithm_version: string; components_json: string;
       hard_gates_json: string; decision: string; evaluated_at: string;
+      value_json: string | null;
     }>;
   return rows.map((row) => ({
     id: row.id, jobId: row.job_id, claimId: row.claim_id, field: row.field,
@@ -219,6 +222,7 @@ export function listEvidenceScoresV2(database: DatabaseSync, jobId: RecordId) {
     components: JSON.parse(row.components_json) as Record<string, unknown>,
     hardGates: JSON.parse(row.hard_gates_json) as Record<string, unknown>,
     decision: row.decision, evaluatedAt: row.evaluated_at,
+    ...(row.value_json === null ? {} : { value: JSON.parse(row.value_json) as unknown }),
   })) as ScoredEvidence[];
 }
 

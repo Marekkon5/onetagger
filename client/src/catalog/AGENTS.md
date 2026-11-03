@@ -14,7 +14,8 @@ Owns the typed catalog boundary for the browser: HTTP transport, authoritative r
 
 ## Local Contracts
 
-- Parse every response with the shared domain schema. `ImportJobDetailSchema` must use `hardGates`, the field the server and repository emit.
+- Parse every response with the shared domain schema. `ImportJobDetailSchema` must use `hardGates`, the field the server and repository emit. `ApiVersionSchema` carries the provider capability matrix and the optional `rightsPolicy.globalConfirmation` flag.
+- `importJobsApi.create` sends only source, mode and conversion: the server owns the deployment-wide rights attestation, so the browser never sends a per-mixset rights basis.
 - `catalogApi.finalize` must parse the server's `{ record, mixId, claimsApplied }` envelope, not a bare `CatalogRecord`. Keep it consistent with `services/api.ts#finalizeImportJob`.
 - A mutation returns the committed record; the store replaces local state only after that response. Do not optimistically mark writes committed.
 - Migration conversion is idempotent by batch id and never removes the browser's originals.

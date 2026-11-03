@@ -6,6 +6,7 @@ import {
   EnrichmentReportSchema,
   FieldEvidenceListSchema,
   ImportCandidateSchema,
+  ImportFinalizeResultSchema,
   ImportJobSchema,
   ImportResultSchema,
   MigrationResultSchema,
@@ -20,6 +21,7 @@ import {
   type EnrichmentReport,
   type FieldEvidenceList,
   type ImportCandidate,
+  type ImportFinalizeResult,
   type ImportJob,
   type ImportResult,
   type IndexKind,
@@ -191,12 +193,12 @@ export const catalogApi = {
   },
 
   /** Finalize a completed/review import job: create the catalog record, convert evidence to claims, apply merge. */
-  async finalize(id: string, curatorPassword: string): Promise<CatalogRecord> {
+  async finalize(id: string, input: { title?: string; playbackUrl?: string } = {}): Promise<ImportFinalizeResult> {
     const response = await request(`/imports/${encodeURIComponent(id)}/finalize`, {
       method: 'POST',
-      body: JSON.stringify({ curatorPassword }),
+      body: JSON.stringify(input),
     });
-    return CatalogRecordSchema.parse(response);
+    return ImportFinalizeResultSchema.parse(response);
   },
 
   /**
@@ -216,6 +218,7 @@ export const ApiVersionSchema = z.object({
   apiVersion: z.number().int(),
   importsEnabled: z.boolean(),
   providers: z.record(z.string(), z.object({ metadata: z.boolean(), audio: z.boolean() })),
+  rightsPolicy: z.object({ globalConfirmation: z.boolean() }).optional(),
   limits: z.object({
     maxInputBytes: z.number(),
     maxOutputBytes: z.number(),
@@ -240,8 +243,9 @@ export const ImportJobDetailSchema = z.object({
   })),
   evidence: z.array(z.object({
     id: z.string(), jobId: z.string(), claimId: z.string().nullable(), field: z.string(),
+    value: z.unknown().optional(),
     score: z.number(), algorithmVersion: z.string(),
-    components: z.record(z.string(), z.unknown()), gates: z.record(z.string(), z.unknown()),
+    components: z.record(z.string(), z.unknown()), hardGates: z.record(z.string(), z.unknown()),
     decision: z.string(), evaluatedAt: z.string(),
   })),
 });
@@ -261,7 +265,7 @@ export const importJobsApi = {
   /** Create a metadata or audio import job. The server policy gate is authoritative. */
   async create(input: {
     provider: string; url?: string; uploadId?: string; externalId?: string;
-    mode: 'metadata' | 'audio'; rightsBasis: string; attestationVersion?: string;
+    mode: 'metadata' | 'audio';
   }): Promise<ImportJobDetail & { policy?: { allowed: boolean; reason?: string } }> {
     const body = {
       source: {
@@ -272,7 +276,6 @@ export const importJobsApi = {
       },
       mode: input.mode,
       ...(input.mode === 'audio' ? { conversion: { format: 'mp3', bitrateKbps: 320, id3Version: '2.3' } } : {}),
-      rights: { basis: input.rightsBasis, attestationVersion: input.attestationVersion ?? '2026-10' },
     };
     const raw = await request('/imports', {
       method: 'POST',

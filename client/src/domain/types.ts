@@ -1,4 +1,4 @@
-export type ProviderId = 'freeteknomusic' | 'soundcloud' | 'archiveorg' | 'discogs' | 'youtube' | 'hearthis' | 'mixcloud';
+export type ProviderId = 'freeteknomusic' | 'soundcloud' | 'archiveorg' | 'discogs' | 'youtube' | 'hearthis' | 'mixcloud' | 'musicbrainz';
 export type MixStatus = 'ready' | 'review' | 'enriching' | 'queued' | 'error';
 
 export interface Artwork {

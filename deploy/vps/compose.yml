@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
     volumes:
       - mixsets_data:/app/data
+      - mixsets_imports:/app/data/imports
     init: true
     read_only: true
     tmpfs:
@@ -21,7 +22,7 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 128
-    mem_limit: 512m
+    mem_limit: 768m
     cpus: 0.75
     stop_grace_period: 30s
     environment:
@@ -40,7 +41,27 @@ services:
       # Audit gate: import jobs stay dark (503) unless explicitly enabled AND
       # curator authentication is configured in the same environment.
       IMPORTS_ENABLED: ${IMPORTS_ENABLED:-false}
+      # Deployment-wide rights attestation: the operator confirms once that
+      # they hold the rights to download/process provider content. When true
+      # (default), no per-mixset consent is requested.
+      IMPORT_GLOBAL_RIGHTS_CONFIRMATION: ${IMPORT_GLOBAL_RIGHTS_CONFIRMATION:-true}
       IMPORT_WORKER_SECRET: ${IMPORT_WORKER_SECRET:-}
+      # Finalize reads the worker's metadata snapshot, and original uploads are
+      # written by the API, so both services need the same storage config.
+      IMPORT_STORAGE_DRIVER: ${IMPORT_STORAGE_DRIVER:-local}
+      IMPORT_STORAGE_LOCAL_ROOT: /app/data/imports
+      IMPORT_S3_ENDPOINT: ${IMPORT_S3_ENDPOINT:-}
+      IMPORT_S3_BUCKET: ${IMPORT_S3_BUCKET:-}
+      IMPORT_S3_ACCESS_KEY: ${IMPORT_S3_ACCESS_KEY:-}
+      IMPORT_S3_SECRET_KEY: ${IMPORT_S3_SECRET_KEY:-}
+      IMPORT_S3_REGION: ${IMPORT_S3_REGION:-us-east-1}
+      # Bodies are buffered in memory before validation; 256 MiB + overhead fits
+      # inside the 768 MB API container limit.
+      IMPORT_MAX_INPUT_BYTES: ${IMPORT_MAX_INPUT_BYTES:-268435456}
+      IMPORT_MAX_OUTPUT_BYTES: ${IMPORT_MAX_OUTPUT_BYTES:-268435456}
+      IMPORT_MAX_DURATION_MS: ${IMPORT_MAX_DURATION_MS:-43200000}
+      IMPORT_MAX_ATTEMPTS: ${IMPORT_MAX_ATTEMPTS:-5}
+      IMPORT_AUTO_APPLY_THRESHOLD: ${IMPORT_AUTO_APPLY_THRESHOLD:-80}
     ports:
       - "127.0.0.1:8793:8787"
     networks:
@@ -79,13 +100,13 @@ services:
     init: true
     read_only: true
     tmpfs:
-      - /tmp:size=256m
+      - /tmp:size=640m
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     pids_limit: 64
-    mem_limit: 1g
+    mem_limit: 1536m
     cpus: 1.5
     stop_grace_period: 120s
     environment:
@@ -93,6 +114,13 @@ services:
       IMPORT_API_BASE: http://api:8787
       IMPORT_WORKER_SECRET: ${IMPORT_WORKER_SECRET:?Configure with a random 32-byte secret}
       IMPORT_WORKER_ID: ${IMPORT_WORKER_ID:-import-worker-1}
+      # Provider credentials used only by provider-authorised audio metadata
+      # and downloads. Keep them in the private deployment environment.
+      SOUNDCLOUD_ACCESS_TOKEN: ${SOUNDCLOUD_ACCESS_TOKEN:-}
+      SOUNDCLOUD_CLIENT_ID: ${SOUNDCLOUD_CLIENT_ID:-}
+      SOUNDCLOUD_CLIENT_SECRET: ${SOUNDCLOUD_CLIENT_SECRET:-}
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
+      MUSICBRAINZ_USER_AGENT: ${MUSICBRAINZ_USER_AGENT:-syco23-mixsets/1.0 (https://mixsets.syco23.org)}
       IMPORT_POLL_INTERVAL_MS: ${IMPORT_POLL_INTERVAL_MS:-2000}
       IMPORT_HEARTBEAT_MS: ${IMPORT_HEARTBEAT_MS:-20000}
       IMPORT_STORAGE_DRIVER: ${IMPORT_STORAGE_DRIVER:-local}
@@ -101,6 +129,13 @@ services:
       IMPORT_S3_BUCKET: ${IMPORT_S3_BUCKET:-}
       IMPORT_S3_ACCESS_KEY: ${IMPORT_S3_ACCESS_KEY:-}
       IMPORT_S3_SECRET_KEY: ${IMPORT_S3_SECRET_KEY:-}
+      IMPORT_S3_REGION: ${IMPORT_S3_REGION:-us-east-1}
+      # Keep worker input+output quotas inside the 1 GB container and the
+      # 512m tmpfs that holds the working copies during conversion.
+      IMPORT_MAX_INPUT_BYTES: ${IMPORT_MAX_INPUT_BYTES:-268435456}
+      IMPORT_MAX_OUTPUT_BYTES: ${IMPORT_MAX_OUTPUT_BYTES:-268435456}
+      IMPORT_MAX_DURATION_MS: ${IMPORT_MAX_DURATION_MS:-43200000}
+      IMPORT_MAX_ATTEMPTS: ${IMPORT_MAX_ATTEMPTS:-5}
     healthcheck:
       test:
         - CMD-SHELL

@@ -19,6 +19,7 @@ const label = computed(() => ({
   youtube: 'YouTube',
   hearthis: 'hearthis.at',
   mixcloud: 'Mixcloud',
+  musicbrainz: 'MusicBrainz',
 })[props.provider]);
 
 const icon = computed(() => ({
@@ -29,5 +30,6 @@ const icon = computed(() => ({
   youtube: 'mdi-youtube',
   hearthis: 'mdi-headphones',
   mixcloud: 'mdi-cloud-music-outline',
+  musicbrainz: 'mdi-database-search-outline',
 })[props.provider]);
 </script>

@@ -2,10 +2,19 @@ import { ControlClient } from './control.js';
 import { FFmpegTimeoutError, MediaRejectedError } from './ffmpeg.js';
 import { NonRetryableError } from './resolvers.js';
 import { RetryableError, processAudioJob, processMetadataJob } from './process.js';
-import { UrlBlockedError } from './security.js';
+import { UpstreamHttpError, UrlBlockedError } from './security.js';
 import type { WorkerConfig } from './config.js';
 
 export function classifyError(error: unknown): { retryable: boolean; errorCode: string; message: string } {
+  if (error instanceof UpstreamHttpError) {
+    // Provider throttling and server errors are transient; auth/not-found are not.
+    const retryable = error.status === 408 || error.status === 425 || error.status === 429 || error.status >= 500;
+    return {
+      retryable,
+      errorCode: retryable ? 'upstream_transient' : 'upstream_rejected',
+      message: error.message,
+    };
+  }
   if (error instanceof NonRetryableError || error instanceof UrlBlockedError || error instanceof MediaRejectedError) {
     return { retryable: false, errorCode: 'non_retryable', message: String((error as Error).message) };
   }
@@ -29,13 +38,6 @@ export async function pollOnce(client: ControlClient, config: WorkerConfig): Pro
   const { job } = spec;
   log(client, job);
   try {
-    if (job.provider === 'soundcloud' && job.mode === 'audio') {
-      // Defense in depth: the control plane policy is authoritative, the worker
-      // never trusts a misrouted audio job and marks it instead of processing.
-      await client.event(job.id, 'blocked_policy', { reason: 'SoundCloud audio acquisition is disabled' });
-      await client.complete(job.id, { state: 'failed', attempt: job.attempt, error: 'SoundCloud audio blocked by policy' });
-      return true;
-    }
     if (job.mode === 'audio') await processAudioJob(client, config, spec);
     else await processMetadataJob(client, config, spec);
     await client.complete(job.id, { state: 'completed', attempt: job.attempt });

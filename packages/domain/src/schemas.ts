@@ -8,7 +8,8 @@ export const ProviderIdSchema = z.enum([
   'discogs',
   'youtube',
   'hearthis',
-  'mixcloud'
+  'mixcloud',
+  'musicbrainz'
 ]);
 
 export const EntityRoleSchema = z.enum(['artist', 'crew', 'label']);
@@ -21,8 +22,15 @@ export const TimestampSchema = z.iso.datetime({ offset: true });
 export const HttpUrlSchema = z.url({ protocol: /^https?$/ }).max(2048).refine((value) => { try { const url = new URL(value); return !url.username && !url.password; } catch { return false; } }, 'URLs must not contain credentials');
 const httpUrlSchema = HttpUrlSchema;
 
+/**
+ * Provenance source for a claim. Real provider namespaces plus `curator`, so a
+ * curator edit is never mislabelled as a FreeteknoMusic provider observation.
+ */
+export const ClaimProviderIdSchema = z.union([ProviderIdSchema, z.literal('curator')]);
+export type ClaimProviderId = z.infer<typeof ClaimProviderIdSchema>;
+
 export const ProviderRefSchema = z.object({
-  provider: ProviderIdSchema,
+  provider: ClaimProviderIdSchema,
   resourceType: z.string().min(1).max(80),
   externalId: z.string().min(1).max(300),
   url: httpUrlSchema.optional()
@@ -304,6 +312,7 @@ export const AnalysisRunSchema=z.object({id:RecordIdSchema,recordId:RecordIdSche
 export type AnalysisRun=z.infer<typeof AnalysisRunSchema>;
 export type EnrichmentRun = z.infer<typeof EnrichmentRunSchema>;
 export type RecordId = z.infer<typeof RecordIdSchema>;
+export type ProviderId = z.infer<typeof ProviderIdSchema>;
 export type EntityRole = z.infer<typeof EntityRoleSchema>;
 export type IndexKind = z.infer<typeof IndexKindSchema>;
 export type ProviderRef = z.infer<typeof ProviderRefSchema>;

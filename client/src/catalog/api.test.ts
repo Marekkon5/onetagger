@@ -83,7 +83,7 @@ describe('importJobsApi', () => {
     vi.stubGlobal('fetch', fetchMock);
     const detail = await importJobsApi.create({
       provider: 'soundcloud', url: 'https://soundcloud.com/example/example',
-      mode: 'metadata', rightsBasis: 'provider_metadata_only',
+      mode: 'metadata',
     });
     expect(detail.job.state).toBe('queued');
     expect(fetchMock).toHaveBeenCalledWith('/api/imports', expect.objectContaining({
@@ -93,7 +93,60 @@ describe('importJobsApi', () => {
   });
 
   it('previews provider audio capabilities from the shared matrix', () => {
-    expect(importJobsApi.providerAudioAllowed('soundcloud')).toBe(false);
+    expect(importJobsApi.providerAudioAllowed('soundcloud')).toBe(true);
+    expect(importJobsApi.providerAudioAllowed('hearthis')).toBe(true);
     expect(importJobsApi.providerAudioAllowed('archiveorg')).toBe(true);
+    expect(importJobsApi.providerAudioAllowed('youtube')).toBe(false);
+    expect(importJobsApi.providerAudioAllowed('musicbrainz')).toBe(false);
+  });
+
+  it('parses hardGates evidence and keeps the sourced value', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      job: {
+        id: 'imp_abcdef0123456789abcdef01', requestedBy: 'curator', provider: 'mixcloud',
+        sourceUrl: 'https://www.mixcloud.com/example/show/', mode: 'metadata', state: 'completed',
+        idempotencyKey: 'idem-key-02', attempt: 1, createdAt: '2026-10-06T12:00:00.000Z', updatedAt: '2026-10-06T12:00:00.000Z',
+      },
+      events: [], artifacts: [], evidence: [{
+        id: 'evd_0123456789', jobId: 'imp_abcdef0123456789abcdef01', claimId: null, field: 'title',
+        value: 'Real Mixcloud Show', score: 97, algorithmVersion: 'evidence-v1',
+        components: { I: 1, T: 0.9, D: 1, R: 0.9, P: 1, C: 1, X: 0 },
+        hardGates: { identity: true, rights: true, noConflict: true, policy: true },
+        decision: 'auto_apply', evaluatedAt: '2026-10-06T12:00:00.000Z',
+      }],
+    })));
+    const detail = await importJobsApi.get('imp_abcdef0123456789abcdef01');
+    expect(detail.evidence[0]?.value).toBe('Real Mixcloud Show');
+    expect(detail.evidence[0]?.hardGates).toMatchObject({ identity: true });
+  });
+
+  it('rejects evidence that still uses the legacy gates spelling', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      job: {
+        id: 'imp_abcdef0123456789abcdef01', requestedBy: 'curator', provider: 'mixcloud',
+        sourceUrl: 'https://www.mixcloud.com/example/show/', mode: 'metadata', state: 'completed',
+        idempotencyKey: 'idem-key-03', attempt: 1, createdAt: '2026-10-06T12:00:00.000Z', updatedAt: '2026-10-06T12:00:00.000Z',
+      },
+      events: [], artifacts: [], evidence: [{
+        id: 'evd_0123456789', jobId: 'imp_abcdef0123456789abcdef01', claimId: null, field: 'title',
+        score: 97, algorithmVersion: 'evidence-v1', components: {}, gates: { identity: true },
+        decision: 'auto_apply', evaluatedAt: '2026-10-06T12:00:00.000Z',
+      }],
+    })));
+    await expect(importJobsApi.get('imp_abcdef0123456789abcdef01')).rejects.toThrow();
+  });
+
+  it('parses the finalize envelope instead of a bare catalog record', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ record, mixId: record.id, claimsApplied: 3 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await catalogApi.finalize('imp_abcdef0123456789abcdef01');
+    expect(result.mixId).toBe(record.id);
+    expect(result.claimsApplied).toBe(3);
+    expect(fetchMock).toHaveBeenCalledWith('/api/imports/imp_abcdef0123456789abcdef01/finalize', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('rejects a bare catalog record as a finalize response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(record)));
+    await expect(catalogApi.finalize('imp_abcdef0123456789abcdef01')).rejects.toThrow();
   });
 });

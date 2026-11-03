@@ -33,6 +33,8 @@ export const ScoredEvidenceSchema = z.object({
   jobId: RecordIdSchema.optional(),
   claimId: RecordIdSchema.optional(),
   field: z.string().min(1).max(120).optional(),
+  /** The sourced value this evidence scores, so finalize never invents it. */
+  value: z.unknown().optional(),
   score: z.number().min(0).max(100),
   algorithmVersion: EvidenceAlgorithmVersionSchema,
   components: EvidenceComponentsSchema,

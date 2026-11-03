@@ -14,7 +14,8 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   discogs: 'Discogs',
   youtube: 'YouTube',
   hearthis: 'hearthis.at',
-  mixcloud: 'Mixcloud'
+  mixcloud: 'Mixcloud',
+  musicbrainz: 'MusicBrainz'
 };
 
 export const providerLabel = (id: string): string => PROVIDER_LABELS[id as ProviderId] ?? id;

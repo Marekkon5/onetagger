@@ -14,7 +14,7 @@ Route-level screens for browsing the five indexes, opening mix/entity/event deta
 
 - Public views must not render curator editors or mutation controls. Curator-only actions handle 401 by redirecting to `/login?redirect=…`.
 - Use `presentation.ts` for state, provider, field and value labels. Never show raw enums or internal JSON.
-- Import flow: discovery creates reviewable candidates; indexing uses the shared catalog import; durable jobs use `importJobsApi`. Polling must stop on a parse/auth failure and must not silently present stale state.
+- Import flow: discovery creates reviewable candidates; indexing uses the shared catalog import; durable jobs use `importJobsApi`. The durable provider selector comes from the server capability handshake. Rights are deployment-wide, so the view shows the global policy and never asks for a per-mixset basis. Polling must stop on a parse/auth failure and must not silently present stale state.
 - Do not ask for a curator password in a browser prompt when the server authenticates by session cookie. Finalize is a session-authorized action.
 - Local tagger: never modify originals; write tagged copies to the separate output folder; report unsynced files honestly.
 - Detail views must distinguish missing, unavailable, disputed and curator-confirmed values.

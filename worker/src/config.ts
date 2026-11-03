@@ -1,9 +1,18 @@
+export interface ProviderCredentials {
+  soundcloudClientId?: string;
+  soundcloudClientSecret?: string;
+  soundcloudAccessToken?: string;
+  discogsToken?: string;
+  musicbrainzUserAgent?: string;
+}
+
 export interface WorkerConfig {
   apiBase: string;
   secret: string;
   workerId: string;
   pollIntervalMs: number;
   heartbeatMs: number;
+  providers: ProviderCredentials;
   storage: {
     driver: 'local' | 's3';
     localRoot: string;
@@ -11,6 +20,7 @@ export interface WorkerConfig {
     s3Bucket?: string;
     s3AccessKey?: string;
     s3SecretKey?: string;
+    s3Region?: string;
   };
 }
 
@@ -32,6 +42,13 @@ export function loadConfig(): WorkerConfig {
     workerId: env('IMPORT_WORKER_ID', `worker-${process.pid}`),
     pollIntervalMs: Number(env('IMPORT_POLL_INTERVAL_MS', '2000')),
     heartbeatMs: Number(env('IMPORT_HEARTBEAT_MS', '20000')),
+    providers: {
+      soundcloudClientId: env('SOUNDCLOUD_CLIENT_ID') || undefined,
+      soundcloudClientSecret: env('SOUNDCLOUD_CLIENT_SECRET') || undefined,
+      soundcloudAccessToken: env('SOUNDCLOUD_ACCESS_TOKEN') || undefined,
+      discogsToken: env('DISCOGS_TOKEN') || undefined,
+      musicbrainzUserAgent: env('MUSICBRAINZ_USER_AGENT') || undefined,
+    },
     storage: {
       driver,
       localRoot: env('IMPORT_STORAGE_LOCAL_ROOT', './data/imports'),
@@ -39,6 +56,7 @@ export function loadConfig(): WorkerConfig {
       s3Bucket: env('IMPORT_S3_BUCKET') || undefined,
       s3AccessKey: env('IMPORT_S3_ACCESS_KEY') || undefined,
       s3SecretKey: env('IMPORT_S3_SECRET_KEY') || undefined,
+      s3Region: env('IMPORT_S3_REGION') || undefined,
     },
   };
 }

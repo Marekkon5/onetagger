@@ -18,7 +18,9 @@ export function openDatabase(path: string): DatabaseSync {
     { version: 7, file: '007-integrity.sql' },
     { version: 8, file: '008-analysis-runs.sql' },
     { version: 9, file: '009-normalized-records.sql' },
-    { version: 10, file: '010-import-jobs.sql' }
+    { version: 10, file: '010-import-jobs.sql' },
+    { version: 11, file: '011-evidence-values.sql' },
+    { version: 12, file: '012-rights-global.sql' }
   ];
   for (const migration of migrations) {
     if (currentVersion.user_version >= migration.version) continue;

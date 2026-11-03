@@ -8,6 +8,18 @@ export class UrlBlockedError extends Error {
   }
 }
 
+/**
+ * A reachable, safe provider endpoint returned a non-2xx status. This is not a
+ * URL-safety rejection: rate limits and 5xx responses are transient and must be
+ * retried, while an auth/not-found status is a permanent provider rejection.
+ */
+export class UpstreamHttpError extends Error {
+  constructor(readonly status: number, message = `Upstream responded ${status}`) {
+    super(message);
+    this.name = 'UpstreamHttpError';
+  }
+}
+
 const BLOCKED_HOSTNAMES = new Set(['localhost', 'localhost.localdomain', 'metadata.google.internal']);
 
 function ipv4Blocked(ip: string): boolean {
@@ -87,6 +99,8 @@ export async function boundedFetch(rawUrl: string, options: {
   maxRedirects?: number;
   timeoutMs?: number;
   headers?: Record<string, string>;
+  method?: string;
+  body?: string;
 } ): Promise<{ bytes: Buffer; contentType: string; finalUrl: string }> {
   const maxRedirects = options.maxRedirects ?? 3;
   const timeoutMs = options.timeoutMs ?? 30_000;
@@ -100,6 +114,8 @@ export async function boundedFetch(rawUrl: string, options: {
         redirect: 'manual',
         signal: controller.signal,
         headers: options.headers,
+        ...(options.method ? { method: options.method } : {}),
+        ...(options.body !== undefined ? { body: options.body } : {}),
       });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         const location = response.headers.get('location');
@@ -107,7 +123,7 @@ export async function boundedFetch(rawUrl: string, options: {
         current = new URL(location, url).toString();
         continue;
       }
-      if (!response.ok) throw new UrlBlockedError(`Upstream responded ${response.status}`);
+      if (!response.ok) throw new UpstreamHttpError(response.status);
       const declared = Number(response.headers.get('content-length') ?? '0');
       if (declared > options.maxBytes) throw new UrlBlockedError('Content-Length exceeds the input limit');
       const chunks: Buffer[] = [];

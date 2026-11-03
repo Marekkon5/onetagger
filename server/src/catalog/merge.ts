@@ -88,7 +88,8 @@ export function applyClaims(repository: CatalogRepository, claimInputs: FieldCla
   const claims = claimInputs.map((claim) => FieldClaimSchema.parse(claim));
   const report: EnrichmentReport = {
     state: 'completed',
-    attemptedProviders: [...new Set(claims.map((claim) => claim.provider.provider))],
+    attemptedProviders: [...new Set(claims.map((claim) => claim.provider.provider))]
+      .filter((provider) => provider !== 'curator'),
     applied: 0,
     corroborated: 0,
     reviewed: 0,
@@ -105,7 +106,13 @@ export function applyClaims(repository: CatalogRepository, claimInputs: FieldCla
       if (outcome === 'corroborated') report.corroborated += 1;
       if (outcome === 'pending') report.reviewed += 1;
     } catch (error) {
-      report.errors.push({ provider: claim.provider.provider, message: error instanceof Error ? error.message : String(error) });
+      // Enrichment reports are provider-scoped; a curator claim has no provider
+      // namespace to report against, so log it instead of widening the contract.
+      if (claim.provider.provider === 'curator') {
+        console.error('Curator claim application failed:', error);
+      } else {
+        report.errors.push({ provider: claim.provider.provider, message: error instanceof Error ? error.message : String(error) });
+      }
     }
   }
 

@@ -1,13 +1,17 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
+  CatalogRecordSchema,
+  HttpUrlSchema,
   ImportJobSchema,
   PROVIDER_CAPABILITIES,
+  RecordingDateSchema,
   ScoredEvidenceSchema,
   terminalImportState,
   type CatalogRecord,
+  type ImportCandidate,
   type ImportJob,
   type ImportJobState,
-  type ImportCandidate,
+  type ProviderId,
   type ScoredEvidence,
 } from '@syco23/catalog-domain';
 import type { CatalogRepository } from '../catalog/repository.js';
@@ -22,11 +26,14 @@ import {
 import {
   ImportValidationError,
   decideImportPolicy,
+  globalRightsConfirmationEnabled,
   newImportId,
   parseImportRequest,
+  resolveRightsPolicy,
 } from './policy.js';
 import { WorkerAuthError, authenticateWorker, workerBodyText } from './service-auth.js';
 import { createImportStore, extensionFromMime, objectKey, sha256 } from './storage.js';
+import { ImportFinalizeError, providerResourceType, readMetadataFacts } from './finalize.js';
 
 export interface ImportRouteContext {
   repository: CatalogRepository;
@@ -38,8 +45,11 @@ export interface ImportRouteContext {
 // throughput and storage ceilings are never implicit assumptions in code.
 export function importLimits() {
   return {
-    maxInputBytes: Number(process.env.IMPORT_MAX_INPUT_BYTES || 2 * 1024 * 1024 * 1024),
-    maxOutputBytes: Number(process.env.IMPORT_MAX_OUTPUT_BYTES || 1024 * 1024 * 1024),
+    // Must stay below the deployed API memory limit (768 MB). The body is
+    // rejected while streaming once it crosses this bound, but the accepted
+    // bytes are still buffered, so the ceiling is deliberately conservative.
+    maxInputBytes: Number(process.env.IMPORT_MAX_INPUT_BYTES || 256 * 1024 * 1024),
+    maxOutputBytes: Number(process.env.IMPORT_MAX_OUTPUT_BYTES || 256 * 1024 * 1024),
     maxDurationMs: Number(process.env.IMPORT_MAX_DURATION_MS || 12 * 60 * 60 * 1000),
     maxAttempts: Number(process.env.IMPORT_MAX_ATTEMPTS || 5),
     autoApplyThreshold: Number(process.env.IMPORT_AUTO_APPLY_THRESHOLD || 80),
@@ -64,6 +74,11 @@ function requireCurator(context: ImportRouteContext, request: IncomingMessage, r
     return false;
   }
   return true;
+}
+
+function workerId(request: IncomingMessage): string {
+  const header = request.headers['x-import-worker-id'];
+  return typeof header === 'string' ? header.slice(0, 80) : '';
 }
 
 function jobView(context: ImportRouteContext, id: string) {
@@ -117,7 +132,7 @@ async function handleCreate(context: ImportRouteContext, request: IncomingMessag
       sendJson(response, 400, { error: 'Idempotency-Key header is required' });
       return;
     }
-    const request0 = parseImportRequest(body);
+    const request0 = resolveRightsPolicy(parseImportRequest(body));
     const existing = context.repository.getImportJobByIdempotency(idempotencyKey);
     if (existing) {
       sendJson(response, 200, jobView(context, existing.id));
@@ -195,13 +210,16 @@ async function handleFinalize(
       return;
     }
 
-    // Read artifacts and evidence scores
+    const parsedBody = await readJsonBody(request);
+    const body = parsedBody && typeof parsedBody === 'object' && !Array.isArray(parsedBody)
+      ? parsedBody as Record<string, unknown>
+      : {};
+
+    // Read the worker's sourced facts. They are authoritative for the record
+    // title and every provider claim; finalize never invents a placeholder.
     const artifacts = context.repository.listImportArtifacts(job.id);
     const evidenceScores = context.repository.listImportEvidenceScores(job.id) as unknown as ScoredEvidence[];
-    const artifactMap = new Map<string, { role: string; objectKey: string }>();
-    for (const art of artifacts) {
-      artifactMap.set(art.id, { role: art.role, objectKey: art.objectKey });
-    }
+    const facts = await readMetadataFacts(job, artifacts);
 
     const { importCandidate } = await import('../catalog/identity.js');
     const { claimsFromImportJob } = await import('../catalog/provider-claims.js');
@@ -210,54 +228,68 @@ async function handleFinalize(
 
     let mixId = job.mixId;
     if (!mixId) {
-      // Create a new catalog record from this job
       const actor = context.auth.authenticate(request)!;
       const now = new Date().toISOString();
       const id = `mix_${randomUUID()}`;
 
-      // user_upload jobs create the record directly (source is a private URN, not httpUrl)
       if (job.provider === 'user_upload') {
-        const record: CatalogRecord = {
+        // A private upload has no public provider URL. It becomes a canonical
+        // mix with no ProviderRef; the private URN stays only in the import
+        // job and provenance tables.
+        const title = (typeof body.title === 'string' ? body.title.trim() : '') || facts?.title?.trim();
+        if (!title) {
+          sendJson(response, 400, { error: 'A title is required to finalize a user upload' });
+          return;
+        }
+        const playbackUrl = typeof body.playbackUrl === 'string' ? HttpUrlSchema.parse(body.playbackUrl) : undefined;
+        const recordedAt = facts?.recordedAt;
+        const recordingDate = recordedAt
+          ? RecordingDateSchema.safeParse({
+            value: recordedAt,
+            precision: recordedAt.length === 4 ? 'year' : recordedAt.length === 7 ? 'month' : 'day',
+          })
+          : undefined;
+        const record: CatalogRecord = CatalogRecordSchema.parse({
           kind: 'mix', id, createdAt: now, updatedAt: now, revision: 1,
-          verification: 'curator-confirmed', reviewState: 'ready', title: 'Imported mix',
-          people: [], eventIds: [], genres: [], styles: [], assets: [], sources: [{
-            provider: 'freeteknomusic',
-            resourceType: 'recording',
-            externalId: job.sourceExternalId ?? job.sourceUrl,
-            url: job.sourceUrl,
-            addedAt: now,
-          }],
-        };
-        context.repository.transaction((tx) => {
-          tx.saveRecord(record);
-          tx.addProviderSource(record.id, { provider: 'freeteknomusic', resourceType: 'recording', externalId: job.sourceExternalId ?? job.sourceUrl, url: undefined });
+          verification: 'curator-confirmed', reviewState: 'ready', title,
+          ...(facts?.description ? { description: facts.description } : {}),
+          ...(facts?.durationMs ? { durationMs: facts.durationMs } : {}),
+          ...(recordingDate?.success ? { recordingDate: recordingDate.data } : {}),
+          people: [], eventIds: [],
+          genres: facts?.genres ?? [], styles: facts?.styles ?? [],
+          assets: facts?.artworkUrl ? [{ role: 'mix-cover', url: facts.artworkUrl, source: 'curator' }] : [],
+          sources: [],
+          ...(playbackUrl ? { playbackUrls: [playbackUrl] } : {}),
         });
+        context.repository.transaction((tx) => { tx.saveRecord(record); });
         mixId = record.id;
         context.repository.updateImportJobState(job.id, job.state, { mixId });
       } else {
-        // Catalog providers go through importCandidate (source is httpUrl).
-        // job.provider is narrowed to the catalog provider union here.
-        const provider = job.provider as 'freeteknomusic' | 'soundcloud' | 'archiveorg' | 'discogs' | 'youtube' | 'hearthis';
-        const url = job.sourceUrl ?? '';
-        const externalId = job.sourceExternalId ?? url;
+        if (!facts) {
+          sendJson(response, 409, { error: 'Import job has no readable metadata snapshot; re-run metadata resolution before finalizing' });
+          return;
+        }
+        const provider = job.provider as ProviderId;
         const candidate: ImportCandidate = {
           provider,
-          title: artifacts.find(a => a.role === 'metadata') ? 'Imported mix' : url,
-          artists: [],
-          crews: [],
-          durationMs: undefined,
-          recordedAt: undefined,
-          description: undefined,
-          genres: [],
-          artwork: [],
+          title: facts.title,
+          artists: facts.artists ?? [],
+          crews: facts.crews ?? [],
+          ...(facts.uploader ? { uploader: facts.uploader } : {}),
+          ...(facts.durationMs ? { durationMs: facts.durationMs } : {}),
+          ...(facts.recordedAt ? { recordedAt: facts.recordedAt } : {}),
+          ...(facts.description ? { description: facts.description } : {}),
+          genres: facts.genres ?? [],
+          artwork: facts.artworkUrl ? [facts.artworkUrl] : [],
           source: {
             provider,
-            resourceType: 'recording',
-            externalId,
-            url,
+            resourceType: providerResourceType(provider),
+            externalId: job.sourceExternalId ?? facts.externalId ?? job.sourceUrl,
+            url: job.sourceUrl,
           },
           confidence: 0.8,
           reasons: ['Imported via durable import job'],
+          fieldEvidence: { cover: 'direct' },
         };
         const result = importCandidate(context.repository, candidate, actor);
         mixId = result.record.id;
@@ -265,16 +297,23 @@ async function handleFinalize(
       }
     }
 
-    // Convert worker evidence to claims and apply merge policy
-    const claims = claimsFromImportJob(job, evidenceScores, artifactMap, mixId) || [];
+    // Convert worker evidence to claims using the same sourced facts. Rejected
+    // evidence is skipped inside claimsFromImportJob.
+    const claims = claimsFromImportJob(job, evidenceScores, facts, mixId) || [];
+    let claimsApplied = 0;
     if (claims.length > 0) {
-      applyClaims(context.repository, claims);
+      const report = applyClaims(context.repository, claims);
+      // claimsApplied means selected or corroborated, not merely considered.
+      claimsApplied = report.applied + report.corroborated;
     }
 
-    // Return the updated record
     const record = context.repository.getRecord(mixId);
-    sendJson(response, 200, { record, mixId, claimsApplied: claims.length });
+    sendJson(response, 200, { record, mixId, claimsApplied });
   } catch (error) {
+    if (error instanceof ImportFinalizeError) {
+      sendJson(response, error.statusCode, { error: error.message });
+      return;
+    }
     const parsed = parseError(error);
     sendJson(response, parsed.status, parsed.body);
   }
@@ -407,15 +446,13 @@ async function handleWorkerNext(context: ImportRouteContext, request: IncomingMe
     return;
   }
   try {
-    const workerId = typeof request.headers['x-import-worker-id'] === 'string'
-      ? request.headers['x-import-worker-id'].slice(0, 80)
-      : 'worker';
-    const job = context.repository.claimDueImportJob(workerId);
+    const workerIdValue = workerId(request) || 'worker';
+    const job = context.repository.claimDueImportJob(workerIdValue);
     if (!job) {
       sendJson(response, 204, {});
       return;
     }
-    context.repository.appendImportEvent(job.id, 'claimed', { workerId });
+    context.repository.appendImportEvent(job.id, 'claimed', { workerId: workerIdValue });
     sendJson(response, 200, workSpec(context, job));
   } catch (error) {
     const parsed = parseError(error);
@@ -451,15 +488,19 @@ async function handleWorker(
       sendJson(response, 200, workSpec(context, job));
       return;
     }
-    if (request.method === 'POST' && action === 'heartbeat') {
-      const owner = typeof request.headers['x-import-worker-id'] === 'string'
-        ? request.headers['x-import-worker-id'].slice(0, 80)
-        : '';
+
+    // Every mutating worker action must be the current lease owner. A valid
+    // worker credential alone does not authorize another worker's job.
+    if (request.method === 'POST') {
+      const owner = workerId(request);
       const renewed = owner ? context.repository.renewImportLease(job.id, owner) : false;
       if (!renewed) {
         sendJson(response, 409, { error: 'Lease is not held by this worker' });
         return;
       }
+    }
+
+    if (request.method === 'POST' && action === 'heartbeat') {
       sendJson(response, 204, {});
       return;
     }
@@ -598,6 +639,7 @@ export function versionPayload(context: ImportRouteContext) {
     apiVersion: 1,
     importsEnabled: context.importsEnabled,
     providers: PROVIDER_CAPABILITIES,
+    rightsPolicy: { globalConfirmation: globalRightsConfirmationEnabled() },
     limits: importLimits(),
   };
 }

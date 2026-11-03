@@ -13,11 +13,11 @@ The single source of typed truth shared by the client, server and worker: canoni
 ## Local Contracts
 
 - Every canonical record, provider claim, import job and API page has a strict Zod schema. Unknown keys are rejected unless a schema explicitly allows them.
-- `ProviderIdSchema` includes `freeteknomusic`, `soundcloud`, `archiveorg`, `discogs`, `youtube`, `hearthis`, `mixcloud`. `ImportProviderSchema` adds `user_upload`.
-- `ImportSourceUrlSchema` accepts an http(s) URL or a `urn:syco23:upload:…` handle. Canonical `ProviderRefSchema` and `FieldClaimSchema.sourceUrl` accept only http(s). Do not put a private URN into a canonical `ProviderRef`.
-- `PROVIDER_CAPABILITIES` and `ProviderCapabilityMatrixSchema` must stay in sync with the adapters and the import worker. Every import provider needs an explicit metadata/audio entry.
+- `ProviderIdSchema` includes `freeteknomusic`, `soundcloud`, `archiveorg`, `discogs`, `youtube`, `hearthis`, `mixcloud`, `musicbrainz`. `ImportProviderSchema` adds `user_upload`. `ClaimProviderIdSchema` adds `curator` so a curator edit is never mislabelled as a provider observation; canonical `ProviderRefSchema` accepts curator refs.
+- `ImportSourceUrlSchema` accepts an http(s) URL or a `urn:syco23:upload:…` handle. Canonical `FieldClaimSchema.sourceUrl` and provider refs for real providers accept only http(s). Do not put a private URN into a canonical `ProviderRef`.
+- `PROVIDER_CAPABILITIES` and `ProviderCapabilityMatrixSchema` must stay in sync with the adapters and the import worker. Every import provider needs an explicit metadata/audio entry. SoundCloud, hearthis.at and Mixcloud advertise audio only through provider-authorised downloads; Discogs and MusicBrainz are metadata-only.
+- `ImportRequestSchema.rights` is optional because the server may inject the deployment-wide `global_rights_confirmation` basis. `decideImportPolicy` is the authoritative metadata/audio policy: unknown providers default to no capability, and audio fails closed without a non-metadata basis.
 - `ScoredEvidenceSchema` uses `hardGates` (the API field name). `scoreEvidence` is the deterministic `evidence-v1` implementation; gates fail closed.
-- `decideImportPolicy` is the authoritative metadata/audio policy. Unknown providers default to no capability; audio requires an explicit non-metadata rights basis.
 - Display spelling survives normalization. Normalize only search/identity keys; do not fold away meaningful tokens such as `live`, `set`, `dj`, `crew` or `live`.
 - `FieldDefinitions` is the allow-list for claims and curated edits. A worker evidence field that is not in this map is ignored by merge policy.
 

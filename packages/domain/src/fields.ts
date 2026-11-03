@@ -43,7 +43,7 @@ export function getFieldValue(record: CatalogRecord, name: string): unknown {
   const role=detailRole(record,name); const value=role && record.kind==='entity' ? (record[role] as Record<string,unknown>|undefined)?.[name] : (record as unknown as Record<string,unknown>)[name];
   return (Array.isArray(value) && value.length===0) || (typeof value==='string' && !value.trim()) ? undefined : value;
 }
-export function setFieldValue(record: CatalogRecord, name: string, input: unknown, source: 'local'|'curator'|'freeteknomusic'|'soundcloud'|'archiveorg'|'discogs'|'youtube'|'hearthis'|'mixcloud' = 'curator'): CatalogRecord {
+export function setFieldValue(record: CatalogRecord, name: string, input: unknown, source: 'local'|'curator'|'freeteknomusic'|'soundcloud'|'archiveorg'|'discogs'|'youtube'|'hearthis'|'mixcloud'|'musicbrainz' = 'curator'): CatalogRecord {
   if(name==='possibleDuplicate')throw new Error('Possible duplicate acceptance requires the duplicate merge action');
   const value=validateField(record,name,input);
   if(value===null) {

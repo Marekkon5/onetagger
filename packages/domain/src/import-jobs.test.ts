@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  FieldClaimSchema,
   ImportJobSchema,
+  ImportMetadataFactsSchema,
   decideImportPolicy,
   durationComponent,
   scoreEvidence,
@@ -13,22 +15,38 @@ import {
 
 const timestamp = '2026-10-06T12:00:00.000Z';
 
-test('soundcloud audio is blocked by policy, metadata is allowed', () => {
-  const audio = decideImportPolicy({
+test('soundcloud audio requires an audio rights basis, metadata is allowed', () => {
+  const denied = decideImportPolicy({
     source: { provider: 'soundcloud', url: 'https://soundcloud.com/example/example' },
     mode: 'audio',
     conversion: { format: 'mp3', bitrateKbps: 320, id3Version: '2.3' },
     autoApplyThreshold: 80,
     rights: { basis: 'provider_metadata_only', attestationVersion: '2026-10' },
   });
-  assert.equal(audio.allowed, false);
-  assert.equal(audio.blockedPolicy, true);
+  assert.equal(denied.allowed, false);
+  assert.equal(denied.blockedPolicy, true);
+
+  const allowed = decideImportPolicy({
+    source: { provider: 'soundcloud', url: 'https://soundcloud.com/example/example' },
+    mode: 'audio',
+    conversion: { format: 'mp3', bitrateKbps: 320, id3Version: '2.3' },
+    autoApplyThreshold: 80,
+    rights: { basis: 'global_rights_confirmation', attestationVersion: 'global-2026-11' },
+  });
+  assert.equal(allowed.allowed, true);
+
+  const missing = decideImportPolicy({
+    source: { provider: 'soundcloud', url: 'https://soundcloud.com/example/example' },
+    mode: 'audio',
+    conversion: { format: 'mp3', bitrateKbps: 320, id3Version: '2.3' },
+    autoApplyThreshold: 80,
+  });
+  assert.equal(missing.allowed, false, 'audio without a rights basis fails closed');
 
   const metadata = decideImportPolicy({
     source: { provider: 'soundcloud', url: 'https://soundcloud.com/example/example' },
     mode: 'metadata',
     autoApplyThreshold: 80,
-    rights: { basis: 'provider_metadata_only', attestationVersion: '2026-10' },
   });
   assert.equal(metadata.allowed, true);
   assert.equal(metadata.blockedPolicy, false);
@@ -72,6 +90,77 @@ test('user upload audio requires an explicit audio rights basis', () => {
     rights: { basis: 'user_authorized_copy', attestationVersion: '2026-10' },
   });
   assert.equal(allowed.allowed, true);
+});
+
+test('mixcloud, discogs and musicbrainz metadata are importable and every provider has an explicit capability', () => {
+  const mixcloud = decideImportPolicy({
+    source: { provider: 'mixcloud', url: 'https://www.mixcloud.com/example/show/' },
+    mode: 'metadata',
+    autoApplyThreshold: 80,
+    rights: { basis: 'provider_metadata_only', attestationVersion: '2026-10' },
+  });
+  assert.equal(mixcloud.allowed, true);
+  assert.equal(mixcloud.blockedPolicy, false);
+  assert.deepEqual(mixcloud.capabilities, {
+    metadata: true,
+    serverSideAudioAcquisition: true,
+    requiresUserConsent: false,
+    requiresExplicitRightsBasis: true,
+  });
+
+  const discogs = decideImportPolicy({
+    source: { provider: 'discogs', url: 'https://www.discogs.com/release/249504' },
+    mode: 'metadata',
+    autoApplyThreshold: 80,
+  });
+  assert.equal(discogs.allowed, true, 'Discogs release pages supply metadata import');
+
+  const musicbrainz = decideImportPolicy({
+    source: { provider: 'musicbrainz', url: 'https://musicbrainz.org/recording/b0261007-c152-424e-8c17-339ba94c0f3d' },
+    mode: 'metadata',
+    autoApplyThreshold: 80,
+  });
+  assert.equal(musicbrainz.allowed, true, 'MusicBrainz recording pages supply metadata import');
+
+  const musicbrainzAudio = decideImportPolicy({
+    source: { provider: 'musicbrainz', url: 'https://musicbrainz.org/recording/b0261007-c152-424e-8c17-339ba94c0f3d' },
+    mode: 'audio',
+    conversion: { format: 'mp3', bitrateKbps: 320, id3Version: '2.3' },
+    autoApplyThreshold: 80,
+    rights: { basis: 'global_rights_confirmation', attestationVersion: 'global-2026-11' },
+  });
+  assert.equal(musicbrainzAudio.allowed, false, 'MusicBrainz never supplies mix audio');
+});
+
+test('metadata facts contract keeps sourced values and rejects private paths', () => {
+  const facts = ImportMetadataFactsSchema.parse({
+    provider: 'mixcloud',
+    sourceUrl: 'https://www.mixcloud.com/example/show/',
+    title: 'Example long-form show',
+    artists: ['Example Artist'],
+    description: 'Sourced description',
+    durationMs: 3_600_000,
+    genres: ['Tekno'],
+    artworkUrl: 'https://thumbnailer.mixcloud.com/unsafe/300x300/extaudio/x/y/z',
+    observedAt: timestamp,
+  });
+  assert.equal(facts.title, 'Example long-form show');
+  assert.throws(() => ImportMetadataFactsSchema.parse({ ...facts, sourceUrl: '/tmp/mix.mp3' }));
+  assert.throws(() => ImportMetadataFactsSchema.parse({ ...facts, title: '' }));
+});
+
+test('claims may name the curator as their provenance without borrowing a provider', () => {
+  const claim = FieldClaimSchema.parse({
+    targetRecordId: 'mix_abcdef0123456789abcdef01',
+    field: 'title',
+    value: 'Curated title',
+    provider: { provider: 'curator', resourceType: 'curation', externalId: 'session-1' },
+    sourceUrl: 'https://mixsets.syco23.org/catalog/mix_abcdef0123456789abcdef01',
+    observedAt: timestamp,
+    evidence: 'curated',
+    matchExplanation: 'Explicit curator correction',
+  });
+  assert.equal(claim.provider.provider, 'curator');
 });
 
 test('evidence v1 scores field-level evidence with hard gates', () => {

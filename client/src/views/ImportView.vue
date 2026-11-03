@@ -93,24 +93,23 @@
           />
           <div class="split-fields">
             <label>
+              <span>PROVIDER</span>
+              <select v-model="importProvider">
+                <option v-for="provider in importProviders" :key="provider" :value="provider">
+                  {{ providerLabel(provider) }}{{ capabilityLabel(provider) }}
+                </option>
+              </select>
+            </label>
+            <label>
               <span>MODE</span>
               <select v-model="importMode">
                 <option value="metadata">metadata</option>
                 <option value="audio">audio</option>
               </select>
             </label>
-            <label>
-              <span>RIGHTS BASIS</span>
-              <select v-model="importRights">
-                <option value="provider_metadata_only">provider metadata only</option>
-                <option value="user_authorized_copy">user authorized copy</option>
-                <option value="licensed_archive">licensed archive</option>
-                <option value="rights_holder">rights holder</option>
-                <option value="separate_agreement">separate agreement</option>
-              </select>
-            </label>
           </div>
           <p v-if="audioBlockedHint" class="legal-note">{{ audioBlockedHint }}</p>
+          <p v-else class="legal-note">{{ rightsPolicyNote }}</p>
           <button class="btn btn--primary btn--wide" :disabled="importSubmitting || !importUrl.trim()" @click="queueImport">
             <q-icon :name="importSubmitting ? 'mdi-loading mdi-spin' : 'mdi-tray-arrow-down'" />
             {{ importSubmitting ? 'Creating import…' : 'Create import job' }}
@@ -145,6 +144,7 @@
           <span>{{ state.jobs.length ? 'ACTIVE / RECENT' : 'NO RECENT JOBS' }}</span>
           <b>JOB QUEUE</b>
         </div>
+        <p class="panel-note">Discovery jobs are held in memory and reset when the API restarts. Durable import jobs survive a restart.</p>
 
         <div v-if="state.jobs.length" class="job-list">
           <article v-for="job in state.jobs" :key="job.id" class="job-row">
@@ -287,17 +287,38 @@ async function checkVersion() {
   }
 }
 
-// Durable import jobs (control plane): mode + rights are explicit, the server
-// policy gate is authoritative and SoundCloud audio stays blocked there.
+// Durable import jobs (control plane). The deployment-wide rights
+// confirmation is injected by the server, so there is no per-mixset rights
+// selector. The provider capability matrix decides which modes are offered.
 const importUrl = ref('');
+const importProvider = ref<ProviderId>('freeteknomusic');
 const importMode = ref<'metadata' | 'audio'>('metadata');
-const importRights = ref('provider_metadata_only');
 const importSubmitting = ref(false);
 const importJobs = ref<ImportJobDetail[]>([]);
 
+const importProviders = computed<ProviderId[]>(() => {
+  const providers = apiVersion.value?.providers ?? {};
+  return (Object.keys(providers) as ProviderId[])
+    .filter((provider) => providers[provider]?.metadata || providers[provider]?.audio)
+    .sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)));
+});
+
+function capabilityLabel(provider: ProviderId): string {
+  const capability = apiVersion.value?.providers[provider];
+  if (!capability) return '';
+  const modes = [capability.metadata ? 'metadata' : '', capability.audio ? 'audio' : ''].filter(Boolean);
+  return modes.length ? ` · ${modes.join(' + ')}` : '';
+}
+
+const rightsPolicyNote = computed(() => apiVersion.value?.rightsPolicy?.globalConfirmation
+  ? 'Your deployment-wide rights confirmation covers this import, so no per-mixset consent is needed.'
+  : 'This deployment has not enabled the global rights confirmation; a rights basis must be supplied server-side.');
+
 const audioBlockedHint = computed(() => {
   if (importMode.value !== 'audio') return '';
-  return `Server-side audio depends on provider capabilities and rights: SoundCloud audio stays blocked by policy, metadata imports remain available.`;
+  const capability = apiVersion.value?.providers[importProvider.value];
+  if (!capability?.audio) return `${providerLabel(importProvider.value)} does not permit server-side audio acquisition. Metadata import remains available.`;
+  return 'Audio is fetched only through provider-authorised downloads. Tracks or shows the provider restricts fail honestly; no protected stream is bypassed.';
 });
 
 function shortId(id: string) {
@@ -309,10 +330,9 @@ async function queueImport() {
   importSubmitting.value = true;
   try {
     const detail = await importJobsApi.create({
-      provider: selectedProvider.value,
+      provider: importProvider.value,
       url: importUrl.value.trim(),
       mode: importMode.value,
-      rightsBasis: importRights.value,
     });
     const existing = importJobs.value.findIndex((entry) => entry.job.id === detail.job.id);
     if (existing >= 0) importJobs.value[existing] = detail;
@@ -394,6 +414,7 @@ function providerResourceType(provider: ProviderId) {
   if (provider === 'soundcloud' || provider === 'hearthis') return 'track';
   if (provider === 'mixcloud') return 'cloudcast';
   if (provider === 'archiveorg') return 'item';
+  if (provider === 'discogs') return 'release';
   return 'recording';
 }
 
@@ -506,15 +527,16 @@ async function runJobAction(job: ImportJob) {
 }
 
 async function finalizeImport(job: ImportJobDetail) {
-  const curatorPassword = prompt('Enter curator password to finalize this import job as a catalog record:');
-  if (!curatorPassword) return;
-  const alreadyFinalized = importJobs.value.find((entry) => entry.job.id === job.job.id && (entry as any).mixId);
+  const alreadyFinalized = job.job.mixId
+    || importJobs.value.find((entry) => entry.job.id === job.job.id && entry.job.mixId)?.job.mixId;
   if (alreadyFinalized) {
     $q.notify({ type: 'positive', message: 'This import is already linked to a catalog record.' });
     return;
   }
   try {
-    const result = await finalizeImportJob(job.job.id, { curatorPassword }) as FinalizeImportJobResult;
+    // Finalize is authorized by the curator session cookie; never prompt for a
+    // password the server does not read.
+    const result = await finalizeImportJob(job.job.id) as FinalizeImportJobResult;
     const index = importJobs.value.findIndex((entry) => entry.job.id === job.job.id);
     if (index >= 0) {
       const updated = { ...importJobs.value[index], ...result };

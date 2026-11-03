@@ -254,8 +254,9 @@ async function performEnrichment(
   const sourceErrors: EnrichmentReport['errors'] = [];
   const refreshedCandidates: import('../domain.js').MixCandidate[] = [];
   for (const ref of original.sources) {
-    if (!ref.url || ref.provider === 'discogs' || ref.provider === 'freeteknomusic') continue;
-    const adapter = registry.discovery.get(ref.provider);
+    const provider = ref.provider;
+    if (!ref.url || provider === 'curator' || provider === 'discogs' || provider === 'freeteknomusic') continue;
+    const adapter = registry.discovery.get(provider);
     if (!adapter) continue;
     try {
       const candidates = await adapter.search({ url: ref.url, minDurationMs: 1, limit: 1 });
@@ -269,11 +270,11 @@ async function performEnrichment(
         if (candidate.recordedAt) { const date = recordingDate(candidate.recordedAt); if (date) facts.recordingDate = date; }
         if (candidate.artwork?.[0]) facts.cover = { role: 'mix-cover', url: candidate.artwork[0] };
         const current = repository.getRecord(original.id)!;
-        sourceReports.push(applyClaims(repository, claimsFromProvider(current, { provider: { provider: ref.provider, resourceType: ref.resourceType, externalId: ref.externalId, url: ref.url }, sourceUrl: ref.url,
+        sourceReports.push(applyClaims(repository, claimsFromProvider(current, { provider: { provider, resourceType: ref.resourceType, externalId: ref.externalId, url: ref.url }, sourceUrl: ref.url,
           observedAt: new Date().toISOString(), match: { status: 'confirmed', explanation: 'Refreshed established provider resource identity directly' },
           fieldEvidence: candidate.fieldEvidence, facts })));
       }
-    } catch (error) { sourceErrors.push({ provider: ref.provider, message: providerFailureMessage(error) }); }
+    } catch (error) { sourceErrors.push({ provider, message: providerFailureMessage(error) }); }
   }
   const result = await enrichMix(registry, {
     title: original.title,
@@ -284,7 +285,7 @@ async function performEnrichment(
     description: original.description,
     genres: original.genres,
     artwork: original.assets.filter((asset) => asset.role === 'mix-cover').map((asset) => ({ url: asset.url, kind: 'cover' as const })),
-    sources: original.sources.flatMap((source) => source.url
+    sources: original.sources.flatMap((source) => source.url && source.provider !== 'curator'
       ? [{ provider: source.provider, url: source.url, externalId: source.externalId }]
       : [])
   });

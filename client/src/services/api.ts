@@ -175,7 +175,10 @@ export function getWaveformJob(id: string) {
 }
 
 export interface FinalizeImportJobInput {
-  curatorPassword: string;
+  /** Optional title override, required only when a user upload has no worker facts. */
+  title?: string;
+  /** Optional public playback URL for a user upload. */
+  playbackUrl?: string;
 }
 
 export interface FinalizeImportJobResult {
@@ -184,7 +187,7 @@ export interface FinalizeImportJobResult {
   claimsApplied: number;
 }
 
-export async function finalizeImportJob(id: string, input: FinalizeImportJobInput): Promise<FinalizeImportJobResult> {
+export async function finalizeImportJob(id: string, input: FinalizeImportJobInput = {}): Promise<FinalizeImportJobResult> {
   const raw = await request<FinalizeImportJobResult>(`/imports/${encodeURIComponent(id)}/finalize`, {
     method: 'POST',
     body: JSON.stringify(input),

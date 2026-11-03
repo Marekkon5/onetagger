@@ -19,7 +19,7 @@ Node 22.23.3 worker
   -> in-memory discovery and waveform job queues (bounded concurrency)
   -> SQLite-backed waveform analysis runs (migration 008)
   -> curator-gated discovery, provider health, artwork and direct-waveform routes
-  -> optional import control plane (migration 010, HMAC worker, private artifacts)
+  -> optional import control plane (migrations 010-012, HMAC worker, private artifacts)
 ```
 
 ## Persistence boundaries
@@ -68,15 +68,28 @@ Public readers can list and open confirmed records, read field evidence and foll
 
 Domain errors are mapped to HTTP status by an explicit allow-list of message prefixes rather than a broad pattern, so an unrecognized internal fault becomes a generic 500 instead of leaking a path or SQL fragment in a 400 body.
 
-Discovery jobs and waveform jobs remain in memory and are scoped to the single running worker. Restarting the worker preserves catalog data, claims, decisions, media and enrichment history, but active discovery/waveform jobs are not durable. Multi-worker catalog deployment is not supported until those queues are persisted.
+Discovery jobs and waveform jobs remain in memory and are scoped to the single running worker. Restarting the worker preserves catalog data, claims, decisions, media and enrichment history, but active discovery/waveform jobs are not durable. Terminal discovery jobs are evicted after 30 minutes and the retained set is capped at 200, so a long-running process does not leak finished results. `/api/health` reports `discovery.durable: false` together with running/pending/retained counts instead of implying durability. Multi-worker catalog deployment is not supported until those queues are persisted.
 
 ## Import control plane
 
-Durable metadata/audio imports are a separate, opt-in plane. They stay dark (`503`) unless `IMPORTS_ENABLED` is set **and** a real curator password hash is configured. Curator sessions own `/api/imports`; the import worker authenticates to `/internal/imports` with HMAC-SHA256 over timestamp, method, path and body.
+Durable metadata/audio imports are a separate, opt-in plane. They stay dark (`503`) unless `IMPORTS_ENABLED` is set **and** a real curator password hash is configured **and** `AUTH_MODE` is `on`. Curator sessions own `/api/imports`; the import worker authenticates to `/internal/imports` with HMAC-SHA256 over timestamp, method, path and body. `AUTH_MODE=off` is refused for imports because that mode authenticates every request as the curator and would expose acquisition anonymously.
 
-**Current gap:** with `AUTH_MODE=off`, every request authenticates as the curator (`server/src/auth/curator.ts`), so a deployment that enables imports with a configured hash still exposes creation/finalize anonymously. Do not combine `AUTH_MODE=off` with an enabled import plane until this is fixed; see `docs/AUDIT.md` H4.
+Provider policy is shared domain code: SoundCloud, hearthis.at and Mixcloud expose metadata and provider-authorised audio; YouTube is metadata only; Freeteknomusic and Archive.org may acquire audio; Discogs and MusicBrainz supply release/recording metadata but no mix audio. A provider that restricts a specific item produces an explicit non-retryable failure rather than a protection bypass. Rights are deployment-wide: `IMPORT_GLOBAL_RIGHTS_CONFIRMATION` defaults to true, the operator attests once in private deployment configuration, and the server injects and stores the `global_rights_confirmation` basis for every job. With the policy disabled, a request must carry its own basis and audio fails closed without one. User uploads store a private `urn:syco23:upload:…` handle, never a filesystem path; the URN stays in the import job and provenance tables and never becomes a canonical `ProviderRef`. The worker never opens SQLite: it leases jobs, writes private artifacts, scores evidence and reports completion. Every worker mutation must present the worker id that holds the unexpired lease; a non-owner receives `409`. Non-retryable failures (blocked URLs, rejected media, policy) stay `failed`; retryable failures re-queue with backoff.
 
-Provider policy is shared domain code: SoundCloud/YouTube/hearthis expose metadata only; Freeteknomusic and Archive.org may acquire audio when an explicit non-metadata rights basis is attested. User uploads store a private `urn:syco23:upload:…` handle, never a filesystem path. The worker never opens SQLite: it leases jobs, writes private artifacts, scores evidence and reports completion. Non-retryable failures (blocked URLs, rejected media, policy) stay `failed`; retryable failures re-queue with backoff.
+Metadata jobs snapshot the full sourced facts (`ImportMetadataFactsSchema`) as a private `metadata` artifact and submit per-field evidence with the sourced value. Finalize reads that bounded, hash-checked snapshot and builds the canonical record from it: a provider job with no readable snapshot is rejected with `409`, and a user upload needs a title from the request body or the snapshot. Rejected evidence is never promoted into a claim, and `claimsApplied` counts only claims that were selected or corroborated. Finalize returns `{ record, mixId, claimsApplied }`.
+
+The API and worker share the `mixsets_imports` volume (`/app/data/imports`) and the same storage configuration, so finalize can read artifacts the worker wrote and the worker can read an original upload the API accepted. S3-compatible storage is signed with AWS Signature V4. Input and output quotas default to 256 MiB each, comfortably inside the API (768 MB) and worker (1.5 GB, 640 MB `/tmp`) container limits; request bodies are buffered, so the ceiling is deliberately below the container memory.
+
+Request body limits are explicit per route:
+
+| Route | Limit |
+| --- | --- |
+| JSON curator/import metadata | `readJsonBody` default, 2 MiB |
+| `POST /api/imports/{id}/original` | `IMPORT_MAX_INPUT_BYTES`, 256 MiB |
+| Worker control-plane bodies | 2 MiB |
+| `POST /api/artwork/fetch`, discovery and catalog writes | JSON body, 2 MiB |
+
+`readRequestBytes` rejects a body while streaming as soon as it crosses the route limit, so an oversized request is not fully buffered before the `413`.
 
 A single-user local mode exists for the operator's own machine. Setting `CURATOR_AUTH_DISABLED=true` makes every request authenticate as the curator, so the GUI never blocks on a login. It is opt-in, is ignored whenever `NODE_ENV=production`, and logs a warning on start. The deployed worker sets `NODE_ENV: production` and requires `CURATOR_PASSWORD_HASH`, so it cannot be opened by this variable. The exact-origin check and all input validation continue to apply in this mode; only authentication is skipped.
 

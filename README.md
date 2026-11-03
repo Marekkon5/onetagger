@@ -15,16 +15,19 @@ The active web product no longer contains OneTagger's AutoTagger, QuickTag, trac
 ## Providers
 
 - **archive.freeteknomusic.org** — bounded HTTP directory crawler; never treated as FTP and never downloads complete audio just to discover metadata.
-- **SoundCloud** — official API only; long-form discovery uses duration filtering and private app credentials. Already-linked public tracks can supply cover art through oEmbed.
+- **SoundCloud** — official API only; long-form discovery uses duration filtering and private app credentials. Already-linked public tracks can supply cover art through oEmbed. Audio import is limited to tracks the uploader marked downloadable.
 - **Internet Archive** — Advanced Search + Metadata API.
-- **Discogs** — artist / crew-like artist / label enrichment and images, not long-mix track matching.
+- **Discogs** — artist / crew-like artist / label enrichment and images, plus release/master metadata import; no mix audio.
 - **YouTube** — known public video metadata and thumbnails without credentials; text search with a private Data API key.
-- **hearthis.at** — public track search, metadata and track artwork without credentials, subject to provider limits.
-- **Mixcloud** — public read API for long-form cloudcast search and metadata; no credentials are required at all.
+- **hearthis.at** — public track search, metadata, track artwork and provider-authorised audio without credentials, subject to provider limits.
+- **Mixcloud** — public read API for long-form cloudcast search and metadata import; audio only for shows Mixcloud reports as downloadable.
+- **MusicBrainz** — public recording/release/release-group metadata with a descriptive User-Agent; no mix audio.
 
-See [docs/PROVIDERS.md](docs/PROVIDERS.md).
+See [docs/PROVIDERS.md](docs/PROVIDERS.md) for the per-provider import capability matrix.
 
-The Providers screen links to setup guides for SoundCloud, Discogs and YouTube. Credentials are entered only in an interactive VPS terminal, never in the public web app. A known public SoundCloud, YouTube or hearthis.at link can be previewed as artwork from a mix detail view. Direct public Freeteknomusic and Archive.org audio can be analyzed into a real waveform on demand.
+Import rights are deployment-wide: `IMPORT_GLOBAL_RIGHTS_CONFIRMATION` defaults to `true`, so the operator confirms once in private deployment configuration and the server records that attestation for every import. There is no per-mixset rights prompt. Providers that restrict a specific track or show still fail honestly; no protected stream is bypassed.
+
+The Providers screen links to setup guides for SoundCloud, Discogs and YouTube. Credentials are entered only in an interactive VPS terminal, never in the public web app. A known public SoundCloud, YouTube, hearthis.at or Mixcloud link can be previewed as artwork from a mix detail view. Direct public Freeteknomusic and Archive.org audio can be analyzed into a real waveform on demand.
 
 ## Local development
 
@@ -70,7 +73,7 @@ pnpm test
 pnpm build
 ```
 
-`pnpm test` runs the shared-domain, client API/store, server, import-worker and deployment suites. The SQLite Node API emits Node's experimental SQLite warning on Node 22; production is pinned to Node 22.23.3. Durable import jobs stay disabled unless `IMPORTS_ENABLED` is set and curator authentication is configured.
+`pnpm test` runs the shared-domain, client API/store, server, import-worker and deployment suites. The SQLite Node API emits Node's experimental SQLite warning on Node 22; production is pinned to Node 22.23.3. Durable import jobs stay disabled unless `IMPORTS_ENABLED` is set, curator authentication (`AUTH_MODE=on` with a real hash) is configured, and `IMPORT_WORKER_SECRET` is present. Route-level behavior is covered by `pnpm test:e2e`.
 
 ## Verification status
 

@@ -132,7 +132,7 @@ function curateRecord(context: CatalogRouteContext, record: CatalogRecord, patch
     const value = validateField(validationRecord, field, raw);
     updated = setFieldValue(updated, field, value);
     return FieldClaimSchema.parse({ targetRecordId: record.id, field, value,
-      provider: { provider: 'freeteknomusic', resourceType: 'curator', externalId: actor },
+      provider: { provider: 'curator', resourceType: 'curation', externalId: actor },
       sourceUrl: 'https://mixsets.syco23.org/catalog/' + record.id, observedAt,
       evidence: 'curated', matchExplanation: 'Explicit curator correction' });
   });
@@ -183,16 +183,6 @@ async function dispatchCatalogRoute(context: CatalogRouteContext, request: Incom
   const path = url.pathname;
 
 
-  if (request.method === 'POST' && path === '/api/catalog/merge') {
-    if (!requireCurator(context, request, response)) return true;
-    const input = inputObject(await readJsonBody(request));
-    if (typeof input.survivor !== 'string' || typeof input.duplicate !== 'string' || !Array.isArray(input.expectedRevisions)
-      || input.expectedRevisions.length !== 2 || !input.expectedRevisions.every(value => Number.isInteger(value) && value > 0))
-      throw new HttpInputError('survivor, duplicate and two expected revisions are required', 400);
-    sendJson(response, 200, mergeRecords(context.repository, input.survivor as RecordId, input.duplicate as RecordId,
-      input.expectedRevisions as [number, number], context.auth.authenticate(request)!));
-    return true;
-  }
   if (request.method === 'POST' && path === '/api/catalog/records') {
     if (!requireCurator(context, request, response)) return true;
     const input = inputObject(await readJsonBody(request));
@@ -420,7 +410,7 @@ async function dispatchCatalogRoute(context: CatalogRouteContext, request: Incom
       };
       if (typeof input.survivor !== 'string' || typeof input.duplicate !== 'string'
         || !Array.isArray(input.expectedRevisions) || input.expectedRevisions.length !== 2
-        || !input.expectedRevisions.every((revision) => Number.isInteger(revision))) {
+        || !input.expectedRevisions.every((revision) => Number.isInteger(revision) && (revision as number) > 0)) {
         sendJson(response, 400, { error: 'survivor, duplicate and two expectedRevisions are required' });
         return true;
       }

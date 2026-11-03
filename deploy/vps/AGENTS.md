@@ -16,7 +16,11 @@ Deploy the API and optional import worker, configure the curator privately, pers
 ## Local Contracts
 
 - Real secrets live only in `deploy/vps/.env` with owner-only permissions. Never commit them or paste them into the browser.
-- The API mounts `mixsets_data:/app/data`; the worker mounts `mixsets_imports:/app/data/imports`. Both run read-only with dropped capabilities, `no-new-privileges`, pid/memory/CPU limits and log rotation.
+- The API mounts `mixsets_data:/app/data` and `mixsets_imports:/app/data/imports`; the worker mounts the same `mixsets_imports` volume. Both run read-only with dropped capabilities, `no-new-privileges`, pid/memory/CPU limits and log rotation.
+- The API and worker must receive identical import storage configuration (`IMPORT_STORAGE_DRIVER`, local root or S3 endpoint/bucket/keys/region) so finalize can read worker artifacts and the worker can read accepted originals.
+- `IMPORT_GLOBAL_RIGHTS_CONFIRMATION` defaults to `true`: the operator attests once that they hold the rights to download/process provider content, and the API stores that basis for every import. Set it to `false` only to require an explicit per-request basis.
+- The worker receives the provider credentials it needs for import (`SOUNDCLOUD_*`, `DISCOGS_TOKEN`, `MUSICBRAINZ_USER_AGENT`) from the same private environment; never expose them to the client bundle.
+- Import quotas default to 256 MiB input and output, sized for the API 768 MB and worker 1.5 GB / 640 MB `/tmp` limits.
 - `AUTH_MODE=off` is an explicit open-access deployment. It must not be combined with an enabled import plane; import acquisition must stay curator-gated.
 - Backups use SQLite's online backup/VACUUM INTO over a read-write connection, verify integrity and foreign keys, and restore only to a new path. A live database file copy alone is not a backup.
 - Deployment scripts validate inputs and never echo credentials or hashes.

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ProviderIdSchema, RecordIdSchema, TimestampSchema } from './schemas.js';
+import { CatalogRecordSchema, ProviderIdSchema, RecordIdSchema, TimestampSchema } from './schemas.js';
 
 const httpUrlSchema = z.url({ protocol: /^https?$/ }).max(2048);
 /** Provider jobs store an http(s) URL; user uploads store a private URN, never a filesystem path. */
@@ -17,6 +17,31 @@ export const ImportProviderSchema = z.union([
 ]);
 
 export type ImportProvider = z.infer<typeof ImportProviderSchema>;
+
+/**
+ * Structured facts a worker snapshots for one metadata/audio job. The server
+ * reads these at finalize time, so a real provider title, description, duration
+ * and artwork become canonical claims instead of placeholders.
+ */
+export const ImportMetadataFactsSchema = z.object({
+  provider: ImportProviderSchema,
+  sourceUrl: ImportSourceUrlSchema,
+  title: z.string().min(1).max(500),
+  artists: z.array(z.string().min(1).max(500)).max(100).optional(),
+  crews: z.array(z.string().min(1).max(500)).max(100).optional(),
+  uploader: z.string().max(500).optional(),
+  description: z.string().max(10000).optional(),
+  durationMs: z.number().int().positive().max(86400000).optional(),
+  recordedAt: z.string().min(1).max(40).optional(),
+  uploadedAt: z.string().min(1).max(40).optional(),
+  genres: z.array(z.string().min(1).max(500)).max(100).optional(),
+  styles: z.array(z.string().min(1).max(500)).max(100).optional(),
+  artworkUrl: httpUrlSchema.optional(),
+  externalId: z.string().min(1).max(300).optional(),
+  observedAt: TimestampSchema,
+}).strict();
+
+export type ImportMetadataFacts = z.infer<typeof ImportMetadataFactsSchema>;
 
 export const ImportModeSchema = z.enum(['metadata', 'audio']);
 
@@ -52,9 +77,17 @@ export const RightsBasisSchema = z.enum([
   'licensed_archive',
   'rights_holder',
   'separate_agreement',
+  'global_rights_confirmation',
 ]);
 
 export type RightsBasis = z.infer<typeof RightsBasisSchema>;
+
+/**
+ * The deployment-wide attestation. When the operator enables the global rights
+ * policy, the server injects this basis for every import so a curator never has
+ * to repeat the same confirmation for an individual mixset.
+ */
+export const GLOBAL_RIGHTS_BASIS = 'global_rights_confirmation' as const;
 
 export const ProviderCapabilitySchema = z.object({
   metadata: z.boolean(),
@@ -69,7 +102,9 @@ export const ProviderCapabilityMatrixSchema = z.object({
   archiveorg: ProviderCapabilitySchema,
   discogs: ProviderCapabilitySchema,
   youtube: ProviderCapabilitySchema,
-  hearthis: ProviderCapabilitySchema
+  hearthis: ProviderCapabilitySchema,
+  mixcloud: ProviderCapabilitySchema,
+  musicbrainz: ProviderCapabilitySchema
 }).strict();
 
 export type ProviderCapabilityMatrix = z.infer<typeof ProviderCapabilityMatrixSchema>;
@@ -77,19 +112,23 @@ export type ProviderCapabilityMatrix = z.infer<typeof ProviderCapabilityMatrixSc
 /**
  * Which providers may supply mix metadata vs. downloadable audio.
  *
- * Streaming-only origins (SoundCloud, YouTube, hearthis.at) expose metadata,
- * artwork and duration through public APIs/oEmbed but no permitted audio
- * download, so audio stays false. Archive-style origins expose direct audio
- * files for duration probing and permitted analysis. Discogs only enriches
- * entity profiles and never supplies mix audio.
+ * SoundCloud, hearthis.at and Mixcloud advertise audio because their public
+ * APIs expose a provider-authorised download for at least some media
+ * (SoundCloud `download_url` on downloadable tracks, hearthis.at `stream_url` /
+ * `download_url`, Mixcloud's downloadable flag). The worker must still fail
+ * honestly when a specific item is not downloadable; it never bypasses a
+ * provider's protection. YouTube stays streaming-only, and Discogs and
+ * MusicBrainz supply release/recording metadata but no mix audio.
  */
 export const PROVIDER_CAPABILITIES = ProviderCapabilityMatrixSchema.parse({
   freeteknomusic: { metadata: true, audio: true },
-  soundcloud: { metadata: true, audio: false },
+  soundcloud: { metadata: true, audio: true },
   archiveorg: { metadata: true, audio: true },
   discogs: { metadata: true, audio: false },
   youtube: { metadata: true, audio: false },
-  hearthis: { metadata: true, audio: false }
+  hearthis: { metadata: true, audio: true },
+  mixcloud: { metadata: true, audio: true },
+  musicbrainz: { metadata: true, audio: false }
 });
 
 export const ConversionSchema = z.object({
@@ -110,11 +149,16 @@ export const ImportRequestSchema = z.object({
   mode: ImportModeSchema,
   conversion: ConversionSchema.optional(),
   autoApplyThreshold: z.number().min(0).max(100).default(80),
+  /**
+   * Optional because a deployment-wide rights confirmation can be injected by
+   * the server. A request that carries its own basis is still validated; audio
+   * fails closed when no usable basis is present.
+   */
   rights: z.object({
     basis: RightsBasisSchema,
     attestationVersion: z.string().min(1).max(40),
     proofObjectKey: z.string().min(1).max(1024).optional(),
-  }).strict(),
+  }).strict().optional(),
 }).strict().superRefine((value, ctx) => {
   if (value.source.provider === 'user_upload' && !value.source.uploadId) {
     ctx.addIssue({ code: 'custom', message: 'user_upload requires source.uploadId', path: ['source', 'uploadId'] });
@@ -167,7 +211,7 @@ export function decideImportPolicy(request: ImportRequest): { allowed: boolean; 
   if (!capabilities.serverSideAudioAcquisition) {
     return { allowed: false, blockedPolicy: true, capabilities, reason: `Server-side audio acquisition is disabled for ${request.source.provider}` };
   }
-  if (request.rights.basis === 'provider_metadata_only') {
+  if (!request.rights || request.rights.basis === 'provider_metadata_only') {
     return { allowed: false, blockedPolicy: true, capabilities, reason: 'Audio imports require an explicit audio rights basis' };
   }
   return { allowed: true, blockedPolicy: false, capabilities };
@@ -193,6 +237,15 @@ export const ImportJobSchema = z.object({
 }).strict();
 
 export type ImportJob = z.infer<typeof ImportJobSchema>;
+
+/** Response envelope from `POST /api/imports/{id}/finalize`. */
+export const ImportFinalizeResultSchema = z.object({
+  record: CatalogRecordSchema,
+  mixId: RecordIdSchema,
+  claimsApplied: z.number().int().nonnegative(),
+}).strict();
+
+export type ImportFinalizeResult = z.infer<typeof ImportFinalizeResultSchema>;
 
 export function terminalImportState(state: ImportJobState): boolean {
   return state === 'completed' || state === 'blocked_policy' || state === 'failed' || state === 'cancelled';

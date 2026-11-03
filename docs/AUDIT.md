@@ -483,3 +483,126 @@ pnpm build && pnpm test:e2e`, plus new regression tests for H1-H5.
 - Provider live behaviour was not exercised against the network; findings are
   contract-level.
 - The merge commit `b445059` is local and was not pushed as part of this audit.
+
+---
+
+# Remediation record — 2026-11-03
+
+Every finding above has a code fix and, where behaviour is route- or
+contract-level, a regression test. This section is additive; the findings and
+the original verification baseline are preserved unchanged.
+
+## Verification after remediation
+
+Run from the repository root:
+
+| Command | Result |
+| --- | --- |
+| `pnpm typecheck` | pass |
+| `pnpm test` | pass — 242 tests: 15 domain, 64 client, 138 server, 12 worker, 13 deployment |
+| `pnpm build` | pass |
+| `pnpm test:e2e` | pass — 12/12 |
+| `IMPORT_WORKER_SECRET=… docker compose -f deploy/vps/compose.yml config` | pass |
+
+The Compose validation requires `IMPORT_WORKER_SECRET` because the worker fails
+closed without it; the command was run with a throwaway value.
+
+## Finding-by-finding
+
+### High
+
+- **H1 — real metadata at finalize.** Metadata and audio jobs now snapshot
+  `ImportMetadataFactsSchema` (title, artists, crews, uploader, description,
+  duration, dates, genres, styles, artwork, external id) and submit per-field
+  evidence carrying the sourced `value`. `server/src/imports/finalize.ts` reads
+  the `metadata` artifact with a 256 KiB cap and hash verification, and
+  `handleFinalize` builds the record and claims from those facts. A provider job
+  without a readable snapshot returns `409`; there is no placeholder title.
+  Test: *metadata finalize uses the worker facts for the real title and claims*;
+  *provider finalize refuses jobs without a readable metadata snapshot*.
+- **H2 — valid user-upload finalize.** A user upload becomes a canonical mix
+  with `sources: []`; the private `urn:syco23:upload:…` handle stays only in the
+  import job and provenance tables. Finalize requires a title from the body or
+  the worker snapshot and accepts an optional HTTP `playbackUrl`. Test:
+  *user-upload finalize creates a valid record without a private URN source*.
+- **H3 — client/server contracts.** `ImportJobDetailSchema.evidence` uses
+  `hardGates`, and `catalogApi.finalize` parses
+  `ImportFinalizeResultSchema` (`{ record, mixId, claimsApplied }`). Client API
+  tests cover the envelope and evidence shape.
+- **H4 — `AUTH_MODE=off`.** `importsEnabled` now uses `resolveImportGate`,
+  requiring `IMPORTS_ENABLED`, a real `scrypt$…` hash and
+  `curatorAuth.mode === 'on'`. `AUTH_MODE=off` cannot expose acquisition;
+  startup warns when imports were requested but the gate is closed. Tests:
+  *imports stay dark under AUTH_MODE=off even with a configured curator hash*;
+  *imports require an explicit request flag, a real hash and AUTH_MODE=on*.
+- **H5 — CORS preflight.** Both the shared CORS helper and the composition-root
+  JSON response advertise `content-type, idempotency-key`. Test: *CORS preflight
+  allows the idempotency-key header*.
+
+### Medium
+
+- **M1 — Mixcloud capability.** `PROVIDER_CAPABILITIES` includes
+  `mixcloud: { metadata: true, audio: false }`. Policy and docs agree.
+- **M2 — worker resolver coverage.** Resolvers exist for `soundcloud`,
+  `youtube`, `hearthis`, `mixcloud`, `archiveorg`, `freeteknomusic` and
+  `user_upload`, each emitting facts. Test: *every metadata-capable provider has
+  a worker resolver*.
+- **M3 — lease ownership.** Events, artifacts, evidence and completion all
+  require the `x-import-worker-id` that holds an unexpired lease and return
+  `409` otherwise, not just heartbeat. Test: *worker mutations require the
+  current lease owner*.
+- **M4 — bounded memory.** Import defaults are 256 MiB input and 256 MiB output;
+  bodies are rejected while streaming past the cap. Compose uses API 768 MB,
+  worker 1.5 GB and a 640 MB `/tmp`; `.env.example`, Compose and code defaults
+  agree.
+- **M5 — curator provenance.** `ClaimProviderIdSchema` adds `curator`;
+  curator edits are recorded as `{ provider: 'curator', resourceType:
+  'curation' }`, and enrichment reports filter curator claims rather than
+  mislabelling them as a provider.
+- **M6 — one merge handler.** The unreachable earlier `POST /api/catalog/merge`
+  block is deleted; the remaining handler requires positive revisions and maps
+  errors locally.
+- **M7 — discovery eviction.** Terminal discovery jobs are removed after a
+  30-minute TTL and the retained terminal set is capped at 200 on every
+  list/get/create.
+- **M8 — metadata facts and claims.** `ImportMetadataFactsSchema` is the shared
+  fact contract; migration `011-evidence-values.sql` persists evidence values;
+  `FieldDefinitions` remains the claim allow-list and merge selects per field.
+- **M9 — rejected evidence.** `claimsFromImportJob` skips `decision: 'reject'`
+  before building a claim. Test: *rejected worker evidence never becomes a
+  claim*.
+- **M10 — no password prompt.** Finalize authorizes via the curator session only;
+  the client sends an optional `{ title, playbackUrl }` body and no credential.
+- **M11 — already-finalized guard.** The client checks `entry.job.mixId`, so a
+  linked job is not offered for finalize again.
+- **M12 — SigV4 signing.** Both `server/src/imports/storage.ts` and
+  `worker/src/storage.ts` sign `PUT`/`GET` with AWS Signature V4 and require
+  credentials in S3 mode; `IMPORT_S3_REGION` is configured. Test: *S3 requests
+  carry a deterministic AWS Signature V4*.
+
+### Low and tests
+
+- **L1 — route limits documented.** `importLimits()` states the memory rationale
+  and the `.env.example`/Compose limits match it.
+- **L2 — non-durable discovery surfaced.** `/api/health` returns
+  `discovery: { durable: false, running, pending, retained }`; the import view
+  states that discovery is not durable.
+- **L3 — one capability source.** `PROVIDER_CAPABILITIES` is documented as the
+  source of truth, with a matching capability table in `PROVIDERS.md` and
+  README. Resolver coverage is tested against the matrix.
+- **T1 — e2e race.** The spec waits for `/mix/` before capturing the detail URL;
+  the suite passes 12/12.
+- **T2 — end-to-end finalize coverage.** Server route tests cover user-upload
+  finalize and metadata-with-evidence finalize; the client parses both.
+- **T3 — CORS and lease tests.** The preflight and non-owner worker-mutation
+  tests are in `server/src/imports/routes.test.ts`.
+
+## Residual notes
+
+- The memory ceiling is enforced by a streaming byte counter plus conservative
+  quotas, not by streaming uploads to disk; a future large-upload path should
+  stream to storage.
+- SigV4 is unit-tested for deterministic signing, not against a live MinIO/S3
+  endpoint. Keep the local store as the default until that integration is run.
+- Discovery remains process-local by design; the queue is durable, discovery is
+  not.

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  GLOBAL_RIGHTS_BASIS,
   ImportRequestSchema,
   PROVIDER_CAPABILITIES,
   decideImportPolicy,
@@ -10,6 +11,49 @@ export class ImportValidationError extends Error {
   constructor(message: string, readonly statusCode = 400) {
     super(message);
   }
+}
+
+/**
+ * Deployment-wide rights policy. The operator confirms once, in private
+ * deployment configuration, that they hold the rights to download and process
+ * provider content. When enabled (the default), the server injects the same
+ * attestation for every import, so a per-mixset confirmation is obsolete.
+ */
+export const GLOBAL_RIGHTS_ATTESTATION_VERSION = 'global-2026-11';
+
+export function globalRightsConfirmationEnabled(
+  value: string | undefined = process.env.IMPORT_GLOBAL_RIGHTS_CONFIRMATION,
+): boolean {
+  if (value === undefined || value === '') return true;
+  return !/^(0|false|no|off)$/i.test(value.trim());
+}
+
+type ResolvedImportRequest = ImportRequest & {
+  rights: NonNullable<ImportRequest['rights']>;
+};
+
+/**
+ * Attach the effective rights attestation. With the global policy enabled the
+ * server always sets it and a client-supplied basis cannot narrow or override
+ * it. With the policy disabled, the request must carry its own basis.
+ */
+export function resolveRightsPolicy(
+  request: ImportRequest,
+  globalConfirmation = globalRightsConfirmationEnabled(),
+): ResolvedImportRequest {
+  if (!globalConfirmation) {
+    if (!request.rights) {
+      throw new ImportValidationError('A rights basis is required because the global rights confirmation is disabled', 400);
+    }
+    return request as ResolvedImportRequest;
+  }
+  return {
+    ...request,
+    rights: {
+      basis: GLOBAL_RIGHTS_BASIS,
+      attestationVersion: GLOBAL_RIGHTS_ATTESTATION_VERSION,
+    },
+  };
 }
 
 /**
@@ -42,6 +86,22 @@ export function canAcquireAudio(provider: string, basis: string): boolean {
 
 export function newImportId(prefix = 'imp'): string {
   return `${prefix}_${randomUUID().replace(/-/g, '').slice(0, 24)}`;
+}
+
+/**
+ * The import plane is opt-in and must never run anonymously. It requires an
+ * explicit request flag, a real scrypt curator hash and `AUTH_MODE=on`; with
+ * `AUTH_MODE=off` every request authenticates as the curator, so enabling
+ * imports there would expose acquisition without a login.
+ */
+export function resolveImportGate(input: {
+  requested: string | undefined;
+  passwordHash: string | undefined;
+  authMode: 'on' | 'off';
+}): boolean {
+  return /^(1|true|yes|on)$/i.test(input.requested ?? '')
+    && (input.passwordHash ?? '').startsWith('scrypt$')
+    && input.authMode === 'on';
 }
 
 export { decideImportPolicy, PROVIDER_CAPABILITIES };

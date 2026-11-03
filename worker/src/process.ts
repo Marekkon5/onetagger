@@ -1,7 +1,13 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { durationComponent, scoreEvidence } from '@syco23/catalog-domain';
+import {
+  ImportMetadataFactsSchema,
+  RecordingDateSchema,
+  durationComponent,
+  scoreEvidence,
+  type ImportMetadataFacts,
+} from '@syco23/catalog-domain';
 import { ControlClient, type WorkSpec } from './control.js';
 import { boundedFFmpegConvert, boundedFFprobe, conversionTimeoutMs } from './ffmpeg.js';
 import { NonRetryableError, resolveSource } from './resolvers.js';
@@ -36,6 +42,23 @@ function startHeartbeat(client: ControlClient, jobId: string, heartbeatMs: numbe
   return { stop: () => clearInterval(timer), get alive() { return leaseAlive; } };
 }
 
+/** Persist the sourced facts so finalize can build a real record for any job. */
+async function writeMetadataSnapshot(
+  store: ReturnType<typeof createStore>,
+  client: ControlClient,
+  jobId: string,
+  facts: ImportMetadataFacts,
+): Promise<void> {
+  const snapshot = Buffer.from(JSON.stringify(facts), 'utf8');
+  const snapshotSha = sha256(snapshot);
+  const key = objectKey(jobId, 'metadata', snapshotSha, 'json');
+  await store.putPrivate(key, snapshot, snapshotSha);
+  await client.registerArtifact(jobId, {
+    id: `art_${snapshotSha.slice(0, 24)}`, role: 'metadata', objectKey: key,
+    sha256: snapshotSha, mimeType: 'application/json', sizeBytes: snapshot.length,
+  });
+}
+
 export async function processAudioJob(client: ControlClient, config: WorkerConfig, spec: WorkSpec): Promise<void> {
   const { job, limits } = spec;
   const store = createStore(config);
@@ -48,7 +71,11 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
       sourceUrl: job.sourceUrl,
       mode: 'audio',
       originalObjectKey: spec.originalObjectKey,
+      credentials: config.providers,
     });
+    // Audio jobs carry their own facts too. Persisting them keeps finalize
+    // uniform: it never has to guess a provider title from the URL.
+    if (source.facts) await writeMetadataSnapshot(store, client, job.id, source.facts);
 
     await client.event(job.id, 'acquiring', { state: 'acquiring' });
     let raw: Buffer;
@@ -61,6 +88,7 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
       const fetched = await boundedFetch(source.audioUrl, {
         maxBytes: limits.maxInputBytes,
         timeoutMs: 5 * 60_000,
+        ...(source.audioHeaders ? { headers: source.audioHeaders } : {}),
       });
       raw = fetched.bytes;
       finalUrl = fetched.finalUrl;
@@ -70,6 +98,9 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
     const rawSha = sha256(raw);
     const rawPath = join(workdir, 'input.raw');
     await writeFile(rawPath, raw, { mode: 0o600 });
+    // FFmpeg reads from disk; drop the in-memory copy so peak RSS stays
+    // bounded by a single buffer instead of input + output.
+    raw = Buffer.alloc(0);
 
     await client.event(job.id, 'probing', { state: 'probing' });
     const probe = await boundedFFprobe(rawPath, limits);
@@ -83,7 +114,11 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
       bitrateKbps: 320,
       maxOutputBytes: limits.maxOutputBytes,
       timeoutMs: conversionTimeoutMs(probe.durationMs),
-      metadata: { title: source.title ?? job.id, artist: job.provider },
+      metadata: {
+        ...(source.facts?.title ? { title: source.facts.title } : {}),
+        ...(source.facts?.artists?.length ? { artist: source.facts.artists.join(', ') } : {}),
+        ...(source.facts?.recordedAt ? { date: source.facts.recordedAt.slice(0, 4) } : {}),
+      },
     });
     if (!heartbeat.alive) throw new RetryableError('Lease lost during conversion');
     const { readFile, stat } = await import('node:fs/promises');
@@ -110,7 +145,7 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
 
     await client.event(job.id, 'scoring', { state: 'scoring' });
     const scored = scoreEvidence({
-      I: 1, T: source.title ? 1 : 0.4,
+      I: 1, T: source.facts?.title ? 1 : 0.4,
       D: durationComponent(probe.durationMs, verified.durationMs),
       R: 0.2, P: 1, C: 0, X: 0,
       identityGate: true, rightsGate: true, noDirectConflict: true, providerPolicyAllowsUse: true,
@@ -123,26 +158,58 @@ export async function processAudioJob(client: ControlClient, config: WorkerConfi
   }
 }
 
-/** Metadata-only jobs: resolve, snapshot as private artifact, score, finish. */
+function recordingDateFact(value: string | undefined): unknown {
+  if (!value) return undefined;
+  const precision = value.length === 4 ? 'year' : value.length === 7 ? 'month' : 'day';
+  const parsed = RecordingDateSchema.safeParse({ value, precision });
+  return parsed.success ? parsed.data : undefined;
+}
+
+/**
+ * Per-field evidence with the sourced value attached. Finalize reads these
+ * values, so a claim never has to be reconstructed from a URL. Provider APIs
+ * produce direct facts; filename/folder-derived freeteknomusic identity is
+ * marked parsed and stays in Review.
+ */
+export function metadataEvidence(provider: string, facts: ImportMetadataFacts): unknown[] {
+  const direct = provider !== 'freeteknomusic';
+  const entries: Array<[string, unknown]> = [
+    ['title', facts.title],
+    ['description', facts.description],
+    ['durationMs', facts.durationMs],
+    ['genres', facts.genres?.length ? facts.genres : undefined],
+    ['styles', facts.styles?.length ? facts.styles : undefined],
+    ['recordingDate', recordingDateFact(facts.recordedAt)],
+    ['cover', facts.artworkUrl ? { role: 'mix-cover', url: facts.artworkUrl } : undefined],
+  ];
+  return entries
+    .filter(([, value]) => value !== undefined)
+    .map(([field, value]) => ({
+      ...scoreEvidence({
+        I: 1, T: direct ? 0.9 : 0.5, D: 1, R: direct ? 0.9 : 0.5,
+        P: 1, C: direct ? 1 : 0.4, X: 0,
+        identityGate: true, rightsGate: true, noDirectConflict: true, providerPolicyAllowsUse: true,
+      }),
+      field,
+      value,
+    }));
+}
+
+/** Metadata-only jobs: resolve, snapshot full facts, score per field, finish. */
 export async function processMetadataJob(client: ControlClient, config: WorkerConfig, spec: WorkSpec): Promise<void> {
   const { job } = spec;
   const store = createStore(config);
   await client.event(job.id, 'resolving', { state: 'resolving' });
-  const source = await resolveSource({ provider: job.provider, sourceUrl: job.sourceUrl, mode: 'metadata' });
-  const snapshot = Buffer.from(JSON.stringify({
-    provider: job.provider, sourceUrl: job.sourceUrl, title: source.title,
-    artworkUrl: source.artworkUrl, observedAt: new Date().toISOString(),
-  }), 'utf8');
-  const snapshotSha = sha256(snapshot);
-  const key = objectKey(job.id, 'metadata', snapshotSha, 'json');
-  await store.putPrivate(key, snapshot, snapshotSha);
-  await client.registerArtifact(job.id, {
-    id: `art_${snapshotSha.slice(0, 24)}`, role: 'metadata', objectKey: key,
-    sha256: snapshotSha, mimeType: 'application/json', sizeBytes: snapshot.length,
+  const source = await resolveSource({
+    provider: job.provider,
+    sourceUrl: job.sourceUrl,
+    mode: 'metadata',
+    credentials: config.providers,
   });
-  const scored = scoreEvidence({
-    I: 1, T: source.title ? 0.8 : 0.2, D: 0, R: 0.3, P: 1, C: 0, X: 0,
-    identityGate: true, rightsGate: true, noDirectConflict: true, providerPolicyAllowsUse: true,
-  });
-  await client.submitEvidence(job.id, [{ ...scored, field: 'metadata' }]);
+  if (!source.facts) throw new NonRetryableError('Provider resolver returned no metadata facts');
+  const facts = ImportMetadataFactsSchema.parse(source.facts);
+  await writeMetadataSnapshot(store, client, job.id, facts);
+  const evidence = metadataEvidence(job.provider, facts);
+  if (evidence.length === 0) throw new NonRetryableError('Provider returned no scorable metadata facts');
+  await client.submitEvidence(job.id, evidence);
 }

@@ -16,6 +16,8 @@ If you do not have Artist Pro, the worker can still resolve a cover for an exact
 
 No HTML scraping, access-control bypass or protected stream extraction is implemented.
 
+Import capability: metadata and audio (`{ metadata: true, audio: true }`). Audio is limited to tracks whose uploader marked them downloadable: the worker uses the official API `download_url` with `SOUNDCLOUD_CLIENT_ID`/`SOUNDCLOUD_CLIENT_SECRET` (or `SOUNDCLOUD_ACCESS_TOKEN`) and fails honestly for a restricted track. It never extracts a protected HLS or progressive stream.
+
 ## YouTube
 
 Known public video URLs use YouTube's oEmbed metadata and thumbnail without credentials. Text discovery and provider-wide enrichment use the official YouTube Data API v3 with `YOUTUBE_API_KEY`; the search result is checked against video details and the configured minimum duration. Upload date is never treated as recording date. A channel/uploader is never promoted to a performing artist. Title parsing may provide an identity suggestion, but uncertain performer matches remain in Review. A thumbnail is taken automatically from an already-linked video source without any title or duration comparison. For new search results it requires title overlap plus a compatible duration — and an unknown duration skips the duration check entirely — plus provider confidence of at least 0.7; other images stay reviewable.
@@ -26,9 +28,13 @@ Enable YouTube Data API v3 in [Google Cloud](https://developers.google.com/youtu
 
 Uses the public `api-v2.hearthis.at` search and track endpoints; no account is required. Only images under the track-image path are considered cover artwork. Uploader avatars and unrelated broad search results are not used as canonical covers. Public API rate limits can temporarily make search unavailable. The adapter never proposes a performing artist: the uploader is recorded separately as the uploader. Known public track URLs resolve server-side through `POST /api/artwork/preview`; there is currently no detail-view control that previews or links them.
 
+Import capability: metadata and audio (`{ metadata: true, audio: true }`). The worker uses the track's `download_url` when the uploader published one, otherwise the provider's own `stream_url` listen redirect, which resolves to the public MP3 the site plays. It does not scrape the player page or bypass a restriction.
+
 ## Mixcloud
 
 Uses the public read API at `api.mixcloud.com` — reading (search, show metadata) requires **no credentials**; only writes would need OAuth, which this archive never performs. `GET /search/?q=…&type=cloudcast` returns long-form cloudcasts, and a known `mixcloud.com/<user>/<show>/` URL resolves through the same host as an object lookup. It captures the show name, `audio_length` (upload duration), upload `created_time`, description, tags and `pictures` artwork. The uploader/host is recorded as the uploader and is never proposed as a performing artist; `audio_length` and `created_time` are upload facts and are never promoted to a recording date. Artwork URLs are only accepted from `*.mixcloud.com`. Read rate limits can temporarily make search unavailable. Known public show URLs resolve server-side through `POST /api/artwork/preview`.
+
+Import capability: metadata and audio (`{ metadata: true, audio: true }`). The worker resolves a cloudcast URL into the shared metadata facts. Audio is only fetched for shows Mixcloud reports as downloadable, through the provider's own download route. The obfuscated Mixcloud stream URL is intentionally not decoded, so a restricted show fails honestly instead of being bypassed.
 
 ## Internet Archive
 
@@ -36,13 +42,40 @@ Uses `/advancedsearch.php` for discovery and `/metadata/{identifier}` for item m
 
 ## Discogs
 
-Used for entity enrichment rather than long-mix track matching. `DISCOGS_TOKEN` is optional but strongly recommended for rate limits. Crew/sound-system names are searched as artist-like entities; labels as labels. A unique exact search result is hydrated from the artist/label entity endpoint so profile text, image, and source URL are real; this also resolves aliases, real name, website URLs, groups, members and parent/sub-label hierarchy. Artist images are stored on entity profiles, never as mix cover art. Conflicting IDs and profile claims remain reviewable. Discogs is the only credentialed entity enricher, but Freeteknomusic and Archive.org additionally propose artist and crew entity records at import time as proposed records held in Review.
+Used for entity enrichment rather than long-mix track matching. Import capability: metadata only (`{ metadata: true, audio: false }`); a release or master page supplies title, artists, genres, styles, notes and primary image. `DISCOGS_TOKEN` is optional but strongly recommended for rate limits. Crew/sound-system names are searched as artist-like entities; labels as labels. A unique exact search result is hydrated from the artist/label entity endpoint so profile text, image, and source URL are real; this also resolves aliases, real name, website URLs, groups, members and parent/sub-label hierarchy. Artist images are stored on entity profiles, never as mix cover art. Conflicting IDs and profile claims remain reviewable. Discogs is the only credentialed entity enricher, but Freeteknomusic and Archive.org additionally propose artist and crew entity records at import time as proposed records held in Review.
 
 Generate a personal API token under [Discogs Developer settings](https://www.discogs.com/settings/developers). A user OAuth flow is unnecessary for these public artist and label lookups.
 
 For already-linked entities, enrichment hydrates `/artists/{id}` or `/labels/{id}` directly. Shared profiles and role-specific images belong to the entity record and are visible from every linked mix — one entity update therefore appears on every mix that references it. Matching names do not create a role or relationship. A Discogs label result alone does not establish that a label released or organized a particular mix.
 
+## MusicBrainz
+
+Uses the public MusicBrainz web service (`https://musicbrainz.org/ws/2/`) for recording, release and release-group pages. A descriptive `MUSICBRAINZ_USER_AGENT` is sent because MusicBrainz requires one. Import capability: metadata only (`{ metadata: true, audio: false }`). The worker maps title, credited artists, duration, tags and disambiguation from the selected entity. A release or first-release date is not treated as a recording date. MusicBrainz never supplies mix audio.
+
+## Import rights policy
+
+Import audio happens under one deployment-wide attestation. `IMPORT_GLOBAL_RIGHTS_CONFIRMATION` defaults to `true`: the operator confirms once, in private deployment configuration, that they hold the rights to download and process provider content. The server injects that basis for every import and stores it with the job, so the curator does not confirm rights per mixset. Set it to `false` to require an explicit request basis again.
+
+## Import capability matrix
+
+`PROVIDER_CAPABILITIES` in `packages/domain/src/import-jobs.ts` is the single source of truth; docs and adapters must match it.
+
+| Provider | Metadata import | Server-side audio acquisition |
+| --- | --- | --- |
+| Freeteknomusic | yes | yes, with the global rights confirmation |
+| Internet Archive | yes | yes, with the global rights confirmation |
+| SoundCloud | yes | yes, only for tracks the uploader marked downloadable |
+| YouTube | yes | no |
+| hearthis.at | yes | yes, via `download_url` or the official listen stream |
+| Mixcloud | yes | yes, only for shows Mixcloud reports as downloadable |
+| Discogs | yes | no |
+| MusicBrainz | yes | no |
+| User upload | n/a | yes, curator-supplied original |
+
+Every provider with metadata capability has a worker resolver that emits `ImportMetadataFactsSchema`. An advertised-but-unresolvable provider is a control-plane defect. Where a provider restricts a specific item, the job fails with an explicit non-retryable reason instead of bypassing the restriction.
+
 ## How provider data becomes canonical
+
 
 Provider output is never copied straight into a record. It arrives as a typed field claim naming the target record, the field, the normalized value, the provider, the source URL, the resource identity, when it was observed and why the match was made. A claim is then either selected, treated as agreeing with an existing value, or held in Review.
 

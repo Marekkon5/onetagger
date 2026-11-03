@@ -12,6 +12,7 @@ import { handleAuthRoute } from './auth/routes.js';
 import { handleCatalogRoute } from './catalog/routes.js';
 import { HttpInputError, isAllowedOrigin, publicErrorMessage, readJsonBody, validateSearchQuery } from './http.js';
 import { handleImportRoute } from './imports/routes.js';
+import { resolveImportGate } from './imports/policy.js';
 
 const port = Number(process.env.PORT || 8787);
 const catalog = openCatalog(process.env.CATALOG_DB_PATH || './data/catalog.sqlite');
@@ -23,10 +24,13 @@ const curatorAuth = createCuratorAuth(catalog, process.env.CURATOR_PASSWORD_HASH
 // Audit gate: import jobs create network/CPU/storage work. They stay dark until
 // explicitly enabled AND real curator authentication is configured, so AUTH_MODE
 // off/high-trust deployments can never expose the import control plane anonymously.
-const curatorAuthConfigured = (process.env.CURATOR_PASSWORD_HASH || '').startsWith('scrypt$');
-const importsEnabled = /^(1|true|yes|on)$/i.test(process.env.IMPORTS_ENABLED ?? '') && curatorAuthConfigured;
+const importsEnabled = resolveImportGate({
+  requested: process.env.IMPORTS_ENABLED,
+  passwordHash: process.env.CURATOR_PASSWORD_HASH,
+  authMode: curatorAuth.mode,
+});
 if (process.env.IMPORTS_ENABLED && !importsEnabled) {
-  console.warn('IMPORTS_ENABLED was requested but curator authentication is not configured; imports stay disabled');
+  console.warn('IMPORTS_ENABLED was requested but curator authentication (AUTH_MODE=on) is not configured; imports stay disabled');
 }
 const registry = new ProviderRegistry();
 const queue = new InMemoryJobQueue(registry);
@@ -47,7 +51,7 @@ function json(req: http.IncomingMessage, res: http.ServerResponse, status: numbe
     ...(origin ? {
       'access-control-allow-origin': origin,
       'access-control-allow-credentials': 'true',
-      'access-control-allow-headers': 'content-type',
+      'access-control-allow-headers': 'content-type, idempotency-key',
       'access-control-allow-methods': 'GET,POST,PATCH,PUT,OPTIONS',
       vary: 'Origin'
     } : {}),
@@ -85,10 +89,18 @@ const server = http.createServer(async (req, res) => {
       return json(req, res, 200, { ok: true, service: 'syco23-mixsets' });
     }
     if (req.method === 'GET' && url.pathname === '/api/health') {
-      return json(req, res, 200, { ok: true, service: 'syco23-mixsets', providers: await registry.health() });
+      return json(req, res, 200, {
+        ok: true,
+        service: 'syco23-mixsets',
+        providers: await registry.health(),
+        // Discovery jobs are in-memory and do not survive a restart; the import
+        // queue is durable. Surface the distinction instead of implying durability.
+        discovery: { durable: false, running: queue.running(), pending: queue.pending(), retained: queue.list().length },
+      });
     }
     if (req.method === 'GET' && url.pathname === '/api/providers') {
-      return json(req, res, 200, await registry.health());
+      const health = await registry.health();
+      return json(req, res, 200, health);
     }
     if (req.method === 'GET' && url.pathname === '/api/jobs') {
       return json(req, res, 200, queue.list());

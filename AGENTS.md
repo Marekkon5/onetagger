@@ -82,6 +82,7 @@ Default section order:
 - **Source of truth:** the server catalog. Browser state is a cache/migration source; a write must never appear committed before the API returns the committed record.
 - **Secrets:** provider credentials and curator material stay in private `deploy/vps/.env` or the worker environment. Never put them in the browser bundle, claim payloads, logs or fixtures.
 - **Evidence rules:** uploader/channel is not a performer; upload date is not a recording date; an avatar or generic logo is not a cover; a matching name alone does not establish an identity or role.
+- **Import rights:** `IMPORT_GLOBAL_RIGHTS_CONFIRMATION` defaults to true, so the operator attests once that they hold the rights to download/process provider content and the server injects that basis for every import. Per-mixset rights confirmation is obsolete. Providers that restrict an item still fail honestly; no protected stream is bypassed.
 - **Verification baseline:** `pnpm typecheck`, `pnpm test`, `pnpm build`; `pnpm test:e2e` when the change touches route-level UI behavior.
 
 ## Workflow

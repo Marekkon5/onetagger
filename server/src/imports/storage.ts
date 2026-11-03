@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, sep } from 'node:path';
 
@@ -70,24 +70,60 @@ export class LocalObjectStore implements ObjectStore {
 }
 
 export class S3ObjectStore implements ObjectStore {
-  constructor(private endpoint: string, private bucket: string) {}
+  constructor(
+    private endpoint: string,
+    private bucket: string,
+    private region = 'us-east-1',
+    private accessKey?: string,
+    private secretKey?: string,
+  ) {}
+
+  private signedRequest(method: 'GET' | 'PUT', key: string, payload: Buffer = Buffer.alloc(0)): { url: string; headers: Record<string, string> } {
+    assertSafeKey(key);
+    if (!this.accessKey || !this.secretKey) throw new Error('S3 credentials are required for signed requests');
+    const url = new URL(`${this.endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`);
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+    const dateStamp = amzDate.slice(0, 8);
+    const payloadHash = sha256(payload);
+    const canonicalHeaders = `host:${url.host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+    const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+    const canonicalRequest = [method, url.pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+    const scope = `${dateStamp}/${this.region}/s3/aws4_request`;
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, sha256(Buffer.from(canonicalRequest, 'utf8'))].join('\n');
+    const kDate = signKey(`AWS4${this.secretKey}`, dateStamp);
+    const kRegion = signKey(kDate, this.region);
+    const kService = signKey(kRegion, 's3');
+    const kSigning = signKey(kService, 'aws4_request');
+    const signature = signKey(kSigning, stringToSign).toString('hex');
+    return {
+      url: url.toString(),
+      headers: {
+        'x-amz-content-sha256': payloadHash,
+        'x-amz-date': amzDate,
+        authorization: `AWS4-HMAC-SHA256 Credential=${this.accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+      },
+    };
+  }
 
   async putPrivate(key: string, bytes: Buffer, expectedSha256: string): Promise<void> {
     const actual = sha256(bytes);
     if (actual !== expectedSha256) throw new Error(`Hash mismatch: expected ${expectedSha256}, got ${actual}`);
-    assertSafeKey(key);
-    const url = `${this.endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;
-    const response = await fetch(url, { method: 'PUT', body: new Uint8Array(bytes) });
+    const request = this.signedRequest('PUT', key, bytes);
+    const response = await fetch(request.url, { method: 'PUT', headers: request.headers, body: new Uint8Array(bytes) });
     if (!response.ok) throw new Error(`S3 upload failed with ${response.status}`);
   }
 
   async get(key: string): Promise<Buffer> {
-    assertSafeKey(key);
-    const url = `${this.endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;
-    const response = await fetch(url);
+    const request = this.signedRequest('GET', key);
+    const response = await fetch(request.url, { headers: request.headers });
     if (!response.ok) throw new Error(`S3 download failed with ${response.status}`);
     return Buffer.from(await response.arrayBuffer());
   }
+}
+
+function signKey(key: string | Buffer, data: string): Buffer {
+  return createHmac('sha256', key).update(data, 'utf8').digest();
 }
 
 export function createImportStore(): ObjectStore {
@@ -95,8 +131,12 @@ export function createImportStore(): ObjectStore {
   if (driver === 's3') {
     const endpoint = process.env.IMPORT_S3_ENDPOINT;
     const bucket = process.env.IMPORT_S3_BUCKET;
-    if (!endpoint || !bucket) throw new Error('IMPORT_S3_ENDPOINT and IMPORT_S3_BUCKET are required');
-    return new S3ObjectStore(endpoint, bucket);
+    const accessKey = process.env.IMPORT_S3_ACCESS_KEY;
+    const secretKey = process.env.IMPORT_S3_SECRET_KEY;
+    if (!endpoint || !bucket || !accessKey || !secretKey) {
+      throw new Error('IMPORT_S3_ENDPOINT, IMPORT_S3_BUCKET, IMPORT_S3_ACCESS_KEY and IMPORT_S3_SECRET_KEY are required');
+    }
+    return new S3ObjectStore(endpoint, bucket, process.env.IMPORT_S3_REGION || 'us-east-1', accessKey, secretKey);
   }
   return new LocalObjectStore(process.env.IMPORT_STORAGE_LOCAL_ROOT || './data/imports');
 }

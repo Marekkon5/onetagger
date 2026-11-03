@@ -25,7 +25,7 @@ export function applyCorsHeaders(request: IncomingMessage, response: ServerRespo
   if (!origin || !isAllowedOrigin(request)) return;
   response.setHeader('access-control-allow-origin', origin);
   response.setHeader('access-control-allow-credentials', 'true');
-  response.setHeader('access-control-allow-headers', 'content-type');
+  response.setHeader('access-control-allow-headers', 'content-type, idempotency-key');
   response.setHeader('access-control-allow-methods', 'GET,POST,PATCH,PUT,OPTIONS');
   response.setHeader('vary', 'Origin');
 }

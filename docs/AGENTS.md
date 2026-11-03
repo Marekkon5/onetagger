@@ -11,7 +11,7 @@ Hold the current architecture, provider behavior/limits, dated production eviden
 - `PRODUCTION_VERIFICATION.md` — dated rollout and runtime evidence; historical records are not rewritten.
 - `MIGRATION_FROM_ONETAGGER.md` — what was reused and retired from the upstream product.
 - `superpowers/specs/`, `superpowers/plans/` — approved historical design and implementation plan, including documented drift.
-- `AUDIT.md` — dated codebase audit, findings, evidence and remediation priorities.
+- `AUDIT.md` — dated codebase audit, findings, evidence, remediation priorities and the additive remediation record.
 
 ## Local Contracts
 

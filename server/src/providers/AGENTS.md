@@ -6,7 +6,7 @@ Translate external provider responses into validated `MixCandidate`/metadata fac
 
 ## Ownership
 
-- One adapter per provider: `freeteknomusic.ts`, `soundcloud.ts`, `archiveorg.ts`, `discogs.ts`, `youtube.ts`, `hearthis.ts`, `mixcloud.ts`.
+- One adapter per provider: `freeteknomusic.ts`, `soundcloud.ts`, `archiveorg.ts`, `discogs.ts`, `youtube.ts`, `hearthis.ts`, `mixcloud.ts`. MusicBrainz is an import-worker resolver only and has no server discovery adapter.
 - `artwork.ts` — bounded provider-image fetching.
 - `source-refresh.ts` — refreshing already-linked sources.
 

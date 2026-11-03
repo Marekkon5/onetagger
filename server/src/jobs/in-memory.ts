@@ -33,18 +33,50 @@ export class InMemoryJobQueue {
   private active = 0;
   private readonly maxConcurrent: number;
   private readonly maxQueued: number;
+  private readonly maxRetained: number;
+  private readonly terminalTtlMs: number;
 
-  constructor(private registry: ProviderRegistry, options: { maxConcurrent?: number; maxQueued?: number } = {}) {
+  constructor(
+    private registry: ProviderRegistry,
+    options: { maxConcurrent?: number; maxQueued?: number; maxRetained?: number; terminalTtlMs?: number } = {},
+  ) {
     this.maxConcurrent = Math.max(1, options.maxConcurrent ?? 3);
     this.maxQueued = Math.max(this.maxConcurrent, options.maxQueued ?? 25);
+    this.maxRetained = Math.max(1, options.maxRetained ?? 200);
+    this.terminalTtlMs = Math.max(0, options.terminalTtlMs ?? 30 * 60 * 1000);
   }
 
   list(): DiscoveryJob[] {
+    this.evictTerminal();
     return [...this.jobs.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   get(id: string): DiscoveryJob | undefined {
+    this.evictTerminal();
     return this.jobs.get(id);
+  }
+
+  /**
+   * Discovery jobs are process-local. Terminal jobs are evicted after a TTL and
+   * capped by count so a long-running process does not leak finished results.
+   * Queued/running/review jobs stay bounded by maxQueued/maxConcurrent instead.
+   */
+  private evictTerminal(): void {
+    const now = Date.now();
+    const terminal: DiscoveryJob[] = [];
+    for (const job of this.jobs.values()) {
+      if (job.state === 'done' || job.state === 'error' || job.state === 'cancelled') terminal.push(job);
+    }
+    for (const job of terminal) {
+      if (now - Date.parse(job.updatedAt) >= this.terminalTtlMs) this.jobs.delete(job.id);
+    }
+    const retained = [...this.jobs.values()]
+      .filter((job) => job.state === 'done' || job.state === 'error' || job.state === 'cancelled')
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+    while (retained.length > this.maxRetained) {
+      const job = retained.shift()!;
+      this.jobs.delete(job.id);
+    }
   }
 
   /** Number of jobs currently executing against a provider. */
@@ -58,6 +90,7 @@ export class InMemoryJobQueue {
   }
 
   create(provider: string, query: SearchQuery): DiscoveryJob {
+    this.evictTerminal();
     if (this.waiting.length >= this.maxQueued) {
       throw new JobQueueFullError(`Job queue is full (${this.maxQueued} waiting); wait for a discovery run to finish`);
     }
