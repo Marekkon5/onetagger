@@ -1,3 +1,6 @@
+import type { CatalogRecord, RecordId } from '@syco23/catalog-domain';
+import type { CatalogRepository, StoredAnalysisJob } from '../catalog/repository.js';
+import { persistWaveform } from '../catalog/media.js';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
@@ -11,7 +14,11 @@ const TIMEOUT_MS = 5 * 60_000;
 export interface WaveformJob {
   id: string;
   sourceUrl: string;
-  state: 'queued' | 'running' | 'done' | 'error';
+  state: 'queued' | 'running' | 'done' | 'error' | 'interrupted';
+  recordId?: RecordId;
+  record?: CatalogRecord;
+  createdAt: string;
+  updatedAt: string;
   progress: number;
   imageDataUrl?: string;
   error?: string;
@@ -60,8 +67,9 @@ async function fetchAudio(value: string, signal: AbortSignal): Promise<Response>
   throw new Error('Audio source redirected too many times');
 }
 
-async function analyze(job: WaveformJob): Promise<void> {
+async function analyze(job: WaveformJob, persist: (job: WaveformJob) => void, repository?: CatalogRepository): Promise<void> {
   job.state = 'running';
+  persist(job);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error('Audio analysis timed out')), TIMEOUT_MS);
   let child: ReturnType<typeof spawn> | undefined;
@@ -104,7 +112,9 @@ async function analyze(job: WaveformJob): Promise<void> {
     const exitCode = await exited;
     if (controller.signal.aborted) throw controller.signal.reason;
     if (exitCode !== 0 || !outputBytes) throw new Error(errorText || 'Audio could not be decoded');
-    job.imageDataUrl = `data:image/png;base64,${Buffer.concat(output).toString('base64')}`;
+    const png = Buffer.concat(output);
+    if (repository && job.recordId) job.record = persistWaveform(repository, job.recordId, png, job.sourceUrl);
+    job.imageDataUrl = `data:image/png;base64,${png.toString('base64')}`;
     job.analyzedAt = new Date().toISOString();
     job.progress = 100;
     job.state = 'done';
@@ -114,26 +124,45 @@ async function analyze(job: WaveformJob): Promise<void> {
     job.state = 'error';
   } finally {
     clearTimeout(timeout);
+    persist(job);
   }
 }
 
 export class WaveformQueue {
   private readonly jobs = new Map<string, WaveformJob>();
 
-  create(sourceUrl: string): WaveformJob {
+  constructor(private readonly repository?: CatalogRepository) {}
+
+  private persist(job: WaveformJob) {
+    job.updatedAt = new Date().toISOString();
+    if (this.repository && job.recordId) {
+      const { imageDataUrl: _image, record: _record, ...stored } = job;
+      this.repository.saveAnalysisJob(stored as StoredAnalysisJob);
+    }
+  }
+
+  create(sourceUrl: string, recordId?: RecordId): WaveformJob {
     allowedAudioUrl(sourceUrl);
+    if (recordId && (!this.repository || this.repository.getRecord(recordId)?.kind !== 'mix')) throw new Error('Analysis target must be an existing mix');
     if ([...this.jobs.values()].some((job) => job.state === 'running' || job.state === 'queued')) {
       throw new Error('An audio analysis is already running; retry when it finishes');
     }
-    const job: WaveformJob = { id: randomUUID(), sourceUrl, state: 'queued', progress: 0 };
+    const now = new Date().toISOString();
+    const job: WaveformJob = { id: randomUUID(), sourceUrl, recordId, state: 'queued', progress: 0, createdAt: now, updatedAt: now };
+    this.persist(job);
     this.jobs.set(job.id, job);
     if (this.jobs.size > 16) {
       const oldest = this.jobs.keys().next().value;
       if (oldest) this.jobs.delete(oldest);
     }
-    void analyze(job);
+    void analyze(job, current => this.persist(current), this.repository);
     return job;
   }
 
-  get(id: string): WaveformJob | undefined { return this.jobs.get(id); }
+  get(id: string): WaveformJob | undefined {
+    const job = this.jobs.get(id) ?? this.repository?.getAnalysisJob(id);
+    if (!job) return undefined;
+    if (job.state === 'done' && job.recordId) return { ...job, record: this.repository?.getRecord(job.recordId) };
+    return job;
+  }
 }

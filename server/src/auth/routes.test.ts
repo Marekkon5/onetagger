@@ -121,3 +121,30 @@ function expectAllowed(origin: string, expected: boolean) {
   const request = { headers: { origin } } as IncomingMessage;
   assert.equal(isAllowedOrigin(request), expected);
 }
+test('off mode reports open access without cookies and still checks write origins', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'syco23-auth-off-routes-'));
+  const repo = openCatalog(join(directory, 'catalog.sqlite'));
+  const priorOrigin = process.env.CORS_ORIGIN;
+  process.env.CORS_ORIGIN = 'https://mixsets.example.org';
+  try {
+    const auth = createCuratorAuth(repo, '', 'off');
+    const session = mockResponse();
+    await handleAuthRoute({ auth }, mockRequest('GET', '/api/auth/session'), session.response);
+    assert.deepEqual(JSON.parse(session.captured.body ?? '{}'), { authenticated: true, mode: 'off', authDisabled: true });
+    const login = mockResponse();
+    await handleAuthRoute({ auth }, mockRequest('POST', '/api/auth/login', {}, { origin: 'https://mixsets.example.org' }), login.response);
+    assert.equal(login.captured.status, 200);
+    assert.equal(login.captured.headers?.['set-cookie'], undefined);
+    const logout = mockResponse();
+    await handleAuthRoute({ auth }, mockRequest('POST', '/api/auth/logout', {}, { origin: 'https://mixsets.example.org' }), logout.response);
+    assert.equal(JSON.parse(logout.captured.body ?? '{}').authenticated, true);
+    const denied = mockResponse();
+    await handleAuthRoute({ auth }, mockRequest('POST', '/api/auth/login', {}, { origin: 'https://attacker.example' }), denied.response);
+    assert.equal(denied.captured.status, 403);
+  } finally {
+    if (priorOrigin === undefined) delete process.env.CORS_ORIGIN;
+    else process.env.CORS_ORIGIN = priorOrigin;
+    repo.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

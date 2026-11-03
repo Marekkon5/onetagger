@@ -126,5 +126,27 @@ export function uniqueCandidates(candidates: MixCandidate[]): MixCandidate[] {
     const current = best.get(key);
     if (!current || candidate.confidence > current.confidence) best.set(key, candidate);
   }
-  return [...best.values()].sort((a, b) => b.confidence - a.confidence);
+  return [...best.values()].map(candidate => ({ ...candidate, raw: sanitizeProviderSnapshot(candidate.raw) as Record<string, unknown> })).sort((a, b) => b.confidence - a.confidence);
+}
+
+const credentialKey = /(?:authorization|password|secret|token|api[_-]?key|client[_-]?id)/i;
+export function sanitizeProviderSnapshot(value: unknown, depth = 0): unknown {
+  if (depth > 4) return undefined;
+  if (typeof value === 'string') {
+    let text = value.slice(0, 2000);
+    try { const url = new URL(text); for (const key of [...url.searchParams.keys()]) if (credentialKey.test(key) || key === 'key') url.searchParams.delete(key); text = url.toString(); } catch {}
+    for (const name of ['DISCOGS_TOKEN','YOUTUBE_API_KEY','SOUNDCLOUD_ACCESS_TOKEN','SOUNDCLOUD_CLIENT_SECRET','SOUNDCLOUD_CLIENT_ID']) {
+      const secret=process.env[name]; if (secret && secret.length >= 8) text=text.split(secret).join('[redacted]');
+    }
+    return text;
+  }
+  if (Array.isArray(value)) return value.slice(0,50).map(item=>sanitizeProviderSnapshot(item,depth+1));
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).slice(0,50)
+    .filter(([key])=>!credentialKey.test(key)).map(([key,item])=>[key,sanitizeProviderSnapshot(item,depth+1)]));
+  return typeof value === 'number' && !Number.isFinite(value) ? undefined : value;
+}
+export function providerFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const status = message.match(/(?:HTTP|API|search|entity|metadata|token)\s+(\d{3})/i)?.[1];
+  return status ? `Provider request returned HTTP ${status}; retry or check worker configuration` : 'Provider request failed; retry later';
 }

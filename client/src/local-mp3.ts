@@ -1,9 +1,23 @@
 import { ID3Writer } from 'browser-id3-writer';
 import { parseBlob } from 'music-metadata';
-import type { EntityRef } from './domain/types';
+import type { EntityRef, ProviderId } from './domain/types';
 import type { ApiEnrichmentResult } from './services/api';
 
 export const MAX_LOCAL_MP3_BYTES = 300 * 1024 * 1024;
+
+/**
+ * A filename only auto-accepts — and therefore auto-enriches and auto-writes — when
+ * its derived evidence reaches this rate. Below it the track waits for a curator.
+ */
+export const AUTO_ACCEPT_EVIDENCE = 0.8;
+
+export interface FilenameIdentity {
+  title: string;
+  artists: string[];
+  year?: number;
+  evidence: number;
+  reasons: string[];
+}
 
 export interface LocalMp3Cover {
   data: ArrayBufferLike;
@@ -40,6 +54,12 @@ export interface LocalMp3Track {
   enrichedBy: string[];
   state: 'scanned' | 'enriched' | 'skipped' | 'error' | 'written';
   detail: string;
+  /** Filename-derived evidence rate (0–1); set by `applyFilenameIdentity`. */
+  evidence?: number;
+  /** True once evidence reached `AUTO_ACCEPT_EVIDENCE`, so auto-enrich/write may proceed. */
+  accepted?: boolean;
+  /** Library-sync outcome for this track. */
+  syncState?: 'idle' | 'synced' | 'error' | 'skipped';
 }
 
 export function normalizeTagText(value: unknown): string {
@@ -212,4 +232,120 @@ export function buildTaggedMp3(fileBuffer: ArrayBuffer, track: LocalMp3Track, co
   if (customTags.length) writer.setFrame('TXXX', { description: 'SYCO23', value: customTags.join(' | ') });
   writer.addTag();
   return writer.getBlob();
+}
+
+const FILENAME_YEAR = /\b(19[5-9]\d|20[0-4]\d)\b/;
+const FILENAME_PLACEHOLDER = /^(unknown|untitled|audio(?: file)?|track\s*\d*|mix|mixset|dj\s*set|set\s*\d*|new file|recording|file\s*\d*|id\s*\d*)$/i;
+
+/**
+ * Derives artist/title/year identity from a file path and scores how much the filename
+ * actually establishes. A well-formed `Artist - Title (Year)` filename reaches 1.0,
+ * `Artist - Title` reaches 0.8 (the auto-accept rate), and noisy names stay well below.
+ * A filename is a suggestion of identity, so it is only ever auto-accepted above the
+ * threshold; nothing here invents a recording date or performer beyond the name.
+ */
+export function parseFilenameIdentity(relativePath: string): FilenameIdentity {
+  const segments = relativePath.split('/').filter(Boolean);
+  const raw = (segments.pop() || '').replace(/\.mp3$/i, '');
+  const reasons: string[] = [];
+  let evidence = 0;
+  let working = normalizeTagText(raw.replace(/[_]+/g, ' ').replace(/[[\]{}()]+/g, ' '));
+  let year: number | undefined;
+  const yearMatch = working.match(FILENAME_YEAR);
+  if (yearMatch) {
+    year = Number(yearMatch[1]);
+    working = normalizeTagText(working.replace(yearMatch[0], ' '));
+  }
+  let artists: string[] = [];
+  let title = working;
+  const parts = working.split(/\s+[–—-]\s+/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 3 && /^\d{4}$/.test(parts[0])) {
+    year = year ?? Number(parts[0]);
+    artists = [parts[1]];
+    title = parts.slice(2).join(' - ');
+  } else if (parts.length >= 2) {
+    artists = [parts[0]];
+    title = parts.slice(1).join(' - ');
+  }
+  const cleanArtists = artists.filter((artist) => artist.length >= 2 && !/^\d+$/.test(artist));
+  if (cleanArtists.length && title) {
+    evidence += 0.5;
+    reasons.push('artist and title are separated in the filename');
+  }
+  if (year) {
+    evidence += 0.2;
+    reasons.push('a four-digit year is present');
+  }
+  if (title.length >= 3 && !FILENAME_PLACEHOLDER.test(title)) {
+    evidence += 0.2;
+    reasons.push('the title is descriptive');
+  }
+  if (cleanArtists.length) {
+    evidence += 0.1;
+    reasons.push('an artist name is present');
+  }
+  return {
+    title: normalizeTagText(title) || fallbackFilename(raw) || 'Untitled',
+    artists: cleanArtists,
+    year,
+    evidence: Math.min(1, Number(evidence.toFixed(2))),
+    reasons,
+  };
+}
+
+function fallbackFilename(value: string): string {
+  return normalizeTagText(value.replace(/[._]+/g, ' '));
+}
+
+/**
+ * Fills a track's missing identity from its filename and records the evidence rate.
+ * It never overwrites a curator's explicit title/artist choice: the filename title is
+ * only applied when the current title is empty or still the raw filename fallback.
+ */
+export function applyFilenameIdentity(track: LocalMp3Track): FilenameIdentity {
+  const identity = parseFilenameIdentity(track.relativePath);
+  const filename = track.relativePath.split('/').pop() || '';
+  const fallback = fallbackFilename(filename.replace(/\.mp3$/i, ''));
+  const titleIsFallback = normalizeTagText(track.title) === fallback;
+  if ((!normalizeTagText(track.title) || titleIsFallback) && identity.title) track.title = identity.title;
+  if (!track.artists.length && identity.artists.length) {
+    track.artists = [...identity.artists];
+    track.artistInput = identity.artists.join('; ');
+  }
+  if (!track.year && identity.year) track.year = identity.year;
+  track.evidence = identity.evidence;
+  track.accepted = identity.evidence >= AUTO_ACCEPT_EVIDENCE;
+  track.detail = track.accepted
+    ? `Auto-tag accepted from filename (${Math.round(identity.evidence * 100)}% evidence)`
+    : `Filename evidence ${Math.round(identity.evidence * 100)}% is below the ${Math.round(AUTO_ACCEPT_EVIDENCE * 100)}% auto-tag threshold`;
+  return identity;
+}
+
+/**
+ * Maps a public source URL onto a provider identity so a synced local record keeps an
+ * external `(provider, resourceType, externalId)`. A local file with no provider source
+ * cannot be synced, because a private file path is not a shared provider identity.
+ */
+export function providerFromSourceUrl(sourceUrl: string | undefined): ProviderId | undefined {
+  if (!sourceUrl) return undefined;
+  try {
+    const host = new URL(sourceUrl).hostname.toLowerCase();
+    if (/(^|\.)archive\.org$/.test(host)) return 'archiveorg';
+    if (/(^|\.)youtube\.com$/.test(host) || host === 'youtu.be') return 'youtube';
+    if (/(^|\.)mixcloud\.com$/.test(host)) return 'mixcloud';
+    if (/(^|\.)soundcloud\.com$/.test(host)) return 'soundcloud';
+    if (/(^|\.)hearthis\.at$/.test(host)) return 'hearthis';
+    if (/(^|\.)freeteknomusic\.org$/.test(host)) return 'freeteknomusic';
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+export function resourceTypeForProvider(provider: ProviderId): string {
+  if (provider === 'youtube') return 'video';
+  if (provider === 'mixcloud') return 'cloudcast';
+  if (provider === 'soundcloud' || provider === 'hearthis') return 'track';
+  if (provider === 'archiveorg') return 'item';
+  return 'recording';
 }

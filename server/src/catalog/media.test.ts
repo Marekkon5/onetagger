@@ -7,7 +7,7 @@ import type { MixRecord } from '@syco23/catalog-domain';
 import { openCatalog } from './repository.js';
 import { persistWaveform, readWaveformMedia } from './media.js';
 
-const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8ioAAAAASUVORK5CYII=', 'base64');
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64');
 
 function withCatalog(run: (directory: string, path: string, repo: ReturnType<typeof openCatalog>, closeRepo: () => void) => void) {
   const directory = mkdtempSync(join(tmpdir(), 'syco23-media-'));
@@ -51,5 +51,12 @@ test('waveform storage rejects non-PNG data and oversized images', () => {
   withCatalog((_directory, _path, repo) => {
     assert.throws(() => persistWaveform(repo, 'mix_01J9CATALOGUE00000000000060', Buffer.from('not png'), 'https://archive.org/audio.mp3'), /PNG/i);
     assert.throws(() => persistWaveform(repo, 'mix_01J9CATALOGUE00000000000060', Buffer.alloc(9 * 1024 * 1024), 'https://archive.org/audio.mp3'), /size/i);
+  });
+});
+test('waveform storage rejects header-only and corrupt PNG payloads',()=>{
+  withCatalog((_directory,_path,repo)=>{
+    assert.throws(()=>persistWaveform(repo,'mix_01J9CATALOGUE00000000000060',png.subarray(0,24),'https://archive.org/audio.mp3'),/PNG/i);
+    const corrupt=Buffer.from(png);corrupt[corrupt.length-1]^=1;
+    assert.throws(()=>persistWaveform(repo,'mix_01J9CATALOGUE00000000000060',corrupt,'https://archive.org/audio.mp3'),/PNG/i);
   });
 });

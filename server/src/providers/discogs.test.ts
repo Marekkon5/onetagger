@@ -37,3 +37,10 @@ test('Discogs hydrates an already-linked entity by resource ID without searching
   assert.equal(entity?.profile, 'Shared profile');
   assert.equal(entity?.imageUrl, 'https://i.discogs.com/artist.jpg');
 });
+
+test('Discogs hydration retains explicit aliases and relationships and normalizes markup',async(context)=>{
+ context.mock.method(globalThis,'fetch',async()=>Response.json({id:42,name:'DJ Live',profile:'Member of [a=Spiral Tribe].\n[b]Biography[/b]',realname:'Example Name',namevariations:['DJ L'],aliases:[{id:43,name:'Alias'}],groups:[{id:44,name:'Crew'}],members:[{id:45,name:'Member'}],urls:['https://artist.example.org'],images:[]}));
+ const result=await new DiscogsEnricher().hydrateEntity('42','artist');
+ assert.equal(result?.profile,'Member of Spiral Tribe.\nBiography');
+ assert.deepEqual(result?.aliases,['DJ L']);assert.equal(result?.realName,'Example Name');assert.equal(result?.groups?.[0].externalId,'44');assert.equal(result?.members?.[0].externalId,'45');assert.equal(result?.aliasRefs?.[0].externalId,'43');
+});

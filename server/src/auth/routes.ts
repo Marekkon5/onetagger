@@ -12,13 +12,17 @@ export async function handleAuthRoute(context: AuthRouteContext, request: Incomi
   const path = request.url?.split('?')[0];
   if (request.method === 'GET' && path === '/api/auth/session') {
     const actor: CuratorActor | undefined = context.auth.authenticate(request);
-    sendJson(response, 200, { authenticated: Boolean(actor) });
+    sendJson(response, 200, { authenticated: Boolean(actor), mode: context.auth.mode, authDisabled: context.auth.disabled });
     return true;
   }
 
   if (request.method === 'POST' && path === '/api/auth/login') {
     if (!isAllowedOrigin(request)) {
       sendJson(response, 403, { error: 'Origin is not allowed' });
+      return true;
+    }
+    if (context.auth.disabled) {
+      sendJson(response, 200, { authenticated: true, mode: context.auth.mode, authDisabled: true });
       return true;
     }
     try {
@@ -28,7 +32,7 @@ export async function handleAuthRoute(context: AuthRouteContext, request: Incomi
         return true;
       }
       const setCookie = context.auth.login((input as { password: string }).password, request.socket.remoteAddress ?? 'unknown');
-      sendJson(response, 200, { authenticated: true }, { 'set-cookie': setCookie });
+      sendJson(response, 200, { authenticated: true, mode: context.auth.mode, authDisabled: false }, { 'set-cookie': setCookie });
     } catch (error) {
       const status = error instanceof HttpInputError || error instanceof AuthError ? error.statusCode : 500;
       sendJson(response, status, { error: publicErrorMessage(error, 'Login failed') });
@@ -41,7 +45,11 @@ export async function handleAuthRoute(context: AuthRouteContext, request: Incomi
       sendJson(response, 403, { error: 'Origin is not allowed' });
       return true;
     }
-    sendJson(response, 200, { authenticated: false }, { 'set-cookie': context.auth.logout(request) });
+    sendJson(response, 200, {
+      authenticated: context.auth.disabled,
+      mode: context.auth.mode,
+      authDisabled: context.auth.disabled
+    }, { 'set-cookie': context.auth.logout(request) });
     return true;
   }
 

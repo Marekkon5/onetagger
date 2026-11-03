@@ -7,6 +7,9 @@ export interface ApiMixCandidate {
   crews: string[];
   durationMs?: number;
   recordedAt?: string;
+  uploadedAt?: string;
+  uploader?: string;
+  fieldEvidence?: Record<string, 'direct' | 'parsed' | 'analysis'>;
   description?: string;
   genres?: string[];
   artwork?: string[];
@@ -156,15 +159,15 @@ export async function fetchProviderArtwork(url: string): Promise<{ bytes: ArrayB
 export interface ApiWaveformJob {
   id: string;
   sourceUrl: string;
-  state: 'queued' | 'running' | 'done' | 'error';
+  state: 'queued' | 'running' | 'done' | 'error' | 'interrupted';
   progress: number;
   imageDataUrl?: string;
   error?: string;
   analyzedAt?: string;
 }
 
-export function createWaveformJob(sourceUrl: string) {
-  return request<ApiWaveformJob>('/waveforms', { method: 'POST', body: JSON.stringify({ sourceUrl }) });
+export function createWaveformJob(sourceUrl: string, recordId?: string) {
+  return request<ApiWaveformJob>('/waveforms', { method: 'POST', body: JSON.stringify({ sourceUrl, ...(recordId ? { recordId } : {}) }) });
 }
 
 export function getWaveformJob(id: string) {

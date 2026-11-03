@@ -74,7 +74,8 @@ test('parsed claims wait for curation and accepted decisions enforce the current
     assert.equal(report.reviewed, 1);
     const item = repo.listReview()[0];
     const accepted = decideReview(repo, item.id, 'accept', item.recordRevision, 'curator-session-1');
-    assert.equal(accepted.state, 'accepted');
+    assert.equal(repo.getReview(item.id)?.state, 'accepted');
+    assert.equal(accepted.id,item.targetRecordId);
     const stored = repo.getRecord(pending.targetRecordId);
     assert.equal(stored?.kind === 'mix' ? stored.title : undefined, 'Parsed title');
   });
@@ -91,7 +92,7 @@ test('stale review decisions fail and rejected claims do not reappear', () => {
     });
     assert.throws(() => decideReview(repo, item.id, 'accept', item.recordRevision, 'curator-session-1'), /revision/i);
     const currentItem = refreshReview(repo, item.id);
-    assert.equal(currentItem.recordRevision, 2);
+    assert.equal(currentItem.recordRevision, repo.getRecord(proposal.targetRecordId)!.revision);
     decideReview(repo, currentItem.id, 'reject', currentItem.recordRevision, 'curator-session-1');
     assert.equal(applyClaims(repo, [proposal]).reviewed, 0);
     assert.equal(repo.listReview().length, 0);
@@ -165,6 +166,31 @@ test('a curator merge keeps evidence, unions missing fields and leaves disagreem
     assert.equal(pending[0].field, 'title');
     assert.equal(pending[0].state, 'pending');
   });
+});
+
+test('a conflicting merge still succeeds when the duplicate carries a dated provider source', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'syco23-merge-src-'));
+  const repo = openCatalog(join(directory, 'catalog.sqlite'));
+  try {
+    // Imported records keep `addedAt` inside `sources`; a conflict must not pass that
+    // dated source straight through as a provider reference.
+    const sourced = duplicateMix({ sources: [{ provider: 'hearthis', resourceType: 'track', externalId: 'track-9', url: 'https://hearthis.at/track-9/', addedAt: timestamp }] });
+    repo.transaction((tx) => {
+      tx.saveRecord(mix());
+      tx.addProviderSource(mix().id, { provider: 'youtube', resourceType: 'video', externalId: 'video-1', url: 'https://www.youtube.com/watch?v=video-1' });
+      tx.saveRecord(sourced);
+    });
+    const survivor = repo.getRecord(mix().id)!;
+    const duplicate = repo.getRecord(sourced.id)!;
+    const merged = mergeRecords(repo, survivor.id as RecordId, duplicate.id as RecordId, [survivor.revision, duplicate.revision], 'curator-session-1');
+    assert.equal(merged.kind === 'mix' ? merged.title : undefined, 'Original title');
+    const pending = repo.listReview().filter((item) => item.targetRecordId === survivor.id && item.field === 'title');
+    assert.equal(pending.length, 1);
+    assert.equal(pending[0].state, 'pending');
+  } finally {
+    repo.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('a merged duplicate keeps its old id resolving to the survivor and cannot be merged over newer curation', () => {

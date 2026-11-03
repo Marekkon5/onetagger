@@ -11,13 +11,14 @@ import type {
   RecordId,
   ReviewItem
 } from '@syco23/catalog-domain';
-import { catalogApi, type IndexOptions } from './api';
+import { catalogApi, CatalogApiError, type IndexOptions } from './api';
 
 export type CatalogGateway = typeof catalogApi;
 
 export interface CatalogStoreState {
   indexKind: IndexKind;
   records: CatalogRecord[];
+  recordCache: Record<string, CatalogRecord>;
   detail?: CatalogRecord;
   evidence: FieldEvidence[];
   relatedMixes: MixRecord[];
@@ -32,18 +33,25 @@ export interface CatalogStoreState {
 
 export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
   const state = reactive<CatalogStoreState>({
-    indexKind: 'mix', records: [], evidence: [], relatedMixes: [], review: [], loading: false, authenticated: false,
+    indexKind: 'mix', records: [], recordCache: {}, evidence: [], relatedMixes: [], review: [], loading: false, authenticated: false,
     page: 1, pageSize: 25, total: 0
   });
 
+  let indexRequest = 0;
+  function fail(error: unknown, fallback: string) {
+    state.error = error instanceof Error ? error.message : fallback;
+    if (error instanceof CatalogApiError && error.status === 401) { state.authenticated = false; state.review = []; }
+  }
   function remember(record: CatalogRecord) {
     state.detail = record;
+    state.recordCache[record.id] = record;
     const index = state.records.findIndex((item) => item.id === record.id);
     if (index >= 0) state.records[index] = record;
     return record;
   }
 
   async function loadIndex(kind: IndexKind, options: IndexOptions = {}) {
+    const requestId = ++indexRequest;
     state.loading = true;
     state.error = undefined;
     state.indexKind = kind;
@@ -51,16 +59,18 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
     state.pageSize = options.pageSize ?? 25;
     try {
       const result = await gateway.getIndex(kind, { ...options, page: state.page, pageSize: state.pageSize });
+      if (requestId !== indexRequest) return result;
       state.records = result.items;
+      for (const record of result.items) state.recordCache[record.id] = record;
       state.page = result.page;
       state.pageSize = result.pageSize;
       state.total = result.total;
       return result;
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Catalog index could not be loaded';
+      if (requestId === indexRequest) fail(error, 'Catalog index could not be loaded');
       throw error;
     } finally {
-      state.loading = false;
+      if (requestId === indexRequest) state.loading = false;
     }
   }
 
@@ -70,7 +80,7 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
     try {
       return remember(await gateway.getRecord(id));
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Catalog record could not be loaded';
+      fail(error, 'Catalog record could not be loaded');
       throw error;
     } finally {
       state.loading = false;
@@ -83,7 +93,7 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
       state.review = await gateway.getReview();
       return state.review;
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Review queue could not be loaded';
+      fail(error, 'Review queue could not be loaded');
       throw error;
     }
   }
@@ -95,8 +105,10 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
    */
   async function loadEvidence(id: RecordId) {
     try {
-      const result = await gateway.getEvidence(id);
-      state.evidence = result.evidence;
+      // The gateway may return the bare evidence array or the `{ recordId, evidence }`
+      // envelope depending on the merged server contract, so accept both shapes.
+      const result = (await gateway.getEvidence(id)) as unknown as FieldEvidence[] | { evidence: FieldEvidence[] };
+      state.evidence = Array.isArray(result) ? result : result.evidence;
       return state.evidence;
     } catch {
       state.evidence = [];
@@ -149,7 +161,7 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
       remember(result.record);
       return result;
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Import was not saved';
+      fail(error, 'Import was not saved');
       throw error;
     }
   }
@@ -162,7 +174,7 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
       await loadReview().catch(() => undefined);
       return report;
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Enrichment failed';
+      fail(error, 'Enrichment failed');
       throw error;
     }
   }
@@ -177,7 +189,7 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
     try {
       return remember(await gateway.updateRecord(id, patch, revision));
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Changes were not saved';
+      fail(error, 'Changes were not saved');
       throw error;
     }
   }
@@ -187,14 +199,18 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
     try {
       const item = await gateway.decideReview(id, decision, revision);
       state.review = state.review.filter((review) => review.id !== id);
-      await loadDetail(item.targetRecordId);
-      return item;
+      return remember(item);
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Review decision was not saved';
+      fail(error, 'Review decision was not saved');
       throw error;
     }
   }
 
+  async function createRecord(input: unknown) {
+    state.error = undefined;
+    try { return remember(await gateway.createRecord(input)); }
+    catch (error) { fail(error, 'Record was not created'); throw error; }
+  }
   async function refreshReview(id: RecordId) {
     const item = await gateway.refreshReview(id);
     const index = state.review.findIndex((review) => review.id === id);
@@ -203,30 +219,32 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
   }
 
   /**
-   * Merge a confirmed duplicate into its survivor. The retired record leaves the
-   * index: a failed merge must not look like it succeeded, so the local list is only
-   * updated from the record the server actually committed.
+   * Merge a confirmed duplicate into its survivor. Local state only changes after the
+   * server commits: the retired record leaves the index and the cache, the displayed
+   * total shrinks only when the duplicate was part of the current index page, and a
+   * failed Review refresh must never undo the committed merge.
    */
-  async function mergeRecords(survivorId: RecordId, duplicateId: RecordId, expectedRevisions: [number, number]) {
+  async function mergeRecords(survivor: RecordId, duplicate: RecordId, revisions: [number, number]) {
     state.error = undefined;
     try {
-      const merged = remember(await gateway.mergeRecords(survivorId, duplicateId, expectedRevisions));
-      state.records = state.records.filter((record) => record.id !== duplicateId);
-      state.total = Math.max(0, state.total - 1);
+      const wasIndexed = state.records.some((item) => item.id === duplicate);
+      const committed = await gateway.mergeRecords(survivor, duplicate, revisions);
+      state.records = state.records.filter((item) => item.id !== duplicate);
+      delete state.recordCache[duplicate];
+      if (wasIndexed) state.total = Math.max(0, state.total - 1);
+      const merged = remember(committed);
       // The merge can raise new review items for fields the two records disagreed on.
       await loadReview().catch(() => undefined);
       return merged;
-    } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Records were not merged';
-      throw error;
-    }
+    } catch (error) { fail(error, 'Duplicate merge was not saved'); throw error; }
   }
 
   async function migrateLocalLibrary(): Promise<MigrationResult | undefined> {
     if (typeof window === 'undefined') return undefined;
     const raw = window.localStorage.getItem('syco23.mixsets.library');
     if (!raw) return undefined;
-    const records = JSON.parse(raw) as unknown[];
+    const records: unknown = JSON.parse(raw);
+    if (!Array.isArray(records)) throw new Error('Local library must contain a list of records. Your browser copy remains unchanged.');
     const batchStorageKey = 'syco23.mixsets.migrationBatchId';
     const batchId = window.localStorage.getItem(batchStorageKey) || crypto.randomUUID();
     window.localStorage.setItem(batchStorageKey, batchId);
@@ -249,7 +267,16 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
     const result = await gateway.migrate(batchId, recordsWithoutMedia);
     for (const asset of media) {
       const recordId = result.legacyIds[asset.legacyId];
-      if (recordId) await gateway.persistWaveform(recordId, asset.imageDataUrl, asset.sourceUrl);
+      if (recordId) {
+        try { remember(await gateway.persistWaveform(recordId, asset.imageDataUrl, asset.sourceUrl)); }
+        catch (error) {
+          const message = `Waveform was not stored: ${error instanceof Error ? error.message : String(error)}`;
+          result.outcomes ??= [];
+          const outcome = result.outcomes.find((item) => item.legacyId === asset.legacyId);
+          if (outcome) { outcome.status = 'partial'; outcome.errors.push(message); }
+          else result.outcomes.push({ legacyId: asset.legacyId, status: 'partial', recordId, errors: [message] });
+        }
+      }
     }
     return result;
   }
@@ -271,7 +298,8 @@ export function createCatalogStore(gateway: CatalogGateway = catalogApi) {
     decideReview,
     refreshReview,
     mergeRecords,
-    migrateLocalLibrary
+    migrateLocalLibrary,
+    createRecord
   };
 }
 

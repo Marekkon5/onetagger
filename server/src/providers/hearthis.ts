@@ -107,7 +107,7 @@ export class HearthisProvider implements DiscoveryProvider {
       const scored = confidenceScore({ query: q, title, artist, durationExpectedMs: query.durationExpectedMs, durationActualMs: durationMs });
       const artwork = trackArtwork(track);
       return [{
-        provider: this.id, title, artists: artist ? [artist] : [], crews: [], durationMs,
+        provider: this.id, title, artists: [], uploader: artist, crews: [], durationMs,
         description: track.description, genres: [track.genre, ...(track.tags || '').split(',')].map((value) => value?.trim()).filter((value): value is string => Boolean(value)),
         artwork: artwork ? [artwork] : [],
         source: { provider: this.id, url: track.permalink_url, externalId: track.id },

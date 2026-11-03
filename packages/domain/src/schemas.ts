@@ -7,7 +7,8 @@ export const ProviderIdSchema = z.enum([
   'archiveorg',
   'discogs',
   'youtube',
-  'hearthis'
+  'hearthis',
+  'mixcloud'
 ]);
 
 export const EntityRoleSchema = z.enum(['artist', 'crew', 'label']);
@@ -17,7 +18,8 @@ export const ReviewStateSchema = z.enum(['ready', 'review']);
 export const RecordIdSchema = z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/);
 export const TimestampSchema = z.iso.datetime({ offset: true });
 
-const httpUrlSchema = z.url({ protocol: /^https?$/ }).max(2048);
+export const HttpUrlSchema = z.url({ protocol: /^https?$/ }).max(2048).refine((value) => { try { const url = new URL(value); return !url.username && !url.password; } catch { return false; } }, 'URLs must not contain credentials');
+const httpUrlSchema = HttpUrlSchema;
 
 export const ProviderRefSchema = z.object({
   provider: ProviderIdSchema,
@@ -26,18 +28,21 @@ export const ProviderRefSchema = z.object({
   url: httpUrlSchema.optional()
 }).strict();
 
+const unique=<T>(values:T[],key:(value:T)=>string)=>values.filter((value,index)=>values.findIndex(item=>key(item)===key(value))===index);
+const nameKey=(value:string)=>value.normalize('NFKC').trim().replace(/\s+/gu,' ').toLocaleLowerCase('und');
 const dateParts = (value: string) => {
   const [year, month, day] = value.split('-').map(Number);
+  if (year < 1) return false;
   if (month !== undefined && (month < 1 || month > 12)) return false;
   if (day !== undefined) {
-    const candidate = new Date(Date.UTC(year, month - 1, day));
+    const candidate = new Date(0); candidate.setUTCFullYear(year, month - 1, day);
     return candidate.getUTCFullYear() === year && candidate.getUTCMonth() === month - 1 && candidate.getUTCDate() === day;
   }
   return true;
 };
 
 export const RecordingDateSchema = z.discriminatedUnion('precision', [
-  z.object({ value: z.string().regex(/^\d{4}$/), precision: z.literal('year') }).strict(),
+  z.object({ value: z.string().regex(/^\d{4}$/).refine(dateParts), precision: z.literal('year') }).strict(),
   z.object({ value: z.string().regex(/^\d{4}-\d{2}$/).refine(dateParts), precision: z.literal('month') }).strict(),
   z.object({ value: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(dateParts), precision: z.literal('day') }).strict()
 ]);
@@ -88,47 +93,47 @@ export const MixRecordSchema = RecordBaseSchema.extend({
   description: z.string().max(10000).optional(),
   durationMs: z.number().finite().int().positive().max(86400000).optional(),
   recordingDate: RecordingDateSchema.optional(),
-  people: z.array(z.object({ entityId: RecordIdSchema, role: EntityRoleSchema }).strict()).max(100),
-  eventIds: z.array(RecordIdSchema).max(100),
-  genres: z.array(displayText).max(100),
-  styles: z.array(displayText).max(100),
+  people: z.array(z.object({ entityId: RecordIdSchema, role: EntityRoleSchema }).strict()).max(100).transform(values=>unique(values,value=>`${value.entityId}:${value.role}`)),
+  eventIds: z.array(RecordIdSchema).max(100).transform(values=>[...new Set(values)]),
+  genres: z.array(displayText).max(100).transform(values=>unique(values,nameKey)),
+  styles: z.array(displayText).max(100).transform(values=>unique(values,nameKey)),
   assets: z.array(MediaAssetSchema).max(100),
-  sources: z.array(ProviderSourceSchema).max(100),
-  playbackUrls: z.array(httpUrlSchema).max(100).optional()
+  sources: z.array(ProviderSourceSchema).max(100).transform(values=>unique(values,ref=>`${ref.provider}:${ref.resourceType}:${ref.externalId}`)),
+  playbackUrls: z.array(httpUrlSchema).max(100).transform(values=>[...new Set(values)]).optional()
 }).strict();
 
-const ArtistDetailsSchema = z.object({
+export const ArtistDetailsSchema = z.object({
   realName: displayText.optional(),
   profile: z.string().max(20000).optional(),
   country: CountryCodeSchema.optional(),
-  groupIds: z.array(RecordIdSchema).max(100).optional(),
-  memberIds: z.array(RecordIdSchema).max(100).optional()
+  groupIds: z.array(RecordIdSchema).max(100).transform(values=>[...new Set(values)]).optional(),
+  memberIds: z.array(RecordIdSchema).max(100).transform(values=>[...new Set(values)]).optional()
 }).strict();
 
-const CrewDetailsSchema = z.object({
+export const CrewDetailsSchema = z.object({
   profile: z.string().max(20000).optional(),
   country: CountryCodeSchema.optional(),
-  websiteUrls: z.array(httpUrlSchema).max(100).optional(),
-  memberIds: z.array(RecordIdSchema).max(100).optional()
+  websiteUrls: z.array(httpUrlSchema).max(100).transform(values=>[...new Set(values)]).optional(),
+  memberIds: z.array(RecordIdSchema).max(100).transform(values=>[...new Set(values)]).optional()
 }).strict();
 
-const LabelDetailsSchema = z.object({
+export const LabelDetailsSchema = z.object({
   profile: z.string().max(20000).optional(),
   country: CountryCodeSchema.optional(),
-  websiteUrls: z.array(httpUrlSchema).max(100).optional(),
+  websiteUrls: z.array(httpUrlSchema).max(100).transform(values=>[...new Set(values)]).optional(),
   parentId: RecordIdSchema.optional(),
-  subLabelIds: z.array(RecordIdSchema).max(100).optional()
+  subLabelIds: z.array(RecordIdSchema).max(100).transform(values=>[...new Set(values)]).optional()
 }).strict();
 
 export const EntityRecordSchema = RecordBaseSchema.extend({
   kind: z.literal('entity'),
   displayName: displayText,
-  roles: z.array(EntityRoleSchema).min(1).max(3),
-  aliases: z.array(displayText).max(100),
+  roles: z.array(EntityRoleSchema).min(1).max(100).transform(values=>[...new Set(values)]),
+  aliases: z.array(displayText).max(100).transform(values=>unique(values,nameKey)),
   profile: z.string().max(20000).optional(),
   country: CountryCodeSchema.optional(),
   assets: z.array(MediaAssetSchema).max(100),
-  providerRefs: z.array(ProviderRefSchema).max(100),
+  providerRefs: z.array(ProviderRefSchema).max(100).transform(values=>unique(values,ref=>`${ref.provider}:${ref.resourceType}:${ref.externalId}`)),
   artist: ArtistDetailsSchema.optional(),
   crew: CrewDetailsSchema.optional(),
   label: LabelDetailsSchema.optional()
@@ -149,8 +154,8 @@ export const EventRecordSchema = RecordBaseSchema.extend({
   locality: displayText.optional(),
   country: CountryCodeSchema.optional(),
   assets: z.array(MediaAssetSchema).max(100),
-  sourceUrls: z.array(httpUrlSchema).max(100),
-  mixIds: z.array(RecordIdSchema).max(1000)
+  sourceUrls: z.array(httpUrlSchema).max(100).transform(values=>[...new Set(values)]),
+  mixIds: z.array(RecordIdSchema).max(1000).transform(values=>[...new Set(values)])
 }).strict();
 
 export const CatalogRecordSchema = z.discriminatedUnion('kind', [
@@ -216,7 +221,8 @@ export const ProviderMetadataSchema = z.object({
     status: z.enum(['confirmed', 'possible']),
     explanation: z.string().min(1).max(2000)
   }).strict(),
-  facts: z.record(z.string().max(120), z.unknown()).refine((facts) => Object.keys(facts).length <= 40)
+  facts: z.record(z.string().max(120), z.unknown()).refine((facts) => Object.keys(facts).length <= 80),
+  fieldEvidence: z.record(z.string().max(120), z.enum(['direct', 'parsed', 'analysis'])).optional()
 }).strict();
 
 export const LegacyMixSchema = z.object({
@@ -262,7 +268,9 @@ export const ImportCandidateSchema = z.object({
   artwork: z.array(httpUrlSchema).max(10).default([]),
   source: ProviderRefSchema.extend({ provider: ProviderIdSchema, url: httpUrlSchema }).strict(),
   confidence: z.number().min(0).max(1),
-  reasons: z.array(z.string().max(1000)).max(30).default([])
+  reasons: z.array(z.string().max(1000)).max(30).default([]),
+  fieldEvidence: z.record(z.string().max(120),z.enum(['direct','parsed','analysis'])).optional(),
+  uploadedAt:z.string().max(40).optional(), uploader:z.string().max(500).optional()
 }).strict().refine((candidate) => candidate.provider === candidate.source.provider, {
   message: 'Candidate provider must match its source identity',
   path: ['source', 'provider']
@@ -283,9 +291,18 @@ export const MigrationResultSchema = z.object({
   imported: z.number().int().nonnegative(),
   existing: z.number().int().nonnegative(),
   rejected: z.number().int().nonnegative(),
-  legacyIds: z.record(z.string(), RecordIdSchema)
+  legacyIds: z.record(z.string(), RecordIdSchema),
+  outcomes: z.array(z.object({ legacyId: z.string(), status: z.enum(['imported', 'existing', 'rejected', 'partial']), recordId: RecordIdSchema.optional(), errors: z.array(z.string().max(2000)) }).strict()).optional()
 }).strict();
 
+export const EnrichmentRunSchema = z.object({
+  id: RecordIdSchema, recordId: RecordIdSchema, state: z.enum(['running','completed','interrupted','failed']),
+  attemptedProviders: z.array(ProviderIdSchema), applied: z.number().int().nonnegative(), corroborated: z.number().int().nonnegative(), reviewed: z.number().int().nonnegative(),
+  errors: z.array(z.object({provider:ProviderIdSchema,message:z.string().max(2000)}).strict()), missingFields:z.array(z.string().max(120)), startedAt:TimestampSchema, finishedAt:TimestampSchema.optional()
+}).strict();
+export const AnalysisRunSchema=z.object({id:RecordIdSchema,recordId:RecordIdSchema,sourceUrl:HttpUrlSchema,state:z.enum(['queued','running','done','error','interrupted']),progress:z.number().int().min(0).max(100),error:z.string().max(2000).optional(),analyzedAt:TimestampSchema.optional(),createdAt:TimestampSchema,updatedAt:TimestampSchema}).strict();
+export type AnalysisRun=z.infer<typeof AnalysisRunSchema>;
+export type EnrichmentRun = z.infer<typeof EnrichmentRunSchema>;
 export type RecordId = z.infer<typeof RecordIdSchema>;
 export type EntityRole = z.infer<typeof EntityRoleSchema>;
 export type IndexKind = z.infer<typeof IndexKindSchema>;

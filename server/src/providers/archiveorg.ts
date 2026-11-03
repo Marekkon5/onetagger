@@ -28,13 +28,20 @@ export class ArchiveOrgProvider implements DiscoveryProvider {
     });
     for (const field of ['identifier', 'title', 'creator', 'date', 'description', 'subject', 'collection']) params.append('fl[]', field);
 
-    const searchPayload = await retry(() => withTimeout(async (inner) => {
+    let knownId: string | undefined;
+    if (query.url) {
+      const source=new URL(query.url);
+      if (source.protocol!=='https:' || source.hostname!=='archive.org' || source.username || source.password || source.port) throw new Error('Archive.org source URL is invalid');
+      knownId=/^\/(?:details|download)\/([A-Za-z0-9._-]+)/.exec(source.pathname)?.[1];
+      if (!knownId) throw new Error('Archive.org source URL is invalid');
+    }
+    const searchPayload = knownId ? { response: { docs: [{ identifier: knownId }] } } : await retry(() => withTimeout(async (inner) => {
       const response = await fetch(`${SEARCH}?${params}`, { signal: inner });
       if (!response.ok) throw new Error(`Archive.org search ${response.status}`);
       return response.json() as Promise<{ response?: { docs?: Array<Record<string, unknown>> } }>;
     }, 12_000, signal));
 
-    const docs = searchPayload.response?.docs ?? [];
+    let docs = searchPayload.response?.docs ?? [];
     const candidates: MixCandidate[] = [];
 
     for (const doc of docs.slice(0, query.limit ?? 25)) {

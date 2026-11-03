@@ -5,6 +5,8 @@ services:
     build:
       context: ../..
       dockerfile: server/Dockerfile
+      args:
+        VCS_REF: ${MIXSETS_REVISION:-unknown}
     image: syco23-mixsets-api:${MIXSETS_IMAGE_TAG:-local}
     container_name: syco23-mixsets-api
     restart: unless-stopped
@@ -26,7 +28,9 @@ services:
       PORT: 8787
       NODE_ENV: production
       CATALOG_DB_PATH: /app/data/catalog.sqlite
-      CURATOR_PASSWORD_HASH: ${CURATOR_PASSWORD_HASH:?Configure with python3 setup_curator.py}
+      CURATOR_COOKIE_SAME_SITE: ${CURATOR_COOKIE_SAME_SITE:-none}
+      AUTH_MODE: ${AUTH_MODE:-on}
+      CURATOR_PASSWORD_HASH: ${CURATOR_PASSWORD_HASH:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://mixsets.syco23.org,https://syco23-mixsets.vercel.app,https://syco23-mixsets-system-corrupt.vercel.app}
       SOUNDCLOUD_ACCESS_TOKEN: ${SOUNDCLOUD_ACCESS_TOKEN:-}
       SOUNDCLOUD_CLIENT_ID: ${SOUNDCLOUD_CLIENT_ID:-}

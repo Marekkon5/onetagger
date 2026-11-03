@@ -1,3 +1,4 @@
+import type { SearchQuery } from './domain.js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 export class HttpInputError extends Error {
@@ -75,6 +76,18 @@ export function publicErrorMessage(error: unknown, fallback: string): string {
       return error instanceof Error ? error.message : fallback;
     }
   }
-  console.error('Unhandled request failure:', error);
+  console.error('Unhandled request failure');
   return fallback;
+}
+export function validateSearchQuery(input: unknown): SearchQuery {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new HttpInputError('A discovery query object is required',400);
+  const query=input as Record<string,unknown>,keys=['q','url','artist','crew','minDurationMs','durationExpectedMs','maxDepth','maxItems','limit'];
+  if (Object.keys(query).some(key=>!keys.includes(key))) throw new HttpInputError('Discovery query contains unsupported controls',400);
+  for(const field of ['q','url','artist','crew']) if(query[field]!==undefined && (typeof query[field]!=='string' || !(query[field] as string).trim() || (query[field] as string).length>(field==='url'?2048:500))) throw new HttpInputError(`Discovery ${field} must be bounded text`,400);
+  if(query.url!==undefined){let url:URL;try{url=new URL(query.url as string);}catch{throw new HttpInputError('Discovery source URL is invalid',400);}if(!['https:','http:'].includes(url.protocol)||url.username||url.password||url.port)throw new HttpInputError('Discovery source URL is invalid',400);}
+  for(const [field,max,min] of [['minDurationMs',86400000,1],['durationExpectedMs',86400000,1],['maxDepth',6,0],['maxItems',2500,1],['limit',150,1]] as const) {
+    if(query[field]!==undefined&&(!Number.isInteger(query[field])||(query[field] as number)<min||(query[field] as number)>max))throw new HttpInputError(`Discovery ${field} is outside supported bounds`,400);
+  }
+  if(!query.q&&!query.url&&!query.artist&&!query.crew)throw new HttpInputError('Enter a discovery query or public source URL',400);
+  return query as SearchQuery;
 }

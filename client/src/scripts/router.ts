@@ -15,10 +15,10 @@ const router = createRouter({
     { path: '/catalog/:kind', name: 'catalog-index', component: CatalogIndexView },
     // Each index also has a short public path so a shared link reads naturally and
     // does not depend on the internal /catalog/:kind shape.
-    { path: '/artists', name: 'artists', component: CatalogIndexView, props: { kind: 'artist' } },
-    { path: '/crews', name: 'crews', component: CatalogIndexView, props: { kind: 'crew' } },
-    { path: '/labels', name: 'labels', component: CatalogIndexView, props: { kind: 'label' } },
-    { path: '/events', name: 'events', component: CatalogIndexView, props: { kind: 'event' } },
+    { path: '/artists', name: 'artists', component: CatalogIndexView, props: { indexKind: 'artist' } },
+    { path: '/crews', name: 'crews', component: CatalogIndexView, props: { indexKind: 'crew' } },
+    { path: '/labels', name: 'labels', component: CatalogIndexView, props: { indexKind: 'label' } },
+    { path: '/events', name: 'events', component: CatalogIndexView, props: { indexKind: 'event' } },
     { path: '/catalog/records/:id', name: 'catalog-record', component: CatalogDetailView },
     { path: '/import', name: 'import', component: ImportView },
     { path: '/local-tags', name: 'local-tags', component: LocalTaggerView },

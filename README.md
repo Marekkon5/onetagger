@@ -20,6 +20,7 @@ The active web product no longer contains OneTagger's AutoTagger, QuickTag, trac
 - **Discogs** — artist / crew-like artist / label enrichment and images, not long-mix track matching.
 - **YouTube** — known public video metadata and thumbnails without credentials; text search with a private Data API key.
 - **hearthis.at** — public track search, metadata and track artwork without credentials, subject to provider limits.
+- **Mixcloud** — public read API for long-form cloudcast search and metadata; no credentials are required at all.
 
 See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
@@ -52,6 +53,15 @@ The shared catalog starts empty. Public provider metadata is fetched by the work
 - **Review** shows field conflicts and uncertain identities across all index types, with the current and proposed value, the source link and why the match was proposed.
 - **Merge duplicates** compares two confirmed records side by side before confirming. Fields both records state differently stay in Review instead of being resolved by merge order, and the duplicate's old link keeps working.
 
+## Local file tagging
+
+`/local-tags` scans a folder of MP3s entirely in the browser; originals are never changed.
+
+- **Auto-tag from filenames** derives artist, title and year from each name and scores how much the filename actually establishes. Files reaching the 80% evidence rate are accepted automatically; weaker names are left for a curator.
+- Accepted files are **enriched automatically** — only missing fields are added, and existing tags and covers always win — using the selected providers.
+- **Optional library sync** uploads accepted records that carry a public provider source to the shared archive, so a local file becomes a shared record. A file with no provider source is reported as not synced rather than imported under a private path.
+- **Write tagged copies** writes normalized ID3 tags and front covers into a separate `Mixsets-tagged` folder, leaving the originals untouched.
+
 ## Validation
 
 ```bash
@@ -64,7 +74,7 @@ pnpm build
 
 ## Verification status
 
-Local gates (typecheck, tests, build) pass. Production has **not** been deployed: the worker still runs an older commit, and the rollout is blocked on a privately configured curator hash and the persistent data volume. See [docs/PRODUCTION_VERIFICATION.md](docs/PRODUCTION_VERIFICATION.md) for what has and has not been exercised in a browser or against the live host.
+The production record documents a healthy IONOS VPS-L rollout with persistent catalog storage and the user-selected `AUTH_MODE=off`. The worker runs the latest server code (`347cfc4`); the Vercel frontend auto-deploys `master` to `https://mixsets.syco23.org`. See [docs/PRODUCTION_VERIFICATION.md](docs/PRODUCTION_VERIFICATION.md) for the dated runtime evidence and remaining limits.
 
 ## Architecture
 

@@ -1,9 +1,12 @@
 {
   "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --dir client build",
+  "buildCommand": "pnpm --dir packages/domain build && pnpm --dir client build",
   "outputDirectory": "client/dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

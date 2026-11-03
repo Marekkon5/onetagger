@@ -85,3 +85,22 @@ test('entity countries must be recognized region codes, not arbitrary two-letter
   };
   assert.equal(CatalogRecordSchema.safeParse(entity).success, false);
 });
+test('field definitions cover linked identities and type-specific sourced details', async () => {
+  const domain = await import('./index.js');
+  const entity = CatalogRecordSchema.parse({
+    kind: 'entity', id: 'entity_shared_1', createdAt: timestamp, updatedAt: timestamp,
+    revision: 1, verification: 'source-confirmed', reviewState: 'ready',
+    displayName: 'DJ Live', roles: ['artist'], aliases: [], assets: [], providerRefs: [], artist: {}
+  });
+  assert.deepEqual(domain.validateField(entity, 'aliases', ['DJ Live', 'dj live', 'Alias']), ['DJ Live', 'Alias']);
+  assert.equal(domain.validateField(entity, 'realName', 'Visible Name'), 'Visible Name');
+  assert.throws(() => domain.validateField(entity, 'parentId', 'entity_parent'), /label/);
+  assert.equal(domain.getFieldValue(domain.setFieldValue(entity, 'realName', 'Visible Name'), 'realName'), 'Visible Name');
+});
+
+test('provider URLs canonicalize equivalent resources and reject embedded credentials', async () => {
+  const { normalizeProviderRef, ProviderRefSchema } = await import('./index.js');
+  const ref = { provider: 'youtube' as const, resourceType: 'video', externalId: 'AbCd123', url: 'https://youtu.be/AbCd123?utm_source=test' };
+  assert.equal(normalizeProviderRef(ref).url, 'https://www.youtube.com/watch?v=AbCd123');
+  assert.equal(ProviderRefSchema.safeParse({ ...ref, url: 'https://secret:password@example.org/x' }).success, false);
+});

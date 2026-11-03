@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { catalogApi } from './api';
+import { importJobsApi } from './api';
 
 const record = {
   kind: 'mix',
@@ -38,8 +39,23 @@ describe('catalogApi', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Revision conflict' }), { status: 409 })));
     await expect(catalogApi.updateRecord(record.id, { title: 'New title' }, 1)).rejects.toMatchObject({ status: 409, message: 'Revision conflict' });
   });
+
+  it('requires a valid session response rather than treating malformed successful HTTP as public', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ authenticated: 'true' })));
+    await expect(catalogApi.checkSession()).rejects.toThrow('Malformed session response');
+  });
+
+  it('validates evidence dispositions before they can be displayed as selected or rejected', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json([{ id: 'claim_0123456789abcdef', fingerprint: 'stable', claim: {}, disposition: 'invented' }])));
+    await expect(catalogApi.getEvidence(record.id)).rejects.toThrow();
+  });
+
+  it('accepts persisted selected/pending evidence without losing the source or disposition', async () => {
+    const evidence = { id: 'claim_0123456789abcdef', fingerprint: 'stable', disposition: 'selected', claim: { targetRecordId: record.id, field: 'title', value: record.title, provider: { provider: 'youtube', resourceType: 'video', externalId: 'video1' }, sourceUrl: 'https://youtube.com/watch?v=video1', observedAt: record.createdAt, evidence: 'direct', matchExplanation: 'Confirmed source' } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json([evidence])));
+    expect(await catalogApi.getEvidence(record.id)).toEqual([evidence]);
+  });
 });
-import { importJobsApi } from './api';
 
 describe('importJobsApi', () => {
   it('fetches the version handshake and gates on importsEnabled', async () => {

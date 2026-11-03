@@ -164,6 +164,7 @@ export class FreeteknomusicProvider implements DiscoveryProvider {
           artists: identity.artist,
           crews: [],
           recordedAt: identity.recordedAt,
+          fieldEvidence: { artists: 'parsed', recordingDate: 'parsed' },
           source: { provider: this.id, url: entry.href },
           confidence: wanted ? confidence.score : 0.64,
           reasons: wanted ? confidence.reasons : ['archive path + filename evidence'],

@@ -39,7 +39,7 @@ type YoutubeSnippet = {
 function videoIdentity(title: string, channel: string): { title: string; artists: string[] } {
   const match = title.match(/^([^–—-]{2,60})\s+[–—-]\s+(.+)$/);
   return match ? { title: match[2].trim(), artists: [match[1].trim()] }
-    : { title, artists: channel ? [channel] : [] };
+    : { title, artists: [] };
 }
 
 export class YouTubeProvider implements DiscoveryProvider {
@@ -90,6 +90,20 @@ export class YouTubeProvider implements DiscoveryProvider {
   }
 
   async search(query: SearchQuery, signal?: AbortSignal): Promise<MixCandidate[]> {
+    if (query.url && process.env.YOUTUBE_API_KEY) {
+      const id = youtubeVideoId(query.url);
+      if (!id) throw new Error('YouTube video URL is invalid');
+      const payload = await this.api<{ items?: Array<{id:string;snippet?:YoutubeSnippet;contentDetails?:{duration?:string}}> }>('videos',new URLSearchParams({part:'snippet,contentDetails',id}),signal);
+      const video=payload.items?.find(item=>item.id===id);
+      if (!video) return [];
+      const snippet=video.snippet??{},title=snippet.title??'Untitled YouTube video';
+      const identity=videoIdentity(title,snippet.channelTitle??'');
+      const artwork=snippet.thumbnails?.maxres?.url??snippet.thumbnails?.high?.url??snippet.thumbnails?.medium?.url;
+      return [{provider:this.id,title:identity.title,artists:identity.artists,uploader:snippet.channelTitle,
+        fieldEvidence:{artists:'parsed'},crews:[],durationMs:youtubeDurationMs(video.contentDetails?.duration??''),description:snippet.description,
+        genres:snippet.tags??[],artwork:artwork?[artwork]:[],source:{provider:this.id,url:`https://www.youtube.com/watch?v=${id}`,externalId:id},
+        externalIds:{youtube:id},confidence:.99,reasons:['Known public video resource hydrated directly'],raw:{videoId:id}}];
+    }
     if (query.url) {
       const video = await this.lookupVideo(query.url, signal);
       const identity = videoIdentity(video.title, video.artist);
@@ -97,6 +111,8 @@ export class YouTubeProvider implements DiscoveryProvider {
         provider: this.id,
         title: identity.title,
         artists: identity.artists,
+        uploader: video.artist,
+        fieldEvidence: { artists: 'parsed' },
         crews: [],
         artwork: video.artworkUrl ? [video.artworkUrl] : [],
         source: { provider: this.id, url: `https://www.youtube.com/watch?v=${video.id}`, externalId: video.id },
@@ -129,7 +145,7 @@ export class YouTubeProvider implements DiscoveryProvider {
       const scored = confidenceScore({ query: q, title: identity.title, artist: identity.artists.join(' '), durationExpectedMs: query.durationExpectedMs, durationActualMs: durationMs });
       const artworkUrl = snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url;
       return [{
-        provider: this.id, title: identity.title, artists: identity.artists, crews: [], durationMs,
+        provider: this.id, title: identity.title, artists: identity.artists, uploader: artist, fieldEvidence: { artists: 'parsed' }, crews: [], durationMs,
         description: snippet.description, genres: snippet.tags || [],
         artwork: artworkUrl ? [artworkUrl] : [],
         source: { provider: this.id, url: `https://www.youtube.com/watch?v=${video.id}`, externalId: video.id },

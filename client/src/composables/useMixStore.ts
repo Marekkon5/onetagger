@@ -19,6 +19,7 @@ const providerPresentation: Record<string, { name: string; mode: 'discover' | 'e
   soundcloud: { name: 'SoundCloud', mode: 'both', auth: 'required' },
   youtube: { name: 'YouTube', mode: 'both', auth: 'required' },
   hearthis: { name: 'hearthis.at', mode: 'both', auth: 'none' },
+  mixcloud: { name: 'Mixcloud', mode: 'both', auth: 'none' },
   discogs: { name: 'Discogs', mode: 'enrich', auth: 'recommended' }
 };
 

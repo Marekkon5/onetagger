@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import { backup, type DatabaseSync } from 'node:sqlite';
 import {
   CatalogPageSchema,
   CatalogRecordSchema,
@@ -45,10 +45,13 @@ import {
 } from './import-jobs.js';
 
 export interface CatalogTransaction {
+  allRecords(): CatalogRecord[];
+  moveMergedRecords(duplicate: RecordId, survivor: RecordId, fingerprint: (claim: FieldClaim)=>string): void;
   getRecord(id: RecordId): CatalogRecord | undefined;
   getClaim(fingerprint: string): StoredClaim | undefined;
   getReview(id: RecordId): ReviewItem | undefined;
   listClaims(recordId: RecordId): StoredClaim[];
+  findBySource(ref: ProviderRef): RecordId | undefined;
   findByProvider(ref: ProviderRef): RecordId | undefined;
   saveRecord(record: CatalogRecord, expectedRevision?: number): CatalogRecord;
   addProviderSource(recordId: RecordId, ref: ProviderRef): void;
@@ -93,6 +96,18 @@ export interface CuratorSession {
   createdAt: string;
 }
 
+export interface StoredAnalysisJob {
+  id: string;
+  recordId: RecordId;
+  sourceUrl: string;
+  state: 'queued' | 'running' | 'done' | 'error' | 'interrupted';
+  progress: number;
+  error?: string;
+  analyzedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StoredMediaAsset {
   mediaId: RecordId;
   recordId: RecordId;
@@ -126,6 +141,14 @@ export interface EnrichmentRun {
 }
 
 export interface CatalogRepository {
+  saveAnalysisJob(job: StoredAnalysisJob): void;
+  getAnalysisJob(id: string): StoredAnalysisJob | undefined;
+  listAnalysisJobs(recordId?: RecordId): StoredAnalysisJob[];
+  interruptStaleAnalysisJobs(): number;
+  readonly path: string;
+  backupTo(destination: string): Promise<void>;
+  listMediaAssets(): StoredMediaAsset[];
+  listClaims(recordId: RecordId): StoredClaim[];
   getRecord(id: RecordId): CatalogDetail | undefined;
   listIndex(kind: IndexKind, query: PageQuery): CatalogPage;
   /**
@@ -220,42 +243,45 @@ function putNameKeys(database: DatabaseSync, record: CatalogRecord) {
 
 function createTransaction(database: DatabaseSync): CatalogTransaction {
   return {
+    allRecords() { return (database.prepare('SELECT * FROM catalog_records').all() as StoredRecord[]).map((row)=>parseRecord(row)!); },
+    moveMergedRecords(duplicate, survivor, fingerprint) {
+      for (const table of ['provider_sources','field_claims','review_items','media_assets','record_aliases','enrichment_runs','analysis_runs']) database.prepare(`UPDATE ${table} SET record_id = ? WHERE record_id = ?`).run(survivor,duplicate);
+      const relations=database.prepare('SELECT source_id,target_id,relationship FROM record_relationships WHERE source_id=? OR target_id=?').all(duplicate,duplicate) as Array<{source_id:string;target_id:string;relationship:string}>;
+      database.prepare('DELETE FROM record_relationships WHERE source_id=? OR target_id=?').run(duplicate,duplicate);
+      for(const relation of relations) { const source=relation.source_id===duplicate?survivor:relation.source_id; const target=relation.target_id===duplicate?survivor:relation.target_id; if(source!==target) database.prepare('INSERT OR IGNORE INTO record_relationships(source_id,target_id,relationship) VALUES (?,?,?)').run(source,target,relation.relationship); }
+      const analysis=database.prepare('SELECT id,payload FROM analysis_runs WHERE record_id=?').all(survivor) as Array<{id:string;payload:string}>;
+      for(const row of analysis){const job=JSON.parse(row.payload) as StoredAnalysisJob;if(job.recordId===duplicate)database.prepare('UPDATE analysis_runs SET payload=? WHERE id=?').run(JSON.stringify({...job,recordId:survivor}),row.id);}
+      const claims=database.prepare('SELECT id,claim_json FROM field_claims WHERE record_id=?').all(survivor) as Array<{id:string;claim_json:string}>;
+      for(const row of claims) { const claim=JSON.parse(row.claim_json) as FieldClaim; if(claim.targetRecordId===duplicate){const moved={...claim,targetRecordId:survivor};database.prepare('UPDATE field_claims SET claim_json=? WHERE id=?').run(JSON.stringify(moved),row.id);database.prepare('INSERT OR IGNORE INTO claim_fingerprint_aliases(fingerprint,claim_id) VALUES(?,?)').run(fingerprint(moved),row.id);} }
+      database.prepare('DELETE FROM catalog_records WHERE id=?').run(duplicate);
+      database.prepare('INSERT INTO record_aliases(legacy_id,record_id,created_at) VALUES (?,?,?)').run(duplicate,survivor,new Date().toISOString());
+    },
     getRecord(id) {
       return recordById(database, id);
     },
 
     getClaim(fingerprint) {
-      const row = database.prepare('SELECT id, fingerprint, claim_json, disposition FROM field_claims WHERE fingerprint = ?').get(fingerprint) as {
+      const row = database.prepare('SELECT id, fingerprint, claim_json, disposition FROM field_claims WHERE fingerprint = ? OR id IN (SELECT claim_id FROM claim_fingerprint_aliases WHERE fingerprint = ?)').get(fingerprint,fingerprint) as {
         id: string; fingerprint: string; claim_json: string; disposition: ClaimDisposition;
       } | undefined;
       return row ? { id: row.id, fingerprint: row.fingerprint, claim: JSON.parse(row.claim_json) as FieldClaim, disposition: row.disposition } : undefined;
-    },
-
-    listClaims(recordId) {
-      // A record's own provenance: every claim ever made about it and what happened to
-      // it. The detail view needs this to show why a selected field holds its value.
-      const rows = database.prepare(`SELECT c.id, c.fingerprint, c.claim_json, c.disposition
-        FROM field_claims c WHERE c.record_id = ? ORDER BY c.created_at DESC, c.id`)
-        .all(recordId) as Array<{
-          id: string; fingerprint: string; claim_json: string; disposition: ClaimDisposition;
-        }>;
-      return rows.map((row) => ({
-        id: row.id,
-        fingerprint: row.fingerprint,
-        claim: JSON.parse(row.claim_json) as FieldClaim,
-        disposition: row.disposition
-      }));
     },
 
     getReview(id) {
       return readReview(database, id);
     },
 
+    findBySource(input) {const ref=normalizeProviderRef(input);const row=ref.url?database.prepare('SELECT record_id FROM provider_sources WHERE provider=? AND url=?').get(ref.provider,ref.url) as {record_id:string}|undefined:undefined;return row?.record_id??this.findByProvider(ref);},
     findByProvider(input) {
       const ref = normalizeProviderRef(ProviderRefSchema.parse(input));
       const row = database.prepare(`SELECT record_id FROM provider_sources
         WHERE provider = ? AND resource_type = ? AND external_id = ?`).get(ref.provider, ref.resourceType, ref.externalId) as { record_id: string } | undefined;
       return row?.record_id;
+    },
+
+    listClaims(recordId) {
+      const rows = database.prepare('SELECT fingerprint FROM field_claims WHERE record_id=? ORDER BY created_at,id').all(recordId) as {fingerprint:string}[];
+      return rows.map((row)=>this.getClaim(row.fingerprint)!);
     },
 
     saveRecord(input, expectedRevision) {
@@ -305,6 +331,7 @@ function createTransaction(database: DatabaseSync): CatalogTransaction {
 
     addProviderSource(recordId, input) {
       const ref = normalizeProviderRef(ProviderRefSchema.parse(input));
+      const owner=this.findByProvider(ref);if(owner){if(owner!==recordId)throw new Error('Provider identity belongs to another record');return;}
       if (!recordById(database, recordId)) throw new Error(`Unknown record ${recordId}`);
       database.prepare(`INSERT INTO provider_sources(provider, resource_type, external_id, url, record_id, added_at)
         VALUES (?, ?, ?, ?, ?, ?)`).run(ref.provider, ref.resourceType, ref.externalId, ref.url ?? null, recordId, new Date().toISOString());
@@ -314,6 +341,7 @@ function createTransaction(database: DatabaseSync): CatalogTransaction {
       const source = recordById(database, sourceId);
       const target = recordById(database, targetId);
       if (!source || !target) throw new Error('Relationship references an unknown record');
+      validateRelationship(source,target,relationship);
       if (['artist', 'crew', 'label'].includes(relationship)) {
         if (target.kind !== 'entity' || !target.roles.includes(relationship as EntityRole)) {
           throw new Error(`Relationship target does not have the ${relationship} role`);
@@ -326,6 +354,8 @@ function createTransaction(database: DatabaseSync): CatalogTransaction {
     addLegacyAlias(legacyId, recordId) {
       if (!legacyId || legacyId.length > 200) throw new Error('Legacy ID is invalid');
       if (!recordById(database, recordId)) throw new Error(`Unknown record ${recordId}`);
+      const existing=recordById(database,legacyId);
+      if(existing) { if(existing.id!==recordId) throw new Error('Legacy ID collision requires review'); return; }
       database.prepare('INSERT INTO record_aliases(legacy_id, record_id, created_at) VALUES (?, ?, ?)').run(legacyId, recordId, new Date().toISOString());
     },
 
@@ -464,8 +494,35 @@ function createTransaction(database: DatabaseSync): CatalogTransaction {
 export function openCatalog(path: string): CatalogRepository {
   const database = openDatabase(path);
   let inTransaction = false;
+  database.exec('BEGIN IMMEDIATE');
+  try {validateReferences(database);syncNormalizedTables(database);database.exec('COMMIT');}catch(error){database.exec('ROLLBACK');database.close();throw error;}
 
   return {
+    path,
+    saveAnalysisJob(job) {
+      const target=recordById(database,job.recordId);if(!target)throw new Error('Analysis target record not found');job={...job,recordId:target.id};
+      database.prepare(`INSERT INTO analysis_runs(id,record_id,state,payload,updated_at) VALUES(?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET state=excluded.state,payload=excluded.payload,updated_at=excluded.updated_at`)
+        .run(job.id,job.recordId,job.state,JSON.stringify(job),job.updatedAt);
+    },
+    getAnalysisJob(id) {
+      const row=database.prepare('SELECT payload FROM analysis_runs WHERE id=?').get(id) as {payload:string}|undefined;
+      return row ? JSON.parse(row.payload) as StoredAnalysisJob : undefined;
+    },
+    listAnalysisJobs(recordId) {
+      const rows=(recordId ? database.prepare('SELECT payload FROM analysis_runs WHERE record_id=? ORDER BY updated_at DESC').all(recordId)
+        : database.prepare('SELECT payload FROM analysis_runs ORDER BY updated_at DESC LIMIT 100').all()) as Array<{payload:string}>;
+      return rows.map(row=>JSON.parse(row.payload) as StoredAnalysisJob);
+    },
+    interruptStaleAnalysisJobs() {
+      const rows=database.prepare("SELECT payload FROM analysis_runs WHERE state IN ('queued','running')").all() as Array<{payload:string}>;
+      for(const row of rows){ const job=JSON.parse(row.payload) as StoredAnalysisJob;
+        this.saveAnalysisJob({...job,state:'interrupted',error:'Audio analysis was interrupted; retry the run',updatedAt:new Date().toISOString()}); }
+      return rows.length;
+    },
+    async backupTo(destination) { await backup(database,destination); },
+    listMediaAssets() { const rows=database.prepare('SELECT media_id FROM media_assets').all() as {media_id:string}[]; return rows.map((row)=>this.getMediaAsset(row.media_id)!); },
+    listClaims(recordId) { const rows=database.prepare('SELECT fingerprint FROM field_claims WHERE record_id=? ORDER BY created_at,id').all(recordId) as {fingerprint:string}[]; return rows.map((row)=>this.getClaim(row.fingerprint)!); },
     getRecord(id) {
       const record = recordById(database, id);
       return record ? CatalogRecordSchema.parse(record) : undefined;
@@ -474,10 +531,6 @@ export function openCatalog(path: string): CatalogRepository {
     listReview() {
       const rows = database.prepare(`SELECT id FROM review_items WHERE state = 'pending' ORDER BY created_at, id`).all() as { id: string }[];
       return rows.map((row) => readReview(database, row.id)!).filter(Boolean);
-    },
-
-    listClaims(recordId) {
-      return createTransaction(database).listClaims(recordId);
     },
 
     listRelatedMixes(entityId) {
@@ -539,7 +592,7 @@ export function openCatalog(path: string): CatalogRepository {
     },
 
     saveMigrationBatch(result) {
-      database.prepare('INSERT OR IGNORE INTO migration_batches(batch_id, result_json, created_at) VALUES (?, ?, ?)')
+      database.prepare('INSERT INTO migration_batches(batch_id, result_json, created_at) VALUES (?, ?, ?) ON CONFLICT(batch_id) DO UPDATE SET result_json=excluded.result_json')
         .run(result.batchId, JSON.stringify(result), new Date().toISOString());
       const row = database.prepare('SELECT result_json FROM migration_batches WHERE batch_id = ?').get(result.batchId) as { result_json: string } | undefined;
       if (!row) throw new Error(`Migration batch ${result.batchId} could not be stored`);
@@ -676,8 +729,9 @@ export function openCatalog(path: string): CatalogRepository {
       ];
       const params: (string | number)[] = [...baseParams];
       if (query.query) {
-        filters.push('r.search_name LIKE ? ESCAPE \'\\\'');
-        params.push(`%${normalizeName(query.query).replace(/[\\%_]/g, '\\$&')}%`);
+        filters.push('(r.search_name LIKE ? ESCAPE \'\\\' OR EXISTS (SELECT 1 FROM entity_names n WHERE n.record_id=r.id AND n.search_key LIKE ? ESCAPE \'\\\'))');
+        const search=`%${normalizeName(query.query).replace(/[\\%_]/g, '\\$&')}%`;
+        params.push(search,search);
       }
       const where = filters.join(' AND ');
       const rows = database.prepare(`SELECT r.id, r.kind, r.verification, r.revision, r.search_name, r.payload
@@ -724,6 +778,8 @@ export function openCatalog(path: string): CatalogRepository {
       try {
         const result = operation(createTransaction(database));
         if (result && typeof result === 'object' && 'then' in result) throw new Error('Catalog transactions must be synchronous');
+        validateReferences(database);
+        syncNormalizedTables(database);
         database.exec('COMMIT');
         return result;
       } catch (error) {
@@ -756,4 +812,45 @@ function readReview(database: DatabaseSync, id: RecordId): ReviewItem | undefine
     recordRevision: row.record_revision,
     ...(row.current_value_json === null ? {} : { currentValue: JSON.parse(row.current_value_json) as unknown })
   } : undefined;
+}
+function validateRelationship(source: CatalogRecord,target: CatalogRecord,relationship: string) {
+  if(['artist','crew','label','event'].includes(relationship) && source.kind!=='mix') throw new Error('Relationship source must be a mix');
+  if(relationship==='member' && (source.kind!=='entity'||target.kind!=='entity'||!target.roles.includes('artist')||!source.roles.some((role)=>role==='artist'||role==='crew'))) throw new Error('Membership relationship requires artist/crew and artist records');
+  if(['parent-label','sub-label'].includes(relationship) && (source.kind!=='entity'||target.kind!=='entity'||!source.roles.includes('label')||!target.roles.includes('label'))) throw new Error('Label relationship requires label records');
+  if(!['artist','crew','label','event','member','parent-label','sub-label'].includes(relationship)) throw new Error('Relationship type is unsupported');
+}
+function validateReferences(database: DatabaseSync) {
+  const rows=database.prepare('SELECT * FROM catalog_records').all() as StoredRecord[];
+  const records=new Map(rows.map((row)=>{const record=parseRecord(row)!;return [record.id,record];}));
+  const check=(source:CatalogRecord,id:string,kind:string,role?:EntityRole)=>{const target=records.get(id);if(!target||target.kind!==kind||(role&&(target.kind!=='entity'||!target.roles.includes(role)))) throw new Error(`Relationship reference ${id} has an unknown record or wrong role`);if(source.id===id) throw new Error('Relationship cannot reference itself');if(source.kind==='mix'&&source.verification!=='proposed'&&target.verification==='proposed')throw new Error('Relationship target identity must be confirmed before selecting its link');};
+  for(const source of records.values()) {
+    if(source.kind==='mix') {for(const person of source.people) check(source,person.entityId,'entity',person.role);for(const id of source.eventIds) check(source,id,'event');}
+    if(source.kind==='event') for(const id of source.mixIds) check(source,id,'mix');
+    if(source.kind==='entity') {for(const id of source.artist?.groupIds??[]) check(source,id,'entity','artist');for(const id of [...source.artist?.memberIds??[],...source.crew?.memberIds??[]]) check(source,id,'entity','artist');if(source.label?.parentId) check(source,source.label.parentId,'entity','label');for(const id of source.label?.subLabelIds??[]) check(source,id,'entity','label');}
+  }
+  const relationships=database.prepare('SELECT source_id,target_id,relationship FROM record_relationships').all() as Array<{source_id:string;target_id:string;relationship:string}>;
+  for(const link of relationships) {const source=records.get(link.source_id),target=records.get(link.target_id);if(!source||!target) throw new Error('Relationship references an unknown record');validateRelationship(source,target,link.relationship);if(['artist','crew','label'].includes(link.relationship)) check(source,target.id,'entity',link.relationship as EntityRole);if(link.relationship==='event')check(source,target.id,'event');}
+}
+
+function syncNormalizedTables(database:DatabaseSync) {
+  for(const table of ['mixes','events','entity_details','entity_aliases','record_terms','record_links','record_assets','selected_evidence'])database.exec(`DELETE FROM ${table}`);
+  const records=(database.prepare('SELECT * FROM catalog_records').all() as StoredRecord[]).map(row=>parseRecord(row)!);
+  const relation=(source:string,target:string,type:string)=>database.prepare('INSERT OR IGNORE INTO record_relationships(source_id,target_id,relationship) VALUES(?,?,?)').run(source,target,type);
+  const link=(id:string,type:string,url:string)=>database.prepare('INSERT OR IGNORE INTO record_links(record_id,kind,url) VALUES(?,?,?)').run(id,type,url);
+  for(const record of records) {
+    for(const asset of record.assets)database.prepare('INSERT INTO record_assets(record_id,role,url,source,media_id) VALUES(?,?,?,?,?)').run(record.id,asset.role,asset.url,asset.source,asset.mediaId??null);
+    for(const [field,id] of Object.entries(record.selectedEvidence??{}))database.prepare('INSERT INTO selected_evidence(record_id,field,claim_id) VALUES(?,?,?)').run(record.id,field,id);
+    if(record.kind==='mix'){
+      database.prepare('INSERT INTO mixes VALUES(?,?,?,?,?,?)').run(record.id,record.title,record.description??null,record.durationMs??null,record.recordingDate?.value??null,record.recordingDate?.precision??null);
+      for(const [kind,values] of [['genre',record.genres],['style',record.styles]] as const)for(const value of values)database.prepare('INSERT OR IGNORE INTO record_terms VALUES(?,?,?,?)').run(record.id,kind,value,normalizeName(value));
+      for(const person of record.people)relation(record.id,person.entityId,person.role);for(const id of record.eventIds)relation(record.id,id,'event');for(const url of record.playbackUrls??[])link(record.id,'playback',url);
+    }else if(record.kind==='event'){
+      database.prepare('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)').run(record.id,record.name,record.startDate?.value??null,record.startDate?.precision??null,record.endDate?.value??null,record.endDate?.precision??null,record.venue??null,record.locality??null,record.country??null);
+      for(const url of record.sourceUrls)link(record.id,'source',url);for(const id of record.mixIds)relation(id,record.id,'event');
+    }else{
+      for(const alias of record.aliases)database.prepare('INSERT OR IGNORE INTO entity_aliases VALUES(?,?,?)').run(record.id,alias,normalizeName(alias));
+      for(const role of record.roles){const details=record[role];database.prepare('INSERT INTO entity_details VALUES(?,?,?,?,?)').run(record.id,role,role==='artist'?record.artist?.realName??null:null,details?.profile??record.profile??null,details?.country??record.country??null);if(role!=='artist')for(const url of record[role]?.websiteUrls??[])link(record.id,`${role}-website`,url);}
+      for(const id of record.artist?.groupIds??[])relation(id,record.id,'member');for(const id of [...record.artist?.memberIds??[],...record.crew?.memberIds??[]])relation(record.id,id,'member');if(record.label?.parentId)relation(record.id,record.label.parentId,'parent-label');for(const id of record.label?.subLabelIds??[])relation(record.id,id,'sub-label');
+    }
+  }
 }

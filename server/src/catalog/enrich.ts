@@ -1,3 +1,4 @@
+import { HttpInputError } from '../http.js';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   EnrichmentReportSchema,
@@ -12,9 +13,9 @@ import { applyClaims } from './merge.js';
 import { claimsFromProvider } from './provider-claims.js';
 import type { CatalogRepository, CatalogTransaction } from './repository.js';
 import type { CuratorActor } from '../auth/curator.js';
-import type { EntityRecord } from '@syco23/catalog-domain';
+import type { EntityRecord, FieldClaim } from '@syco23/catalog-domain';
 import { enrichMix } from '../core/enrichment.js';
-import { overlapScore } from '../core/utils.js';
+import { overlapScore, providerFailureMessage } from '../core/utils.js';
 import type { ProviderRegistry } from '../core/registry.js';
 
 type SourceLike = { provider: ProviderRef['provider']; url: string; externalId?: string };
@@ -83,7 +84,7 @@ function initialReport(record: import('@syco23/catalog-domain').CatalogRecord | 
 async function enrichEntityRecord(repository: CatalogRepository, registry: ProviderRegistry, record: EntityRecord, actor: CuratorActor): Promise<EnrichmentReport> {
   void actor;
   const report = initialReport(record);
-  const claims = [];
+  const claims: FieldClaim[] = [];
   for (const ref of record.providerRefs.filter((item) => item.provider === 'discogs')) {
     report.attemptedProviders.push('discogs');
     try {
@@ -92,6 +93,30 @@ async function enrichEntityRecord(repository: CatalogRepository, registry: Provi
       if (!profile) continue;
       const facts: Record<string, unknown> = {};
       if (profile.profile) facts.profile = profile.profile;
+      if (profile.aliases?.length) facts.aliases = profile.aliases;
+      if (profile.realName && record.roles.includes('artist')) facts.realName = profile.realName;
+      if (profile.websiteUrls?.length && (record.roles.includes('crew') || record.roles.includes('label'))) facts.websiteUrls = profile.websiteUrls;
+      const resolveRefs = (refs: import('../domain.js').EntityRef[] | undefined): string[] => (refs ?? []).flatMap(item => {
+        if (!item.externalId || !item.url || item.externalId === ref.externalId) return [];
+        const source: ProviderRef = { provider: 'discogs', resourceType: item.kind === 'label' ? 'label' : 'artist', externalId: item.externalId, url: item.url };
+        const known = repository.findByProvider(source);
+        if (known) return [known];
+        const now = new Date().toISOString();
+        const related: EntityRecord = { kind: 'entity', id: randomUUID(), displayName: item.name,
+          roles: [item.kind === 'label' ? 'label' : 'artist'], verification: 'source-confirmed', reviewState: 'ready',
+          revision: 1, createdAt: now, updatedAt: now, aliases: [], assets: [], providerRefs: [source] };
+        repository.transaction(tx => { tx.saveRecord(related); tx.addProviderSource(related.id, source); });
+        return [related.id];
+      });
+      const groups = resolveRefs(profile.groups), members = resolveRefs(profile.members), subLabels = resolveRefs(profile.subLabels);
+      const parent = resolveRefs(profile.parent ? [profile.parent] : []);
+      if (groups.length && record.roles.includes('artist')) facts.groupIds = groups;
+      if (members.length && (record.roles.includes('artist') || record.roles.includes('crew'))) facts.memberIds = members;
+      if (subLabels.length && record.roles.includes('label')) facts.subLabelIds = subLabels;
+      if (parent[0] && record.roles.includes('label')) facts.parentId = parent[0];
+      // Discogs alias identities remain separate sourced identities; their names are
+      // attributable aliases, never a name-only merge of independent catalog IDs.
+      if (profile.aliasRefs?.length) facts.aliases = [...new Set([...(profile.aliases ?? []), ...profile.aliasRefs.map(item => item.name)])];
       if (profile.imageUrl) {
         const imageField = record.roles.includes('artist') ? 'artistPortrait'
           : record.roles.includes('crew') ? 'crewLogo'
@@ -113,10 +138,26 @@ async function enrichEntityRecord(repository: CatalogRepository, registry: Provi
         facts
       }));
     } catch (error) {
-      report.errors.push({ provider: 'discogs', message: error instanceof Error ? error.message : String(error) });
+      report.errors.push({ provider: 'discogs', message: providerFailureMessage(error) });
     }
   }
 
+  if (!record.providerRefs.some(ref => ref.provider === 'discogs')) {
+    report.attemptedProviders.push('discogs');
+    try {
+      const kind = record.roles.includes('label') ? 'label' : record.roles.includes('artist') ? 'artist' : 'crew';
+      const matches = await registry.discogs.enrichEntity(record.displayName, kind);
+      for (const match of matches.slice(0, 5)) {
+        if (!match.externalId || !match.url) continue;
+        const ref: ProviderRef = { provider: 'discogs', resourceType: kind === 'label' ? 'label' : 'artist', externalId: match.externalId, url: match.url };
+        const facts: Record<string, unknown> = { providerRefs: [...record.providerRefs, ref] };
+        if (match.profile) facts.profile = match.profile;
+        claims.push(...claimsFromProvider(record, { provider: ref, sourceUrl: match.url,
+          observedAt: new Date().toISOString(), match: { status: 'possible', explanation: 'Discogs name search proposes identity; curator confirmation required' }, facts }));
+      }
+      if (!matches.length) report.errors.push({ provider: 'discogs', message: 'No supported entity identity found; fields remain missing' });
+    } catch { report.errors.push({ provider: 'discogs', message: 'Discogs entity search failed; retry later' }); }
+  }
   const applied = applyClaims(repository, claims);
   return EnrichmentReportSchema.parse({
     ...applied,
@@ -126,15 +167,19 @@ async function enrichEntityRecord(repository: CatalogRepository, registry: Provi
   });
 }
 
+const activeEnrichments = new WeakMap<CatalogRepository, Set<string>>();
+
 export async function enrichCatalogRecord(
   repository: CatalogRepository,
   registry: ProviderRegistry,
   id: string,
   actor: CuratorActor
 ): Promise<EnrichmentReport> {
-  const runId = `run_${randomUUID()}`;
-  const report = await runTrackedEnrichment(repository, registry, id, actor, runId);
-  return report;
+  const active = activeEnrichments.get(repository) ?? new Set<string>();
+  if (active.has(id) || active.size >= 3) throw new HttpInputError('Enrichment is already running; retry when it finishes', 429);
+  activeEnrichments.set(repository, active); active.add(id);
+  try { return await runTrackedEnrichment(repository, registry, id, actor, `run_${randomUUID()}`); }
+  finally { active.delete(id); }
 }
 
 /**
@@ -165,7 +210,7 @@ async function runTrackedEnrichment(
     return report;
   } catch (error) {
     repository.finishEnrichmentRun(runId, 'interrupted');
-    console.error(`Enrichment run ${runId} for ${id} did not complete:`, error);
+    console.error(`Enrichment run ${runId} for ${id} did not complete`);
     const partial = EnrichmentReportSchema.parse({
       state: 'interrupted',
       attemptedProviders: [],
@@ -187,7 +232,15 @@ async function performEnrichment(
 ): Promise<EnrichmentReport> {
   const id = original.id;
   if (original.kind === 'entity') return enrichEntityRecord(repository, registry, original, actor);
-  if (original.kind !== 'mix') return EnrichmentReportSchema.parse(initialReport(original));
+  if (original.kind !== 'mix') return EnrichmentReportSchema.parse({ ...initialReport(original),
+    errors: [{ provider: 'freeteknomusic', message: 'No supported event provider capability; curator-sourced event facts are required' }] });
+  const entityReports: EnrichmentReport[] = [];
+  for (const entityId of new Set(original.people.map(person => person.entityId))) {
+    const entity = repository.getRecord(entityId);
+    if (entity?.kind === 'entity') {
+      entityReports.push(await enrichEntityRecord(repository, registry, entity, actor));
+    }
+  }
 
   const linkedArtists = original.people.flatMap((person) => {
     const entity = repository.getRecord(person.entityId);
@@ -197,6 +250,31 @@ async function performEnrichment(
     const entity = repository.getRecord(person.entityId);
     return person.role === 'crew' && entity?.kind === 'entity' ? [entity.displayName] : [];
   });
+  const sourceReports: EnrichmentReport[] = [];
+  const sourceErrors: EnrichmentReport['errors'] = [];
+  const refreshedCandidates: import('../domain.js').MixCandidate[] = [];
+  for (const ref of original.sources) {
+    if (!ref.url || ref.provider === 'discogs' || ref.provider === 'freeteknomusic') continue;
+    const adapter = registry.discovery.get(ref.provider);
+    if (!adapter) continue;
+    try {
+      const candidates = await adapter.search({ url: ref.url, minDurationMs: 1, limit: 1 });
+      for (const candidate of candidates) {
+        if (candidate.source.externalId && candidate.source.externalId !== ref.externalId) continue;
+        refreshedCandidates.push(candidate);
+        const facts: Record<string, unknown> = {};
+        if (candidate.durationMs) facts.durationMs = candidate.durationMs;
+        if (candidate.description) facts.description = candidate.description;
+        if (candidate.genres?.length) facts.genres = candidate.genres;
+        if (candidate.recordedAt) { const date = recordingDate(candidate.recordedAt); if (date) facts.recordingDate = date; }
+        if (candidate.artwork?.[0]) facts.cover = { role: 'mix-cover', url: candidate.artwork[0] };
+        const current = repository.getRecord(original.id)!;
+        sourceReports.push(applyClaims(repository, claimsFromProvider(current, { provider: { provider: ref.provider, resourceType: ref.resourceType, externalId: ref.externalId, url: ref.url }, sourceUrl: ref.url,
+          observedAt: new Date().toISOString(), match: { status: 'confirmed', explanation: 'Refreshed established provider resource identity directly' },
+          fieldEvidence: candidate.fieldEvidence, facts })));
+      }
+    } catch (error) { sourceErrors.push({ provider: ref.provider, message: providerFailureMessage(error) }); }
+  }
   const result = await enrichMix(registry, {
     title: original.title,
     artists: linkedArtists,
@@ -250,6 +328,9 @@ async function performEnrichment(
           ? 'Linked provider identity and compatible recording evidence'
           : `Possible match: ${provenance.confidence.toFixed(2)} provider confidence; curator confirmation required`
       },
+      fieldEvidence: provenance.field === 'recordedAt'
+        ? { recordingDate: result.candidates.find(candidate => candidate.source.url === provenance.sourceUrl)?.fieldEvidence?.recordingDate ?? 'direct' }
+        : undefined,
       facts: { [field]: value }
     }];
   });
@@ -273,16 +354,58 @@ async function performEnrichment(
   });
 
   const claims = [...factsByProvenance, ...possibleMatches].flatMap((metadata) => claimsFromProvider(refreshed, metadata));
+  claims.push(...parsedDescriptionClaims(repository, refreshed, [...refreshedCandidates, ...result.candidates]));
   const applied = applyClaims(repository, claims);
   const errors = [
     ...result.failures.map((failure) => ({ provider: failure.provider, message: failure.error })),
+    ...entityReports.flatMap(report => report.errors),
+    ...sourceErrors, ...sourceReports.flatMap(report => report.errors),
     ...applied.errors
   ];
   const report: EnrichmentReport = {
     ...applied,
-    attemptedProviders: [...new Set([...result.attempted, ...applied.attemptedProviders])],
+    applied: applied.applied + [...entityReports, ...sourceReports].reduce((count, report) => count + report.applied, 0),
+    corroborated: applied.corroborated + [...entityReports, ...sourceReports].reduce((count, report) => count + report.corroborated, 0),
+    reviewed: applied.reviewed + [...entityReports, ...sourceReports].reduce((count, report) => count + report.reviewed, 0),
+    attemptedProviders: [...new Set([...result.attempted, ...applied.attemptedProviders, ...[...entityReports, ...sourceReports].flatMap(report => report.attemptedProviders)])],
     errors,
     missingFields: missingFields(repository.getRecord(original.id) ?? refreshed)
   };
   return EnrichmentReportSchema.parse(report);
+}
+function parsedDescriptionClaims(repository: CatalogRepository, mix: MixRecord, candidates: import('../domain.js').MixCandidate[]): FieldClaim[] {
+  const claims: FieldClaim[] = [];
+  for (const candidate of candidates) {
+    const description = candidate.description?.slice(0,10000);
+    if (!description) continue;
+    const lines = description.split(/[\r\n]+/);
+    const facts = new Map<string, {value:string;excerpt:string}>();
+    for (const excerpt of lines) { const match = /^\s*(Event|Venue|Country|Crew)\s*:\s*(.{1,300})\s*$/i.exec(excerpt);
+      if (match) facts.set(match[1].toLowerCase(), {value:match[2].trim(),excerpt:excerpt.trim()}); }
+    const ref = providerRef(candidate.source), observedAt = new Date().toISOString();
+    const eventName = facts.get('event');
+    if (eventName) {
+      const eventId = `event_${createHash('sha256').update(mix.id + ':' + eventName.value.normalize('NFKC').toLowerCase()).digest('hex').slice(0,40)}`;
+      if (!repository.getRecord(eventId)) repository.transaction(tx => tx.saveRecord({ kind:'event',id:eventId,name:eventName.value,
+        revision:1,createdAt:observedAt,updatedAt:observedAt,verification:'proposed',reviewState:'review',assets:[],sourceUrls:[],mixIds:[] }));
+      const event = repository.getRecord(eventId)!;
+      for (const [input,field] of [['event','name'],['venue','venue'],['country','country']] as const) {
+        const fact=facts.get(input); if (!fact || (field==='country' && !/^[A-Z]{2}$/.test(fact.value))) continue;
+        claims.push(...claimsFromProvider(event,{provider:ref,sourceUrl:candidate.source.url,observedAt,
+          match:{status:'possible',explanation:`Parsed description excerpt: "${fact.excerpt}"`},facts:{[field]:fact.value}}));
+      }
+      claims.push(...claimsFromProvider(mix,{provider:ref,sourceUrl:candidate.source.url,observedAt,
+        match:{status:'possible',explanation:`Proposed event relationship from excerpt: "${eventName.excerpt}"`},facts:{eventIds:[...new Set([...mix.eventIds,eventId])]}}));
+    }
+    const crew=facts.get('crew');
+    if (crew) {
+      const entityId=`entity_${createHash('sha256').update(mix.id+':crew:'+crew.value.normalize('NFKC').toLowerCase()).digest('hex').slice(0,40)}`;
+      if (!repository.getRecord(entityId)) repository.transaction(tx=>tx.saveRecord({kind:'entity',id:entityId,displayName:crew.value,roles:['crew'],aliases:[],assets:[],providerRefs:[],revision:1,createdAt:observedAt,updatedAt:observedAt,verification:'proposed',reviewState:'review'}));
+      claims.push(...claimsFromProvider(repository.getRecord(entityId)!,{provider:ref,sourceUrl:candidate.source.url,observedAt,
+        match:{status:'possible',explanation:`Parsed description excerpt: "${crew.excerpt}"`},facts:{displayName:crew.value}}));
+      claims.push(...claimsFromProvider(mix,{provider:ref,sourceUrl:candidate.source.url,observedAt,
+        match:{status:'possible',explanation:`Proposed crew relationship from excerpt: "${crew.excerpt}"`},facts:{people:[...mix.people,{entityId,role:'crew'}]}}));
+    }
+  }
+  return claims;
 }

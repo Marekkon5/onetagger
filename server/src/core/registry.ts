@@ -5,6 +5,7 @@ import { FreeteknomusicProvider } from '../providers/freeteknomusic.js';
 import { SoundCloudProvider } from '../providers/soundcloud.js';
 import { YouTubeProvider } from '../providers/youtube.js';
 import { HearthisProvider } from '../providers/hearthis.js';
+import { MixcloudProvider } from '../providers/mixcloud.js';
 
 export class ProviderRegistry {
   readonly discovery = new Map<string, DiscoveryProvider>();
@@ -12,9 +13,10 @@ export class ProviderRegistry {
   readonly soundcloud = new SoundCloudProvider();
   readonly youtube = new YouTubeProvider();
   readonly hearthis = new HearthisProvider();
+  readonly mixcloud = new MixcloudProvider();
 
   constructor() {
-    for (const provider of [new FreeteknomusicProvider(), this.soundcloud, new ArchiveOrgProvider(), this.youtube, this.hearthis]) {
+    for (const provider of [new FreeteknomusicProvider(), this.soundcloud, new ArchiveOrgProvider(), this.youtube, this.hearthis, this.mixcloud]) {
       this.discovery.set(provider.id, provider);
     }
   }
@@ -26,7 +28,7 @@ export class ProviderRegistry {
     ]);
     return results.map((result, index) => result.status === 'fulfilled'
       ? result.value
-      : { id: (['freeteknomusic', 'soundcloud', 'archiveorg', 'youtube', 'hearthis', 'discogs'] as const)[index], state: 'offline', detail: String(result.reason), checkedAt: new Date().toISOString() });
+      : { id: (['freeteknomusic', 'soundcloud', 'archiveorg', 'youtube', 'hearthis', 'mixcloud', 'discogs'] as const)[index], state: 'offline', detail: String(result.reason), checkedAt: new Date().toISOString() });
   }
 
   search(providerId: string, query: SearchQuery, signal?: AbortSignal) {

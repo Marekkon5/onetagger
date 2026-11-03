@@ -133,3 +133,19 @@ test('index search is paginated and matches normalized names', () => {
     repo.close();
   });
 });
+test('typed details, aliases, field selections and arrays have durable normalized relation rows',async()=>{
+  const {DatabaseSync}=await import('node:sqlite');
+  withCatalog(path=>{
+    const repo=openCatalog(path);
+    repo.transaction(tx=>{
+      tx.saveRecord({...entity('entity_normalized','source-confirmed',['artist']),aliases:['DJ Live'],artist:{realName:'Real Person',profile:'Sourced profile'},assets:[{role:'artist-portrait',url:'https://example.org/portrait.png',source:'discogs'}]});
+      tx.saveRecord({...mix('mix_normalized'),genres:['Tekno','tekno'],people:[{entityId:'entity_normalized',role:'artist'}]});
+    });repo.close();
+    const db=new DatabaseSync(path,{readOnly:true});try{
+      assert.equal((db.prepare('SELECT real_name FROM entity_details WHERE record_id=? AND role=?').get('entity_normalized','artist') as {real_name:string}).real_name,'Real Person');
+      assert.equal((db.prepare('SELECT count(*) AS total FROM record_terms WHERE record_id=?').get('mix_normalized') as {total:number}).total,1);
+      assert.equal((db.prepare('SELECT count(*) AS total FROM entity_aliases').get() as {total:number}).total,1);
+      assert.equal((db.prepare('SELECT count(*) AS total FROM record_relationships WHERE source_id=?').get('mix_normalized') as {total:number}).total,1);
+    }finally{db.close();}
+  });
+});

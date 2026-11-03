@@ -48,6 +48,11 @@ test('matching names across providers remain distinct and uploader names are not
     assert.notEqual(youtube.record.id, soundcloud.record.id);
     assert.equal(youtube.record.kind === 'mix' ? youtube.record.people.length : -1, 0);
     assert.equal(youtube.record.kind === 'mix' ? youtube.record.assets.length : -1, 0);
-    assert.deepEqual(repo.listReview().map((item) => item.field).sort(), ['cover', 'cover']);
+    // Identical title with compatible duration across different providers is never linked
+    // automatically: the records stay distinct and only a reviewable possible duplicate is
+    // recorded (design rule 5). No identity, people or asset review item may appear.
+    const fields = repo.listReview().map((item) => item.field);
+    assert.deepEqual(fields.filter((field) => field !== 'possibleDuplicate').sort(), ['cover', 'cover']);
+    assert.ok(fields.includes('possibleDuplicate'));
   });
 });

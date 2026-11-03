@@ -10,13 +10,22 @@ test('YouTube accepts only public video URL forms and parses long durations', ()
 });
 
 test('YouTube known URL supplies a real public thumbnail without an API key', async (context) => {
+  // This exercises the credential-free oEmbed path, so it must not be diverted into the
+  // Data API branch by an ambient key from the developer environment.
+  const previousKey = process.env.YOUTUBE_API_KEY;
+  delete process.env.YOUTUBE_API_KEY;
   context.mock.method(globalThis, 'fetch', async () => Response.json({
     title: 'Kan10 - Live @ Mackitek Koalisson III',
     author_name: 'History of Free Party',
     thumbnail_url: 'https://i.ytimg.com/vi/vi5miMVpmuI/hqdefault.jpg',
   }));
-  const provider = new YouTubeProvider();
-  const candidates = await provider.search({ url: 'https://youtu.be/vi5miMVpmuI' });
-  assert.equal(candidates[0].artwork?.[0], 'https://i.ytimg.com/vi/vi5miMVpmuI/hqdefault.jpg');
-  assert.equal(candidates[0].source.externalId, 'vi5miMVpmuI');
+  try {
+    const provider = new YouTubeProvider();
+    const candidates = await provider.search({ url: 'https://youtu.be/vi5miMVpmuI' });
+    assert.equal(candidates[0].artwork?.[0], 'https://i.ytimg.com/vi/vi5miMVpmuI/hqdefault.jpg');
+    assert.equal(candidates[0].source.externalId, 'vi5miMVpmuI');
+  } finally {
+    if (previousKey === undefined) delete process.env.YOUTUBE_API_KEY;
+    else process.env.YOUTUBE_API_KEY = previousKey;
+  }
 });

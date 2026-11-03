@@ -4,7 +4,7 @@
 
 Endpoint: `https://archive.freeteknomusic.org/`
 
-The adapter stays on the archive origin, resolves relative URLs safely, supports bounded recursion (`maxDepth <= 6`), caps total work (`maxItems <= 2500`), ignores obvious system/artwork files and derives initial identity hints from path + filename. A plain artist/directory name first checks the matching archive folder. When a minimum duration is requested, discovery probes audio duration and excludes shorter files; it does not download the full recording. An indexed mix with a missing duration is probed during enrichment. An explicit waveform action decodes the full recording, with a 250 MiB and five-minute limit.
+The adapter stays on the archive origin, resolves relative URLs safely, supports bounded recursion (`maxDepth <= 6`), caps total work (`maxItems <= 2500`), ignores obvious system/artwork files, skips entries listed below roughly 28 MiB, and derives initial identity hints from path + filename. A plain artist/directory name first checks the matching archive folder. When a minimum duration is requested, discovery probes audio duration and excludes shorter files; it does not download the full recording. An indexed mix with a missing duration is probed during enrichment. An explicit waveform action decodes the full recording, with a 250 MiB and five-minute limit.
 
 ## SoundCloud
 
@@ -12,27 +12,31 @@ Uses the official public API for search. Configure `SOUNDCLOUD_CLIENT_ID` and `S
 
 To obtain credentials, sign in to SoundCloud and follow its [app registration guide](https://developers.soundcloud.com/docs/api/register-app). SoundCloud currently requires Artist Pro for API app registration. Public-resource search uses the [client-credentials flow](https://developers.soundcloud.com/docs/api/guide); a user OAuth login inside Mixsets is unnecessary.
 
-If you do not have Artist Pro, open an indexed mix with missing artwork and choose **Add cover from public link**. Paste the exact public track URL, inspect its title and cover preview, then confirm it is the same mix. The worker uses SoundCloud's oEmbed endpoint without API credentials; uploader avatar fallbacks are rejected. The link and cover are saved only after confirmation, and existing canonical artwork is never replaced. An already-linked public SoundCloud track can also supply artwork during normal enrichment. Automatic SoundCloud search across other mixes still requires app credentials.
+If you do not have Artist Pro, the worker can still resolve a cover for an exact public SoundCloud track URL without API credentials: it uses SoundCloud's oEmbed endpoint and rejects uploader avatar fallbacks. There is currently no detail-view control for this — the endpoints `POST /api/soundcloud/artwork` and `POST /api/artwork/preview` are curator-gated and reachable through the API only. An already-linked public SoundCloud track can also supply artwork during normal enrichment. Automatic SoundCloud search across other mixes still requires app credentials.
 
 No HTML scraping, access-control bypass or protected stream extraction is implemented.
 
 ## YouTube
 
-Known public video URLs use YouTube's oEmbed metadata and thumbnail without credentials. Text discovery and provider-wide enrichment use the official YouTube Data API v3 with `YOUTUBE_API_KEY`; the search result is checked against video details and the configured minimum duration. Upload date is never treated as recording date. A channel/uploader is never promoted to a performing artist. Title parsing may provide an identity suggestion, but uncertain performer matches remain in Review. Video thumbnails are selected automatically only when title and compatible duration establish a strong same-recording match; other images stay reviewable.
+Known public video URLs use YouTube's oEmbed metadata and thumbnail without credentials. Text discovery and provider-wide enrichment use the official YouTube Data API v3 with `YOUTUBE_API_KEY`; the search result is checked against video details and the configured minimum duration. Upload date is never treated as recording date. A channel/uploader is never promoted to a performing artist. Title parsing may provide an identity suggestion, but uncertain performer matches remain in Review. A thumbnail is taken automatically from an already-linked video source without any title or duration comparison. For new search results it requires title overlap plus a compatible duration — and an unknown duration skips the duration check entirely — plus provider confidence of at least 0.7; other images stay reviewable.
 
 Enable YouTube Data API v3 in [Google Cloud](https://developers.google.com/youtube/v3/getting-started), create an API key restricted to that API, then run the private `youtube` setup routine below. Public search does not require a user OAuth login.
 
 ## hearthis.at
 
-Uses the public `api-v2.hearthis.at` search and track endpoints; no account is required. Only images under the track-image path are considered cover artwork. Uploader avatars and unrelated broad search results are not used as canonical covers. Public API rate limits can temporarily make search unavailable. Known public track URLs can still be previewed and linked from the detail view.
+Uses the public `api-v2.hearthis.at` search and track endpoints; no account is required. Only images under the track-image path are considered cover artwork. Uploader avatars and unrelated broad search results are not used as canonical covers. Public API rate limits can temporarily make search unavailable. The adapter never proposes a performing artist: the uploader is recorded separately as the uploader. Known public track URLs resolve server-side through `POST /api/artwork/preview`; there is currently no detail-view control that previews or links them.
+
+## Mixcloud
+
+Uses the public read API at `api.mixcloud.com` — reading (search, show metadata) requires **no credentials**; only writes would need OAuth, which this archive never performs. `GET /search/?q=…&type=cloudcast` returns long-form cloudcasts, and a known `mixcloud.com/<user>/<show>/` URL resolves through the same host as an object lookup. It captures the show name, `audio_length` (upload duration), upload `created_time`, description, tags and `pictures` artwork. The uploader/host is recorded as the uploader and is never proposed as a performing artist; `audio_length` and `created_time` are upload facts and are never promoted to a recording date. Artwork URLs are only accepted from `*.mixcloud.com`. Read rate limits can temporarily make search unavailable. Known public show URLs resolve server-side through `POST /api/artwork/preview`.
 
 ## Internet Archive
 
-Uses `/advancedsearch.php` for discovery and `/metadata/{identifier}` for item metadata/files. It captures creator/title/date/description/subjects/collections and identifies plausible audio/image files without downloading complete audio.
+Uses `/advancedsearch.php` for discovery and `/metadata/{identifier}` for item metadata/files. It captures creator/title/date/description/subjects/collections and identifies plausible audio/image files without downloading complete audio. The Archive.org `date` field is treated as a recording date (unlike SoundCloud, where creation time is recorded as an upload date). The minimum-duration filter is only applied to items whose audio file metadata reports a duration, so items without a known length pass through unfiltered.
 
 ## Discogs
 
-Used for entity enrichment rather than long-mix track matching. `DISCOGS_TOKEN` is optional but strongly recommended for rate limits. Crew/sound-system names are searched as artist-like entities; labels as labels. A unique exact search result is hydrated from the artist/label entity endpoint so profile text, image, and source URL are real. Artist images are stored on entity profiles, never as mix cover art. Conflicting IDs and profile claims remain reviewable.
+Used for entity enrichment rather than long-mix track matching. `DISCOGS_TOKEN` is optional but strongly recommended for rate limits. Crew/sound-system names are searched as artist-like entities; labels as labels. A unique exact search result is hydrated from the artist/label entity endpoint so profile text, image, and source URL are real; this also resolves aliases, real name, website URLs, groups, members and parent/sub-label hierarchy. Artist images are stored on entity profiles, never as mix cover art. Conflicting IDs and profile claims remain reviewable. Discogs is the only credentialed entity enricher, but Freeteknomusic and Archive.org additionally propose artist and crew entity records at import time as proposed records held in Review.
 
 Generate a personal API token under [Discogs Developer settings](https://www.discogs.com/settings/developers). A user OAuth flow is unnecessary for these public artist and label lookups.
 

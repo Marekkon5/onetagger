@@ -1,178 +1,58 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { CatalogRecord, RecordId } from '@syco23/catalog-domain';
-import { useCatalogStore } from '../catalog/store';
-
-const props = defineProps<{ record: CatalogRecord }>();
-const emit = defineEmits<{ saved: [CatalogRecord] }>();
-
-const catalog = useCatalogStore;
-const busy = reactive<Record<string, boolean>>({});
-const errors = reactive<Record<string, string>>({});
-
-interface EditorField {
-  key: string;
-  label: string;
-  type: 'text' | 'textarea' | 'number';
-  value: string;
-}
-
-function currentValue(field: string): unknown {
-  const record = props.record as unknown as Record<string, unknown>;
-  const value = record[field];
-  if (field === 'cover' || field === 'artistPortrait' || field === 'crewLogo' || field === 'labelLogo' || field === 'flyer') {
-    const asset = props.record.assets.find((item) => roleForField(field) === item.role);
-    return asset?.url ?? '';
-  }
-  if (field === 'recordingDate' || field === 'startDate') {
-    const date = (record[field] as { value?: string } | undefined)?.value;
-    return date ?? '';
-  }
-  return value === undefined || value === null ? '' : String(value);
-}
-
-function roleForField(field: string) {
-  return { cover: 'mix-cover', artistPortrait: 'artist-portrait', crewLogo: 'crew-logo', labelLogo: 'label-logo', flyer: 'event-flyer' }[field] ?? '';
-}
-
-/**
- * Editable fields are type-specific: the server rejects a patch that touches a field
- * belonging to another kind, and a mix recording date must never be offered next to
- * an event start date. Offering only the fields this record actually has keeps the
- * editor honest instead of hiding the rejection behind a generic 400.
- */
-const fields = computed<EditorField[]>(() => {
-  const record = props.record;
-  const base: EditorField[] = [];
-  if (record.kind === 'mix') {
-    base.push(
-      { key: 'title', label: 'Title', type: 'text', value: String(currentValue('title') ?? '') },
-      { key: 'description', label: 'Description', type: 'textarea', value: String(currentValue('description') ?? '') },
-      { key: 'durationMs', label: 'Duration (ms)', type: 'number', value: String(currentValue('durationMs') ?? '') }
-    );
-    const date = currentValue('recordingDate');
-    if (date) base.push({ key: 'recordingDate', label: 'Recording date', type: 'text', value: String(date) });
-  } else if (record.kind === 'entity') {
-    base.push(
-      { key: 'displayName', label: 'Display name', type: 'text', value: String(currentValue('displayName') ?? '') },
-      { key: 'profile', label: 'Profile', type: 'textarea', value: String(currentValue('profile') ?? '') }
-    );
-    if (record.roles.includes('artist')) {
-      base.push({ key: 'artistPortrait', label: 'Artist portrait URL', type: 'text', value: String(currentValue('artistPortrait') ?? '') });
-    }
-  } else {
-    base.push(
-      { key: 'name', label: 'Event name', type: 'text', value: String(currentValue('name') ?? '') },
-      { key: 'venue', label: 'Venue', type: 'text', value: String(currentValue('venue') ?? '') },
-      { key: 'locality', label: 'Locality', type: 'text', value: String(currentValue('locality') ?? '') }
-    );
-  }
-  return base;
-});
-
-const dirty = reactive<Record<string, string>>({});
-
-watch(fields, (next) => {
-  for (const field of next) {
-    if (dirty[field.key] === undefined) dirty[field.key] = field.value;
-  }
-}, { immediate: true });
-
-watch(() => props.record.id, () => {
-  for (const key of Object.keys(dirty)) delete dirty[key];
-  for (const field of fields.value) dirty[field.key] = field.value;
-});
-
-function isDirty(field: EditorField) {
-  return (dirty[field.key] ?? '') !== field.value;
-}
-
-/**
- * Serializes one field back into the shape the shared schemas validate.
- *
- * Returns `null` when nothing should be sent: an unchanged draft, or a value the
- * shared schema would reject. Sending an invalid shape would only earn a generic 400,
- * so the field reports the problem instead of provoking one.
- */
-function patchFor(field: EditorField): Record<string, unknown> | null {
-  const raw = (dirty[field.key] ?? '').trim();
-  if (raw === field.value.trim()) return null;
-  if (field.type === 'number') {
-    if (!raw) return { [field.key]: undefined };
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? { [field.key]: parsed } : null;
-  }
-  if (field.key === 'recordingDate') {
-    // Date precision is part of the value: a year-only source must not become a
-    // full day, so the precision prefix is preserved.
-    return /^\d{4}(-\d{2})?(-\d{2})?$/.test(raw) ? { [field.key]: { value: raw } } : null;
-  }
-  if (!raw) return { [field.key]: undefined };
-  return { [field.key]: raw };
-}
-
-async function save(field: EditorField) {
-  const patch = patchFor(field);
-  if (patch === null || patch === undefined || !Object.keys(patch).length) {
-    errors[field.key] = field.type === 'number' && (dirty[field.key] ?? '').trim() !== '' ? 'Enter a number of milliseconds.' : '';
-    return;
-  }
-  busy[field.key] = true;
-  errors[field.key] = '';
+import type { CatalogRecord } from '@syco23/catalog-domain';
+import { editorDraft, editorFields, parseEditorPatch } from '../catalog/views';
+const props = defineProps<{ record: CatalogRecord; busy?: boolean }>();
+const emit = defineEmits<{ save: [patch: Record<string, unknown>] }>();
+const isDraft = computed(() => props.record.id.startsWith('draft_'));
+const draft = reactive<Record<string, any>>({});
+const error = reactive({ message: '' });
+watch(() => props.record, (record) => { Object.keys(draft).forEach((key) => delete draft[key]); Object.assign(draft, editorDraft(record)); error.message = ''; }, { immediate: true });
+const fields = computed(() => editorFields(props.record.kind === 'entity' ? { ...props.record, roles: draft.roles ?? props.record.roles } : props.record));
+const assetRoles = computed(() => props.record.kind === 'mix' ? ['mix-cover'] : props.record.kind === 'event' ? ['event-flyer'] : (draft.roles ?? props.record.roles).map((role: string) => role === 'artist' ? 'artist-portrait' : `${role}-logo`));
+function addAsset() { draft.assets.push({ role: assetRoles.value[0], url: '', source: 'curator' }); }
+function addPerson() { draft.people.push({ entityId: '', role: 'artist' }); }
+function save() {
+  error.message = '';
   try {
-    const saved = await catalog.updateRecord(props.record.id as RecordId, patch, props.record.revision);
-    dirty[field.key] = field.value;
-    emit('saved', saved);
-  } catch (caught) {
-    // The save did not commit; the draft stays so the curator can correct it.
-    errors[field.key] = caught instanceof Error ? caught.message : 'Change was not saved';
-  } finally {
-    busy[field.key] = false;
-  }
+    // New fields appear when a curator explicitly confirms an additional role.
+    const current = props.record.kind === 'entity' ? { ...props.record, roles: draft.roles ?? props.record.roles } : props.record;
+    emit('save', parseEditorPatch(current, draft));
+  } catch (caught) { error.message = caught instanceof Error ? caught.message : 'Check the field values before saving'; }
 }
 </script>
-
 <template>
-  <div class="catalog-editor__fields">
-    <div v-for="field in fields" :key="field.key" class="catalog-editor__field">
-      <label :for="`field-${record.id}-${field.key}`">{{ field.label }}</label>
-      <textarea
-        v-if="field.type === 'textarea'"
-        :id="`field-${record.id}-${field.key}`"
-        v-model="dirty[field.key]"
-        rows="3"
-        maxlength="10000"
-      />
-      <input
-        v-else
-        :id="`field-${record.id}-${field.key}`"
-        v-model="dirty[field.key]"
-        :type="field.type === 'number' ? 'number' : 'text'"
-        :step="field.type === 'number' ? 1000 : undefined"
-        min="0"
-        maxlength="10000"
-      />
-      <p v-if="errors[field.key]" class="catalog-error" role="alert">{{ errors[field.key] }}</p>
-      <button
-        class="btn"
-        type="button"
-        :disabled="busy[field.key] || !isDirty(field)"
-        @click="save(field)"
-      >
-        <q-icon :name="busy[field.key] ? 'mdi-loading mdi-spin' : 'mdi-content-save-outline'" />
-        {{ busy[field.key] ? 'Saving…' : 'Save' }}
-      </button>
-    </div>
-  </div>
+  <section class="panel catalog-editor" data-testid="catalog-editor">
+    <div class="panel-head"><span>{{ isDraft ? 'NEW · NOT YET SAVED' : 'CURATOR · REVISION ' + record.revision }}</span><b>EDIT SOURCED FIELDS</b></div>
+    <form class="typed-editor" @submit.prevent="save">
+      <p class="editor-help">Changes are saved with curator evidence. Dates preserve their precision. Confirm roles and relationship IDs using supporting sources.</p>
+      <div v-for="field in fields" :key="field.key" class="editor-field">
+        <label :for="`edit-${field.key}`">{{ field.label }}</label>
+        <textarea v-if="field.kind === 'list' || field.kind === 'longtext'" :id="`edit-${field.key}`" v-model="draft[field.key]" :rows="field.kind === 'longtext' ? 4 : 2" :disabled="busy" />
+        <fieldset v-else-if="field.kind === 'roles'" class="editor-roles">
+          <legend>Roles confirmed by the curator</legend>
+          <label v-for="role in ['artist', 'crew', 'label']" :key="role"><input v-model="draft.roles" type="checkbox" :value="role" :disabled="busy" />{{ role }}</label>
+        </fieldset>
+        <div v-else-if="field.kind === 'assets'" class="editor-rows">
+          <div v-for="(asset, index) in draft.assets" :key="index" class="editor-asset-row">
+            <select v-model="asset.role" :aria-label="`Asset ${index + 1} role`" :disabled="busy || asset.role === 'waveform'"><option v-for="role in [...assetRoles, 'waveform'].filter((r) => r !== 'waveform' || asset.role === 'waveform')" :key="role">{{ role }}</option></select>
+            <input v-model="asset.url" type="url" :aria-label="`Asset ${index + 1} URL`" :disabled="busy || asset.role === 'waveform'" required />
+            <button class="btn" type="button" :disabled="busy" :aria-label="`Remove asset ${index + 1}`" @click="draft.assets.splice(index, 1)">Remove</button>
+          </div>
+          <button class="btn" type="button" :disabled="busy" @click="addAsset">Add image</button>
+        </div>
+        <div v-else-if="field.kind === 'people'" class="editor-rows">
+          <div v-for="(person, index) in draft.people" :key="index" class="editor-asset-row">
+            <select v-model="person.role" :aria-label="`Relationship ${index + 1} role`" :disabled="busy"><option>artist</option><option>crew</option><option>label</option></select>
+            <input v-model="person.entityId" :aria-label="`Relationship ${index + 1} entity ID`" :disabled="busy" required />
+            <button class="btn" type="button" :disabled="busy" @click="draft.people.splice(index, 1)">Remove</button>
+          </div>
+          <button class="btn" type="button" :disabled="busy" @click="addPerson">Add relationship</button>
+        </div>
+        <input v-else :id="`edit-${field.key}`" v-model="draft[field.key]" :type="field.kind === 'number' ? 'number' : 'text'" :required="field.required" :min="field.kind === 'number' ? 1 : undefined" :max="field.kind === 'number' ? 86400000 : undefined" :maxlength="field.kind === 'date' ? 10 : 500" :disabled="busy" />
+      </div>
+      <p v-if="error.message" class="catalog-error" role="alert">{{ error.message }}</p>
+      <button class="btn btn--primary" data-testid="save-record" type="submit" :disabled="busy">{{ busy ? 'Saving…' : 'Save changes' }}</button>
+    </form>
+  </section>
 </template>
-
-<style scoped>
-.catalog-editor__fields { display: grid; gap: 14px; }
-.catalog-editor__field { display: grid; gap: 6px; }
-.catalog-editor__field label { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.catalog-editor__field input, .catalog-editor__field textarea {
-  background: var(--bg-raised); border: 1px solid var(--line-strong); color: var(--text);
-  padding: 8px 10px; font: inherit; width: 100%; resize: vertical;
-}
-.catalog-editor__field .btn { justify-self: start; }
-</style>

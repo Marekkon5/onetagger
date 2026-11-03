@@ -105,3 +105,50 @@ describe('catalog store', () => {
     expect(store.state.total).toBe(1);
   });
 });
+describe('protected catalog workflows', () => {
+  it('accepts a review decision only as a committed canonical record', async () => {
+    const committed = { ...mix, title: 'Accepted value', revision: 2 };
+    const store = createCatalogStore({ decideReview: vi.fn().mockResolvedValue(committed) } as unknown as CatalogGateway);
+    const result = await store.decideReview('claim_0123456789abcdef', 'accept', 1);
+    expect(result).toEqual(committed);
+    expect(store.state.detail).toEqual(committed);
+  });
+  it('merges duplicates with both revisions and uses only the returned survivor', async () => {
+    const committed = { ...mix, revision: 2 };
+    const store = createCatalogStore({ mergeRecords: vi.fn().mockResolvedValue(committed) } as unknown as CatalogGateway);
+    expect((store as any).mergeRecords).toBeTypeOf('function');
+    await (store as any).mergeRecords(mix.id, 'mix_01J9CATALOGUE00000000000081', [1, 1]);
+    expect(store.state.detail).toEqual(committed);
+  });
+  it('marks an expired session unauthenticated without committing a failed edit', async () => {
+    const { CatalogApiError } = await import('./api');
+    const store = createCatalogStore({ login: vi.fn().mockResolvedValue(true), updateRecord: vi.fn().mockRejectedValue(new CatalogApiError('Curator login is required', 401)) } as unknown as CatalogGateway);
+    await store.login('disposable-test-password');
+    await expect(store.updateRecord(mix.id, { title: 'Unsaved' }, 1)).rejects.toThrow();
+    expect(store.state.authenticated).toBe(false); expect(store.state.detail).toBeUndefined();
+  });
+  it('ignores an older index response when navigation has requested a different index', async () => {
+    let finish: (value: unknown) => void = () => {};
+    const pending = new Promise((resolve) => { finish = resolve; });
+    const store = createCatalogStore({ getIndex: vi.fn().mockReturnValueOnce(pending).mockResolvedValueOnce({ items: [], page: 1, pageSize: 25, total: 0 }) } as unknown as CatalogGateway);
+    const old = store.loadIndex('mix'); await store.loadIndex('artist'); finish({ items: [mix], page: 1, pageSize: 25, total: 1 }); await old;
+    expect(store.state.indexKind).toBe('artist'); expect(store.state.records).toEqual([]);
+  });
+});
+
+it('keeps committed imported records available for source navigation without pretending they were in an index page', async () => {
+  const store = createCatalogStore({ importCandidate: vi.fn().mockResolvedValue({ outcome: 'created', record: mix }) } as unknown as CatalogGateway);
+  await store.importCandidate({} as any);
+  expect((store.state as any).recordCache?.[mix.id]).toEqual(mix);
+  expect(store.state.records).toEqual([]);
+});
+
+it('returns retryable per-record media failures while preserving confirmed migration outcomes and browser originals', async () => {
+  const original = JSON.stringify([{ id: 'legacy-wave', title: 'Real mix', waveform: { imageDataUrl: 'data:image/png;base64,iVBORw0KGgo=', sourceUrl: 'https://archive.org/file.mp3' } }]);
+  const values = new Map([['syco23.mixsets.library', original]]);
+  vi.stubGlobal('window', { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } });
+  const store = createCatalogStore({ migrate: vi.fn().mockResolvedValue({ batchId: 'same-batch', imported: 1, existing: 0, rejected: 0, legacyIds: { 'legacy-wave': mix.id }, outcomes: [{ legacyId: 'legacy-wave', status: 'imported', recordId: mix.id, errors: [] }] }), persistWaveform: vi.fn().mockRejectedValue(new Error('Media upload failed')) } as unknown as CatalogGateway);
+  const result = await store.migrateLocalLibrary();
+  expect(result?.outcomes).toEqual([expect.objectContaining({ legacyId: 'legacy-wave', status: 'partial', errors: ['Waveform was not stored: Media upload failed'] })]);
+  expect(values.get('syco23.mixsets.library')).toBe(original);
+});

@@ -20,6 +20,11 @@ def main() -> int:
         return 2
     source = Path(sys.argv[1]).resolve(strict=True)
     destination = Path(sys.argv[2]).resolve()
+    if source.is_dir():
+        from catalog_bundle import restore_bundle
+        restore_bundle(source, destination)
+        print('Verified database and media restored into new paths.')
+        return 0
     if source == destination or destination.exists():
         print("Restore destination must be a new path different from the backup.", file=sys.stderr)
         return 2

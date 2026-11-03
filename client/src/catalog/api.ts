@@ -1,6 +1,8 @@
 import {
   CatalogPageSchema,
   CatalogRecordSchema,
+  EnrichmentRunSchema,
+  AnalysisRunSchema,
   EnrichmentReportSchema,
   FieldEvidenceListSchema,
   ImportCandidateSchema,
@@ -10,6 +12,9 @@ import {
   PROVIDER_CAPABILITIES,
   RelatedMixesSchema,
   ReviewItemSchema,
+  FieldClaimSchema,
+  RecordIdSchema,
+  type FieldClaim,
   type CatalogPage,
   type CatalogRecord,
   type EnrichmentReport,
@@ -60,6 +65,18 @@ export interface IndexOptions {
   query?: string;
 }
 
+export interface FieldEvidenceEntry { id: string; fingerprint: string; claim: FieldClaim; disposition: string }
+function parseEvidence(input: unknown): FieldEvidenceEntry[] {
+  if (!Array.isArray(input)) throw new Error('Malformed field evidence response');
+  return input.map((value) => {
+    if (!value || typeof value !== 'object') throw new Error('Malformed field evidence');
+    const entry = value as FieldEvidenceEntry;
+    RecordIdSchema.parse(entry.id);
+    if (typeof entry.fingerprint !== 'string' || !['selected', 'corroborated', 'pending', 'rejected'].includes(entry.disposition)) throw new Error('Malformed evidence disposition');
+    return { id: entry.id, fingerprint: entry.fingerprint, disposition: entry.disposition, claim: FieldClaimSchema.parse(entry.claim) };
+  });
+}
+
 export const catalogApi = {
   async getIndex(kind: IndexKind, options: IndexOptions = {}): Promise<CatalogPage> {
     const query: PageQuery = { page: options.page ?? 1, pageSize: options.pageSize ?? 25, query: options.query || undefined };
@@ -75,14 +92,38 @@ export const catalogApi = {
   /**
    * Field-level provenance for one record. Public wherever the record itself is
    * public, so a reader can see why a value is selected without a curator session.
+   * Accepts both the `{ recordId, evidence }` envelope and a bare evidence array so
+   * the client keeps working against either merged server response contract.
    */
-  async getEvidence(id: RecordId): Promise<FieldEvidenceList> {
-    return FieldEvidenceListSchema.parse(await request(`/catalog/records/${encodeURIComponent(id)}/evidence`));
+  async getEvidence(id: RecordId): Promise<FieldEvidenceEntry[]> {
+    const payload = await request(`/catalog/records/${encodeURIComponent(id)}/evidence`);
+    const list = Array.isArray(payload)
+      ? payload
+      : payload && typeof payload === 'object' && 'evidence' in payload
+        ? (payload as { evidence: unknown }).evidence
+        : payload;
+    return parseEvidence(list);
   },
 
   /** Mixes that reference this entity, derived server-side from the mix records. */
   async getRelatedMixes(id: RecordId): Promise<RelatedMixes> {
     return RelatedMixesSchema.parse(await request(`/catalog/records/${encodeURIComponent(id)}/related-mixes`));
+  },
+
+  async getRelated(id: RecordId): Promise<CatalogRecord[]> {
+    return CatalogRecordSchema.array().parse(await request(`/catalog/records/${encodeURIComponent(id)}/related`));
+  },
+
+  async getAnalysisRuns(id: RecordId) {
+    return AnalysisRunSchema.array().parse(await request(`/catalog/records/${encodeURIComponent(id)}/analysis-runs`));
+  },
+
+  async getRuns(id: RecordId) {
+    return EnrichmentRunSchema.array().parse(await request(`/catalog/records/${encodeURIComponent(id)}/runs`));
+  },
+
+  async createRecord(input: unknown): Promise<CatalogRecord> {
+    return CatalogRecordSchema.parse(await request('/catalog/records', { method: 'POST', body: JSON.stringify(input) }));
   },
 
   async getReview(): Promise<ReviewItem[]> {
@@ -92,12 +133,15 @@ export const catalogApi = {
 
   async checkSession(): Promise<boolean> {
     const response = await request('/auth/session') as { authenticated?: unknown };
-    return Boolean(response && response.authenticated === true);
+    if (!response || typeof response.authenticated !== 'boolean') throw new Error('Malformed session response');
+    return response.authenticated;
   },
 
   async login(password: string): Promise<boolean> {
     const response = await request('/auth/login', { method: 'POST', body: JSON.stringify({ password }) }) as { authenticated?: unknown };
-    return response?.authenticated === true;
+    if (!response || typeof response.authenticated !== 'boolean') throw new Error('Malformed session response');
+    if (!response.authenticated) throw new CatalogApiError('Login was not accepted', 401);
+    return true;
   },
 
   async logout(): Promise<void> {
@@ -136,8 +180,8 @@ export const catalogApi = {
     }));
   },
 
-  async decideReview(id: RecordId, decision: 'accept' | 'reject', expectedRevision: number): Promise<ReviewItem> {
-    return ReviewItemSchema.parse(await request(`/catalog/review/${encodeURIComponent(id)}/decision`, {
+  async decideReview(id: RecordId, decision: 'accept' | 'reject', expectedRevision: number): Promise<CatalogRecord> {
+    return CatalogRecordSchema.parse(await request(`/catalog/review/${encodeURIComponent(id)}/decision`, {
       method: 'POST', body: JSON.stringify({ decision, expectedRevision })
     }));
   },

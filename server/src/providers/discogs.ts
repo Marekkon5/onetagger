@@ -2,6 +2,23 @@ import type { EntityRef, ProviderHealth } from '../domain.js';
 import { retry, withTimeout } from '../core/utils.js';
 
 const API = 'https://api.discogs.com/';
+function profileText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  return value.replace(/\u0000/g, '').replace(/\[(?:a|l|r|m)=([^\]]+)\]/gi, '$1')
+    .replace(/\[url=([^\]]+)\]([^]*?)\[\/url\]/gi, '$2 ($1)')
+    .replace(/\[\/?(?:b|i|u|s|url)\]/gi, '').trim().slice(0, 20000) || undefined;
+}
+function textList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length > 0 && item.length <= 500).slice(0,100) : [];
+}
+function entityRefs(value: unknown, kind: 'artist' | 'label' = 'artist'): EntityRef[] {
+  return (Array.isArray(value) ? value : value && typeof value === 'object' ? [value] : []).slice(0,100).flatMap(item => {
+    if (!item || typeof item !== 'object') return [];
+    const ref=item as Record<string,unknown>;
+    if (!/^\d+$/.test(String(ref.id)) || typeof ref.name !== 'string' || !ref.name.trim()) return [];
+    return [{kind,name:ref.name.trim().slice(0,500),externalId:String(ref.id),provider:'discogs' as const,url:`https://www.discogs.com/${kind}/${ref.id}`}];
+  });
+}
 
 export class DiscogsEnricher {
   id = 'discogs' as const;
@@ -45,7 +62,7 @@ export class DiscogsEnricher {
     const name = String(payload.name || payload.title || '').trim();
     if (!name) return undefined;
     const images = Array.isArray(payload.images) ? payload.images as Array<{ uri?: unknown }> : [];
-    const profile = typeof payload.profile === 'string' ? payload.profile.replace(/\u0000/g, '').trim().slice(0, 20000) : undefined;
+    const profile = profileText(payload.profile);
     return {
       kind,
       name,
@@ -53,7 +70,15 @@ export class DiscogsEnricher {
       externalId: id,
       url: typeof payload.uri === 'string' ? payload.uri : `https://www.discogs.com/${kind === 'label' ? 'label' : 'artist'}/${id}`,
       imageUrl: typeof images[0]?.uri === 'string' ? images[0].uri : undefined,
-      profile: profile || undefined
+      profile: profile || undefined,
+      aliases: textList(payload.namevariations),
+      realName: typeof payload.realname === 'string' ? payload.realname.trim().slice(0,500) || undefined : undefined,
+      websiteUrls: textList(payload.urls).filter(value=>{try{return new URL(value).protocol==='https:';}catch{return false;}}),
+      aliasRefs: entityRefs(payload.aliases),
+      groups: entityRefs(payload.groups),
+      members: entityRefs(payload.members),
+      parent: entityRefs(payload.parent_label,'label')[0],
+      subLabels: entityRefs(payload.sublabels,'label')
     };
   }
 
@@ -88,7 +113,7 @@ export class DiscogsEnricher {
       externalId: String(result.id || ''),
       url: details && details.id === result.id ? details.uri : result.uri,
       imageUrl: details && details.id === result.id ? details.images?.[0]?.uri || result.cover_image : result.cover_image || result.thumb,
-      profile: details && details.id === result.id ? details.profile?.trim() || undefined : undefined,
+      profile: details && details.id === result.id ? profileText(details.profile) : undefined,
     }));
   }
 }

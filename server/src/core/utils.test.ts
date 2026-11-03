@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { confidenceScore, duplicateKey, normalizeQuery, overlapScore, uniqueCandidates } from './utils.js';
+import { sanitizeProviderSnapshot, confidenceScore, duplicateKey, normalizeQuery, overlapScore, uniqueCandidates } from './utils.js';
 import type { MixCandidate } from '../domain.js';
 
 test('normalizeQuery strips technical noise but preserves identity tokens', () => {
@@ -55,4 +55,9 @@ test('uniqueCandidates keeps the strongest duplicate', () => {
   const result = uniqueCandidates([base, { ...base, confidence: 0.92, source: { ...base.source, url: 'https://example.test/b' } }]);
   assert.equal(result.length, 1);
   assert.equal(result[0].confidence, 0.92);
+});
+
+test('provider snapshots remove credential-bearing keys and URL queries and bound recursive payloads',()=>{
+ const result=sanitizeProviderSnapshot({authorization:'Bearer hidden',client_secret:'hidden',nested:{token:'hidden',url:'https://api.example.org/item?key=hidden&safe=yes'},long:'x'.repeat(5000),items:Array.from({length:100},(_,id)=>id)}) as any;
+ assert.equal(result.authorization,undefined);assert.equal(result.client_secret,undefined);assert.equal(result.nested.token,undefined);assert.doesNotMatch(result.nested.url,/hidden|key=/);assert.equal(result.items.length,50);assert.equal(result.long.length,2000);
 });

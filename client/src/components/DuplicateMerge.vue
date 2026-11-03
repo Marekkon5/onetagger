@@ -1,127 +1,58 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { missingFields, type CatalogRecord, type RecordId } from '@syco23/catalog-domain';
+import { shallowRef, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import type { CatalogRecord, RecordId } from '@syco23/catalog-domain';
+import { catalogApi } from '../catalog/api';
 import { useCatalogStore } from '../catalog/store';
-
-const props = defineProps<{ survivor: CatalogRecord; duplicate: CatalogRecord }>();
-const emit = defineEmits<{ merged: [CatalogRecord] }>();
-
-const catalog = useCatalogStore;
-const confirm = ref(false);
-const busy = ref(false);
-const error = ref('');
-
-/** Which side holds which value, so the curator compares facts rather than fields. */
-const comparison = computed(() => {
-  const single: Array<[string, unknown, unknown]> = [];
-  const fields = props.survivor.kind === 'mix'
-    ? ['title', 'description', 'durationMs', 'recordingDate'] as const
-    : props.survivor.kind === 'entity'
-      ? ['displayName', 'profile', 'country'] as const
-      : ['name', 'venue', 'locality', 'country'] as const;
-  for (const field of fields) {
-    const left = (props.survivor as unknown as Record<string, unknown>)[field];
-    const right = (props.duplicate as unknown as Record<string, unknown>)[field];
-    if (left === right) continue;
-    single.push([field, left ?? undefined, right ?? undefined]);
-  }
-  return single;
-});
-
-const survivorOnlyFields = computed(() => missingFields(props.survivor));
-const duplicateOnlyFields = computed(() => missingFields(props.duplicate));
-const gains = computed(() => survivorOnlyFields.value.filter((field) => duplicateOnlyFields.value.includes(field)));
-
-function display(value: unknown) {
-  if (value === undefined || value === null || value === '') return '—';
-  return typeof value === 'string' ? value : JSON.stringify(value);
-}
-
-async function runMerge() {
-  if (busy.value) return;
-  busy.value = true;
-  error.value = '';
+import { duplicatePreview, recordName, metadataRows, formatValue } from '../catalog/views';
+const props = defineProps<{ record: CatalogRecord }>();
+const emit = defineEmits<{ merged: [record: CatalogRecord] }>();
+const route = useRoute();
+const duplicateId = shallowRef(typeof route.query.duplicate === 'string' ? route.query.duplicate : '');
+const preview = shallowRef<ReturnType<typeof duplicatePreview>>();
+const busy = shallowRef(false);
+const error = shallowRef('');
+async function lookup() {
+  preview.value = undefined; error.value = ''; busy.value = true;
   try {
-    const merged = await catalog.mergeRecords(
-      props.survivor.id as RecordId,
-      props.duplicate.id as RecordId,
-      [props.survivor.revision, props.duplicate.revision]
-    );
-    emit('merged', merged);
-  } catch (caught) {
-    // A refused merge leaves both records in place; the message says why.
-    error.value = caught instanceof Error ? caught.message : 'Records were not merged';
-  } finally {
-    busy.value = false;
-  }
+    const [survivor, duplicate] = await Promise.all([catalogApi.getRecord(props.record.id), catalogApi.getRecord(duplicateId.value.trim() as RecordId)]);
+    preview.value = duplicatePreview(survivor, duplicate);
+  } catch (caught) { error.value = caught instanceof Error ? caught.message : 'Duplicate preview could not be loaded'; }
+  finally { busy.value = false; }
+}
+onMounted(() => { if (duplicateId.value) void lookup(); });
+watch(() => route.query.duplicate, (value) => { if (typeof value === 'string') { duplicateId.value = value; void lookup(); } });
+async function merge() {
+  if (!preview.value || busy.value) return;
+  busy.value = true; error.value = '';
+  try {
+    const { survivor, duplicate, revisions } = preview.value;
+    const committed = await useCatalogStore.mergeRecords(survivor.id, duplicate.id, revisions);
+    preview.value = undefined; duplicateId.value = ''; emit('merged', committed);
+  } catch (caught) { error.value = caught instanceof Error ? caught.message : 'Merge was not saved. Refresh the preview before retrying.'; preview.value = undefined; }
+  finally { busy.value = false; }
 }
 </script>
-
 <template>
-  <div class="duplicate-merge">
-    <div class="duplicate-merge__heads">
-      <div>
-        <span class="kicker">SURVIVOR / REV {{ survivor.revision }}</span>
-        <strong>{{ survivor.kind === 'mix' ? survivor.title : survivor.kind === 'entity' ? survivor.displayName : survivor.name }}</strong>
+  <section class="panel duplicate-merge" data-testid="merge-preview">
+    <div class="panel-head"><span>CURATOR / IDENTITIES</span><b>MERGE A CONFIRMED DUPLICATE</b></div>
+    <div class="duplicate-merge__body">
+      <p>Load both records and inspect their values before confirming that they represent the same identity. Sources and evidence are retained; disagreements go to Review. The old ID redirects to the survivor.</p>
+      <form data-testid="duplicate-lookup" class="duplicate-lookup" @submit.prevent="lookup">
+        <label for="duplicate-id">Duplicate Archive ID</label>
+        <input id="duplicate-id" v-model="duplicateId" aria-label="Duplicate record ID" required :disabled="busy" />
+        <button class="btn" type="submit" :disabled="busy || !duplicateId.trim()">{{ busy ? 'Loading…' : 'Preview duplicate' }}</button>
+      </form>
+      <small class="duplicate-hint">Find the Archive ID at the bottom of the other record's detail header, then paste it here to compare both sides before merging.</small>
+      <p v-if="error" class="catalog-error" role="alert">{{ error }}</p>
+      <div v-if="preview" class="duplicate-comparison">
+        <article v-for="(item, index) in [preview.survivor, preview.duplicate]" :key="item.id">
+          <strong>{{ index ? 'DUPLICATE' : 'SURVIVOR' }} / REV {{ item.revision }}</strong>
+          <h3>{{ recordName(item) }}</h3><code>Archive ID: {{ item.id }}</code>
+          <dl class="meta-table"><div v-for="row in metadataRows(item)" :key="row.field"><dt>{{ row.label }}</dt><dd>{{ formatValue(row.value) }}</dd></div></dl>
+        </article>
       </div>
-      <div>
-        <span class="kicker">DUPLICATE / REV {{ duplicate.revision }}</span>
-        <strong>{{ duplicate.kind === 'mix' ? duplicate.title : duplicate.kind === 'entity' ? duplicate.displayName : duplicate.name }}</strong>
-      </div>
+      <button v-if="preview" class="btn btn--primary" type="button" data-testid="confirm-merge" :disabled="busy" @click="merge">Confirm same identity and merge</button>
     </div>
-
-    <p class="duplicate-merge__note">
-      The survivor keeps its selected values and receives the duplicate's sources, relationships and missing fields.
-      Fields both records state differently stay in Review instead of being resolved by merge order.
-      The duplicate's old link keeps resolving to the survivor.
-    </p>
-
-    <table v-if="comparison.length" class="diff-table">
-      <caption class="sr-only">Fields where the two records disagree</caption>
-      <thead><tr><th scope="col">FIELD</th><th scope="col">SURVIVOR KEEPS</th><th scope="col">DUPLICATE HOLDS</th></tr></thead>
-      <tbody>
-        <tr v-for="[field, own, theirs] in comparison" :key="field">
-          <th scope="row">{{ field }}</th>
-          <td>{{ display(own) }}</td>
-          <td>{{ display(theirs) }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-else class="panel-empty"><strong>No single-valued field differs between these records.</strong></p>
-
-    <p class="duplicate-merge__gains">
-      <template v-if="gains.length">The survivor gains: {{ gains.join(', ') }}.</template>
-      <template v-else>Both records are missing the same fields; the merge adds no new field coverage.</template>
-    </p>
-
-    <p v-if="error" class="catalog-error" role="alert">{{ error }}</p>
-
-    <div class="review-actions">
-      <button v-if="!confirm" class="btn btn--primary" type="button" :disabled="busy" @click="confirm = true">
-        <q-icon name="mdi-call-merge" /> Merge duplicates…
-      </button>
-      <template v-else>
-        <button class="btn" type="button" :disabled="busy" @click="confirm = false">Cancel</button>
-        <button class="btn btn--primary" type="button" :disabled="busy" @click="runMerge">
-          <q-icon :name="busy ? 'mdi-loading mdi-spin' : 'mdi-call-merge'" />
-          {{ busy ? 'Merging…' : `Confirm merge into ${survivor.kind === 'mix' ? survivor.title : survivor.kind === 'entity' ? survivor.displayName : survivor.name}` }}
-        </button>
-      </template>
-    </div>
-  </div>
+  </section>
 </template>
-
-<style scoped>
-.duplicate-merge__heads {
-  display: grid;
-  gap: 0.5rem 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-.duplicate-merge__heads > div { display: grid; gap: 0.2rem; }
-.duplicate-merge__note { color: var(--muted); font-size: 0.9rem; }
-.duplicate-merge__gains { color: var(--muted); font-size: 0.9rem; }
-.diff-table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
-.diff-table th, .diff-table td { border-bottom: 1px solid var(--line); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
-.diff-table thead th { color: var(--muted); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-</style>

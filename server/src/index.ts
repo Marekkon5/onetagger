@@ -10,7 +10,7 @@ import { openCatalog } from './catalog/repository.js';
 import { createCuratorAuth } from './auth/curator.js';
 import { handleAuthRoute } from './auth/routes.js';
 import { handleCatalogRoute } from './catalog/routes.js';
-import { HttpInputError, isAllowedOrigin, publicErrorMessage, readJsonBody } from './http.js';
+import { HttpInputError, isAllowedOrigin, publicErrorMessage, readJsonBody, validateSearchQuery } from './http.js';
 import { handleImportRoute } from './imports/routes.js';
 
 const port = Number(process.env.PORT || 8787);
@@ -30,7 +30,8 @@ if (process.env.IMPORTS_ENABLED && !importsEnabled) {
 }
 const registry = new ProviderRegistry();
 const queue = new InMemoryJobQueue(registry);
-const waveformQueue = new WaveformQueue();
+catalog.interruptStaleAnalysisJobs();
+const waveformQueue = new WaveformQueue(catalog);
 
 function corsOrigin(req: http.IncomingMessage): string | undefined {
   const requested = req.headers.origin;
@@ -55,10 +56,13 @@ function json(req: http.IncomingMessage, res: http.ServerResponse, status: numbe
 }
 
 async function body(req: http.IncomingMessage): Promise<any> {
-  return readJsonBody(req);
+  const input = await readJsonBody(req);
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new HttpInputError('A JSON object is required', 400);
+  return input;
 }
 
 const server = http.createServer(async (req, res) => {
+  try {
   if (!req.url) return json(req, res, 404, { error: 'not found' });
   if (req.method === 'OPTIONS') return json(req, res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -77,7 +81,6 @@ const server = http.createServer(async (req, res) => {
       return json(req, res, 401, { error: 'Curator login is required' });
     }
 
-  try {
     if (req.method === 'GET' && url.pathname === '/api/live') {
       return json(req, res, 200, { ok: true, service: 'syco23-mixsets' });
     }
@@ -92,9 +95,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/jobs') {
       const input = await body(req);
-      if (!input.provider || (!input.query?.q && !input.query?.url && !input.query?.artist)) return json(req, res, 400, { error: 'provider and query are required' });
+      if (typeof input.provider !== 'string' || !registry.discovery.has(input.provider)) throw new HttpInputError('Choose a supported discovery provider',400);
+      const query = validateSearchQuery(input.query);
       try {
-        return json(req, res, 202, queue.create(String(input.provider), input.query));
+        return json(req, res, 202, queue.create(input.provider, query));
       } catch (error) {
         if (error instanceof JobQueueFullError) return json(req, res, 429, { error: error.message });
         throw error;
@@ -112,8 +116,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/enrich') {
       const input = await body(req);
-      if (!input.title || !Array.isArray(input.artists)) return json(req, res, 400, { error: 'title and artists are required' });
-      const providerIds: ProviderId[] = ['freeteknomusic', 'soundcloud', 'archiveorg', 'discogs', 'youtube', 'hearthis'];
+      if (typeof input.title !== 'string' || !input.title.trim() || input.title.length > 500 || !Array.isArray(input.artists) || input.artists.length > 100 || input.artists.some((artist:unknown)=>typeof artist!=='string'||artist.length>500)) return json(req, res, 400, { error: 'title and artists are required' });
+      const providerIds: ProviderId[] = ['freeteknomusic', 'soundcloud', 'archiveorg', 'discogs', 'youtube', 'hearthis', 'mixcloud'];
       if (input.providers !== undefined && (!Array.isArray(input.providers) || input.providers.some((provider: unknown) => !providerIds.includes(provider as ProviderId)))) {
         return json(req, res, 400, { error: 'providers must contain only supported provider IDs' });
       }
@@ -151,7 +155,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/waveforms') {
       const input = await body(req);
       if (typeof input.sourceUrl !== 'string' || input.sourceUrl.length > 2048) return json(req, res, 400, { error: 'A direct public audio URL is required' });
-      try { return json(req, res, 202, waveformQueue.create(input.sourceUrl)); }
+      try { return json(req, res, 202, waveformQueue.create(input.sourceUrl, typeof input.recordId === 'string' ? input.recordId : undefined)); }
       catch (error) { return json(req, res, 422, { error: error instanceof Error ? error.message : String(error) }); }
     }
     const waveformMatch = url.pathname.match(/^\/api\/waveforms\/([^/]+)$/);
@@ -174,8 +178,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/artwork/preview') {
       const input = await body(req);
-      if (typeof input.url !== 'string' || input.url.length > 2048 || !['soundcloud', 'youtube', 'hearthis'].includes(input.provider)) {
-        return json(req, res, 400, { error: 'Choose SoundCloud, YouTube, or hearthis.at and enter a public track URL' });
+      if (typeof input.url !== 'string' || input.url.length > 2048 || !['soundcloud', 'youtube', 'hearthis', 'mixcloud'].includes(input.provider)) {
+        return json(req, res, 400, { error: 'Choose SoundCloud, YouTube, hearthis.at, or Mixcloud and enter a public track URL' });
       }
       try {
         if (input.provider === 'soundcloud') {
@@ -187,6 +191,12 @@ const server = http.createServer(async (req, res) => {
           const video = await registry.youtube.lookupVideo(input.url);
           return video.artworkUrl ? json(req, res, 200, { provider: 'youtube', sourceUrl: `https://www.youtube.com/watch?v=${video.id}`, title: video.title, artworkUrl: video.artworkUrl })
             : json(req, res, 422, { error: 'That YouTube video has no public thumbnail' });
+        }
+        if (input.provider === 'mixcloud') {
+          const cloudcast = await registry.mixcloud.lookupCloudcast(input.url);
+          const artworkUrl = await registry.mixcloud.lookupArtwork(input.url);
+          return artworkUrl ? json(req, res, 200, { provider: 'mixcloud', sourceUrl: cloudcast.url, title: cloudcast.name, artworkUrl })
+            : json(req, res, 422, { error: 'That Mixcloud show has no cover artwork' });
         }
         const track = await registry.hearthis.lookupTrack(input.url);
         const artworkUrl = await registry.hearthis.lookupArtwork(input.url);

@@ -41,3 +41,7 @@ test('ambiguous source matches become parsed claims and cannot change the select
     cover: { role: 'artist-portrait', url: 'https://example.org/avatar.jpg' }
   })));
 });
+test('confirmed resource identity keeps filename-parsed date evidence pending',()=>{
+ const input={...metadata({recordingDate:{value:'2024',precision:'year'}}),fieldEvidence:{recordingDate:'parsed' as const}};
+ assert.equal(claimsFromProvider(target,input)[0].evidence,'parsed');
+});

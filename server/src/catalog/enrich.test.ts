@@ -206,3 +206,76 @@ test('linked Discogs entity IDs hydrate one shared profile and role-specific por
     rmSync(directory, { recursive: true, force: true });
   }
 });
+test('mix enrichment hydrates its linked entity once and shared entity data appears on both mixes',async()=>{
+ await withCatalog(async repo=>{
+  const entity=repo.getRecord('entity_01J9CATALOGUE0000000040') as EntityRecord;
+  const ref={provider:'discogs' as const,resourceType:'artist',externalId:'42',url:'https://www.discogs.com/artist/42'};
+  repo.transaction(tx=>{tx.saveRecord({...entity,revision:2,providerRefs:[ref]},1);tx.addProviderSource(entity.id,ref);const first=tx.getRecord('mix_01J9CATALOGUE00000000000040') as MixRecord;tx.saveRecord({...first,id:'mix_second_shared_000040'});});
+  const reg={discovery:new Map(),discogs:{async health(){return{id:'discogs',state:'ready',detail:'ok',checkedAt:timestamp};},async enrichEntity(){return[];},async hydrateEntity(){return{kind:'artist',name:'Mackitek',profile:'Shared updated biography',aliases:['MK'],provider:'discogs',externalId:'42',url:ref.url};}}} as unknown as ProviderRegistry;
+  await enrichCatalogRecord(repo,reg,'mix_01J9CATALOGUE00000000000040',{sessionId:'curator'});
+  assert.equal((repo.getRecord(entity.id) as EntityRecord).profile,'Shared updated biography');
+  assert.deepEqual((repo.getRecord(entity.id) as EntityRecord).aliases,['MK']);
+  assert.equal((repo.getRecord('mix_second_shared_000040') as MixRecord).people[0].entityId,entity.id);
+ });
+});
+
+test('a broken provider leaves valid claims from another provider committed',async()=>{
+ await withCatalog(async repo=>{
+  const good=registry({durationMs:2650000});
+  good.discovery.set('hearthis',{id:'hearthis',async health(){return{id:'hearthis',state:'ready',detail:'ok',checkedAt:timestamp};},async search(){throw new Error('Unavailable');}});
+  const report=await enrichCatalogRecord(repo,good,'mix_01J9CATALOGUE00000000000040',{sessionId:'curator'});
+  assert.equal(report.applied,1);assert.equal(report.errors[0].provider,'hearthis');assert.ok((repo.getRecord('mix_01J9CATALOGUE00000000000040') as MixRecord).assets.length);
+ });
+});
+
+test('event enrichment reports unsupported provider capabilities honestly',async()=>{
+ await withCatalog(async repo=>{
+  const event={kind:'event' as const,id:'event_unsupported_00001',name:'Unknown Event',revision:1,verification:'curator-confirmed' as const,reviewState:'ready' as const,createdAt:timestamp,updatedAt:timestamp,assets:[],sourceUrls:[],mixIds:[]};repo.transaction(tx=>tx.saveRecord(event));
+  const report=await enrichCatalogRecord(repo,registry({}),event.id,{sessionId:'curator'});
+  assert.ok(report.errors.some(error=>/unsupported|no supported/i.test(error.message)));assert.ok(report.missingFields.includes('venue'));
+ });
+});
+
+test('known source refreshes missing metadata directly despite unavailable text search',async()=>{
+ await withCatalog(async repo=>{
+  const id='mix_01J9CATALOGUE00000000000040';const current=repo.getRecord(id) as MixRecord;const ref={provider:'hearthis' as const,resourceType:'track',externalId:'42',url:'https://hearthis.at/archive/long-mix/'};
+  repo.transaction(tx=>{tx.saveRecord({...current,sources:[{...ref,addedAt:timestamp}],revision:2},1);tx.addProviderSource(id,ref);});
+  const hearthis={id:'hearthis' as const,async health(){return{id:'hearthis' as const,state:'limited' as const,detail:'text search unavailable',checkedAt:timestamp};},async search(query:{url?:string}){return query.url?[{provider:'hearthis' as const,title:current.title,artists:[],crews:[],description:'Confirmed source description',confidence:.9,reasons:['Known track'],source:{provider:'hearthis' as const,url:ref.url,externalId:'42'},raw:{}}]:[];}};
+  const reg={discovery:new Map([['hearthis',hearthis]]),discogs:{async health(){return{id:'discogs',state:'offline',detail:'unavailable',checkedAt:timestamp};}}} as unknown as ProviderRegistry;
+  const report=await enrichCatalogRecord(repo,reg,id,{sessionId:'curator'});assert.equal((repo.getRecord(id) as MixRecord).description,'Confirmed source description',JSON.stringify(report));
+ });
+});
+
+test('free text event and venue facts remain excerpt-backed review proposals',async()=>{
+ await withCatalog(async repo=>{
+  const report=await enrichCatalogRecord(repo,registry({durationMs:2650000,description:'Event: Koalisson III\nVenue: Secret Field\nCountry: FR'}),'mix_01J9CATALOGUE00000000000040',{sessionId:'curator'});
+  const events=repo.listIndex('event',{page:1,pageSize:50});assert.equal(events.total,0);assert.ok(repo.listReview().some(item=>item.field==='name'&&item.claim.value==='Koalisson III'));assert.ok(repo.listReview().some(item=>item.field==='venue'&&item.claim.value==='Secret Field'));assert.ok(report.reviewed>=3);
+ });
+});
+
+test('confirmed Discogs relationships become typed entity claims without adding a mix label',async()=>{
+ await withCatalog(async repo=>{
+  const id='entity_01J9CATALOGUE0000000040',entity=repo.getRecord(id) as EntityRecord;
+  const ref={provider:'discogs' as const,resourceType:'artist',externalId:'42',url:'https://www.discogs.com/artist/42'};
+  repo.transaction(tx=>{tx.saveRecord({...entity,revision:2,providerRefs:[ref]},1);tx.addProviderSource(id,ref);});
+  const reg={discogs:{async hydrateEntity(){return{kind:'artist',name:'Mackitek',provider:'discogs',externalId:'42',url:ref.url,groups:[{kind:'artist',name:'Explicit Group',provider:'discogs',externalId:'43',url:'https://www.discogs.com/artist/43'}],members:[{kind:'artist',name:'Explicit Member',provider:'discogs',externalId:'44',url:'https://www.discogs.com/artist/44'}]};}}} as unknown as ProviderRegistry;
+  const report=await enrichCatalogRecord(repo,reg,id,{sessionId:'curator'});assert.equal(report.errors.length,0);const stored=repo.getRecord(id) as EntityRecord;assert.equal(stored.artist?.groupIds?.length,1);assert.equal(stored.artist?.memberIds?.length,1);assert.equal((repo.getRecord(stored.artist!.groupIds![0]) as EntityRecord).displayName,'Explicit Group');assert.equal((repo.getRecord('mix_01J9CATALOGUE00000000000040') as MixRecord).people.some(person=>person.role==='label'),false);
+ });
+});
+
+test('mix enrichment proposes unresolved Discogs identities without confirming name matches',async()=>{
+ await withCatalog(async repo=>{
+  const reg={discovery:new Map(),discogs:{async health(){return{id:'discogs',state:'ready',detail:'ok',checkedAt:timestamp};},async enrichEntity(){return[{kind:'artist',name:'Mackitek',externalId:'42',provider:'discogs',url:'https://www.discogs.com/artist/42',profile:'Possible artist profile'}];}}} as unknown as ProviderRegistry;
+  await enrichCatalogRecord(repo,reg,'mix_01J9CATALOGUE00000000000040',{sessionId:'curator'});assert.ok(repo.listReview().some(item=>item.targetRecordId==='entity_01J9CATALOGUE0000000040'&&item.field==='providerRefs'));assert.equal(repo.findByProvider({provider:'discogs',resourceType:'artist',externalId:'42'}),undefined);assert.equal((repo.getRecord('entity_01J9CATALOGUE0000000040') as EntityRecord).profile,undefined);
+ });
+});
+
+test('concurrent enrichment of one record is rejected before duplicate provider work',async()=>{
+ await withCatalog(async repo=>{
+  let release!:()=>void;const pending=new Promise<void>(resolve=>{release=resolve;});
+  const reg={discovery:new Map([['youtube',{id:'youtube',async health(){return{id:'youtube',state:'ready',detail:'ok',checkedAt:timestamp};},async search(){await pending;return[];}}]]),discogs:{async health(){return{id:'discogs',state:'offline',detail:'unavailable',checkedAt:timestamp};},async enrichEntity(){return[];}}} as unknown as ProviderRegistry;
+  const first=enrichCatalogRecord(repo,reg,'mix_01J9CATALOGUE00000000000040',{sessionId:'curator'});
+  const second=enrichCatalogRecord(repo,reg,'mix_01J9CATALOGUE00000000000040',{sessionId:'curator'});
+  const state=await Promise.race([second.then(()=> 'accepted',()=> 'rejected'),new Promise<string>(resolve=>setTimeout(()=>resolve('pending'),10))]);release();await Promise.allSettled([first,second]);assert.equal(state,'rejected');assert.equal(repo.listEnrichmentRuns('mix_01J9CATALOGUE00000000000040').length,1);
+ });
+});

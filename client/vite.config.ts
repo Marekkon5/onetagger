@@ -13,6 +13,6 @@ export default defineConfig({
   resolve: { alias: { '@': fromRoot('./src') } },
   server: {
     host: '0.0.0.0',
-    proxy: { '/api': { target: 'http://127.0.0.1:8787', changeOrigin: true } },
+    proxy: { '/api': { target: process.env.MIXSETS_API_PROXY || 'http://127.0.0.1:8787', changeOrigin: true } },
   },
 });

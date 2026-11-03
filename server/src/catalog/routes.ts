@@ -1,6 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   CatalogRecordSchema,
+  FieldClaimSchema,
+  getFieldValue,
+  setFieldValue,
+  validateField,
   IndexKindSchema,
   PageQuerySchema,
   type CatalogRecord,
@@ -8,7 +13,7 @@ import {
   type RecordId
 } from '@syco23/catalog-domain';
 import type { CuratorAuth } from '../auth/curator.js';
-import { decideReview, mergeRecords, refreshReview } from './merge.js';
+import { claimFingerprint, decideReview, mergeRecords, refreshReview } from './merge.js';
 import type { CatalogRepository } from './repository.js';
 import { applyCorsHeaders, HttpInputError, isAllowedOrigin, readJsonBody, sendJson } from '../http.js';
 import type { ProviderRegistry } from '../core/registry.js';
@@ -56,7 +61,7 @@ function parsedError(error: unknown): { status: number; body: unknown } {
   // Only curated domain messages are safe to echo. Anything else is logged
   // server-side so paths, SQL and dependency errors never reach a client.
   if (/revision conflict/i.test(message)) return { status: 409, body: { error: message } };
-  if (/does not exist|not found|unknown record|unknown catalog record/i.test(message)) return { status: 404, body: { error: message } };
+  if (clientSafeMessage(message) && /does not exist|not found|unknown record|unknown catalog record/i.test(message)) return { status: 404, body: { error: message } };
   if (clientSafeMessage(message)) return { status: 400, body: { error: message } };
   console.error('Unhandled catalog failure:', error);
   return { status: 500, body: { error: 'Request failed' } };
@@ -107,13 +112,45 @@ const SAFE_MESSAGES = [
 ] as const;
 
 function recordId(value: string): RecordId {
-  return decodeURIComponent(value) as RecordId;
+  try { return decodeURIComponent(value) as RecordId; }
+  catch { throw new HttpInputError('Record ID encoding is invalid', 400); }
+}
+function inputObject(input: unknown): Record<string, unknown> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new HttpInputError('A JSON object is required', 400);
+  return input as Record<string, unknown>;
+}
+function curateRecord(context: CatalogRouteContext, record: CatalogRecord, patch: Record<string, unknown>, actor: string, expectedRevision?: number): CatalogRecord {
+  const observedAt = new Date().toISOString();
+  const revision = expectedRevision === undefined ? 1 : expectedRevision + 1;
+  let updated = { ...record, revision, updatedAt: observedAt } as CatalogRecord;
+  let validationRecord = record;
+  if (record.kind === 'entity' && Array.isArray(patch.roles)) {
+    validationRecord = CatalogRecordSchema.parse({ ...record, roles: [...new Set([...record.roles, ...patch.roles])] });
+    updated = { ...validationRecord, revision, updatedAt: observedAt };
+  }
+  const claims = Object.entries(patch).sort(([a], [b]) => a === 'roles' ? 1 : b === 'roles' ? -1 : 0).map(([field, raw]) => {
+    const value = validateField(validationRecord, field, raw);
+    updated = setFieldValue(updated, field, value);
+    return FieldClaimSchema.parse({ targetRecordId: record.id, field, value,
+      provider: { provider: 'freeteknomusic', resourceType: 'curator', externalId: actor },
+      sourceUrl: 'https://mixsets.syco23.org/catalog/' + record.id, observedAt,
+      evidence: 'curated', matchExplanation: 'Explicit curator correction' });
+  });
+  updated = CatalogRecordSchema.parse({ ...updated, selectedEvidence: { ...updated.selectedEvidence,
+    ...Object.fromEntries(claims.map(claim => [claim.field, claimFingerprint(claim)])) } });
+  context.repository.transaction(tx => {
+    tx.saveRecord(updated, expectedRevision);
+    for (const claim of claims) { const fingerprint = claimFingerprint(claim);
+      if (!tx.getClaim(fingerprint)) tx.addClaim(fingerprint as RecordId, fingerprint, claim, 'selected', revision);
+    }
+  });
+  return updated;
 }
 
 async function handlePatch(context: CatalogRouteContext, request: IncomingMessage, response: ServerResponse, id: RecordId) {
   if (!requireCurator(context, request, response)) return;
   try {
-    const input = await readJsonBody(request) as { expectedRevision?: unknown; patch?: unknown };
+    const input = inputObject(await readJsonBody(request));
     if (!Number.isInteger(input.expectedRevision) || !input.patch || typeof input.patch !== 'object' || Array.isArray(input.patch)) {
       sendJson(response, 400, { error: 'expectedRevision and an object patch are required' });
       return;
@@ -132,13 +169,7 @@ async function handlePatch(context: CatalogRouteContext, request: IncomingMessag
       sendJson(response, 409, { error: `Revision conflict for ${id}` });
       return;
     }
-    const updated = CatalogRecordSchema.parse({
-      ...current,
-      ...patch,
-      revision: current.revision + 1,
-      updatedAt: new Date().toISOString()
-    });
-    context.repository.transaction((tx) => tx.saveRecord(updated, current.revision));
+    const updated = curateRecord(context, current, patch, context.auth.authenticate(request)!.sessionId, current.revision);
     sendJson(response, 200, updated);
   } catch (error) {
     const parsed = parsedError(error);
@@ -146,10 +177,62 @@ async function handlePatch(context: CatalogRouteContext, request: IncomingMessag
   }
 }
 
-export async function handleCatalogRoute(context: CatalogRouteContext, request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+async function dispatchCatalogRoute(context: CatalogRouteContext, request: IncomingMessage, response: ServerResponse): Promise<boolean> {
   applyCorsHeaders(request, response);
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
   const path = url.pathname;
+
+
+  if (request.method === 'POST' && path === '/api/catalog/merge') {
+    if (!requireCurator(context, request, response)) return true;
+    const input = inputObject(await readJsonBody(request));
+    if (typeof input.survivor !== 'string' || typeof input.duplicate !== 'string' || !Array.isArray(input.expectedRevisions)
+      || input.expectedRevisions.length !== 2 || !input.expectedRevisions.every(value => Number.isInteger(value) && value > 0))
+      throw new HttpInputError('survivor, duplicate and two expected revisions are required', 400);
+    sendJson(response, 200, mergeRecords(context.repository, input.survivor as RecordId, input.duplicate as RecordId,
+      input.expectedRevisions as [number, number], context.auth.authenticate(request)!));
+    return true;
+  }
+  if (request.method === 'POST' && path === '/api/catalog/records') {
+    if (!requireCurator(context, request, response)) return true;
+    const input = inputObject(await readJsonBody(request));
+    if (input.kind !== 'entity' && input.kind !== 'event') throw new HttpInputError('Choose an entity or event record', 400);
+    const { kind, ...patch } = input;
+    if (Object.keys(patch).some(field => !editableFields[kind].includes(field))) throw new HttpInputError('Patch contains a field that cannot be edited directly', 400);
+    const now = new Date().toISOString();
+    const base = { id: randomUUID(), kind, createdAt: now, updatedAt: now, revision: 1,
+      verification: 'curator-confirmed', reviewState: 'ready', assets: [] };
+    const record = CatalogRecordSchema.parse(kind === 'entity'
+      ? { ...base, displayName: input.displayName, roles: input.roles, aliases: [], providerRefs: [], ...patch }
+      : { ...base, name: input.name, sourceUrls: [], mixIds: [], ...patch });
+    sendJson(response, 201, curateRecord(context, record, patch, context.auth.authenticate(request)!.sessionId));
+    return true;
+  }
+  const analysisHistory = path.match(/^\/api\/catalog\/records\/([^/]+)\/analysis-runs$/);
+  if (request.method === 'GET' && analysisHistory) {
+    if (!context.auth.authenticate(request)) { sendJson(response, 401, { error: 'Curator login is required' }); return true; }
+    const target=context.repository.getRecord(recordId(analysisHistory[1]));
+    if (!target) { sendJson(response,404,{error:'Catalog record not found'}); return true; }
+    sendJson(response,200,context.repository.listAnalysisJobs(target.id)); return true;
+  }
+  const extraMatch = path.match(/^\/api\/catalog\/records\/([^/]+)\/(related|connections)$/);
+  if (request.method === 'GET' && extraMatch) {
+    const target = context.repository.getRecord(recordId(extraMatch[1]));
+    const curator = Boolean(context.auth.authenticate(request));
+    if (!target || (target.verification === 'proposed' && !curator)) { sendJson(response, 404, { error: 'Catalog record not found' }); return true; }
+
+    const direct = referencedIds(target);
+    const related = new Map<string, CatalogRecord>();
+    for (const id of direct) { const item = context.repository.getRecord(id as RecordId); if (item && (curator || item.verification !== 'proposed')) related.set(item.id, item); }
+    for (const kind of ['mix','artist','crew','label','event'] as const) {
+      let page = 1;
+      for (;;) { const result = context.repository.listIndex(kind, { page, pageSize: 50 });
+        for (const item of result.items) if (item.id !== target.id && referencedIds(item).includes(target.id)) related.set(item.id, item);
+        if (page * result.pageSize >= result.total) break; page += 1;
+      }
+    }
+    sendJson(response, 200, [...related.values()].map(item => CatalogRecordSchema.parse(item))); return true;
+  }
 
   const mediaMatch = path.match(/^\/api\/catalog\/media\/([A-Za-z0-9_-]{8,128})$/);
   if (request.method === 'GET' && mediaMatch) {
@@ -171,7 +254,7 @@ export async function handleCatalogRoute(context: CatalogRouteContext, request: 
   if (request.method === 'POST' && path === '/api/catalog/migrate') {
     if (!requireCurator(context, request, response)) return true;
     try {
-      const input = await readJsonBody(request) as { batchId?: unknown; records?: unknown };
+      const input = inputObject(await readJsonBody(request));
       if (typeof input.batchId !== 'string' || !Array.isArray(input.records)) {
         sendJson(response, 400, { error: 'batchId and records are required' });
         return true;
@@ -239,10 +322,10 @@ export async function handleCatalogRoute(context: CatalogRouteContext, request: 
     return true;
   }
 
-  const runMatch = path.match(/^\/api\/catalog\/records\/([^/]+)\/enrichment-runs$/);
+  const runMatch = path.match(/^\/api\/catalog\/records\/([^/]+)\/(?:enrichment-runs|runs)$/);
   if (request.method === 'GET' && runMatch) {
     const record = context.repository.getRecord(recordId(runMatch[1]));
-    if (!record) {
+    if (!record || (record.verification === 'proposed' && !context.auth.authenticate(request))) {
       sendJson(response, 404, { error: 'Catalog record not found' });
       return true;
     }
@@ -314,7 +397,7 @@ export async function handleCatalogRoute(context: CatalogRouteContext, request: 
   if (request.method === 'POST' && decisionMatch) {
     if (!requireCurator(context, request, response)) return true;
     try {
-      const input = await readJsonBody(request) as { decision?: unknown; expectedRevision?: unknown };
+      const input = inputObject(await readJsonBody(request));
       if (!['accept', 'reject'].includes(String(input.decision)) || !Number.isInteger(input.expectedRevision)) {
         sendJson(response, 400, { error: 'decision and expectedRevision are required' });
         return true;
@@ -387,4 +470,14 @@ export async function handleCatalogRoute(context: CatalogRouteContext, request: 
   }
 
   return false;
+}
+function referencedIds(record: CatalogRecord): string[] {
+  if (record.kind === 'mix') return [...record.people.map(person => person.entityId), ...record.eventIds];
+  if (record.kind === 'event') return record.mixIds;
+  return [...record.artist?.memberIds ?? [], ...record.artist?.groupIds ?? [], ...record.crew?.memberIds ?? [],
+    ...record.label?.subLabelIds ?? [], ...record.label?.parentId ? [record.label.parentId] : []];
+}
+export async function handleCatalogRoute(context: CatalogRouteContext, request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+  try { return await dispatchCatalogRoute(context, request, response); }
+  catch (error) { const parsed = parsedError(error); sendJson(response, parsed.status, parsed.body); return true; }
 }

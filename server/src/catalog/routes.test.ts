@@ -203,7 +203,7 @@ test('curator waveform upload persists PNG bytes and public media GET serves the
   process.env.CORS_ORIGIN = 'http://localhost:5173';
   process.env.CATALOG_MEDIA_PATH = join(directory, 'media');
   const repo = openCatalog(join(directory, 'catalog.sqlite'));
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8ioAAAAASUVORK5CYII=', 'base64');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64');
   try {
     repo.transaction((tx) => tx.saveRecord(mix()));
     const auth = createCuratorAuth(repo, hashCuratorPassword('private-local-password'));
@@ -211,7 +211,7 @@ test('curator waveform upload persists PNG bytes and public media GET serves the
     const context = { repository: repo, auth };
     const uploadRequest = Readable.from([png]) as IncomingMessage;
     uploadRequest.method = 'PUT';
-    uploadRequest.url = `/api/catalog/records/${mix().id}/waveform?sourceUrl=${encodeURIComponent('https://archive.org/audio.mp3')}`;
+    uploadRequest.url = `/api/catalog/records/${mix().id}/waveform?sourceUrl=${encodeURIComponent('https://archive.org/download/example/audio.mp3')}`;
     uploadRequest.headers = { cookie, origin: 'http://localhost:5173', 'content-type': 'image/png' };
     Object.defineProperty(uploadRequest, 'socket', { value: { remoteAddress: '127.0.0.1' } });
     const uploaded = response();

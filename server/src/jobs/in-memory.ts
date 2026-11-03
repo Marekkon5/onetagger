@@ -1,3 +1,4 @@
+import { providerFailureMessage } from '../core/utils.js';
 import type { MixCandidate, SearchQuery } from '../domain.js';
 import type { ProviderRegistry } from '../core/registry.js';
 
@@ -114,7 +115,7 @@ export class InMemoryJobQueue {
     } catch (error) {
       if (this.jobs.get(job.id)?.state !== 'cancelled') {
         job.state = 'error';
-        job.error = error instanceof Error ? error.message : String(error);
+        job.error = providerFailureMessage(error);
       }
     } finally {
       job.updatedAt = new Date().toISOString();

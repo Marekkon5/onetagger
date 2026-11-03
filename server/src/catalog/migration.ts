@@ -5,6 +5,11 @@ import {
   ProviderIdSchema,
   RecordingDateSchema,
   normalizeName,
+  normalizeProviderRef,
+  getFieldValue,
+  validateField,
+  FieldDefinitions,
+  type FieldClaim,
   type CatalogRecord,
   type EntityRecord,
   type LegacyMix,
@@ -14,6 +19,7 @@ import {
   type RecordId
 } from '@syco23/catalog-domain';
 import { persistWaveform } from './media.js';
+import { applyOne, claimFingerprint } from './merge.js';
 import type { CatalogRepository } from './repository.js';
 import type { CuratorActor } from '../auth/curator.js';
 
@@ -44,12 +50,12 @@ function sourceRefs(record: LegacyMix): ProviderRef[] {
     try {
       const url = new URL(urlValue);
       if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) continue;
-      refs.push({
+      refs.push(normalizeProviderRef({
         provider: parsedProvider.data,
         resourceType: typeof value.resourceType === 'string' ? value.resourceType : 'recording',
         externalId: typeof value.externalId === 'string' && value.externalId ? value.externalId : createHash('sha256').update(url.toString()).digest('hex'),
         url: url.toString()
-      });
+      }));
     } catch {
       continue;
     }
@@ -132,112 +138,95 @@ function createMix(record: LegacyMix, id: RecordId, timestamp: string, refs: Pro
   };
 }
 
-export function migrateLegacyLibrary(repository: CatalogRepository, input: unknown[], batchId: string, actor: CuratorActor): MigrationResult {
-  void actor;
-  const prior = repository.getMigrationBatch(batchId);
-  if (prior) return prior;
-  if (!batchId || batchId.length > 200 || input.length > 1000) throw new Error('Migration batch is outside supported bounds');
 
-  const result: MigrationResult = { batchId, imported: 0, existing: 0, rejected: 0, legacyIds: {} };
-  for (const candidate of input) {
-    const parsed = LegacyMixSchema.safeParse(candidate);
-    if (!parsed.success || demoIds.has(parsed.success ? parsed.data.id : String((candidate as { id?: unknown })?.id ?? ''))) {
-      result.rejected += 1;
-      continue;
-    }
-    const legacy = parsed.data;
-    const refs = sourceRefs(legacy);
-    try {
-      const existingId = refs.map((ref) => repository.findBySource(ref) ?? repository.findByProvider(ref)).find(Boolean);
-      const existing = existingId ? repository.getRecord(existingId) : undefined;
-      if (existing) {
-        repository.transaction((tx) => tx.addLegacyAlias(legacy.id, existing.id));
-        result.legacyIds[legacy.id] = existing.id;
-        result.existing += 1;
-        continue;
-      }
-
-      const mixId = stableId('mix_mig', legacy.id);
-      const timestamp = new Date().toISOString();
-      const legacyEventName = typeof legacy.event === 'string' ? legacy.event.trim() : '';
-      const eventId = legacyEventName ? stableId('event_mig', `${legacy.id}:event:${normalizeName(legacyEventName)}`) : undefined;
-      const event = eventId ? {
-        kind: 'event' as const,
-        id: eventId,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        revision: 1,
-        verification: 'proposed' as const,
-        reviewState: 'review' as const,
-        name: legacyEventName,
-        assets: [],
-        sourceUrls: refs.flatMap((ref) => ref.url ? [ref.url] : []),
-        mixIds: [mixId]
-      } : undefined;
-      const entityLinks: Array<{ entityId: RecordId; role: 'artist' | 'crew' | 'label' }> = [];
-      const entities: EntityRecord[] = [];
-      for (const [role, names] of [
-        ['artist', legacy.artists ?? []],
-        ['crew', legacy.crews ?? []],
-        ['label', Array.isArray(legacy.entities) ? legacy.entities.flatMap((entity) => {
-          if (!entity || typeof entity !== 'object') return [];
-          const value = entity as Record<string, unknown>;
-          return value.kind === 'label' && typeof value.name === 'string' ? [value.name] : [];
-        }) : []]
-      ] as const) {
-        for (const [index, name] of names.entries()) {
-          if (typeof name !== 'string' || !name.trim()) continue;
-          const entityId = stableId('entity_mig', `${legacy.id}:${role}:${index}:${normalizeName(name)}`);
-          entities.push(linkedEntity(legacy, role, name.trim(), entityId, timestamp));
-          entityLinks.push({ entityId, role });
-        }
-      }
-
-      const mix = createMix(legacy, mixId, timestamp, refs, entityLinks, eventId ? [eventId] : []);
-      repository.transaction((tx) => {
-        tx.saveRecord(mix);
-        if (event) tx.saveRecord(event);
-        for (const entity of entities) {
-          tx.saveRecord(entity);
-          for (const ref of entity.providerRefs) tx.addProviderSource(entity.id, ref);
-        }
-        for (const ref of refs) tx.addProviderSource(mixId, ref);
-        for (const relation of entityLinks) tx.addRelationship(mixId, relation.entityId, relation.role);
-        if (event) {
-          tx.addRelationship(mixId, event.id, 'event');
-          const source = refs[0];
-          if (source?.url) {
-            const claimId = stableId('claim_mig', `${legacy.id}:event:${normalizeName(legacyEventName)}`);
-            tx.addClaim(claimId, `migration:${batchId}:${legacy.id}:event`, {
-              targetRecordId: event.id,
-              field: 'name',
-              value: legacyEventName,
-              provider: source,
-              sourceUrl: source.url,
-              observedAt: timestamp,
-              evidence: 'parsed',
-              matchExplanation: 'Legacy event text has no event-specific date or venue evidence; confirm the event identity'
-            }, 'pending', event.revision);
-          }
-        }
-        tx.addLegacyAlias(legacy.id, mixId);
-      });
-
-      if (legacy.waveform && typeof legacy.waveform === 'object') {
-        const waveform = legacy.waveform as Record<string, unknown>;
-        const dataUrl = typeof waveform.imageDataUrl === 'string' ? waveform.imageDataUrl : '';
-        const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
-        if (match && typeof waveform.sourceUrl === 'string') {
-          try { persistWaveform(repository, mixId, Buffer.from(match[1], 'base64'), waveform.sourceUrl); }
-          catch { }
-        }
-      }
-      result.legacyIds[legacy.id] = mixId;
-      result.imported += 1;
-    } catch {
-      result.rejected += 1;
+function restoreLegacyDecisions(tx: import('./repository.js').CatalogTransaction, legacy:LegacyMix, targetId:RecordId, refs:ProviderRef[],actor:CuratorActor) {
+  const target=tx.getRecord(targetId)!;
+  const fallback=refs[0]??{provider:'archiveorg' as const,resourceType:'legacy-curation',externalId:legacy.id,url:`https://mixsets.syco23.org/mix/${encodeURIComponent(legacy.id)}`};
+  const candidates=Array.isArray(legacy.candidates)?legacy.candidates:[];
+  for(const raw of candidates) {
+    if(!raw||typeof raw!=='object')continue;const candidate=raw as Record<string,unknown>;
+    if(!candidate.fields||typeof candidate.fields!=='object')continue;
+    for(const [legacyField,rawValue] of Object.entries(candidate.fields as object)) {
+      let field=legacyField,value=rawValue;
+      if(field==='recordedAt'){field='recordingDate';value=parsedRecordingDate(typeof rawValue==='string'?rawValue:undefined);}
+      if(field==='artwork'){field='cover';value=legacyCover({...legacy,artwork:rawValue as unknown[]});if(value)value={role:'mix-cover',url:(value as {url:string}).url};}
+      if(!Object.hasOwn(FieldDefinitions,field)||value===undefined)continue;
+      try {validateField(target,field,value);}catch{continue;}
+      const provider=typeof candidate.provider==='string'?ProviderIdSchema.safeParse(candidate.provider):undefined;
+      const ref=provider?.success?refs.find(source=>source.provider===provider.data)??{...fallback,provider:provider.data}:fallback;
+      const claim:FieldClaim={targetRecordId:targetId,field,value,provider:ref,sourceUrl:ref.url??fallback.url!,observedAt:new Date().toISOString(),evidence:'parsed',matchExplanation:'Preserved legacy review decision and supporting local source'};
+      const fingerprint=claimFingerprint(claim);if(tx.getClaim(fingerprint))continue;
+      tx.addClaim(fingerprint,fingerprint,claim,'pending',tx.getRecord(targetId)!.revision,getFieldValue(tx.getRecord(targetId)!,field));
+      if(candidate.state==='accepted'||candidate.state==='rejected')tx.decideReview(fingerprint,candidate.state,actor.sessionId);
     }
   }
+}
 
-  return repository.saveMigrationBatch(MigrationResultSchema.parse(result));
+export function migrateLegacyLibrary(repo:CatalogRepository,input:unknown[],batchId:string,actor:CuratorActor):MigrationResult {
+  if(!batchId||batchId.length>200||input.length>1000)throw new Error('Migration batch is outside supported bounds');
+  const prior=repo.getMigrationBatch(batchId);
+  if(prior&&(!prior.outcomes||prior.outcomes.every(outcome=>outcome.status!=='partial')))return prior;
+  const result:MigrationResult={batchId,imported:0,existing:0,rejected:0,legacyIds:{},outcomes:[]};
+  for(const raw of input) {
+    const parsed=LegacyMixSchema.safeParse(raw),legacyId=parsed.success?parsed.data.id:String((raw as {id?:unknown})?.id??'');
+    const previous=prior?.outcomes?.find(outcome=>outcome.legacyId===legacyId&&['imported','existing'].includes(outcome.status));
+    if(previous){result.outcomes!.push(previous);if(previous.recordId)result.legacyIds[legacyId]=previous.recordId;if(previous.status==='imported')result.imported++;else result.existing++;continue;}
+    const outcome:NonNullable<MigrationResult['outcomes']>[number]={legacyId,status:'rejected',errors:[]};
+    result.outcomes!.push(outcome);
+    if(!parsed.success||demoIds.has(legacyId)){outcome.errors.push(demoIds.has(legacyId)?'Known demo fixture excluded':'Legacy record validation failed');result.rejected++;continue;}
+    const legacy=parsed.data,refs=sourceRefs(legacy),timestamp=new Date().toISOString();
+    try {
+      const owners=new Set(refs.map(ref=>repo.findBySource(ref)??repo.findByProvider(ref)).filter((id):id is string=>!!id));
+      if(owners.size>1)throw new Error('Legacy source identities refer to different canonical records; review is required');
+      const alias=repo.getRecord(legacy.id),existingId=[...owners][0]??alias?.id;
+      if(alias&&owners.size&&alias.id!==existingId)throw new Error('Legacy ID collision requires review');
+      if(alias&&!owners.size&&refs.length)throw new Error('Legacy ID collision with different source identities requires review');
+      let mixId=existingId??stableId('mix_mig',legacy.id);
+      const existing=existingId?repo.getRecord(existingId):undefined;
+      if(existing&&existing.kind!=='mix')throw new Error('Legacy source belongs to a non-mix identity');
+      repo.transaction(tx=>{
+        const entityLinks:MixRecord['people']=existing?.kind==='mix'?[...existing.people]:[];
+        const source=refs[0]??{provider:'archiveorg' as const,resourceType:'legacy-curation',externalId:legacy.id,url:`https://mixsets.syco23.org/mix/${encodeURIComponent(legacy.id)}`};
+        for(const [role,names] of [['artist',legacy.artists??[]],['crew',legacy.crews??[]],['label',Array.isArray(legacy.entities)?legacy.entities.flatMap(raw=>raw&&typeof raw==='object'&&(raw as {kind?:unknown}).kind==='label'&&typeof(raw as {name?:unknown}).name==='string'?[(raw as {name:string}).name]:[]):[]]] as const) {
+          for(const [index,name] of names.entries()) {
+            if(!name.trim())continue;
+            if(entityLinks.some(link=>link.role===role&&tx.getRecord(link.entityId)?.kind==='entity'&&normalizeName((tx.getRecord(link.entityId) as EntityRecord).displayName)===normalizeName(name)))continue;
+            const proposed=linkedEntity(legacy,role,name.trim(),stableId('entity_mig',`${legacy.id}:${role}:${index}:${normalizeName(name)}`),timestamp);
+            const owner=proposed.providerRefs.map(ref=>tx.findByProvider(ref)).find(Boolean);
+            const entity=owner?tx.getRecord(owner):tx.getRecord(proposed.id);
+            const entityId=entity?.id??proposed.id;
+            if(!entity){tx.saveRecord({...proposed,reviewState:proposed.verification==='proposed'?'review':'ready'});for(const ref of proposed.providerRefs)tx.addProviderSource(entityId,ref);if(proposed.verification==='proposed')applyOne(tx,{targetRecordId:entityId,field:'displayName',value:name.trim(),provider:source,sourceUrl:source.url!,observedAt:timestamp,evidence:'parsed',matchExplanation:'Preserved legacy artist/crew name requires identity confirmation'});}
+            if(!entityLinks.some(link=>link.entityId===entityId&&link.role===role))entityLinks.push({entityId,role});
+          }
+        }
+        const eventName=typeof legacy.event==='string'?legacy.event.trim():'';
+        const eventIds=existing?.kind==='mix'?[...existing.eventIds]:[];
+        if(eventName){const eventId=stableId('event_mig',`${legacy.id}:event:${normalizeName(eventName)}`);if(!tx.getRecord(eventId)){tx.saveRecord({kind:'event',id:eventId,createdAt:timestamp,updatedAt:timestamp,revision:1,verification:'proposed',reviewState:'review',name:eventName,assets:[],sourceUrls:refs.flatMap(ref=>ref.url?[ref.url]:[]),mixIds:[]});applyOne(tx,{targetRecordId:eventId,field:'name',value:eventName,provider:source,sourceUrl:source.url!,observedAt:timestamp,evidence:'parsed',matchExplanation:'Legacy event has no supported date or venue; confirm identity'});}if(!eventIds.includes(eventId))eventIds.push(eventId);}
+        if(!existing)tx.saveRecord(createMix(legacy,mixId,timestamp,refs,[],[]));
+        else {const current=tx.getRecord(mixId)! as MixRecord;tx.saveRecord({...current,people:current.people,eventIds:current.eventIds,sources:[...current.sources,...refs.filter(ref=>!current.sources.some(source=>source.provider===ref.provider&&source.resourceType===ref.resourceType&&source.externalId===ref.externalId))],revision:current.revision+1,updatedAt:timestamp},current.revision);}
+        for(const ref of refs)if(!tx.findByProvider(ref))tx.addProviderSource(mixId,ref);
+        tx.addLegacyAlias(legacy.id,mixId);
+        const imported=createMix(legacy,mixId,timestamp,refs,entityLinks,eventIds);
+        for(const field of ['title','description','durationMs','recordingDate','genres','styles','cover'] as const) {
+          const value=getFieldValue(imported,field);if(value===undefined)continue;
+          applyOne(tx,{targetRecordId:mixId,field,value,provider:source,sourceUrl:source.url!,observedAt:timestamp,evidence:field==='cover'?'curated':'parsed',matchExplanation:'Preserved browser selection; original field provenance remains attributable'});
+        }
+        if(entityLinks.length)applyOne(tx,{targetRecordId:mixId,field:'people',value:entityLinks,provider:source,sourceUrl:source.url!,observedAt:timestamp,evidence:'parsed',matchExplanation:'Legacy performer identities and recording links require independent confirmation'});
+        if(eventIds.length)applyOne(tx,{targetRecordId:mixId,field:'eventIds',value:eventIds,provider:source,sourceUrl:source.url!,observedAt:timestamp,evidence:'parsed',matchExplanation:'Legacy event identity and recording relationship require confirmation'});
+        restoreLegacyDecisions(tx,legacy,mixId,refs,actor);
+      });
+      outcome.recordId=mixId;result.legacyIds[legacy.id]=mixId;outcome.status=existing?'existing':'imported';
+      if(existing)result.existing++;else result.imported++;
+      if(legacy.waveform&&typeof legacy.waveform==='object') {
+        const waveform=legacy.waveform as Record<string,unknown>,dataUrl=typeof waveform.imageDataUrl==='string'?waveform.imageDataUrl:'';
+        const match=/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+        if(!match||typeof waveform.sourceUrl!=='string')throw new Error('Waveform PNG payload or source URL is invalid');
+        persistWaveform(repo,mixId,Buffer.from(match[1],'base64'),waveform.sourceUrl);
+      }
+    } catch(error) {
+      outcome.errors.push(error instanceof Error?error.message:'Legacy migration failed');
+      if(outcome.recordId)outcome.status='partial';else {result.rejected++;outcome.status='rejected';}
+    }
+  }
+  return repo.saveMigrationBatch(MigrationResultSchema.parse(result));
 }

@@ -114,7 +114,7 @@ test('a failing job frees its slot and does not block the queue', async () => {
 
   assert.equal(started.length, 2);
   assert.equal(first.state, 'error');
-  assert.match(first.error ?? '', /provider unavailable/);
+  assert.equal(first.error, 'Provider request failed; retry later');
   assert.equal(second.state, 'done');
   assert.equal(queue.running(), 0);
 });

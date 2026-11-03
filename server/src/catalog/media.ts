@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
+import { inflateSync } from 'node:zlib';
 import type { CatalogRecord, MixRecord, RecordId } from '@syco23/catalog-domain';
 import { CatalogRecordSchema } from '@syco23/catalog-domain';
 import type { CatalogRepository, StoredMediaAsset } from './repository.js';
@@ -24,6 +25,28 @@ function validatePng(png: Uint8Array): { width: number; height: number } {
   if (!width || !height || width > 8192 || height > 8192 || width * height > 16_000_000) {
     throw new Error('Waveform PNG dimensions exceed the supported bounds');
   }
+  let offset=8,ended=false,seenHeader=false,seenData=false,palette=false;
+  let bitDepth=0,colorType=0;
+  const chunks:Buffer[]=[];
+  const crc32=(data:Buffer)=>{let crc=0xffffffff;for(const byte of data){crc^=byte;for(let bit=0;bit<8;bit++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}return (crc^0xffffffff)>>>0;};
+  while(offset<bytes.length) {
+    if(offset+12>bytes.length)throw new Error('Waveform PNG chunk is truncated');
+    const size=bytes.readUInt32BE(offset),type=bytes.toString('ascii',offset+4,offset+8),end=offset+12+size;
+    if(end>bytes.length||crc32(bytes.subarray(offset+4,offset+8+size))!==bytes.readUInt32BE(offset+8+size))throw new Error('Waveform PNG chunk checksum is invalid');
+    if(!seenHeader&&type!=='IHDR')throw new Error('Waveform PNG must start with IHDR');
+    if(type==='IHDR') {if(seenHeader||size!==13)throw new Error('Waveform PNG IHDR is invalid');seenHeader=true;bitDepth=bytes[offset+16];colorType=bytes[offset+17];if(bytes[offset+18]||bytes[offset+19]||bytes[offset+20])throw new Error('Waveform PNG encoding is unsupported');const allowed:Record<number,number[]>={0:[1,2,4,8,16],2:[8,16],3:[1,2,4,8],4:[8,16],6:[8,16]};if(!allowed[colorType]?.includes(bitDepth))throw new Error('Waveform PNG color format is invalid');}
+    else if(type==='IDAT') {seenData=true;chunks.push(bytes.subarray(offset+8,offset+8+size));}
+    else if(type==='PLTE') {if(!size||size%3||size>768)throw new Error('Waveform PNG palette is invalid');palette=true;}
+    else if(type==='IEND') {if(size||!seenData||end!==bytes.length)throw new Error('Waveform PNG end chunk is invalid');ended=true;}
+    else if(type[0]===type[0].toUpperCase())throw new Error('Waveform PNG critical chunk is unsupported');
+    offset=end;
+  }
+  if(!ended||(colorType===3&&!palette))throw new Error('Waveform PNG is incomplete');
+  const channels=({0:1,2:3,3:1,4:2,6:4} as Record<number,number>)[colorType];
+  const rowBytes=Math.ceil(width*channels*bitDepth/8),expected=(rowBytes+1)*height;
+  if(expected>64*1024*1024)throw new Error('Waveform PNG decoded size exceeds supported bounds');
+  try {const decoded=inflateSync(Buffer.concat(chunks),{maxOutputLength:expected});if(decoded.length!==expected)throw new Error();for(let row=0;row<height;row++)if(decoded[row*(rowBytes+1)]>4)throw new Error();}
+  catch {throw new Error('Waveform PNG pixel data is invalid');}
   return { width, height };
 }
 

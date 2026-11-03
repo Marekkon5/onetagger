@@ -30,7 +30,7 @@ export function claimsFromProvider(targetInput: CatalogRecord, metadataInput: Pr
       provider: metadata.provider,
       sourceUrl: metadata.sourceUrl,
       observedAt: metadata.observedAt,
-      evidence: metadata.match.status === 'confirmed' ? 'direct' : 'parsed',
+      evidence: metadata.fieldEvidence?.[field] === 'parsed' || metadata.match.status !== 'confirmed' ? 'parsed' : metadata.fieldEvidence?.[field] ?? 'direct',
       matchExplanation: metadata.match.explanation
     }));
   }
