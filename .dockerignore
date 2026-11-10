@@ -1,0 +1,26 @@
+# Build context = the whole repo. Filter junk that bloats it or shouldn't end up in the image.
+
+# Build outputs (huge, rebuilt inside the container anyway).
+target/
+client/node_modules/
+client/dist/
+
+# VCS and editor state.
+.git/
+.github/
+.idea/
+.vscode/
+
+# Local pnpm/npm caches if any leaked into the tree.
+.pnpm-store/
+
+# Compose-local bind-mount target — never want this baked into the image.
+data/
+
+# Self-references — the build doesn't need to see them.
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Misc.
+*.log
