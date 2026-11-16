@@ -2,7 +2,7 @@ name: Prepare maintenance lockfiles
 on:
   push:
     branches: [maintenance/dependencies-docs]
-    paths: [.github/workflows/prepare-maintenance-locks.yml, client/package.json]
+    paths: [.github/workflows/prepare-maintenance-locks.yml, client/package.json, README.md, SECURITY.md]
 permissions:
   contents: read
 jobs:
@@ -31,4 +31,38 @@ jobs:
               for path in ['Cargo.lock', 'client/pnpm-lock.yaml']:
                   archive.write(path)
           print('LOCKFILES_BASE64=' + base64.b64encode(data.getvalue()).decode())
+          PYTHON
+      - name: Check README badges and documentation links
+        run: |
+          python - <<'PYTHON'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit, unquote
+          from urllib.request import Request, urlopen
+          import re
+          import xml.etree.ElementTree as ET
+          class Links(HTMLParser):
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if tag == 'img' and a.get('src', '').startswith('https://'):
+                      with urlopen(Request(a['src'], headers={'User-Agent': 'OneTagger-docs-check'}), timeout=30) as r:
+                          svg = ET.fromstring(r.read())
+                      label = svg.attrib.get('aria-label', '')
+                      if not label or any(s in label.lower() for s in ['not found', 'invalid', 'inaccessible', 'no status']):
+                          raise SystemExit(f"Invalid badge: {a['src']} ({label})")
+                      print(f"Badge OK: {label}")
+                  if tag == 'a' and 'href' in a:
+                      urls.append(a['href'])
+          for file in ['README.md', 'SECURITY.md', 'docs/DEVELOPMENT.md']:
+              text = Path(file).read_text()
+              urls = re.findall(r'\[[^\]]*\]\(([^)]+)\)', text)
+              Links().feed(text)
+              for url in urls:
+                  p = urlsplit(url)
+                  if p.scheme or not p.path:
+                      continue
+                  target = Path(file).parent / unquote(p.path)
+                  if not target.exists():
+                      raise SystemExit(f'{file}: missing link target {target}')
+              print(f'Local links OK: {file}')
           PYTHON

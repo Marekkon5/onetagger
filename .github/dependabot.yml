@@ -5,13 +5,25 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      actions-compatible:
+        patterns: ['*']
+        update-types: [minor, patch]
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      cargo-patches:
+        patterns: ['*']
+        update-types: [patch]
   - package-ecosystem: npm
     directory: /client
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      frontend-compatible:
+        patterns: ['*']
+        update-types: [minor, patch]

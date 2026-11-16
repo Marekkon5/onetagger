@@ -1,5 +1,7 @@
 ## Unreleased (fantuz fork)
 
+- Refresh Quasar, its Vite plugin, Vue Router and the Rust time dependency with reviewed lockfiles.
+- Align README badges with the other maintained projects, clarify artifact downloads, and document security reporting and application trust boundaries.
 - Windows installer/uninstaller preserves unrelated files in the chosen folder; installer version follows the application.
 - Stage tag updates beside the original and publish only after successful writes and synchronization.
 - Preserve malformed-tag and I/O errors instead of replacing unreadable ID3 metadata with an empty tag.
