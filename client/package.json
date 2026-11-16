@@ -12,13 +12,13 @@
     "@quasar/extras": "1.16.16",
     "axios": "1.21.1",
     "compare-versions": "6.1.1",
-    "quasar": "2.17.7",
+    "quasar": "2.32.2",
     "vue": "3.5.45",
-    "vue-router": "4.5.0",
+    "vue-router": "4.6.4",
     "vuedraggable": "4.1.0"
   },
   "devDependencies": {
-    "@quasar/vite-plugin": "1.9.0",
+    "@quasar/vite-plugin": "1.12.0",
     "@vitejs/plugin-vue": "5.2.4",
     "path": "^0.12.7",
     "sass": "1.108.2",

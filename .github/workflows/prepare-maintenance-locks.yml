@@ -1,0 +1,34 @@
+name: Prepare maintenance lockfiles
+on:
+  push:
+    branches: [maintenance/dependencies-docs]
+    paths: [.github/workflows/prepare-maintenance-locks.yml, client/package.json]
+permissions:
+  contents: read
+jobs:
+  locks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: '10.11.0'
+      - name: Resolve intentional updates
+        run: |
+          cargo update -p time --precise 0.3.55
+          pnpm --dir client install --lockfile-only --ignore-scripts
+          git diff --stat
+      - name: Return reviewed lockfiles
+        run: |
+          python - <<'PYTHON'
+          import base64, io, zipfile
+          data = io.BytesIO()
+          with zipfile.ZipFile(data, 'w', zipfile.ZIP_DEFLATED) as archive:
+              for path in ['Cargo.lock', 'client/pnpm-lock.yaml']:
+                  archive.write(path)
+          print('LOCKFILES_BASE64=' + base64.b64encode(data.getvalue()).decode())
+          PYTHON
