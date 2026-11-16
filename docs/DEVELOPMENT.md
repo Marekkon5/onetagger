@@ -11,6 +11,8 @@ The application remains a Rust workspace with a Vue/Quasar frontend. Python is u
 
 Resolve intentional dependency changes separately, review the resulting lockfile diff, then run the complete matrix. GitHub Actions are pinned to reviewed commit SHAs; Dependabot tracks future action and package updates.
 
+Dependabot groups routine minor/patch version updates for Actions and the frontend, and patch updates for Cargo. Cargo minor updates remain separate because a `0.x` minor change can break Rust APIs; major upgrades also remain separate for compatibility review. Security-update PRs may arrive separately. Grouping reduces duplicate builds but does not establish compatibility: review every manifest and lockfile diff, including changes beyond the dependency named in a PR title.
+
 ## Build and checks
 
 Build the frontend first because the Rust UI crate embeds `client/dist`:
@@ -23,7 +25,7 @@ cargo clippy --workspace --all-targets --locked
 cargo build --workspace --release --locked
 ```
 
-The Build workflow runs these checks on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. `Required checks` fails unless the frontend and every platform pass. Configure that check as required in the repository ruleset before merging.
+The Build workflow first runs `cargo metadata --locked --format-version 1` in the frontend job to catch inconsistent Rust lockfiles before starting native builds. It then runs the checks above on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. `Required checks` fails unless the frontend and every platform pass. Configure that check as required in the repository ruleset before merging.
 
 Existing tests that call live Beatport, Beatsource, Bandcamp, and MusicBrainz services are explicitly ignored in normal regression runs. Run them deliberately with `cargo test -p onetagger-platforms --locked -- --ignored --test-threads=1`; external outages and rate limits must not determine ordinary PR validation. New safety and matching tests are deterministic and run without provider accounts.
 
@@ -39,7 +41,9 @@ Every successful PR build uploads native application/CLI packages and per-platfo
 
 Pushing an intentional `v*` tag runs all checks, verifies that the tag agrees with the application, CLI and shared crate versions, then publishes packages with generated GitHub release notes. Release publication alone receives `contents: write`; build jobs have read-only repository permissions. macOS packages are separate Intel/ARM64 unsigned archives. CI verifies that native binaries do not link unbundled libraries outside the macOS system directories. `.cargo/config.toml` builds liblzma statically to avoid a dependency on Homebrew on the user’s machine.
 
-Before tagging, update the three package versions and the changelog in a reviewed PR. The macOS bundle and Windows installer read their release version from the application manifest. The macOS packaging helper uses Python’s standard library and packages the validated executable without rebuilding it. This safety/CI PR does not create a release tag.
+Before tagging, update the three package versions and the changelog in a reviewed PR. The macOS bundle and Windows installer read their release version from the application manifest. The macOS packaging helper uses Python’s standard library and packages the validated executable without rebuilding it.
+
+Until the first tagged fork release, the README links to workflow artifacts instead of displaying an unavailable release badge. When publishing that release, replace the artifact-download badge with the release/download badges and update the installation instructions and supported-version policy in `SECURITY.md`. Artifact downloads require a GitHub login and expire after 14 days; published release assets are the intended permanent download location.
 
 ## Repository references
 

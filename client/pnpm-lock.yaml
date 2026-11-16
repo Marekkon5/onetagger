@@ -18,21 +18,21 @@ importers:
         specifier: 6.1.1
         version: 6.1.1
       quasar:
-        specifier: 2.17.7
-        version: 2.17.7
+        specifier: 2.32.2
+        version: 2.32.2
       vue:
         specifier: 3.5.45
         version: 3.5.45(typescript@5.7.3)
       vue-router:
-        specifier: 4.5.0
-        version: 4.5.0(vue@3.5.45(typescript@5.7.3))
+        specifier: 4.6.4
+        version: 4.6.4(vue@3.5.45(typescript@5.7.3))
       vuedraggable:
         specifier: 4.1.0
         version: 4.1.0(vue@3.5.45(typescript@5.7.3))
     devDependencies:
       '@quasar/vite-plugin':
-        specifier: 1.9.0
-        version: 1.9.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3)))(quasar@2.17.7)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
+        specifier: 1.12.0
+        version: 1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3)))(quasar@2.32.2)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
       '@vitejs/plugin-vue':
         specifier: 5.2.4
         version: 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
@@ -309,13 +309,13 @@ packages:
   '@quasar/extras@1.16.16':
     resolution: {integrity: sha512-aswGUbEyLvt45KB1u6hBD3s82KnOdkqTn6YVu3xX5aGgwQkCWPyqb3FMTEHG+4+gGTMp4pIcnng96RlqswQctQ==}
 
-  '@quasar/vite-plugin@1.9.0':
-    resolution: {integrity: sha512-r1MFtI2QZJ2g20pe75Zuv4aoi0uoK8oP0yEdzLWRoOLCbhtf2+StJpUza9TydYi3KcvCl9+4HUf3OAWVKoxDmQ==}
-    engines: {node: '>=18'}
+  '@quasar/vite-plugin@1.12.0':
+    resolution: {integrity: sha512-EME6h0bhsHJgpRGeJA2BvC7R5rtZGg/FWCeWAH34c0wcV77n5iIRC3jsp9Ju6gW557sOiczJXxChmhYikTrWEw==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@vitejs/plugin-vue': ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
+      '@vitejs/plugin-vue': ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.5
       quasar: ^2.16.0
-      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
+      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
       vue: ^3.0.0
 
   '@rollup/rollup-android-arm-eabi@4.68.3':
@@ -721,9 +721,9 @@ packages:
     resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
     engines: {node: '>=10'}
 
-  quasar@2.17.7:
-    resolution: {integrity: sha512-nPJdHoONlcW7WEU2Ody907Wx945Zfyuea/KP4LBaEn5AcL95PUWp8Gz/0zDYNnFw0aCWRtye3SUAdQl5tmrn5w==}
-    engines: {node: '>= 10.18.1', npm: '>= 6.13.4', yarn: '>= 1.21.1'}
+  quasar@2.32.2:
+    resolution: {integrity: sha512-IqQHHYoYL8bfFDAwy5E5X1xv7VpMAdhFHjSaLycueRdLOkXMbntUUphAIof8Q/wgvKQcskYflGV9/OyIPvbkLA==}
+    engines: {node: '>= 22.0.0'}
 
   readdirp@5.1.1:
     resolution: {integrity: sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA==}
@@ -801,10 +801,10 @@ packages:
   vscode-uri@3.2.0:
     resolution: {integrity: sha512-m2gXo3bn0G1kT9InzMf07fTbqMbGtyckj3bH5ktLO+1Ssv+yiATZ4dhwaQv9UZWxJh6E9IFGnQyjgWVDWVBDrg==}
 
-  vue-router@4.5.0:
-    resolution: {integrity: sha512-HDuk+PuH5monfNuY+ct49mNmkCRK4xJAV9Ts4z9UFc4rzdDnxQLyCMGGc8pKhZhHTVzfanpNwB/lwqevcBwI4w==}
+  vue-router@4.6.4:
+    resolution: {integrity: sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg==}
     peerDependencies:
-      vue: ^3.2.0
+      vue: ^3.5.0
 
   vue-tsc@3.0.5:
     resolution: {integrity: sha512-PsTFN9lo1HJCrZw9NoqjYcAbYDXY0cOKyuW2E7naX5jcaVyWpqEsZOHN9Dws5890E8e5SDAD4L4Zam3dxG3/Cw==}
@@ -979,10 +979,10 @@ snapshots:
 
   '@quasar/extras@1.16.16': {}
 
-  '@quasar/vite-plugin@1.9.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3)))(quasar@2.17.7)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))':
+  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3)))(quasar@2.32.2)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))':
     dependencies:
       '@vitejs/plugin-vue': 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
-      quasar: 2.17.7
+      quasar: 2.32.2
       vite: 6.4.5(sass@1.108.2)
       vue: 3.5.45(typescript@5.7.3)
 
@@ -1371,7 +1371,7 @@ snapshots:
 
   proxy-from-env@2.1.0: {}
 
-  quasar@2.17.7: {}
+  quasar@2.32.2: {}
 
   readdirp@5.1.1: {}
 
@@ -1444,7 +1444,7 @@ snapshots:
 
   vscode-uri@3.2.0: {}
 
-  vue-router@4.5.0(vue@3.5.45(typescript@5.7.3)):
+  vue-router@4.6.4(vue@3.5.45(typescript@5.7.3)):
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.45(typescript@5.7.3)
