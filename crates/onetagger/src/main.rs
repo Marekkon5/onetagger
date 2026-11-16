@@ -12,7 +12,7 @@ use tao::event::{StartCause, Event, WindowEvent};
 use tao::event_loop::{EventLoopBuilder, ControlFlow};
 use tao::window::{WindowBuilder, Icon, Theme};
 
-use onetagger_shared::{VERSION, COMMIT, PORT};
+use onetagger_shared::{VERSION, COMMIT};
 use onetagger_ui::StartContext;
 
 fn main() {
@@ -166,7 +166,7 @@ pub fn start_webview(launch_url: &str) -> Result<(), Error> {
         // Handler
         let proxy = proxy.clone();
         let handle_url = move |url: String| -> bool {
-            debug!("Navigation/NewWindow to: {url}");
+            debug!("WebView navigation requested");
             if url.starts_with("file://") {
                 let url = url.replace("file:///", "");
                 let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");

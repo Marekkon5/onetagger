@@ -53,12 +53,25 @@ fn main() {
                 AudioFileInfo::get_file_list(&path, config.include_subfolders)
             };
 
-            let rx = Tagger::tag_files(&config, files, Arc::new(Mutex::new(None)));
+            let finished = Arc::new(Mutex::new(None));
+            let rx = Tagger::tag_files(&config, files, finished.clone());
             let start = timestamp!();
             for status in rx {
                 debug!("{status:?}");
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
+            let finished = finished.lock().unwrap();
+            match finished.as_ref() {
+                Some(result) if result.move_errors.is_empty() => {},
+                Some(result) => {
+                    for error in &result.move_errors { eprintln!("File move failed: {error}"); }
+                    std::process::exit(1);
+                },
+                None => {
+                    eprintln!("Tagging ended without a complete result report; check the application log.");
+                    std::process::exit(1);
+                },
+            }
         },
         Actions::Audiofeatures { path, config, client_id, client_secret, no_subfolders } => {
             let file = File::open(config).expect("Failed reading config file!");

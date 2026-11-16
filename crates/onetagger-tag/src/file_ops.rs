@@ -24,6 +24,9 @@ pub fn atomic_update(path: &Path, update: impl FnOnce(&Path) -> Result<(), Error
 /// Copy or move a file. Returns false for an unchanged source/destination pair.
 /// A conflicting destination is never silently reported as a successful move.
 pub fn transfer_file(from: &Path, to: &Path, copy: bool, overwrite: bool) -> Result<bool, Error> {
+    if !copy && fs::symlink_metadata(from)?.file_type().is_symlink() {
+        bail!("Moving a symbolic link is not supported; select its target file explicitly: {}", from.display());
+    }
     let source = fs::canonicalize(from)?;
     if !source.is_file() {
         bail!("Source is not a regular file: {}", from.display());
@@ -119,6 +122,19 @@ mod tests {
             assert!(!transfer_file(&path, &path, copy, true).unwrap());
             assert_eq!(fs::read(&path).unwrap(), b"audio");
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn moving_symlink_does_not_delete_its_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source");
+        let link = dir.path().join("link");
+        fs::write(&source, b"audio").unwrap();
+        std::os::unix::fs::symlink(&source, &link).unwrap();
+        assert!(transfer_file(&link, &dir.path().join("target"), false, false).is_err());
+        assert_eq!(fs::read(source).unwrap(), b"audio");
+        assert!(link.is_symlink());
     }
 
     #[test]

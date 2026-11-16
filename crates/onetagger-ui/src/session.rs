@@ -117,7 +117,7 @@ mod tests {
                 .header(header::HOST, "127.0.0.1:36913").header(header::ORIGIN, "http://127.0.0.1:36913")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(serde_json::json!({"token": token}).to_string())).unwrap();
-            let response = app(context.clone()).oneshot(request).await.unwrap();
+            let response = crate::router(context.clone()).oneshot(request).await.unwrap();
             if token == "invalid" { assert_eq!(response.status(), StatusCode::FORBIDDEN); }
             else {
                 assert_eq!(response.status(), StatusCode::NO_CONTENT);
@@ -138,6 +138,20 @@ mod tests {
                 .header(header::COOKIE, format!("{COOKIE}={token}")).body(Body::empty()).unwrap();
             assert_eq!(app(current.clone()).oneshot(request).await.unwrap().status(), StatusCode::UNAUTHORIZED);
         }
+    }
+
+
+    #[tokio::test]
+    async fn production_routes_require_authentication() {
+        let context = StartContext::new(false, None, false, false);
+        for path in ["/ws", "/audio?path=private.mp3", "/thumb?path=private.mp3", "/session"] {
+            let request = Request::builder().uri(path).header(header::HOST, "127.0.0.1:36913")
+                .body(Body::empty()).unwrap();
+            assert_eq!(crate::router(context.clone()).oneshot(request).await.unwrap().status(), StatusCode::UNAUTHORIZED);
+        }
+        let request = Request::builder().uri("/session").header(header::HOST, "127.0.0.1:36913")
+            .header(header::COOKIE, format!("{COOKIE}={}", context.session.0)).body(Body::empty()).unwrap();
+        assert_eq!(crate::router(context).oneshot(request).await.unwrap().status(), StatusCode::NO_CONTENT);
     }
 
     #[test]

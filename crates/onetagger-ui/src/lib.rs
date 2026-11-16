@@ -51,18 +51,7 @@ impl StartContext {
 fn start_async_runtime(context: StartContext) -> Result<(), Error> {
     let expose = context.expose;
     Builder::new_multi_thread().enable_all().build()?.block_on(async move {
-        // Register routes
-        let app = Router::new()
-            .route("/thumb", get(get_thumb))
-            .route("/audio", get(get_audio))
-            .route("/ws", get(get_ws))
-            .route("/session", get(|| async { StatusCode::NO_CONTENT }))
-            .route_layer(middleware::from_fn_with_state(context.clone(), session::require_session))
-            .route("/session", post(session::establish))
-            .route("/spotify", get(get_spotify_callback))
-            .route("/{*path}", get(get_static_file))
-            .route("/", get(get_static_file))
-            .with_state(context);
+        let app = router(context);
 
         // Start http server
         let host = match expose {
@@ -76,6 +65,21 @@ fn start_async_runtime(context: StartContext) -> Result<(), Error> {
         Ok::<(), Error>(())
     })?;
     Ok(())
+}
+
+// Keep the production route boundary directly testable without binding a port or audio device.
+pub(crate) fn router(context: StartContext) -> Router {
+    Router::new()
+        .route("/thumb", get(get_thumb))
+        .route("/audio", get(get_audio))
+        .route("/ws", get(get_ws))
+        .route("/session", get(|| async { StatusCode::NO_CONTENT }))
+        .route_layer(middleware::from_fn_with_state(context.clone(), session::require_session))
+        .route("/session", post(session::establish))
+        .route("/spotify", get(get_spotify_callback))
+        .route("/{*path}", get(get_static_file))
+        .route("/", get(get_static_file))
+        .with_state(context)
 }
 
 /// Serve assets file

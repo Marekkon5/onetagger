@@ -151,11 +151,19 @@ impl Renamer {
 
 // Resolve existing aliases and normalize lexical components for destinations not created yet.
 fn path_key(path: &Path) -> PathBuf {
-    let absolute = dunce::canonicalize(path).unwrap_or_else(|_| {
-        let parent = path.parent().unwrap_or(Path::new("."));
-        dunce::canonicalize(parent).map(|p| p.join(path.file_name().unwrap_or_default()))
-            .unwrap_or_else(|_| std::env::current_dir().unwrap_or_default().join(path))
-    });
+    let absolute = std::env::current_dir().unwrap_or_default().join(path);
+    let mut ancestor = absolute.as_path();
+    let mut suffix = Vec::new();
+    let absolute = loop {
+        if let Ok(mut resolved) = dunce::canonicalize(ancestor) {
+            for part in suffix.iter().rev() { resolved.push(part); }
+            break resolved;
+        }
+        match (ancestor.file_name(), ancestor.parent()) {
+            (Some(name), Some(parent)) => { suffix.push(name); ancestor = parent; },
+            _ => break absolute.clone(),
+        }
+    };
     let mut normalized = PathBuf::new();
     for component in absolute.components() {
         match component {
@@ -256,6 +264,24 @@ mod safety_tests {
         assert_eq!(report.failed, 2); assert_eq!(report.succeeded, 0);
         assert_eq!(fs::read(a).unwrap(), b"a"); assert_eq!(fs::read(b).unwrap(), b"b");
         assert!(!target.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_parent_aliases_are_preflighted_before_creating_directories() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real"); let alias = dir.path().join("alias");
+        fs::create_dir(&real).unwrap();
+        std::os::unix::fs::symlink(&real, &alias).unwrap();
+        let a = dir.path().join("a"); let b = dir.path().join("b");
+        fs::write(&a, b"a").unwrap(); fs::write(&b, b"b").unwrap();
+        let mut config = RenamerConfig::default_with_paths(dir.path(), "%title%"); config.overwrite = true;
+        let report = Renamer::new(TemplateParser::parse("%title%")).rename(&[
+            (a.clone(), real.join("new/track")), (b.clone(), alias.join("new/track")),
+        ], &config).unwrap();
+        assert_eq!(report.failed, 2);
+        assert_eq!(fs::read(a).unwrap(), b"a"); assert_eq!(fs::read(b).unwrap(), b"b");
+        assert!(!real.join("new").exists());
     }
 
     #[test]

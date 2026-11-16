@@ -83,13 +83,15 @@ jobs:
         run: |
           rustup show active-toolchain
           rustc -vV
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cargo-cache
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}
+          key: rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-${{ github.sha }}
+          restore-keys: rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-
       - name: Regression tests
         run: cargo test --workspace --all-targets --locked
       - name: Clippy
@@ -109,7 +111,8 @@ jobs:
           New-Item -ItemType Directory -Force dist
           Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile vc_redist.x64.exe
           Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile MicrosoftEdgeWebview2Setup.exe
-          & 'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
+          $version = python -c "import tomllib; print(tomllib.load(open('crates/onetagger/Cargo.toml', 'rb'))['package']['version'] + '.0')"
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPRODUCT_VERSION=$version" 'assets\installer.nsi'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item target/release/onetagger.exe dist/OneTagger-windows.exe
           Copy-Item target/release/onetagger-cli.exe dist/OneTagger-windows-cli.exe
@@ -139,6 +142,15 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 14
+      - name: Save compilation cache
+        if: always() && !cancelled() && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
 
   checks:
     name: Required checks

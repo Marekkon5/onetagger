@@ -6,22 +6,25 @@ use crate::TrackMatch;
 /// Version of supported custom platform
 pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 45;
 
-/// Logging from plugins
+/// Logging from plugins. A null record is ignored.
+///
+/// # Safety
+/// A non-null pointer must reference an initialized FFIRecord that remains valid
+/// and is not mutated for the duration of this call. Ownership stays with the plugin.
 #[no_mangle]
-pub extern "C" fn write_log(record: *mut FFIRecord) {
-    unsafe {
-        let mut builder = RecordBuilder::new();
-        let target = format!("onetagger_custom_platform::{}", (*record).target);
-        log::logger().log(&builder
-            .args(format_args!("{}", (*record).body))
-            .level((*record).level)
-            .target(target.as_str())
-            .file((*record).file.as_ref().map(|x| &**x))
-            .line((*record).line)
-            .module_path((*record).module_path.as_ref().map(|x| &**x))
-            .build()
-        );
-    }
+pub unsafe extern "C" fn write_log(record: *mut FFIRecord) {
+    let Some(record) = (unsafe { record.as_ref() }) else { return; };
+    let mut builder = RecordBuilder::new();
+    let target = format!("onetagger_custom_platform::{}", record.target);
+    log::logger().log(&builder
+        .args(format_args!("{}", record.body))
+        .level(record.level)
+        .target(target.as_str())
+        .file(record.file.as_deref())
+        .line(record.line)
+        .module_path(record.module_path.as_deref())
+        .build()
+    );
 }
 
 /// Macro for creating custom platform plugins
@@ -35,7 +38,7 @@ macro_rules! create_plugin {
         /// 1T logging
         struct _OnetaggerCustomPlatformLogger;
 
-        static mut _1T_LOG_FN: Option<extern fn(*mut onetagger_tagger::custom::FFIRecord)> = None;
+        static mut _1T_LOG_FN: Option<unsafe extern "C" fn(*mut onetagger_tagger::custom::FFIRecord)> = None;
         static _1T_LOGGER: _OnetaggerCustomPlatformLogger = _OnetaggerCustomPlatformLogger;
 
         impl log::Log for _OnetaggerCustomPlatformLogger {
@@ -60,7 +63,7 @@ macro_rules! create_plugin {
 
         /// Pass the logging callback to the plugin
         #[no_mangle]
-        pub extern "C" fn _1t_register_logger(f: extern fn (*mut onetagger_tagger::custom::FFIRecord)) {
+        pub extern "C" fn _1t_register_logger(f: unsafe extern "C" fn (*mut onetagger_tagger::custom::FFIRecord)) {
             unsafe { _1T_LOG_FN = Some(f) }
             log::set_logger(&_1T_LOGGER).ok();
             log::set_max_level(log::LevelFilter::Trace);
@@ -192,3 +195,4 @@ impl<'a> From<&Record<'a>> for FFIRecord {
         }
     }
 }
+

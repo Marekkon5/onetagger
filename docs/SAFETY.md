@@ -10,11 +10,11 @@ A missing ID3 tag may be created. A parsing, unsupported-format, or I/O error is
 
 ## Moves and renames
 
-The renamer checks the full planned batch for duplicate destinations and destinations that are another source in the batch. Such conflicts are reported without modifying those entries, including with overwrite enabled. Existing destinations are rejected unless overwrite was selected. Identical source and destination files are left unchanged.
+The renamer checks the full planned batch for duplicate destinations and destinations that are another source in the batch. Such conflicts are reported without modifying those entries, including with overwrite enabled. Existing destinations are rejected unless overwrite was selected. Identical source and destination files are left unchanged. Moving a symbolic link is rejected without touching its target; select the target file explicitly instead. Copying through a symbolic link copies the target data.
 
 Every entry reports moved, copied, unchanged, conflict, or failed. The GUI shows counts and errors; the CLI exits with status 1 when any operation failed or conflicted. Successful independent entries remain completed, so a batch is not an all-or-nothing transaction. If a copy completes but deleting its source fails, both may remain and the error reports that situation.
 
-AutoTagger's move-success/move-failed operations never silently accept a conflicting destination. Result playlists retain the actual source path when a move fails, and the GUI reports move errors separately from tag results.
+AutoTagger's move-success/move-failed operations never silently accept a conflicting destination. Result playlists retain the actual source path when a move fails, and the GUI reports move errors separately from tag results. The CLI also exits with status 1 if a move fails.
 
 ## Browser sessions
 

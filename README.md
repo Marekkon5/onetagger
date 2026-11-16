@@ -22,12 +22,12 @@ This is the maintained [fantuz/onetagger](https://github.com/fantuz/onetagger) f
 
 Cross-platform music tagger.
 It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
-The inherited Spotify Audio Features page is currently unavailable: the backend returns an unsupported-feature error. Spotify metadata tagging is a separate feature. 
+The inherited Spotify Audio Features page is currently unavailable: the backend returns an unsupported-feature error. Spotify metadata tagging is a separate feature.
 There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts. Written in Rust, Vue.js and Quasar.
 
 MP3, AIFF, WAV, FLAC, M4A (AAC, ALAC), and supported Ogg-family formats are handled by the tagging backend.
 
-*For more info and tutorials check out our [website](https://onetagger.github.io/).*
+*For more info and tutorials check out the [upstream website](https://onetagger.github.io/).*
 
 https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-bdbf-5a1dca2d99c8.mp4
 
@@ -43,7 +43,7 @@ See [development and validation](docs/DEVELOPMENT.md) for the GitHub Actions pip
 
 
 ## Credits
-Marekkon5 - Original OneTagger application  
+Marekkon5 - Original OneTagger application<br>
 Bas Curtiz - UI, Idea, Help  
 SongRec (Shazam support) - https://github.com/marin-m/SongRec
 

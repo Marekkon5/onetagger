@@ -1,5 +1,6 @@
 ## Unreleased (fantuz fork)
 
+- Windows installer/uninstaller preserves unrelated files in the chosen folder; installer version follows the application.
 - Stage tag updates beside the original and publish only after successful writes and synchronization.
 - Preserve malformed-tag and I/O errors instead of replacing unreadable ID3 metadata with an empty tag.
 - Enforce duration filtering in fuzzy matching as well as exact matching.
