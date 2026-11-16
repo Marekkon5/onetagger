@@ -37,13 +37,29 @@ Start the backend, then run `pnpm --dir client dev`. Vite proxies `/session`, `/
 
 ## Artifacts and releases
 
-Every successful PR build uploads native application/CLI packages and per-platform SHA-256 checksum files. Frontend assets are built once and reused by all native jobs. No release is published for a PR or ordinary branch push.
+Every successful PR or `master` build uploads application/CLI packages, per-platform SHA-256 checksum files and release manifests. The manifests record `VERSION`, the source commit, repository, build run and every package digest. The **Validate release assets** job downloads all four native artifacts and checks their contents and provenance before **Required checks** can pass. Frontend assets are built once and reused by all native jobs.
 
-Pushing an intentional `v*` tag runs all checks, verifies that the tag agrees with the application, CLI and shared crate versions, then publishes packages with generated GitHub release notes. Release publication alone receives `contents: write`; build jobs have read-only repository permissions. macOS packages are separate Intel/ARM64 unsigned archives. CI verifies that native binaries do not link unbundled libraries outside the macOS system directories. `.cargo/config.toml` builds liblzma statically to avoid a dependency on Homebrew on the user’s machine.
+### Automatic release after a version PR
 
-Before tagging, update the three package versions and the changelog in a reviewed PR. The macOS bundle and Windows installer read their release version from the application manifest. The macOS packaging helper uses Python’s standard library and packages the validated executable without rebuilding it.
+1. Add reviewed release notes under `## Unreleased (fantuz fork)` in `CHANGELOG.md`.
+2. In a release PR, run `python3 ci/release_tools.py bump 1.7.1` (replace the example with the intended higher stable version). This synchronizes `VERSION`, the application/CLI/shared manifests, macOS bundle metadata and their existing Cargo lockfile entries. It moves the Unreleased notes into a dated release section. No dependency resolution or build runs locally; GitHub performs validation and packaging.
+3. Review and merge that version PR. After **Build** passes on the resulting `master` commit, **Release validated version** creates `vX.Y.Z`, attaches the already tested packages and publishes the release as latest. Release notes come from the dated changelog section and include download/checksum links and the source/build references. Packages are reused from that exact Build run without another native compilation.
 
-Until the first tagged fork release, the README links to workflow artifacts instead of displaying an unavailable release badge. When publishing that release, replace the artifact-download badge with the release/download badges and update the installation instructions and supported-version policy in `SECURITY.md`. Artifact downloads require a GitHub login and expire after 14 days; published release assets are the intended permanent download location.
+The initial `VERSION` baseline, ordinary commits without a version change, PR builds and manually dispatched Build runs do not automatically publish anything. Adding this automation does not publish the inherited `1.7.0`. Stable numeric `X.Y.Z` versions are currently supported; prerelease suffixes are rejected because Windows and macOS packaging need a separate preview/file-version policy.
+
+`VERSION` must increase relative to the merge commit's first parent. The successful build must still be the latest Build of the current default-branch commit. If another merge supersedes the version bump while it builds, automatic publication is skipped. Use the manual recovery path after reviewing the newer source and its release notes; no unvalidated or stale packages are substituted.
+
+### Manual draft, publication and recovery
+
+In **Actions → Release validated version → Run workflow**, select `master` and enter the numeric ID from the latest successful **Build** URL (`.../actions/runs/ID`). Leave **publish** unchecked to prepare a draft; check it to publish the verified release. The source must have a valid dated changelog section and synchronized versions, and all artifacts must still be available. A manually dispatched Build on `master` can supply fresh artifacts when the previous ones have expired. Starting the release workflow on another branch or supplying a PR run is rejected.
+
+The workflow creates a draft first and verifies every uploaded asset before publishing. Rerunning with the same source and artifacts resumes missing uploads without replacing files. Existing published releases are left untouched, and a tag pointing elsewhere is rejected. A draft with unexpected or changed files requires manual inspection and cleanup before retrying; the automation will not delete it or overwrite its assets. A draft-only run still creates its immutable version tag, so reserve that version for the reviewed source.
+
+No personal access token or additional secret is required: jobs use the repository's `GITHUB_TOKEN`. Only the publishing job receives `contents: write`, after the read-only source checks. Repository/organization policy must allow that permission and creation of `v*` tags; no ruleset bypass is configured. PR/build jobs remain read-only, and downloaded artifact contents are never executed. The old tag-push publisher is replaced by this single release workflow; pushing a tag alone no longer publishes a release.
+
+macOS packages are separate unsigned Intel/ARM64 archives. CI verifies that native binaries do not link unbundled libraries outside the macOS system directories. `.cargo/config.toml` builds liblzma statically. The macOS packager and Windows installer obtain versions from the application manifest; the installer rejects a missing version argument. The Python packaging/release helpers use the standard library, and GitHub runs their regression tests before the native matrix.
+
+Artifact downloads require a GitHub login and expire after 14 days. Published release assets provide permanent downloads. Once the first fork release is published, the README's artifact badge can be replaced with release/download badges.
 
 ## Repository references
 

@@ -4,7 +4,7 @@ This policy applies to the maintained [fantuz/onetagger](https://github.com/fant
 
 ## Supported versions
 
-Security fixes land on `master` and are validated by GitHub Actions. Until the first release of this fork, use a successful build of the current branch and identify it by its commit SHA. The inherited `1.7.0` application version alone does not identify which fork fixes a binary contains. Older workflow artifacts and upstream releases are not maintained by this fork; security backports are not guaranteed.
+Security fixes land on `master` and are validated by GitHub Actions. Use the latest published fork release when available, or a successful `master` build identified by its commit SHA. The inherited `1.7.0` application version alone does not identify which fork fixes a binary contains. Older workflow artifacts and upstream releases are not maintained by this fork; security backports are not guaranteed.
 
 ## Report a vulnerability privately
 
@@ -35,6 +35,6 @@ Maintainers coordinate investigation, a fix or mitigation, and disclosure throug
 
 GitHub Actions use pinned action commits, a pinned Rust toolchain, and committed Cargo/pnpm lockfiles. The pipeline runs frontend typechecks, Rust tests, Clippy and release compilation on Linux, Windows, macOS Intel and macOS ARM64. Live-provider tests are excluded from normal CI; passing builds do not certify provider availability or establish that the application has no vulnerabilities.
 
-Build jobs have read-only repository permissions. Only publication of an intentional version tag receives repository content write access after the build checks pass. PR builds do not publish releases. Windows packages are not Authenticode signed; macOS packages are not Developer ID signed or notarized. SHA-256 checksum files help detect corruption and do not establish a signing identity.
+Build jobs have read-only repository permissions. Only the release publishing job receives repository content write access, after validation of a reviewed version bump or an explicit manual release request. Publication reuses a successful build of the current default-branch commit, verifies all four platform manifests and checksums, and leaves existing published releases and conflicting tags untouched. The publisher executes trusted default-branch code; downloaded artifacts are treated only as data. PR builds do not publish releases. Windows packages are not Authenticode signed; macOS packages are not Developer ID signed or notarized. SHA-256 checksum files help detect corruption and do not establish a signing identity.
 
 See [development and release validation](docs/DEVELOPMENT.md) and the [installation instructions](README.md#installing).

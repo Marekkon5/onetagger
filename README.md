@@ -43,7 +43,7 @@ https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-
 
 ## Installing
 
-This fork has not published a tagged release yet. Download current builds from the [Build workflow on master](https://github.com/fantuz/onetagger/actions/workflows/build.yml?query=branch%3Amaster+event%3Apush): choose a successful run and open its **Artifacts** section. GitHub requires you to sign in to download workflow artifacts, which are retained for 14 days. Future tagged packages will appear on the [releases page](https://github.com/fantuz/onetagger/releases).
+Published packages are available on the [releases page](https://github.com/fantuz/onetagger/releases). If no fork release is listed yet, or you want a newer development build, use the [Build workflow on master](https://github.com/fantuz/onetagger/actions/workflows/build.yml?query=branch%3Amaster+event%3Apush): choose a successful run and open its **Artifacts** section. GitHub requires sign-in for workflow artifacts, which are retained for 14 days. Published release downloads do not have that artifact expiry.
 
 | Your computer | Artifact to download | Included packages |
 | --- | --- | --- |
@@ -53,6 +53,8 @@ This fork has not published a tagged release yet. Download current builds from t
 | Linux x64 | `onetagger-linux-x64` | Application and CLI, in separate tar.gz archives |
 
 Extract the downloaded artifact ZIP to access the packages and its `SHA256SUMS-*.txt` file. Checksums detect download corruption; they are not a publisher signature. Windows packages are not Authenticode signed. macOS packages are not Developer ID signed or notarized; choose the archive matching your processor. Linux artifacts are built on Ubuntu 24.04 and require compatible glibc, ALSA and WebKitGTK 4.1 runtimes. The `frontend` artifact is an intermediate build output, not an installable application.
+
+Reviewed version-bump PRs trigger publication after the full GitHub build passes. Maintainers can also prepare a draft or retry publication through the [release workflow](https://github.com/fantuz/onetagger/actions/workflows/release.yml); see [release preparation and recovery](docs/DEVELOPMENT.md#artifacts-and-releases).
 
 See [development and validation](docs/DEVELOPMENT.md) for the GitHub Actions pipeline, [safe file operations and browser sessions](docs/SAFETY.md) for file-handling details, and the [security policy](SECURITY.md) for trust boundaries and vulnerability reporting.
 
