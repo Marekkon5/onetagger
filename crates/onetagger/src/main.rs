@@ -12,7 +12,7 @@ use tao::event::{StartCause, Event, WindowEvent};
 use tao::event_loop::{EventLoopBuilder, ControlFlow};
 use tao::window::{WindowBuilder, Icon, Theme};
 
-use onetagger_shared::{VERSION, COMMIT, PORT};
+use onetagger_shared::{VERSION, COMMIT};
 use onetagger_ui::StartContext;
 
 fn main() {
@@ -28,12 +28,8 @@ fn main() {
     }
             
     // Start
-    let context = StartContext {
-        start_path: cli.path, 
-        server_mode: cli.server, 
-        expose: cli.expose,
-        browser: cli.browser
-    };
+    let context = StartContext::new(cli.server, cli.path, cli.expose, cli.browser);
+    let launch_url = context.session.launch_url();
 
     // Server mode
     if cli.server {
@@ -45,7 +41,7 @@ fn main() {
     std::thread::spawn(move || {
         onetagger_ui::start_all(context).expect("Failed to start servers!");
     });
-    start_webview().expect("Failed to start webview!");
+    start_webview(&launch_url).expect("Failed to start webview!");
     debug!("Exitting gracefully...");
 }
 
@@ -111,7 +107,7 @@ fn old_macos_warning() -> Result<(), Error> { Ok(()) }
 
 
 /// Start webview window
-pub fn start_webview() -> Result<(), Error> {
+pub fn start_webview(launch_url: &str) -> Result<(), Error> {
     // Setup wry
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -153,7 +149,7 @@ pub fn start_webview() -> Result<(), Error> {
     
     // Configure
     let mut webview = WebViewBuilder::new_with_web_context(&mut context)
-        .with_url(&format!("http://127.0.0.1:{PORT}/"))
+        .with_url(launch_url)
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;
@@ -170,7 +166,7 @@ pub fn start_webview() -> Result<(), Error> {
         // Handler
         let proxy = proxy.clone();
         let handle_url = move |url: String| -> bool {
-            debug!("Navigation/NewWindow to: {url}");
+            debug!("WebView navigation requested");
             if url.starts_with("file://") {
                 let url = url.replace("file:///", "");
                 let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
@@ -279,3 +275,4 @@ enum CustomWindowEvent {
     DevTools,
     Exit
 }
+

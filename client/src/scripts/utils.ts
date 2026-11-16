@@ -1,11 +1,11 @@
 // Returns the WebSocket server URL
 function wsUrl(): string {
-    return import.meta.env.DEV ? `ws://${window.location.hostname}:36913/ws` : `ws://${window.location.host}/ws`;
+    return `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
 }
 
 // Returns the HTTP server URL
 function httpUrl(): string {
-    return import.meta.env.DEV ? `http://${window.location.hostname}:36913` : `${window.location.origin}`;
+    return window.location.origin;
 }
 
 // Returns the Spotify redirect URL

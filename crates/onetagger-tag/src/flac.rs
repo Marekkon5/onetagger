@@ -86,8 +86,10 @@ impl FLACTag {
 impl TagImpl for FLACTag {
     // Save to path
     fn save_file(&mut self, path: &Path) -> Result<(), Error> {
-        self.tag.write_to_path(path)?;
-        Ok(())
+        crate::file_ops::atomic_update(path, |staged| {
+            self.tag.write_to_path(staged)?;
+            Ok(())
+        })
     }
 
     // If separator is set, all values are written to single tag, separated by commas for compatibility reasons

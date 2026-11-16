@@ -120,8 +120,10 @@ impl MP4Tag {
 
 impl TagImpl for MP4Tag {
     fn save_file(&mut self, path: &Path) -> Result<(), Error> {
-        self.tag.write_to_path(path)?;
-        Ok(())
+        crate::file_ops::atomic_update(path, |staged| {
+            self.tag.write_to_path(staged)?;
+            Ok(())
+        })
     }
 
     fn set_separator(&mut self, separator: &str) {

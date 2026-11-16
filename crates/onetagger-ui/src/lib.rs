@@ -12,7 +12,8 @@ use axum::http::StatusCode;
 use axum::http::header::CONTENT_TYPE;
 use axum::response::IntoResponse;
 use axum::Router;
-use axum::routing::get;
+use axum::routing::{get, post};
+use axum::middleware;
 use include_dir::Dir;
 use onetagger_player::AudioSources;
 use serde::{Serialize, Deserialize};
@@ -25,6 +26,7 @@ pub mod socket;
 pub mod browser;
 pub mod quicktag;
 pub mod tageditor;
+pub mod session;
 
 static CLIENT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../client/dist");
 
@@ -36,20 +38,20 @@ pub struct StartContext {
     pub start_path: Option<String>,
     pub expose: bool,
     pub browser: bool,
+    #[serde(skip)]
+    pub session: session::SessionSecret,
+}
+
+impl StartContext {
+    pub fn new(server_mode: bool, start_path: Option<String>, expose: bool, browser: bool) -> Self {
+        Self { server_mode, start_path, expose, browser, session: Default::default() }
+    }
 }
 
 fn start_async_runtime(context: StartContext) -> Result<(), Error> {
     let expose = context.expose;
     Builder::new_multi_thread().enable_all().build()?.block_on(async move {
-        // Register routes
-        let app = Router::new()
-            .route("/thumb", get(get_thumb))
-            .route("/audio", get(get_audio))
-            .route("/ws", get(get_ws))
-            .route("/spotify", get(get_spotify_callback))
-            .route("/{*path}", get(get_static_file))
-            .route("/", get(get_static_file))
-            .with_state(context);
+        let app = router(context);
 
         // Start http server
         let host = match expose {
@@ -65,9 +67,24 @@ fn start_async_runtime(context: StartContext) -> Result<(), Error> {
     Ok(())
 }
 
+// Keep the production route boundary directly testable without binding a port or audio device.
+pub(crate) fn router(context: StartContext) -> Router {
+    Router::new()
+        .route("/thumb", get(get_thumb))
+        .route("/audio", get(get_audio))
+        .route("/ws", get(get_ws))
+        .route("/session", get(|| async { StatusCode::NO_CONTENT }))
+        .route_layer(middleware::from_fn_with_state(context.clone(), session::require_session))
+        .route("/session", post(session::establish))
+        .route("/spotify", get(get_spotify_callback))
+        .route("/{*path}", get(get_static_file))
+        .route("/", get(get_static_file))
+        .with_state(context)
+}
+
 /// Serve assets file
 async fn get_static_file(request: Request<Body>) -> impl IntoResponse {
-    let mut path = request.uri().to_string();
+    let mut path = request.uri().path().to_string();
     // Index HTML
     if path == "/" {
         path = "/index.html".to_string();
@@ -124,7 +141,7 @@ async fn get_audio(Query(GetQueryPath { path }): Query<GetQueryPath>) -> impl In
 
 /// WS connection
 async fn get_ws(ws: WebSocketUpgrade, State(context): State<StartContext>) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| {
+    ws.max_message_size(16 * 1024 * 1024).max_frame_size(16 * 1024 * 1024).on_upgrade(move |socket| {
         debug!("WS Connected!");
         async move {
             match socket::handle_ws_connection(socket, context).await {
@@ -149,15 +166,20 @@ pub fn start_all(context: StartContext) -> Result<(), Error> {
         warn!("Server is exposed to public!");
     }
 
+    // Print to the console only; never include the capability in the downloadable log.
+    println!("Open OneTagger: {}", context.session.launch_url());
+    let launch_url = context.session.launch_url();
+
     // Open in browser with 1s delay to allow the srever to load
     if context.browser {
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(1));
-            webbrowser::open(&format!("http://127.0.0.1:{PORT}")).ok();
+            webbrowser::open(&launch_url).ok();
         });
     }
 
     start_async_runtime(context.clone())?;
     Ok(())
 }
+
 

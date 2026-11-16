@@ -9,7 +9,7 @@
                                 <q-checkbox :model-value='isEnabled(platform.platform.id)' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
                                 <div class='text-h6 q-mt-xs'>
                                     {{platform.platform.name}}
-                                    
+
                                     <!-- Speed icon -->
                                     <span>
                                         <span class='q-pl-xs text-grey-7'>
@@ -42,7 +42,7 @@
                                             <span>Platform can fetch lyrics</span>
                                         </q-tooltip>
                                     </span>
-    
+
                                 </div>
                             </div>
                             <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6'>
@@ -58,9 +58,9 @@
                     </q-card-section>
                 </q-card>
             </template>
-        </draggable>        
+        </draggable>
     </div>
-    
+
     <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 24px; margin-bottom: 35px"' inset color="dark"/>
 
     <div v-if='!dense' class='q-mt-md q-mb-xl'>
@@ -72,10 +72,10 @@
         </div>
 
         <div class='text-caption text-grey-6 text-center q-py-sm'>
-            <span @click='$1t.url("https://github.com/Marekkon5/onetagger/blob/master/CUSTOM_PLATFORMS.md")' class='clickable doc-link'>How to create a custom platform?<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>            
+            <span @click='$1t.url("https://github.com/Marekkon5/onetagger-platforms")' class='clickable doc-link'>How to create a custom platform?<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>
         </div>
 
-    </div>       
+    </div>
 
 </template>
 

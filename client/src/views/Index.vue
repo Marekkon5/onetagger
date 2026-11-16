@@ -87,7 +87,7 @@
             </div>
             <div class='col text-center text-subtitle2 text-grey-4' style="max-width: 400px; margin-top: 20px; margin-left: 25px; margin-right: 25px;">
                 Found a bug or have a request? Post it on 
-                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://github.com/Marekkon5/onetagger/issues")'>
+                <span class='tiny-logo text-bold clickable' @click='$1t.url("https://github.com/fantuz/onetagger/discussions")'>
                     GitHub
                 </span>
             </div>

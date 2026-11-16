@@ -24,6 +24,8 @@ pub mod mp4;
 pub mod vorbis;
 #[cfg(feature = "tag")]
 mod wav;
+#[cfg(feature = "tag")]
+pub mod file_ops;
 
 // Supported extensions
 pub static EXTENSIONS : [&'static str; 11] = ["mp3", "flac", "aif", "aiff", "m4a", 
@@ -57,7 +59,7 @@ impl Tag {
 
         // ID3
         let tag = if allow_new {
-            id3::ID3Tag::load_or_new(path)
+            id3::ID3Tag::load_or_new(path)?
         } else {
             id3::ID3Tag::load_file(path)?
         };
@@ -569,4 +571,5 @@ pub struct LyricsLinePart {
     pub start: Option<Duration>,
     pub end: Option<Duration>
 }
+
 

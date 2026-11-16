@@ -379,9 +379,10 @@ onMounted(() => {
             case 'renamerDone':
                 $1t.lock.value.locked = false;
                 $q.dialog({
-                    title: 'Done',
-                    message: 'Renaming finished!',
-                    html: true,
+                    title: json.report.failed ? 'Renaming completed with problems' : 'Renaming complete',
+                    message: `${json.report.succeeded} completed, ${json.report.skipped} unchanged, ${json.report.failed} failed or conflicted.\n` +
+                        json.report.results.filter((r: any) => r.message).map((r: any) => `${r.from} → ${r.to}: ${r.message}`).join('\n'),
+                    html: false,
                     ok: {
                         color: 'primary',
                         label: 'Open Folder'

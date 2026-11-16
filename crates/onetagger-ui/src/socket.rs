@@ -172,7 +172,7 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
                             Ok(_) => {},
                             Err(err) => {
                                 // Send error to UI
-                                error!("Websocket: {:?}, Data: {}", err, text);
+                                error!("Websocket command failed: {:?}", err);
                                 send_socket(&mut websocket, json!({
                                     "action": "error",
                                     "message": &format!("{}", err)
@@ -551,9 +551,10 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
             let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
             let files = renamer.generate(files, &config)?;
-            renamer.rename(&files, &config)?;
+            let report = renamer.rename(&files, &config)?;
             send_socket(websocket, json!({
                 "action": "renamerDone",
+                "report": report,
             })).await.ok();
         },
         // File browser list dir

@@ -75,11 +75,13 @@ impl VorbisTag {
 
 impl TagImpl for VorbisTag {
     fn save_file(&mut self, path: &Path) -> Result<(), Error> {
-        let mut file = lofty::read_from_path(path)?;
+        crate::file_ops::atomic_update(path, |staged| {
+        let mut file = lofty::read_from_path(staged)?;
         file.remove(TagType::VorbisComments);
         file.insert_tag(self.tag.clone().into());
-        file.save_to_path(path, WriteOptions::default())?;
+        file.save_to_path(staged, WriteOptions::default())?;
         Ok(())
+        })
     }
 
     fn set_separator(&mut self, separator: &str) {

@@ -12,14 +12,16 @@
 !define PRODUCT_NAME "One Tagger"
 !define PRODUCT_DESCRIPTION "App to tag your music library."
 !define COPYRIGHT "Marekkon5"
-!define PRODUCT_VERSION "1.0.0.0"
-!define SETUP_VERSION 1.0.0.0
+!ifndef PRODUCT_VERSION
+!define PRODUCT_VERSION "1.7.0.0"
+!endif
+!define SETUP_VERSION "${PRODUCT_VERSION}"
 
 ;-------------------------------------------------------------------------------
 ; Attributes
 Name "One Tagger"
 OutFile "..\dist\OneTagger-windows-setup.exe"
-InstallDir "$PROGRAMFILES\OneTagger"
+InstallDir "$PROGRAMFILES64\OneTagger"
 RequestExecutionLevel admin ; user|highest|admin
 SetCompressor /SOLID lzma
 
@@ -69,9 +71,10 @@ VIAddVersionKey "FileVersion" "${SETUP_VERSION}"
 ;-------------------------------------------------------------------------------
 ; Installer Sections
 Section "One Tagger" OneTagger
+	SetRegView 64
 	; Clean old
 	ExecWait "taskkill /f /im onetagger.exe"
-	RMDir /r "$INSTDIR\*"
+	; Keep unrelated files in the selected installation directory.
 	; Copy new
 	SetOutPath $INSTDIR
 	File "..\target\release\onetagger.exe"
@@ -86,16 +89,18 @@ Section "One Tagger" OneTagger
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
 		"DisplayName" "${PRODUCT_NAME}"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
-		"UninstallString" "$INSTDIR\Uninstall.exe"
+		"UninstallString" '"$INSTDIR\Uninstall.exe"'
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
 		"EstimatedSize" "70656"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
 		"DisplayIcon" "$INSTDIR\icon.ico"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" \
 		"InstallLocation" "$INSTDIR"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayVersion" "${PRODUCT_VERSION}"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "URLInfoAbout" "https://github.com/fantuz/onetagger"
 	; Dependencies
 	ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart'
-	ExecWait '"$INSTDIR\MicrosoftEdgeWebview2Setup.exe'
+	ExecWait '"$INSTDIR\MicrosoftEdgeWebview2Setup.exe" /silent /install'
 	Delete "$INSTDIR\vc_redist.x64.exe"
 	Delete "$INSTDIR\MicrosoftEdgeWebview2Setup.exe"
 SectionEnd
@@ -103,11 +108,15 @@ SectionEnd
 ;-------------------------------------------------------------------------------
 ; Uninstaller Sections
 Section "Uninstall"
+	SetRegView 64
+	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 	Delete "$SMPROGRAMS\OneTagger\${PRODUCT_NAME}.lnk"
-	Delete "$DESKTOP\${PRODUCT_NAME}.lnk" 
+	Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
 	RMDir "$SMPROGRAMS\OneTagger"
-	Delete "$INSTDIR\*"
-	RMDir /r "$INSTDIR\*"
+	Delete "$INSTDIR\onetagger.exe"
+	Delete "$INSTDIR\icon.ico"
+	Delete "$INSTDIR\Uninstall.exe"
+	; Keep unrelated files in the selected installation directory.
 	RMDir "$INSTDIR"
 SectionEnd
 

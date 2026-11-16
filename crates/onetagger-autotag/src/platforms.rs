@@ -165,7 +165,7 @@ impl CustomPlatform {
                 return Err(anyhow!("Plugin is incompatible!"));
             }
             // Setup logging
-            let logging_cb_fn: Symbol<unsafe extern "C" fn(extern "C" fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
+            let logging_cb_fn: Symbol<unsafe extern "C" fn(unsafe extern "C" fn (*mut onetagger_tagger::custom::FFIRecord))> = lib.get(b"_1t_register_logger")?;
             logging_cb_fn(onetagger_tagger::custom::write_log);
             // Get builder
             let builder_fn: Symbol<unsafe extern "C" fn() -> *mut c_void> = lib.get(b"_1t_create_builder")?;
@@ -322,3 +322,4 @@ impl AutotaggerSource for CustomPlatformSource {
 struct PtrWrap(pub *mut c_void);
 unsafe impl Send for PtrWrap {}
 unsafe impl Sync for PtrWrap {}
+

@@ -1,5 +1,5 @@
 use anyhow::Error;
-use std::io::{BufReader, BufWriter, Cursor, Seek, SeekFrom};
+use std::io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Write};
 use std::fs::File;
 use std::collections::HashMap;
 use std::path::Path;
@@ -30,6 +30,7 @@ static ID3_RIFF: Lazy<HashMap<&'static str, ChunkId>> = Lazy::new(|| {
 /// Will copy ID3 meta into RIFF INFO chunk
 pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> Result<(), Error> {
     let mut file = BufReader::new(File::open(&path)?);
+    let file_len = validate_header(&mut file)?;
     let mut offset = 0;
     // Read all the chunks
     let mut riff_chunks = vec![];
@@ -44,6 +45,9 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
             offset += 4;
             continue;
         }
+        if chunk.len() < 4 || chunk.offset() + 8 + u64::from(chunk.len()) > file_len {
+            return Err(anyhow!("Invalid or truncated WAV container chunk"));
+        }
         // Save chunks
         for child in chunk.iter(&mut file) {
             let child = child?;
@@ -54,7 +58,7 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
             }
         }
         
-        offset += chunk.len() as u64;
+        offset += 8 + u64::from(chunk.len()) + u64::from(chunk.len() % 2);
     }
 
 
@@ -123,10 +127,13 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
     }
     let list_chunk = ChunkContents::Children(LIST_ID.clone(), INFO_ID.clone(), list_data);
 
-    // Write to file
+    // The caller writes a private staged copy. Close the reader before truncation (Windows).
+    drop(file);
     let mut file = BufWriter::new(File::create(path)?);
     riff_chunk.write(&mut file)?;
     list_chunk.write(&mut file)?;
+    file.flush()?;
+    file.get_ref().sync_all()?;
 
     Ok(())
 }
@@ -134,6 +141,7 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
 /// Read WAV from file, will copy missing tags from RIFF to ID3
 pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
     let mut file = BufReader::new(File::open(path)?);
+    let file_len = validate_header(&mut file)?;
     let mut offset = 0;
     // Read all the chunks
     let mut chunks = vec![];
@@ -147,10 +155,13 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
             offset += 4;
             continue;
         }
+        if chunk.len() < 4 || chunk.offset() + 8 + u64::from(chunk.len()) > file_len {
+            return Err(anyhow!("Invalid or truncated WAV container chunk"));
+        }
         for child in chunk.iter(&mut file) {
             chunks.push(child?);
         }
-        offset += chunk.len() as u64;
+        offset += 8 + u64::from(chunk.len()) + u64::from(chunk.len() % 2);
     }
 
     // Resolve nested chunks because SOME apps do that
@@ -169,7 +180,7 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
 
     // Read ID3 using the new ID3 reader
     file.seek(SeekFrom::Start(0))?;
-    let mut id3 = Tag::read_from2(&mut file).unwrap_or(Tag::new());
+    let mut id3 = id3::no_tag_ok(Tag::read_from2(&mut file))?.unwrap_or_default();
 
     // Copy tags from RIFF to ID3 if missing
     for (frame_name, chunk_id) in ID3_RIFF.iter() {
@@ -184,4 +195,20 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
     }
 
     Ok(id3)
+}
+
+// Validate before parsing or staging a replacement; a zero-length RIFF/LIST must not loop.
+fn validate_header(file: &mut BufReader<File>) -> Result<u64, Error> {
+    let mut header = [0u8; 12];
+    file.read_exact(&mut header)?;
+    if &header[..4] != b"RIFF" || &header[8..] != b"WAVE" {
+        return Err(anyhow!("Invalid WAV header"));
+    }
+    let declared_len = u64::from(u32::from_le_bytes(header[4..8].try_into().unwrap())) + 8;
+    let file_len = file.get_ref().metadata()?.len();
+    if declared_len < 12 || declared_len > file_len {
+        return Err(anyhow!("Invalid or truncated WAV container"));
+    }
+    file.seek(SeekFrom::Start(0))?;
+    Ok(file_len)
 }

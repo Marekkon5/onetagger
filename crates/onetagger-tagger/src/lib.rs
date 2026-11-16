@@ -1051,6 +1051,10 @@ impl MatchingUtils {
         // Fuzzy match - value, track
         let mut fuzz: Vec<(f64, &Track)> = vec![];
         for track in tracks {
+            // Duration is an eligibility constraint for exact and fuzzy candidates alike.
+            if !Self::match_duration(info, track, config) {
+                continue;
+            }
             // Artist
             if match_artist {
                 if !MatchingUtils::match_artist(&info.artists, &track.artists, config.strictness) {
@@ -1124,5 +1128,42 @@ impl MatchingUtils {
             seconds += parts[2].parse::<u64>()? * 3600;
         }
         Ok(Duration::from_secs(seconds))
+    }
+}
+
+
+#[cfg(test)]
+mod duration_regression_tests {
+    use super::*;
+
+    fn info(duration: Option<Duration>) -> AudioFileInfo {
+        AudioFileInfo {
+            title: Some("Night Drive".into()), artists: vec!["Artist".into()],
+            format: AudioFileFormat::MP3, path: "track.mp3".into(), isrc: None,
+            duration, track_number: None, tagged: FileTaggedStatus::Untagged, tags: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn fuzzy_fallback_cannot_reintroduce_duration_rejected_track() {
+        let config = TaggerConfig { match_duration: true, max_duration_difference: 10, ..Default::default() };
+        let track = Track { title: "Night Drive".into(), artists: vec!["Artist".into()], duration: Duration::from_secs(420), ..Default::default() };
+        let file = info(Some(Duration::from_secs(180)));
+        assert!(MatchingUtils::match_track(&file, &vec![track.clone()], &config, true).is_empty());
+        let all = TaggerConfig { fetch_all_results: true, ..config.clone() };
+        assert!(MatchingUtils::match_track(&file, &vec![track], &all, true).is_empty());
+    }
+
+    #[test]
+    fn fuzzy_matches_respect_boundary_and_keep_optional_duration_behavior() {
+        let config = TaggerConfig { match_duration: true, max_duration_difference: 10, ..Default::default() };
+        let mut track = Track { title: "Night Drives".into(), artists: vec!["Artist".into()], duration: Duration::from_secs(190), ..Default::default() };
+        let file = info(Some(Duration::from_secs(180)));
+        assert!(!MatchingUtils::match_track(&file, &vec![track.clone()], &config, true).is_empty());
+        track.duration = Duration::from_secs(191);
+        assert!(MatchingUtils::match_track(&file, &vec![track.clone()], &config, true).is_empty());
+        assert!(!MatchingUtils::match_track(&info(None), &vec![track.clone()], &config, true).is_empty());
+        let disabled = TaggerConfig { match_duration: false, ..config };
+        assert!(!MatchingUtils::match_track(&file, &vec![track], &disabled, true).is_empty());
     }
 }

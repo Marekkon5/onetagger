@@ -53,12 +53,25 @@ fn main() {
                 AudioFileInfo::get_file_list(&path, config.include_subfolders)
             };
 
-            let rx = Tagger::tag_files(&config, files, Arc::new(Mutex::new(None)));
+            let finished = Arc::new(Mutex::new(None));
+            let rx = Tagger::tag_files(&config, files, finished.clone());
             let start = timestamp!();
             for status in rx {
                 debug!("{status:?}");
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
+            let finished = finished.lock().unwrap();
+            match finished.as_ref() {
+                Some(result) if result.move_errors.is_empty() => {},
+                Some(result) => {
+                    for error in &result.move_errors { eprintln!("File move failed: {error}"); }
+                    std::process::exit(1);
+                },
+                None => {
+                    eprintln!("Tagging ended without a complete result report; check the application log.");
+                    std::process::exit(1);
+                },
+            }
         },
         Actions::Audiofeatures { path, config, client_id, client_secret, no_subfolders } => {
             let file = File::open(config).expect("Failed reading config file!");
@@ -101,12 +114,7 @@ fn main() {
                 false => {
                     let expose = *expose;
                     std::thread::spawn(move || {
-                        onetagger_ui::start_all(StartContext {
-                            server_mode: true,
-                            start_path: None,
-                            expose,
-                            browser: false,
-                        }).expect("Failed starting server!");
+                        onetagger_ui::start_all(StartContext::new(true, None, expose, false)).expect("Failed starting server!");
                     });
                     let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
                 }
@@ -139,16 +147,18 @@ fn main() {
                 return;
             }
 
-            renamer.rename(&names, &config).expect("Failed renaming!");
+            let report = renamer.rename(&names, &config).expect("Failed renaming!");
+            println!("{} completed, {} unchanged, {} failed/conflicted", report.succeeded, report.skipped, report.failed);
+            for result in &report.results {
+                if let Some(message) = &result.message {
+                    eprintln!("{} -> {}: {}", result.from.display(), result.to.display(), message);
+                }
+            }
+            if report.failed > 0 { std::process::exit(1); }
         },
         // Server mode
         Actions::Server { expose, path, browser } => {
-            onetagger_ui::start_all(StartContext {
-                server_mode: true,
-                start_path: path.clone().map(String::from),
-                expose: *expose,
-                browser: *browser,
-            }).expect("Failed starting the server");
+            onetagger_ui::start_all(StartContext::new(true, path.clone().map(String::from), *expose, *browser)).expect("Failed starting the server");
         }
     }
 }
@@ -436,4 +446,5 @@ impl Actions {
         }
     }
 }
+
 

@@ -100,7 +100,7 @@
                             {{ update.version }}
                         </div>
                         <br />
-                        <div v-html="update.changelog" class="text-subtitle1"></div>
+                        <div class="text-subtitle1" style="white-space: pre-wrap">{{ update.changelog }}</div>
                     </div>
                 </q-card-section>
                 <q-card-section class="justify-center row">
@@ -184,11 +184,15 @@ function isRoute(route: string) {
 /// Check for updates
 async function checkUpdates() {
     // Fetch latest version info
-    let url = "https://1t.marekkon5.workers.dev/latest";
+    let url = "https://api.github.com/repos/fantuz/onetagger/releases/latest";
     let data = null;
     try {
         let res = await axios.get(url);
-        data = res.data;
+        data = {
+            version: res.data.tag_name.replace(/^v/, ''),
+            changelog: res.data.body ?? '',
+            url: res.data.html_url,
+        };
     } catch (e) {
         return;
     }
