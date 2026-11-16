@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4"
+tempfile = "3.20"
 anyhow = "1.0"
 
 log = { version = "0.4", optional = true }
@@ -32,3 +33,4 @@ tag = [
     "lofty",
     "once_cell",
 ]
+
