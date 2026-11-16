@@ -55,6 +55,12 @@ jobs:
     needs: frontend
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    env:
+      # Keep file/line backtraces without full type/variable debug data in CI.
+      # Release profiles and local development defaults are unchanged.
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      CARGO_PROFILE_TEST_DEBUG: line-tables-only
+      CARGO_INCREMENTAL: '0'
     strategy:
       fail-fast: false
       matrix:
@@ -92,23 +98,26 @@ jobs:
         run: |
           rustup show active-toolchain
           rustc -vV
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore Rust dependency cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         id: cargo-cache
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-${{ github.sha }}
-          restore-keys: |
-            rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-
-            rust-${{ matrix.artifact }}-
+          prefix-key: v1-onetagger-deps
+          # Include the virtual workspace manifest and runner image even in
+          # fallback keys. The action also hashes rustc, CARGO/RUST env vars,
+          # member manifests and dependency versions; no per-commit suffix.
+          shared-key: ${{ matrix.os }}-${{ matrix.artifact }}-${{ hashFiles('Cargo.toml', '.cargo/config.toml', 'rust-toolchain.toml') }}
+          cache-bin: 'false'
+          cache-workspace-crates: 'false'
+          cache-on-failure: 'false'
+          # Save successful PR runs for retries, and master runs for future PRs.
+          # Cleanup/save happens after packaging and artifact uploads.
       - name: Regression tests
-        run: cargo test --workspace --all-targets --locked
+        run: cargo test --workspace --all-targets --locked --timings
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked
       - name: Build release binaries
-        run: cargo build --workspace --release --locked
+        run: cargo build --workspace --release --locked --timings
       - name: Package Linux
         if: runner.os == 'Linux'
         run: |
@@ -167,15 +176,26 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           overwrite: true
-      - name: Save compilation cache
-        if: always() && !cancelled() && steps.cargo-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Upload compilation timings
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
+          name: cargo-timings-${{ matrix.artifact }}
+          path: target/cargo-timings/*.html
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
+      - name: Summarize compilation cache
+        if: always() && !cancelled()
+        env:
+          CACHE_HIT: ${{ steps.cargo-cache.outputs.cache-hit }}
+        run: |
+          {
+            echo '### Rust compilation cache'
+            echo "Exact dependency cache hit: ${CACHE_HIT:-unavailable} (false can mean a fallback restore)."
+            echo 'See Restore Rust dependency cache for the matched key and its post-job step for the pruned archive size.'
+            echo 'Cargo timing reports are uploaded separately when available; GitHub step durations include cache transfer and packaging overhead.'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   release-assets:
     name: Validate release assets
