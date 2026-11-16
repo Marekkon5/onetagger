@@ -11,7 +11,8 @@
 <!-- project-badges:start -->
 <p align="center">
   <a href="https://github.com/fantuz/onetagger/actions/workflows/build.yml?query=branch%3Amaster"><img src="https://github.com/fantuz/onetagger/actions/workflows/build.yml/badge.svg?branch=master" alt="Tests and packages" height="20"></a>
-  <a href="#installing"><img src="https://img.shields.io/badge/downloads-Actions%20artifacts-2e7d32" alt="Downloads: GitHub Actions artifacts" height="20"></a>
+  <a href="https://github.com/fantuz/onetagger/releases/latest"><img src="https://img.shields.io/github/v/release/fantuz/onetagger" alt="Latest release" height="20"></a>
+  <a href="https://github.com/fantuz/onetagger/releases"><img src="https://img.shields.io/github/downloads/fantuz/onetagger/total" alt="Release downloads" height="20"></a>
   <br>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/fantuz/onetagger" alt="GNU GPL v3 license" height="20"></a>
   <a href="https://github.com/fantuz/onetagger/stargazers"><img src="https://img.shields.io/github/stars/fantuz/onetagger?style=flat" alt="GitHub stars" height="20"></a>
@@ -43,16 +44,18 @@ https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-
 
 ## Installing
 
-Published packages are available on the [releases page](https://github.com/fantuz/onetagger/releases). If no fork release is listed yet, or you want a newer development build, use the [Build workflow on master](https://github.com/fantuz/onetagger/actions/workflows/build.yml?query=branch%3Amaster+event%3Apush): choose a successful run and open its **Artifacts** section. GitHub requires sign-in for workflow artifacts, which are retained for 14 days. Published release downloads do not have that artifact expiry.
+Download the [latest release](https://github.com/fantuz/onetagger/releases/latest) for your computer. Published packages and checksums are available without signing in to GitHub and do not expire like workflow artifacts.
 
-| Your computer | Artifact to download | Included packages |
+| Your computer | Desktop application | Command-line tool |
 | --- | --- | --- |
-| Windows x64 | `onetagger-windows-x64` | Portable application, CLI, and `OneTagger-windows-setup.exe` installer |
-| macOS Apple Silicon | `onetagger-macos-arm64` | Application bundle and CLI, in separate ZIP archives |
-| macOS Intel | `onetagger-macos-intel` | Application bundle and CLI, in separate ZIP archives |
-| Linux x64 | `onetagger-linux-x64` | Application and CLI, in separate tar.gz archives |
+| Windows x64 | [Installer](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-windows-setup.exe) · [Portable EXE](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-windows.exe) | [CLI EXE](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-windows-cli.exe) |
+| macOS Apple Silicon | [Application ZIP](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-macos-arm64.zip) | [CLI ZIP](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-macos-arm64-cli.zip) |
+| macOS Intel | [Application ZIP](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-macos-intel.zip) | [CLI ZIP](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-macos-intel-cli.zip) |
+| Linux x64 | [Application tar.gz](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-linux-x64.tar.gz) | [CLI tar.gz](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-linux-x64-cli.tar.gz) |
 
-Extract the downloaded artifact ZIP to access the packages and its `SHA256SUMS-*.txt` file. Checksums detect download corruption; they are not a publisher signature. Windows packages are not Authenticode signed. macOS packages are not Developer ID signed or notarized; choose the archive matching your processor. Linux artifacts are built on Ubuntu 24.04 and require compatible glibc, ALSA and WebKitGTK 4.1 runtimes. The `frontend` artifact is an intermediate build output, not an installable application.
+Extract ZIP/tar.gz packages before use. Each release includes a `SHA256SUMS-*.txt` file for each platform. Checksums detect download corruption; they are not a publisher signature. Windows packages are not Authenticode signed. macOS packages are not Developer ID signed or notarized; choose the archive matching your processor. Linux packages are built on Ubuntu 24.04 and require compatible glibc, ALSA and WebKitGTK 4.1 runtimes.
+
+For newer development builds, use the [Build workflow on master](https://github.com/fantuz/onetagger/actions/workflows/build.yml?query=branch%3Amaster+event%3Apush): choose a successful run and open its **Artifacts** section. Download the `onetagger-` artifact matching your platform and extract its outer ZIP to access the packages and checksums. GitHub requires sign-in for workflow artifacts, which are retained for 14 days. The `frontend` artifact is an intermediate build output, not an installable application.
 
 Reviewed version-bump PRs trigger publication after the full GitHub build passes. Maintainers can also prepare a draft or retry publication through the [release workflow](https://github.com/fantuz/onetagger/actions/workflows/release.yml); see [release preparation and recovery](docs/DEVELOPMENT.md#artifacts-and-releases).
 
