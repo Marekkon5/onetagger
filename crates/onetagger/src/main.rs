@@ -28,12 +28,8 @@ fn main() {
     }
             
     // Start
-    let context = StartContext {
-        start_path: cli.path, 
-        server_mode: cli.server, 
-        expose: cli.expose,
-        browser: cli.browser
-    };
+    let context = StartContext::new(cli.server, cli.path, cli.expose, cli.browser);
+    let launch_url = context.session.launch_url();
 
     // Server mode
     if cli.server {
@@ -45,7 +41,7 @@ fn main() {
     std::thread::spawn(move || {
         onetagger_ui::start_all(context).expect("Failed to start servers!");
     });
-    start_webview().expect("Failed to start webview!");
+    start_webview(&launch_url).expect("Failed to start webview!");
     debug!("Exitting gracefully...");
 }
 
@@ -111,7 +107,7 @@ fn old_macos_warning() -> Result<(), Error> { Ok(()) }
 
 
 /// Start webview window
-pub fn start_webview() -> Result<(), Error> {
+pub fn start_webview(launch_url: &str) -> Result<(), Error> {
     // Setup wry
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -153,7 +149,7 @@ pub fn start_webview() -> Result<(), Error> {
     
     // Configure
     let mut webview = WebViewBuilder::new_with_web_context(&mut context)
-        .with_url(&format!("http://127.0.0.1:{PORT}/"))
+        .with_url(launch_url)
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;
@@ -279,3 +275,4 @@ enum CustomWindowEvent {
     DevTools,
     Exit
 }
+

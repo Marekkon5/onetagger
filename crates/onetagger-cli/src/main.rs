@@ -101,12 +101,7 @@ fn main() {
                 false => {
                     let expose = *expose;
                     std::thread::spawn(move || {
-                        onetagger_ui::start_all(StartContext {
-                            server_mode: true,
-                            start_path: None,
-                            expose,
-                            browser: false,
-                        }).expect("Failed starting server!");
+                        onetagger_ui::start_all(StartContext::new(true, None, expose, false)).expect("Failed starting server!");
                     });
                     let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
                 }
@@ -139,16 +134,18 @@ fn main() {
                 return;
             }
 
-            renamer.rename(&names, &config).expect("Failed renaming!");
+            let report = renamer.rename(&names, &config).expect("Failed renaming!");
+            println!("{} completed, {} unchanged, {} failed/conflicted", report.succeeded, report.skipped, report.failed);
+            for result in &report.results {
+                if let Some(message) = &result.message {
+                    eprintln!("{} -> {}: {}", result.from.display(), result.to.display(), message);
+                }
+            }
+            if report.failed > 0 { std::process::exit(1); }
         },
         // Server mode
         Actions::Server { expose, path, browser } => {
-            onetagger_ui::start_all(StartContext {
-                server_mode: true,
-                start_path: path.clone().map(String::from),
-                expose: *expose,
-                browser: *browser,
-            }).expect("Failed starting the server");
+            onetagger_ui::start_all(StartContext::new(true, path.clone().map(String::from), *expose, *browser)).expect("Failed starting the server");
         }
     }
 }
@@ -436,4 +433,5 @@ impl Actions {
         }
     }
 }
+
 

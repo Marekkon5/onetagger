@@ -1,3 +1,14 @@
+## Unreleased (fantuz fork)
+
+- Stage tag updates beside the original and publish only after successful writes and synchronization.
+- Preserve malformed-tag and I/O errors instead of replacing unreadable ID3 metadata with an empty tag.
+- Enforce duration filtering in fuzzy matching as well as exact matching.
+- Preflight renamer collisions, preserve source paths on failed moves, and show per-file outcomes in the UI/CLI.
+- Authenticate browser, WebSocket and media access with per-process sessions and same-origin checks; redact command payloads from error logs.
+- Escape renamer template previews and display release-note text without interpreting HTML.
+- Pin Rust and dependency lockfiles; run tests, Clippy, frontend typechecks and release builds on GitHub for Linux, Windows, Intel Mac and ARM64 Mac.
+- Update fork release/build/support references while retaining upstream attribution and provider-repository links.
+
 # 1.7.0
 **(03.08.2023)**
 
@@ -215,3 +226,4 @@
 **(13.05.2021)**
 
 First public release
+

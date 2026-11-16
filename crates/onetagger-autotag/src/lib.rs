@@ -719,11 +719,16 @@ impl Tagger {
 
             // Move files
             let mut successful_paths = vec![];
+            let mut move_errors = vec![];
             for file in &succesful_files {
                 if config.move_success && config.move_success_path.is_some() {
                     match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
                         Ok(p) => successful_paths.push(p),
-                        Err(e) => warn!("Failed moving file: {file:?} {e}"),
+                        Err(e) => {
+                            warn!("Failed moving file: {file:?} {e}");
+                            move_errors.push(format!("{}: {e:#}", file.display()));
+                            successful_paths.push(file.to_owned());
+                        },
                     }
                 } else {
                     successful_paths.push(PathBuf::from(file));
@@ -734,7 +739,11 @@ impl Tagger {
                 if config.move_failed && config.move_failed_path.is_some() {
                     match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
                         Ok(p) => failed_paths.push(p),
-                        Err(e) => warn!("Failed moving file: {file:?} {e}"),
+                        Err(e) => {
+                            warn!("Failed moving file: {file:?} {e}");
+                            move_errors.push(format!("{}: {e:#}", file.display()));
+                            failed_paths.push(file.to_owned());
+                        },
                     }
                 } else {
                     failed_paths.push(PathBuf::from(file))
@@ -749,7 +758,7 @@ impl Tagger {
                 Ok((failed, success)) => {
                     info!("Written failed songs to: {}, successful to: {}", failed, success);
                     *finished.lock().unwrap() = Some(TaggerFinishedData {
-                        failed_file: failed, success_file: success
+                        failed_file: failed, success_file: success, move_errors
                     });
                 },
                 Err(e) => warn!("Failed writing failed songs to file! {}", e)
@@ -1098,21 +1107,9 @@ impl Tagger {
 
     /// Move file to target dir if enabled
     fn move_file(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result<PathBuf, Error> {
-        // Generate path
-        let target_dir = Path::new(target.as_ref());
-        let filename = Path::new(source.as_ref()).file_name().unwrap();
-        std::fs::create_dir_all(&target_dir).ok();
-        let target = Path::new(&target_dir).join(filename);
-        if target.exists() {
-            return Ok(target);
-        }
-        // Try to rename, if fails copy
-        match std::fs::rename(source.as_ref(), &target) {
-            Ok(_) => return Ok(target),
-            Err(_) => {}
-        }
-        std::fs::copy(source.as_ref(), &target)?;
-        std::fs::remove_file(source.as_ref())?;
+        let filename = source.as_ref().file_name().ok_or_else(|| anyhow!("Source has no filename"))?;
+        let target = target.as_ref().join(filename);
+        onetagger_tag::file_ops::transfer_file(source.as_ref(), &target, false, false)?;
 
         Ok(target)
     }
@@ -1213,7 +1210,8 @@ impl AlbumTagFolderStats {
 #[serde(rename_all = "camelCase")]
 pub struct TaggerFinishedData {
     pub failed_file: String,
-    pub success_file: String
+    pub success_file: String,
+    pub move_errors: Vec<String>,
 }
 
 

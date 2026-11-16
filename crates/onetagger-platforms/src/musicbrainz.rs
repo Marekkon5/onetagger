@@ -309,6 +309,7 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
 /// Test if API works properly
 mod tests {
     #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
     pub fn test_search_serialization() {
         let m = super::MusicBrainz::new();
         m.search("marting garrix animals").expect("Search 1 failed");
@@ -318,6 +319,7 @@ mod tests {
     }
 
     #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
     pub fn text_full_release_serialization() {
         let m = super::MusicBrainz::new();
         let results = m.search("illenium needed you").expect("Search failed!");

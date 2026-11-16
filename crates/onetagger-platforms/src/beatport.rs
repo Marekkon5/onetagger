@@ -497,6 +497,7 @@ struct BeatportConfig {
 }
 
 #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
 fn test_album() {
     let mut builder = BeatportBuilder::new();
     let mut config = TaggerConfig::default();

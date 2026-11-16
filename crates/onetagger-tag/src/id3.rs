@@ -99,7 +99,7 @@ impl ID3Tag {
     }
 
     // Load tag from file or create new
-    pub fn load_or_new(path: impl AsRef<Path>) -> ID3Tag {
+    pub fn load_or_new(path: impl AsRef<Path>) -> Result<ID3Tag, Error> {
         let ext = path.as_ref().extension().unwrap_or_default().to_ascii_lowercase();
         let format = if ext == "mp3" {
             ID3AudioFormat::MP3
@@ -110,17 +110,17 @@ impl ID3Tag {
         };
 
         match ID3Tag::load_file(&path) {
-            Ok(tag) => tag,
-            Err(e) => {
-                warn!("Failed loading: {:?}, creating new tag. {:?}", path.as_ref(), e);
-                ID3Tag {
+            Ok(tag) => Ok(tag),
+            Err(e) if e.downcast_ref::<id3::Error>().is_some_and(|e| matches!(e.kind, id3::ErrorKind::NoTag)) => {
+                Ok(ID3Tag {
                     tag: Tag::new(),
                     format,
                     id3_separator: String::from(", "),
                     id3v24: true,
                     comm_lang: "eng".to_string()
-                }
+                })
             }
+            Err(e) => Err(e),
         }
     }
 
@@ -212,7 +212,8 @@ impl TagImpl for ID3Tag {
             self.set_raw("TPOS", self.get_raw("TPOS").unwrap_or(vec![]), true);
         }
 
-        // Write
+        // Stage every format in a sibling file before replacing the original.
+        crate::file_ops::atomic_update(path, |path| {
         match self.format {
             ID3AudioFormat::MP3 => {
                 Encoder::new()
@@ -223,8 +224,8 @@ impl TagImpl for ID3Tag {
             ID3AudioFormat::AIFF => self.tag.write_to_path(path, version)?,
             ID3AudioFormat::WAV => crate::wav::write_wav(path, self.tag.clone(), version)?,
         }
-        
         Ok(())
+        })
     }
 
     fn set_separator(&mut self, separator: &str) {
@@ -660,5 +661,59 @@ impl From<ID3Comment> for Lyrics {
             description: c.description,
             text: c.text
         }
+    }
+}
+
+#[cfg(test)]
+mod safety_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn missing_id3_tag_is_allowed_but_io_and_corruption_errors_are_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(ID3Tag::load_or_new(dir.path().join("missing.mp3")).is_err());
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        assert!(ID3Tag::load_or_new(&path).is_ok());
+        let broken = b"ID3\x05\x00\x00\x00\x00\x00\x06broken";
+        fs::write(&path, broken).unwrap();
+        assert!(ID3Tag::load_or_new(&path).is_err());
+        assert_eq!(fs::read(&path).unwrap(), broken);
+    }
+
+    fn wav_bytes() -> Vec<u8> {
+        let mut bytes = Vec::from(&b"RIFF"[..]);
+        bytes.extend(40u32.to_le_bytes());
+        bytes.extend(b"WAVEfmt ");
+        bytes.extend(16u32.to_le_bytes());
+        bytes.extend(1u16.to_le_bytes()); // PCM
+        bytes.extend(1u16.to_le_bytes()); // mono
+        bytes.extend(44100u32.to_le_bytes());
+        bytes.extend(88200u32.to_le_bytes());
+        bytes.extend(2u16.to_le_bytes());
+        bytes.extend(16u16.to_le_bytes());
+        bytes.extend(b"data");
+        bytes.extend(4u32.to_le_bytes());
+        bytes.extend([1, 2, 3, 4]);
+        bytes
+    }
+
+    #[test]
+    fn wav_tag_round_trip_preserves_audio_and_rejects_truncated_input() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.wav");
+        let original = wav_bytes();
+        fs::write(&path, &original).unwrap();
+        let mut tag = ID3Tag::load_or_new(&path).unwrap();
+        tag.set_field(Field::Title, vec!["Updated title".into()], true);
+        tag.save_file(&path).unwrap();
+        assert_eq!(ID3Tag::load_file(&path).unwrap().get_field(Field::Title).unwrap(), vec!["Updated title"]);
+        let written = fs::read(&path).unwrap();
+        let data_offset = written.windows(4).position(|w| w == b"data").unwrap();
+        assert_eq!(&written[data_offset + 8..data_offset + 12], &[1, 2, 3, 4]);
+        fs::write(&path, &original[..20]).unwrap();
+        assert!(ID3Tag::load_or_new(&path).is_err());
+        assert_eq!(fs::read(&path).unwrap(), &original[..20]);
     }
 }

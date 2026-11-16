@@ -233,6 +233,7 @@ impl BandcampPublisherSmall {
 
 
 #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
 fn test_bandcamp() {
     let b = Bandcamp::new();
     let results = b.search_tracks("mr kill myself").unwrap();

@@ -218,6 +218,10 @@ class OneTagger {
                 this.taggerStatus.value.progress = 1.0;
                 this.taggerStatus.value.data = json.data;
                 this.onTaggingDone(json.path);
+                if (json.data?.moveErrors?.length) {
+                    Dialog.create({ title: 'Some files could not be moved', html: false,
+                        message: json.data.moveErrors.join('\n') });
+                }
                 break;
             // Player load track
             case 'playerLoad':

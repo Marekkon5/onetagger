@@ -15,9 +15,14 @@ export default defineConfig({
         })
     ],
     server: {
-        port: 8080
+        port: 8080,
+        strictPort: true,
+        proxy: Object.fromEntries(['/session', '/ws', '/audio', '/thumb', '/spotify'].map(route => [route, {
+            target: 'http://127.0.0.1:36913', ws: route === '/ws', changeOrigin: false,
+        }]))
     },
     build: {
         assetsInlineLimit: 16 * 1024
     }
 });
+

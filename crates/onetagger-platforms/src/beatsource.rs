@@ -264,6 +264,7 @@ pub struct BeatsourceConfig {
 
 
 #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
 /// Make sure it doesn't panic / response format ok
 fn test_beatsource() {
     let token_manager = BeatsourceTokenManager::new();

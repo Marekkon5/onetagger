@@ -2,7 +2,8 @@
 #[macro_use] extern crate anyhow;
 #[macro_use] extern crate lazy_static;
 
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, Component};
+use std::collections::{HashMap, HashSet};
 use anyhow::Error;
 use onetagger_tagger::AudioFileInfo;
 use serde::{Serialize, Deserialize};
@@ -91,47 +92,38 @@ impl Renamer {
         Ok(output)
     }
 
-    /// Rename files, files = output from generate
-    pub fn rename(&mut self, files: &[(PathBuf, PathBuf)], config: &RenamerConfig) -> Result<(), Error> {
-        for (from, to) in files {
-            // Don't overwrite
-            if !config.overwrite && to.exists() {
-                info!("File exists, skipping: {to:?}");
-                continue;
-            }
-
-            // Create dir
-            if let Some(parent) = to.parent() {
-                if let Err(e) = std::fs::create_dir_all(parent) {
-                    warn!("Failed creating dir {parent:?}: {e}");
-                }
-            }
-            // Copy mode
-            if config.copy {
-                match std::fs::copy(&from, &to) {
-                    Ok(_) => info!("Copied: {to:?}"),
-                    Err(e) => error!("Failed copying {from:?} -> {to:?}: {e}"),
-                }
-            // Move
-            } else {
-                if std::fs::rename(&from, &to).is_err() {
-                    info!("Renaming failed, might be different FS, trying to copy.");
-                    match std::fs::copy(&from, &to) {
-                        Ok(_) => {
-                            info!("Copied: {to:?}");
-                            if let Err(e) = std::fs::remove_file(&from) {
-                                warn!("Failed deleting {from:?}: {e}");
-                            }
-                        },
-                        Err(e) => error!("Failed copying {from:?} -> {to:?}: {e}"),
-                    }
-                } else {
-                    info!("Renamed: {to:?}");
-                }
-            }
+    /// Preflight the complete batch before moving anything; return every file's outcome.
+    pub fn rename(&mut self, files: &[(PathBuf, PathBuf)], config: &RenamerConfig) -> Result<RenameReport, Error> {
+        let mut destinations = HashMap::new();
+        let sources: HashSet<_> = files.iter().map(|(from, _)| path_key(from)).collect();
+        for (_, to) in files {
+            *destinations.entry(path_key(to)).or_insert(0usize) += 1;
         }
-
-        Ok(())
+        let mut report = RenameReport::default();
+        for (from, to) in files {
+            let source = path_key(from);
+            let target = path_key(to);
+            let (outcome, message) = if destinations[&target] > 1 {
+                (RenameOutcome::Conflict, Some("Several source files have the same destination".to_string()))
+            } else if source != target && sources.contains(&target) {
+                (RenameOutcome::Conflict, Some("Destination is another source in this batch".to_string()))
+            } else if source != target && !config.overwrite && to.symlink_metadata().is_ok() {
+                (RenameOutcome::Conflict, Some("Destination already exists".to_string()))
+            } else {
+                match onetagger_tag::file_ops::transfer_file(from, to, config.copy, config.overwrite) {
+                    Ok(false) => (RenameOutcome::Unchanged, None),
+                    Ok(true) => (if config.copy { RenameOutcome::Copied } else { RenameOutcome::Moved }, None),
+                    Err(e) => (RenameOutcome::Failed, Some(format!("{e:#}"))),
+                }
+            };
+            match outcome {
+                RenameOutcome::Moved | RenameOutcome::Copied => report.succeeded += 1,
+                RenameOutcome::Unchanged => report.skipped += 1,
+                RenameOutcome::Conflict | RenameOutcome::Failed => report.failed += 1,
+            }
+            report.results.push(RenameResult { from: from.clone(), to: to.clone(), outcome, message });
+        }
+        Ok(report)
     }
 
     /// Generate html from the syntax highlighting
@@ -141,7 +133,7 @@ impl Renamer {
         
         let mut output = String::new();
         for syntax in &self.template.syntax {
-            let text = input.chars().skip(syntax.start).take(syntax.length).collect::<String>().replace(" ", "&nbsp;");
+            let text = input.chars().skip(syntax.start).take(syntax.length).collect::<String>().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(" ", "&nbsp;");
             let class = match syntax.syntax {
                 SyntaxType::Text => "syntax_text",
                 SyntaxType::String => "syntax_string",
@@ -155,6 +147,48 @@ impl Renamer {
         }
         output
     }
+}
+
+// Resolve existing aliases and normalize lexical components for destinations not created yet.
+fn path_key(path: &Path) -> PathBuf {
+    let absolute = dunce::canonicalize(path).unwrap_or_else(|_| {
+        let parent = path.parent().unwrap_or(Path::new("."));
+        dunce::canonicalize(parent).map(|p| p.join(path.file_name().unwrap_or_default()))
+            .unwrap_or_else(|_| std::env::current_dir().unwrap_or_default().join(path))
+    });
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            Component::CurDir => {},
+            Component::ParentDir => { normalized.pop(); },
+            c => normalized.push(c.as_os_str()),
+        }
+    }
+    if cfg!(any(windows, target_os = "macos")) {
+        PathBuf::from(normalized.to_string_lossy().to_lowercase())
+    } else {
+        normalized
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum RenameOutcome { Moved, Copied, Unchanged, Conflict, Failed }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RenameResult {
+    pub from: PathBuf,
+    pub to: PathBuf,
+    pub outcome: RenameOutcome,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RenameReport {
+    pub succeeded: usize,
+    pub skipped: usize,
+    pub failed: usize,
+    pub results: Vec<RenameResult>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,5 +234,58 @@ fn generate_html() {
         let renamer = Renamer::new(TemplateParser::parse(i));
         let output = renamer.generate_html(i);
         println!("{output}")
+    }
+}
+
+
+#[cfg(test)]
+mod safety_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn duplicate_destinations_are_reported_without_touching_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a.mp3"); let b = dir.path().join("b.mp3");
+        let target = dir.path().join("target.mp3");
+        fs::write(&a, b"a").unwrap(); fs::write(&b, b"b").unwrap();
+        let mut config = RenamerConfig::default_with_paths(dir.path(), "%title%");
+        config.overwrite = true;
+        let mut renamer = Renamer::new(TemplateParser::parse("%title%"));
+        let report = renamer.rename(&[(a.clone(), target.clone()), (b.clone(), target.clone())], &config).unwrap();
+        assert_eq!(report.failed, 2); assert_eq!(report.succeeded, 0);
+        assert_eq!(fs::read(a).unwrap(), b"a"); assert_eq!(fs::read(b).unwrap(), b"b");
+        assert!(!target.exists());
+    }
+
+    #[test]
+    fn rename_cycles_do_not_overwrite_other_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a"); let b = dir.path().join("b");
+        fs::write(&a, b"a").unwrap(); fs::write(&b, b"b").unwrap();
+        let mut config = RenamerConfig::default_with_paths(dir.path(), "%title%"); config.overwrite = true;
+        let report = Renamer::new(TemplateParser::parse("%title%")).rename(&[(a.clone(), b.clone()), (b.clone(), a.clone())], &config).unwrap();
+        assert_eq!(report.failed, 2);
+        assert_eq!(fs::read(a).unwrap(), b"a"); assert_eq!(fs::read(b).unwrap(), b"b");
+    }
+
+    #[test]
+    fn partial_failure_reports_real_outcomes() {
+        let dir = tempfile::tempdir().unwrap();
+        let from = dir.path().join("source"); let to = dir.path().join("target");
+        fs::write(&from, b"audio").unwrap();
+        let config = RenamerConfig::default_with_paths(dir.path(), "%title%");
+        let report = Renamer::new(TemplateParser::parse("%title%")).rename(&[
+            (from.clone(), to.clone()), (dir.path().join("missing"), dir.path().join("other")),
+        ], &config).unwrap();
+        assert_eq!(report.succeeded, 1); assert_eq!(report.failed, 1);
+        assert!(!from.exists()); assert_eq!(fs::read(to).unwrap(), b"audio");
+    }
+
+    #[test]
+    fn template_preview_escapes_html() {
+        let input = "<img src=x onerror=alert(1)>";
+        let html = Renamer::new(TemplateParser::parse(input)).generate_html(input);
+        assert!(!html.contains("<img")); assert!(html.contains("&lt;img"));
     }
 }

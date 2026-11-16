@@ -1,5 +1,5 @@
 use anyhow::Error;
-use std::io::{BufReader, BufWriter, Cursor, Seek, SeekFrom};
+use std::io::{BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Write};
 use std::fs::File;
 use std::collections::HashMap;
 use std::path::Path;
@@ -123,10 +123,13 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
     }
     let list_chunk = ChunkContents::Children(LIST_ID.clone(), INFO_ID.clone(), list_data);
 
-    // Write to file
+    // The caller writes a private staged copy. Close the reader before truncation (Windows).
+    drop(file);
     let mut file = BufWriter::new(File::create(path)?);
     riff_chunk.write(&mut file)?;
     list_chunk.write(&mut file)?;
+    file.flush()?;
+    file.get_ref().sync_all()?;
 
     Ok(())
 }
@@ -134,6 +137,16 @@ pub(crate) fn write_wav(path: impl AsRef<Path>, tag: Tag, version: Version) -> R
 /// Read WAV from file, will copy missing tags from RIFF to ID3
 pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
     let mut file = BufReader::new(File::open(path)?);
+    let mut header = [0u8; 12];
+    file.read_exact(&mut header)?;
+    if &header[..4] != b"RIFF" || &header[8..] != b"WAVE" {
+        return Err(anyhow!("Invalid WAV header"));
+    }
+    let declared_len = u32::from_le_bytes(header[4..8].try_into().unwrap()) as u64 + 8;
+    if declared_len > file.get_ref().metadata()?.len() {
+        return Err(anyhow!("Truncated WAV container"));
+    }
+    file.seek(SeekFrom::Start(0))?;
     let mut offset = 0;
     // Read all the chunks
     let mut chunks = vec![];
@@ -169,7 +182,7 @@ pub(crate) fn read_wav(path: impl AsRef<Path>) -> Result<Tag, Error> {
 
     // Read ID3 using the new ID3 reader
     file.seek(SeekFrom::Start(0))?;
-    let mut id3 = Tag::read_from2(&mut file).unwrap_or(Tag::new());
+    let mut id3 = id3::no_tag_ok(Tag::read_from2(&mut file))?.unwrap_or_default();
 
     // Copy tags from RIFF to ID3 if missing
     for (frame_name, chunk_id) in ID3_RIFF.iter() {
