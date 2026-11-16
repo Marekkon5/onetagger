@@ -160,10 +160,31 @@ pub struct BeatsourceImage {
     pub uri: String
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct BeatsourceToken {
     pub token: String,
     pub expires: u128
+}
+
+#[test]
+fn nested_token_debug_redacts_credentials() {
+    let secret = "beatsource-secret-regression-sentinel";
+    let manager = BeatsourceTokenManager::new();
+    manager.token.lock().unwrap().token = secret.to_string();
+    let builder = BeatsourceBuilder { token_manager: manager };
+    let debug = format!("{builder:?}");
+    assert!(debug.contains("[redacted]"));
+    assert!(!debug.contains(secret));
+    assert_eq!(builder.token_manager.token.lock().unwrap().token, secret);
+}
+
+impl std::fmt::Debug for BeatsourceToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BeatsourceToken")
+            .field("token", &"[redacted]")
+            .field("expires", &self.expires)
+            .finish()
+    }
 }
 
 /// Manages the OAuth token
@@ -215,7 +236,7 @@ impl BeatsourceTokenManager {
         let json: Value = serde_json::from_str(&text)?;
         let token = json["props"]["rootStore"]["authStore"]["user"]["access_token"].as_str().ok_or(anyhow!("Missing access_token"))?;
         let expires = json["props"]["rootStore"]["authStore"]["user"]["expires_in"].as_u64().unwrap();
-        debug!("New Beatsource token: {}", token);
+        debug!("Beatsource token refreshed");
         Ok(BeatsourceToken {
             token: token.to_string(),
             expires: timestamp!() + expires as u128 - 100

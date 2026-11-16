@@ -28,6 +28,7 @@ Maintainers coordinate investigation, a fix or mitigation, and disclosure throug
 - Tag editing follows symbolic links. Replacing a file does not update its other hard links; ownership, ACLs, extended attributes and timestamps are not guaranteed to survive. Rename and move batches report per-file outcomes and may partially complete. See [file-operation guarantees and limits](docs/SAFETY.md).
 - Imported audio, tags, artwork, provider responses and playlists are untrusted input. Parser or UI vulnerabilities and unintended file access are within scope for private reports.
 - Online tagging and recognition contact external providers. Do not assume these operations are offline or that provider credentials and local configuration are encrypted at rest. Review logs and configuration before sharing them.
+- Provider authentication diagnostics omit raw tokens and login responses. Beatport, Beatsource, BPM Supreme and Musixmatch credential types redact their debug output; Musixmatch request errors omit token-bearing URLs. This does not scrub logs produced by older builds or sanitize custom-plugin output.
 - Native custom-platform plugins execute with the application's permissions. Install plugins only from sources you trust; they are not sandboxed.
 
 ## Builds and downloads

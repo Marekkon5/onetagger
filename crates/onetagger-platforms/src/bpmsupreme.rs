@@ -19,7 +19,9 @@ impl BPMSupreme {
     /// Create new instance
     pub fn new(token: &str, library: BPMMusicLibrary) -> BPMSupreme {
         let mut header_map = HeaderMap::new();
-        header_map.append("Cookie", HeaderValue::from_str(&format!("bpm_session={token}")).unwrap());
+        let mut cookie = HeaderValue::from_str(&format!("bpm_session={token}")).unwrap();
+        cookie.set_sensitive(true);
+        header_map.append("Cookie", cookie);
         BPMSupreme {
             library,
             client: Client::builder()
@@ -55,7 +57,7 @@ impl BPMSupreme {
             .send()?
             .error_for_status()?
             .json()?;
-        debug!("User: {:?}", res.data);
+        debug!("BPM Supreme login succeeded");
         Ok(res.data.session_token)
     }
 
@@ -117,7 +119,7 @@ struct BPMSupremeResponse<D> {
     pub data: D
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct BPMSupremeUser {
     pub session_token: String
 }
@@ -250,9 +252,47 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct BPMSupremeConfig {
     pub email: String,
     pub password: String,
     pub library: BPMMusicLibrary
+}
+
+impl std::fmt::Debug for BPMSupremeUser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BPMSupremeUser")
+            .field("session_token", &"[redacted]")
+            .finish()
+    }
+}
+
+
+impl std::fmt::Debug for BPMSupremeConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BPMSupremeConfig")
+            .field("email", &"[redacted]")
+            .field("password", &"[redacted]")
+            .field("library", &self.library)
+            .finish()
+    }
+}
+
+#[test]
+fn authentication_debug_redacts_credentials_without_changing_serialization() {
+    let secret = "bpm-secret-regression-sentinel";
+    let response = BPMSupremeResponse { data: BPMSupremeUser { session_token: secret.to_string() } };
+    let config = BPMSupremeConfig {
+        email: "private-account@example.invalid".to_string(),
+        password: secret.to_string(),
+        library: BPMMusicLibrary::Supreme,
+    };
+    let debug = format!("{response:?} {config:?}");
+    assert!(debug.contains("[redacted]"));
+    assert!(!debug.contains(secret));
+    assert!(!debug.contains(&config.email));
+    assert_eq!(serde_json::to_value(&response).unwrap()["data"]["session_token"], secret);
+    assert_eq!(serde_json::to_value(&config).unwrap()["password"], secret);
+    let client = BPMSupreme::new(secret, BPMMusicLibrary::Supreme);
+    assert!(!format!("{:?}", client.client).contains(secret));
 }
