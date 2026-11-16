@@ -38,6 +38,7 @@ class FakeGitHub:
                           for i, platform in enumerate(tools.PACKAGES)]
         self.tag = None
         self.release = None
+        self.latest = None
         self.assets = []
         self.writes = []
         self.fail_upload_after = None
@@ -80,6 +81,8 @@ class FakeGitHub:
             return {"object": copy.deepcopy(self.tag)} if self.tag else not_found(path)
         if path.startswith("releases/tags/") or path == "releases/7":
             return copy.deepcopy(self.release) if self.release else not_found(path)
+        if path == "releases/latest":
+            return copy.deepcopy(self.latest) if self.latest else not_found(path)
         if path == f"actions/runs/{RUN}/artifacts?per_page=100":
             return {"artifacts": copy.deepcopy(self.artifacts)}
         if path == "releases/7/assets?per_page=100":
@@ -227,6 +230,14 @@ class ReleasePlanTests(unittest.TestCase):
         self.api.release = {"id": 7, "draft": False, "body": "Published"}
         self.assertIsNone(self.plan()[0])
         self.assertEqual(self.api.writes, [])
+
+    def test_older_version_cannot_replace_latest_even_in_manual_mode(self):
+        self.api.latest = {"tag_name": "v1.8.0"}
+        for automatic in [True, False]:
+            with self.subTest(automatic=automatic), self.assertRaises(ValueError):
+                self.plan(automatic)
+        self.api.latest = {"tag_name": "v1.7.0"}
+        self.assertIsNotNone(self.plan()[0])
 
     def test_annotated_tags_resolve_and_cycles_fail(self):
         def read(path):

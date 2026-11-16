@@ -136,6 +136,11 @@ def plan_release(read, run_id, repository, branch, automatic=False):
     marker = "<!-- onetagger-release:" + source + " -->"
     if existing is not None and (target != source or marker not in (existing.get("body") or "")):
         raise ValueError("Existing draft is not an automation draft for this source")
+    latest = optional(read, "releases/latest")
+    if latest is not None:
+        latest_tag = latest.get("tag_name", "")
+        if not latest_tag.startswith("v") or version_key(version) <= version_key(latest_tag[1:]):
+            raise ValueError("The release must be newer than the latest published version")
     rows = read(f"actions/runs/{run_id}/artifacts?per_page=100")["artifacts"]
     expected = {"onetagger-" + platform for platform in PACKAGES}
     artifacts = [a for a in rows if a["name"] in expected]
