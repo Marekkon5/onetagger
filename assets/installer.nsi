@@ -13,7 +13,7 @@
 !define PRODUCT_DESCRIPTION "App to tag your music library."
 !define COPYRIGHT "Marekkon5"
 !ifndef PRODUCT_VERSION
-!define PRODUCT_VERSION "1.7.0.0"
+!error "Pass /DPRODUCT_VERSION=X.Y.Z.0 using the current VERSION file"
 !endif
 !define SETUP_VERSION "${PRODUCT_VERSION}"
 

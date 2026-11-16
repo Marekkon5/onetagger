@@ -1,5 +1,7 @@
 ## Unreleased (fantuz fork)
 
+- Automate releases after validated version-bump PRs, with synchronized versions, reviewed release notes, verified native artifacts and resumable draft publication.
+
 - Fix Beatport token refresh deadlocking after expiry; concurrent workers share one refresh and failed refreshes remain retryable.
 - Remove provider authentication payloads from debug logs, redact credential-bearing debug output, and strip Musixmatch token URLs from request errors.
 
