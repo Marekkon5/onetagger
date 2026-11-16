@@ -69,8 +69,9 @@ You can support the original upstream developers by donating on [PayPal](https:/
 
 ## Building
 
+On every platform, use the Rust toolchain pinned in `rust-toolchain.toml`, Node.js **24**, and pnpm **10.11.0**. Keep both lockfiles unchanged for a normal build.
+
 ### Linux
-Use the Rust version in `rust-toolchain.toml`, Node.js 24, and pnpm 10.11.0.
 
 Install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
 
