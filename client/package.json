@@ -21,7 +21,7 @@
     "@quasar/vite-plugin": "1.9.0",
     "@vitejs/plugin-vue": "5.2.4",
     "path": "^0.12.7",
-    "sass": "1.83.4",
+    "sass": "1.108.2",
     "typescript": "5.7.3",
     "vite": "6.4.5",
     "vue-tsc": "3.0.5"
