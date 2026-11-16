@@ -4,7 +4,7 @@ This policy applies to the maintained [fantuz/onetagger](https://github.com/fant
 
 ## Supported versions
 
-Security fixes land on `master` and are validated by GitHub Actions. Use the latest published fork release when available, or a successful `master` build identified by its commit SHA. The inherited `1.7.0` application version alone does not identify which fork fixes a binary contains. Older workflow artifacts and upstream releases are not maintained by this fork; security backports are not guaranteed.
+Security fixes land on `master` and are validated by GitHub Actions. Published fork releases start at `1.7.1`; use the [latest fork release](https://github.com/fantuz/onetagger/releases/latest), or a newer successful `master` build identified by its commit SHA. The inherited `1.7.0` application version alone does not identify which fork fixes an older binary contains. Older workflow artifacts and upstream releases are not maintained by this fork; security backports are not guaranteed.
 
 ## Report a vulnerability privately
 

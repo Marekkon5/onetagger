@@ -1,22 +1,38 @@
 ## Unreleased (fantuz fork)
 
-- Automate releases after validated version-bump PRs, with synchronized versions, reviewed release notes, verified native artifacts and resumable draft publication.
+## 1.7.1 — 2026-11-16
+
+First published release of the maintained fantuz fork, based on upstream OneTagger 1.7.0. Original authorship and the GPL-3.0 license are preserved.
+
+### Tagging and file handling
 
 - Fix Beatport token refresh deadlocking after expiry; concurrent workers share one refresh and failed refreshes remain retryable.
-- Remove provider authentication payloads from debug logs, redact credential-bearing debug output, and strip Musixmatch token URLs from request errors.
-
-- Refresh Quasar, its Vite plugin, Vue Router and the Rust time dependency with reviewed lockfiles.
-- Reconcile Cargo's lockfile after dependency merges, check it before native CI jobs start, and group routine Dependabot updates by ecosystem.
-- Align README badges with the other maintained projects, clarify artifact downloads, and document security reporting and application trust boundaries.
-- Windows installer/uninstaller preserves unrelated files in the chosen folder; installer version follows the application.
+- Enforce duration filtering in fuzzy matching as well as exact matching.
 - Stage tag updates beside the original and publish only after successful writes and synchronization.
 - Preserve malformed-tag and I/O errors instead of replacing unreadable ID3 metadata with an empty tag.
-- Enforce duration filtering in fuzzy matching as well as exact matching.
 - Preflight renamer collisions, preserve source paths on failed moves, and show per-file outcomes in the UI/CLI.
+- Preserve unrelated files in the Windows installation folder during installation and removal.
+
+### Credentials and browser sessions
+
+- Remove provider authentication payloads from debug logs, redact credential-bearing debug output, and strip Musixmatch token URLs from request errors. Logs from older builds are not scrubbed.
 - Authenticate browser, WebSocket and media access with per-process sessions and same-origin checks; redact command payloads from error logs.
 - Escape renamer template previews and display release-note text without interpreting HTML.
-- Pin Rust and dependency lockfiles; run tests, Clippy, frontend typechecks and release builds on GitHub for Linux, Windows, Intel Mac and ARM64 Mac.
-- Update fork release/build/support references while retaining upstream attribution and provider-repository links.
+
+### Builds and downloads
+
+- Publish desktop and CLI packages for Linux x64, Windows x64, macOS Intel and macOS Apple Silicon, plus a Windows installer, platform checksums and source manifests.
+- Automate releases after validated version-bump PRs. Publication verifies artifacts from the exact successful master build and supports resuming an incomplete draft.
+- Synchronize VERSION, application/CLI versions, the macOS bundle and Cargo lockfile; derive the Windows installer version from the application.
+- Refresh Quasar, its Vite plugin, Vue Router and the Rust time dependency with reviewed lockfiles. Pin Rust and both dependency lockfiles; run tests, Clippy, frontend typechecks and native release builds on GitHub.
+- Validate release tooling and package manifests in CI, and group routine Dependabot updates by ecosystem.
+- Update download badges and installation links, document release recovery and security reporting, and retain upstream attribution and provider-repository links.
+
+### Usage notes
+
+- Keep library backups and try a small selection before bulk editing. See the documented file-operation guarantees and limitations.
+- A valid application session retains filesystem access with the server account's permissions; this release does not add a per-user or library-folder sandbox.
+- Online provider availability is not covered by offline CI. The inherited Spotify Audio Features page remains unavailable; Spotify metadata tagging is a separate feature.
 
 # 1.7.0
 **(03.08.2023)**
