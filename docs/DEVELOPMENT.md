@@ -25,7 +25,7 @@ cargo clippy --workspace --all-targets --locked
 cargo build --workspace --release --locked
 ```
 
-The Build workflow runs these checks on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. `Required checks` fails unless the frontend and every platform pass. Configure that check as required in the repository ruleset before merging.
+The Build workflow first runs `cargo metadata --locked --format-version 1` in the frontend job to catch inconsistent Rust lockfiles before starting native builds. It then runs the checks above on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. `Required checks` fails unless the frontend and every platform pass. Configure that check as required in the repository ruleset before merging.
 
 Existing tests that call live Beatport, Beatsource, Bandcamp, and MusicBrainz services are explicitly ignored in normal regression runs. Run them deliberately with `cargo test -p onetagger-platforms --locked -- --ignored --test-threads=1`; external outages and rate limits must not determine ordinary PR validation. New safety and matching tests are deterministic and run without provider accounts.
 

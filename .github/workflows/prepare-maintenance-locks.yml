@@ -47,7 +47,7 @@ jobs:
                   if tag == 'img' and a.get('src', '').startswith('https://'):
                       with urlopen(Request(a['src'], headers={'User-Agent': 'OneTagger-docs-check'}), timeout=30) as r:
                           svg = ET.fromstring(r.read())
-                      label = svg.attrib.get('aria-label', '')
+                      label = svg.attrib.get('aria-label') or ' '.join(svg.itertext()).strip()
                       if not label or any(s in label.lower() for s in ['not found', 'invalid', 'inaccessible', 'no status']):
                           raise SystemExit(f"Invalid badge: {a['src']} ({label})")
                       print(f"Badge OK: {label}")
