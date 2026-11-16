@@ -58,31 +58,59 @@ impl Beatport {
         Ok(serde_json::from_value(value["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"].to_owned())?)
     }
 
-    /// Update embed auth token
+    /// Return the cached token, refreshing it once when missing or expired.
     pub fn update_token(&self) -> Result<String, Error> {
-        let mut token = self.access_token.lock().unwrap();
-        // Fetch new if doesn't exist
-        if (*token).is_none() {
-            // Taken from https://embed.beatport.com/?id=4418593&type=release
-            let mut response: BeatportOAuth = self.client.post("https://account.beatport.com/o/token/")
-                .form(&json!({
-                    "client_id": "2tiTbKxmQFwnbFjMONU4k7njMRZmV3ZMwRBndiZs",
-                    "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
-                    "grant_type": "client_credentials"
-                }))
-                .send()?
-                .json()?;
-            response.expires_in = response.expires_in * 1000 + timestamp!() - 10_000;
-            *token = Some(response);
-            debug!("OAuth: {:?}", token);
+        self.update_token_with(|| self.fetch_token(), || timestamp!())
+    }
+
+    fn fetch_token(&self) -> Result<BeatportOAuth, Error> {
+        // Taken from https://embed.beatport.com/?id=4418593&type=release
+        let response: BeatportOAuth = self.client.post("https://account.beatport.com/o/token/")
+            .form(&json!({
+                "client_id": "2tiTbKxmQFwnbFjMONU4k7njMRZmV3ZMwRBndiZs",
+                "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
+                "grant_type": "client_credentials"
+            }))
+            .send()?
+            .error_for_status()?
+            .json()?;
+        Ok(response)
+    }
+
+    fn update_token_with<F, N>(&self, fetch: F, now: N) -> Result<String, Error>
+    where
+        F: FnOnce() -> Result<BeatportOAuth, Error>,
+        N: Fn() -> u128,
+    {
+        let mut token = self.access_token.lock()
+            .map_err(|_| anyhow!("Beatport token cache lock poisoned"))?;
+        let started = now();
+        if let Some(cached) = token.as_ref() {
+            if !cached.access_token.is_empty() && cached.expires_in > started {
+                return Ok(cached.access_token.clone());
+            }
         }
-        // Expired
-        let t = token.clone().unwrap();
-        if t.expires_in <= timestamp!() {
-            *token = None;
-            return self.update_token();
+
+        // Keep the shared lock during the bounded HTTP request so other workers
+        // reuse this refresh. Never recurse or acquire this mutex a second time.
+        // A failed refresh must not leave an expired token available to callers.
+        *token = None;
+        let mut response = fetch()?;
+        let lifetime = response.expires_in.checked_mul(1000)
+            .filter(|lifetime| *lifetime > 0)
+            .ok_or_else(|| anyhow!("Invalid Beatport token lifetime"))?;
+        // Retain the usual ten-second margin, allowing short-lived tokens too.
+        let margin = 10_000.min(lifetime / 2);
+        let expires = started.checked_add(lifetime - margin)
+            .ok_or_else(|| anyhow!("Invalid Beatport token lifetime"))?;
+        if response.access_token.is_empty() || expires <= now() {
+            return Err(anyhow!("Beatport returned an empty or expired token"));
         }
-        Ok(t.access_token)
+        response.expires_in = expires;
+        let access_token = response.access_token.clone();
+        *token = Some(response);
+        debug!("Beatport OAuth token refreshed");
+        Ok(access_token)
     }
 
     /// Fetch track using API
@@ -137,10 +165,19 @@ impl Beatport {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BeatportOAuth {
     pub access_token: String,
     pub expires_in: u128
+}
+
+impl std::fmt::Debug for BeatportOAuth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BeatportOAuth")
+            .field("access_token", &"[redacted]")
+            .field("expires_in", &self.expires_in)
+            .finish()
+    }
 }
 
 /// When searching for tracks
@@ -506,4 +543,150 @@ fn test_album() {
 
     let mut bp = builder.get_source(&config).unwrap();
     bp.get_album("2174307", &config).unwrap();
+}
+
+#[cfg(test)]
+mod token_tests {
+    use super::*;
+    use std::sync::{atomic::{AtomicUsize, Ordering}, mpsc, Barrier};
+
+    const NOW: u128 = 1_000_000;
+    const SECRET: &str = "beatport-secret-regression-sentinel";
+
+    fn token(expires_in: u128) -> BeatportOAuth {
+        BeatportOAuth { access_token: SECRET.to_string(), expires_in }
+    }
+
+    #[test]
+    fn valid_token_is_reused_without_fetching() {
+        let bp = Beatport::new(Arc::new(Mutex::new(Some(token(NOW + 1)))));
+        assert_eq!(bp.update_token_with(|| panic!("unexpected refresh"), || NOW).unwrap(), SECRET);
+    }
+
+    #[test]
+    fn expired_token_refresh_completes_and_is_cached() {
+        // A recursive-lock regression must fail with a timeout, not hang CI.
+        let (tx, rx) = mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            let cache = Arc::new(Mutex::new(Some(token(NOW))));
+            let bp = Beatport::new(cache.clone());
+            let fresh = bp.update_token_with(|| Ok(token(60)), || NOW).unwrap();
+            let cached = bp.update_token_with(|| panic!("duplicate refresh"), || NOW + 1).unwrap();
+            tx.send((fresh, cached, cache.lock().unwrap().as_ref().unwrap().expires_in)).unwrap();
+        });
+        let (fresh, cached, expires) = rx.recv_timeout(Duration::from_secs(5))
+            .expect("expired token refresh did not complete");
+        worker.join().unwrap();
+        assert_eq!(fresh, SECRET);
+        assert_eq!(cached, SECRET);
+        assert_eq!(expires, NOW + 50_000);
+    }
+
+    #[test]
+    fn concurrent_workers_share_one_refresh() {
+        const WORKERS: usize = 8;
+        let cache = Arc::new(Mutex::new(Some(token(NOW))));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let barrier = Arc::new(Barrier::new(WORKERS));
+        let bp = Arc::new(Beatport::new(cache));
+        let (tx, rx) = mpsc::channel();
+        let mut workers = Vec::new();
+        for _ in 0..WORKERS {
+            let (bp, calls, barrier, tx) = (bp.clone(), calls.clone(), barrier.clone(), tx.clone());
+            workers.push(std::thread::spawn(move || {
+                barrier.wait();
+                let result = bp.update_token_with(|| {
+                    calls.fetch_add(1, Ordering::SeqCst);
+                    Ok(token(60))
+                }, || NOW);
+                tx.send(result).unwrap();
+            }));
+        }
+        drop(tx);
+        for _ in 0..WORKERS {
+            assert_eq!(rx.recv_timeout(Duration::from_secs(5))
+                .expect("concurrent token refresh did not complete").unwrap(), SECRET);
+        }
+        for worker in workers {
+            worker.join().unwrap();
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn failed_refresh_clears_expired_cache_and_can_recover() {
+        let cache = Arc::new(Mutex::new(Some(token(NOW - 1))));
+        let bp = Beatport::new(cache.clone());
+        assert!(bp.update_token_with(|| Err(anyhow!("provider unavailable")), || NOW).is_err());
+        assert!(cache.lock().unwrap().is_none());
+        assert_eq!(bp.update_token_with(|| Ok(token(60)), || NOW).unwrap(), SECRET);
+    }
+
+    #[test]
+    fn invalid_responses_are_not_cached() {
+        let cache = Arc::new(Mutex::new(None));
+        let bp = Beatport::new(cache.clone());
+        for response in [token(0), token(u128::MAX), BeatportOAuth {
+            access_token: String::new(), expires_in: 60,
+        }] {
+            assert!(bp.update_token_with(|| Ok(response), || NOW).is_err());
+            assert!(cache.lock().unwrap().is_none());
+        }
+        assert!(bp.update_token_with(|| Ok(token(60)), || u128::MAX - 1).is_err());
+        assert!(cache.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn short_lifetimes_work_and_slow_responses_are_rejected() {
+        let cache = Arc::new(Mutex::new(None));
+        let bp = Beatport::new(cache.clone());
+        assert_eq!(bp.update_token_with(|| Ok(token(1)), || NOW).unwrap(), SECRET);
+        assert_eq!(cache.lock().unwrap().as_ref().unwrap().expires_in, NOW + 500);
+        *cache.lock().unwrap() = None;
+        let ticks = std::cell::Cell::new(NOW);
+        assert!(bp.update_token_with(|| {
+            ticks.set(NOW + 60_000);
+            Ok(token(60))
+        }, || ticks.get()).is_err());
+        assert!(cache.lock().unwrap().is_none());
+    }
+
+    thread_local! {
+        static MESSAGES: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
+    }
+
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _: &log::Metadata<'_>) -> bool { true }
+        fn log(&self, record: &log::Record<'_>) {
+            MESSAGES.with(|messages| {
+                if let Some(messages) = messages.borrow_mut().as_mut() {
+                    messages.push(record.args().to_string());
+                }
+            });
+        }
+        fn flush(&self) {}
+    }
+
+    #[test]
+    fn refresh_logs_and_nested_debug_redact_credentials() {
+        static LOGGER: TestLogger = TestLogger;
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| {
+            log::set_logger(&LOGGER).unwrap();
+            log::set_max_level(log::LevelFilter::Debug);
+        });
+        MESSAGES.with(|messages| *messages.borrow_mut() = Some(Vec::new()));
+        let cache = Arc::new(Mutex::new(None));
+        let bp = Beatport::new(cache.clone());
+        assert_eq!(bp.update_token_with(|| Ok(token(60)), || NOW).unwrap(), SECRET);
+        debug!("{:?}", BeatportBuilder { access_token: cache.clone() });
+        let messages = MESSAGES.with(|messages| messages.borrow_mut().take().unwrap().join("\n"));
+        assert!(messages.contains("Beatport OAuth token refreshed"));
+        assert!(messages.contains("[redacted]"));
+        assert!(!messages.contains(SECRET));
+        // Redaction only affects diagnostics, not the token used by requests.
+        let serialized = serde_json::to_value(cache.lock().unwrap().as_ref().unwrap()).unwrap();
+        assert_eq!(serialized["access_token"], SECRET);
+    }
 }

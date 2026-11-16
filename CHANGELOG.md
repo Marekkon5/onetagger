@@ -1,5 +1,8 @@
 ## Unreleased (fantuz fork)
 
+- Fix Beatport token refresh deadlocking after expiry; concurrent workers share one refresh and failed refreshes remain retryable.
+- Remove provider authentication payloads from debug logs, redact credential-bearing debug output, and strip Musixmatch token URLs from request errors.
+
 - Refresh Quasar, its Vite plugin, Vue Router and the Rust time dependency with reviewed lockfiles.
 - Reconcile Cargo's lockfile after dependency merges, check it before native CI jobs start, and group routine Dependabot updates by ecosystem.
 - Align README badges with the other maintained projects, clarify artifact downloads, and document security reporting and application trust boundaries.

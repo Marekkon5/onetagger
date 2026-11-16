@@ -9,10 +9,30 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Lyrics, LyricsLine, LyricsLinePart, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, supported_tags, TrackMatch};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Musixmatch {
     client: Client,
     token: Arc<Mutex<Option<String>>>
+}
+
+impl std::fmt::Debug for Musixmatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Musixmatch")
+            .field("token", &"[redacted]")
+            .finish_non_exhaustive()
+    }
+}
+
+#[test]
+fn nested_debug_redacts_user_token() {
+    let secret = "musixmatch-secret-regression-sentinel";
+    let mxm = Musixmatch::new();
+    *mxm.token.lock().unwrap() = Some(secret.to_string());
+    let builder = MusixmatchBuilder { mxm };
+    let debug = format!("{builder:?}");
+    assert!(debug.contains("[redacted]"));
+    assert!(!debug.contains(secret));
+    assert_eq!(builder.mxm.token.lock().unwrap().as_deref(), Some(secret));
 }
 
 impl Musixmatch {
@@ -67,8 +87,9 @@ impl Musixmatch {
         // Make request
         let o = self.client.get(&format!("https://apic-desktop.musixmatch.com/ws/1.1/{action}"))
             .query(&query)
-            .send()?
-            .json()?;
+            // Request URLs contain the user token; errors reach application logs.
+            .send().map_err(reqwest::Error::without_url)?
+            .json().map_err(reqwest::Error::without_url)?;
         Ok(o)
     }
 

@@ -54,7 +54,6 @@ impl Discogs {
         match self.get("https://api.discogs.com/database/search", vec![("q", "test")]) {
             Ok(res) => if res.status() == StatusCode::OK { true } else { 
                 error!("Failed validating Discogs token: {}", res.status());
-                debug!("{:?}", res.text());
                 false 
             },
             Err(e) => {
