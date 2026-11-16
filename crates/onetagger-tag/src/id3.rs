@@ -684,7 +684,7 @@ mod safety_tests {
 
     fn wav_bytes() -> Vec<u8> {
         let mut bytes = Vec::from(&b"RIFF"[..]);
-        bytes.extend(40u32.to_le_bytes());
+        bytes.extend(52u32.to_le_bytes());
         bytes.extend(b"WAVEfmt ");
         bytes.extend(16u32.to_le_bytes());
         bytes.extend(1u16.to_le_bytes()); // PCM
@@ -696,7 +696,25 @@ mod safety_tests {
         bytes.extend(b"data");
         bytes.extend(4u32.to_le_bytes());
         bytes.extend([1, 2, 3, 4]);
+        bytes.extend(b"JUNK");
+        bytes.extend(3u32.to_le_bytes());
+        bytes.extend([7, 8, 9, 0]); // Unknown chunk with odd-sized payload and padding.
         bytes
+    }
+
+    #[test]
+    fn invalid_empty_wav_containers_are_rejected_without_modification() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("broken.wav");
+        let mut invalid_riff = wav_bytes();
+        invalid_riff[4..8].copy_from_slice(&0u32.to_le_bytes());
+        let mut invalid_list = wav_bytes();
+        invalid_list.extend(b"LIST\0\0\0\0");
+        for bytes in [invalid_riff, invalid_list] {
+            fs::write(&path, &bytes).unwrap();
+            assert!(ID3Tag::load_or_new(&path).is_err());
+            assert_eq!(fs::read(&path).unwrap(), bytes);
+        }
     }
 
     #[test]
@@ -709,7 +727,12 @@ mod safety_tests {
         tag.set_field(Field::Title, vec!["Updated title".into()], true);
         tag.save_file(&path).unwrap();
         assert_eq!(ID3Tag::load_file(&path).unwrap().get_field(Field::Title).unwrap(), vec!["Updated title"]);
+        tag.set_field(Field::Title, vec!["Second title".into()], true);
+        tag.save_file(&path).unwrap();
+        assert_eq!(ID3Tag::load_file(&path).unwrap().get_field(Field::Title).unwrap(), vec!["Second title"]);
         let written = fs::read(&path).unwrap();
+        let junk_offset = written.windows(4).position(|w| w == b"JUNK").unwrap();
+        assert_eq!(&written[junk_offset + 8..junk_offset + 12], &[7, 8, 9, 0]);
         let data_offset = written.windows(4).position(|w| w == b"data").unwrap();
         assert_eq!(&written[data_offset + 8..data_offset + 12], &[1, 2, 3, 4]);
         fs::write(&path, &original[..20]).unwrap();

@@ -37,9 +37,9 @@ Start the backend, then run `pnpm --dir client dev`. Vite proxies `/session`, `/
 
 Every successful PR build uploads native application/CLI packages and per-platform SHA-256 checksum files. Frontend assets are built once and reused by all native jobs. No release is published for a PR or ordinary branch push.
 
-Pushing an intentional `v*` tag runs all checks, verifies that the tag agrees with the application, CLI and shared crate versions, then publishes packages with generated GitHub release notes. Release publication alone receives `contents: write`; build jobs have read-only repository permissions. macOS packages are separate Intel/ARM64 unsigned archives.
+Pushing an intentional `v*` tag runs all checks, verifies that the tag agrees with the application, CLI and shared crate versions, then publishes packages with generated GitHub release notes. Release publication alone receives `contents: write`; build jobs have read-only repository permissions. macOS packages are separate Intel/ARM64 unsigned archives. CI verifies that native binaries do not link unbundled libraries outside the macOS system directories. `.cargo/config.toml` builds liblzma statically to avoid a dependency on Homebrew on the user’s machine.
 
-Before tagging, update the three package versions, macOS bundle version, installer metadata if applicable, and the changelog in a reviewed PR. This safety/CI PR does not create a release tag.
+Before tagging, update the three package versions and the changelog in a reviewed PR. The macOS bundle and Windows installer read their release version from the application manifest. The macOS packaging helper uses Python’s standard library and packages the validated executable without rebuilding it. This safety/CI PR does not create a release tag.
 
 ## Repository references
 

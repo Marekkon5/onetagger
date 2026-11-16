@@ -4,7 +4,7 @@
 
 Tag updates for MP3, AIFF, WAV, FLAC, MP4 and Vorbis tags use a private temporary file beside the original. OneTagger copies the original, applies the update, checks write/flush errors, synchronizes the staged file, and publishes it with replacement semantics. A failure before publication leaves the original unchanged and removes the temporary file.
 
-This requires enough free space for a second copy of the audio file. Symlinks are followed to their target; an atomic replacement creates a new filesystem object, so other hard links to the old object are not updated. File permissions are preserved. This is protection against partial application writes, not a substitute for backups or a guarantee against every filesystem or power-loss failure.
+This requires enough free space for a second copy of the audio file. Symlinks are followed to their target; an atomic replacement creates a new filesystem object, so other hard links to the old object are not updated. Basic file permissions are copied. Ownership, ACLs, extended attributes, and filesystem timestamps are not guaranteed to survive replacement. This is protection against partial application writes, not a substitute for backups or a guarantee against every filesystem or power-loss failure.
 
 A missing ID3 tag may be created. A parsing, unsupported-format, or I/O error is returned instead of being treated as an empty tag. WAV input must have a valid, non-truncated RIFF/WAVE header.
 
@@ -22,7 +22,7 @@ The server creates a random 256-bit capability on each process start. The deskto
 
 WebSocket commands and the audio/thumbnail endpoints require the session. WebSocket upgrades also require an Origin matching the serving authority. Loopback mode rejects unexpected Host headers. Restarting invalidates earlier sessions. Session capabilities are excluded from serialized startup data, debug output, and the downloadable application log. Do not share launch links or terminal captures containing them.
 
-`--expose` allows authenticated clients to use the application's filesystem features with the server account's permissions. For access beyond a trusted local machine, use an HTTPS reverse proxy that preserves the intended Host and Origin. There is no per-user authorization model or sandbox for authenticated sessions; keep launch links private. Native plugins also run with the application's permissions.
+`--expose` allows authenticated clients to use the application's filesystem features with the server account's permissions. For a remote client, replace `127.0.0.1` in the printed launch link with the server or proxy address, keeping its fragment private. For access beyond a trusted local machine, use an HTTPS reverse proxy that preserves the intended Host and Origin. There is no per-user authorization model or sandbox for authenticated sessions; keep launch links private. Native plugins also run with the application's permissions.
 
 The static frontend and Spotify OAuth callback remain public routes. The callback is needed before a Spotify login completes; the session capability must never be placed in the OAuth redirect URL.
 

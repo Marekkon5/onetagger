@@ -37,7 +37,7 @@ https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-
 Download this fork from [releases](https://github.com/fantuz/onetagger/releases).
 Before the first fork release, use artifacts from a successful [Build workflow](https://github.com/fantuz/onetagger/actions/workflows/build.yml).
 Artifacts include Linux x64, Windows x64 (portable and installer), macOS Intel, and macOS ARM64, plus CLI binaries and SHA-256 checksums.
-The macOS archives are unsigned; Intel and ARM64 are separate downloads.
+The macOS archives are unsigned; Intel and ARM64 are separate downloads. Linux artifacts are built on Ubuntu 24.04 and need compatible glibc and WebKitGTK 4.1 runtimes.
 
 See [development and validation](docs/DEVELOPMENT.md) for the GitHub Actions pipeline and [safe file operations and browser sessions](docs/SAFETY.md) for the changed behavior.
 
@@ -99,10 +99,9 @@ Output will be inside `target\release` folder.
 ### macOS (Intel or Apple Silicon)
 
 Install Rust with rustup, Node.js 24, pnpm 10.11.0, and Xcode Command Line Tools.
-Install `xz` through Homebrew, then build on the architecture you intend to run:
+Build on the architecture you intend to run; liblzma is compiled from its locked crate source:
 
 ```sh
-brew install xz
 pnpm --dir client install --frozen-lockfile
 pnpm --dir client run build
 cargo build --workspace --release --locked

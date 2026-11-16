@@ -73,9 +73,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS'
-        run: brew install xz
       - name: Install Windows packaging tools
         if: runner.os == 'Windows'
         run: choco install nsis --no-progress -y
@@ -91,7 +88,9 @@ jobs:
             ~/.cargo/git
             target
           key: rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-${{ github.sha }}
-          restore-keys: rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-
+          restore-keys: |
+            rust-${{ matrix.artifact }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', '.cargo/config.toml') }}-
+            rust-${{ matrix.artifact }}-
       - name: Regression tests
         run: cargo test --workspace --all-targets --locked
       - name: Clippy
@@ -119,8 +118,17 @@ jobs:
       - name: Package macOS
         if: runner.os == 'macOS'
         run: |
-          cargo install cargo-bundle --version 0.6.1 --locked
-          cargo bundle --release -p onetagger
+          python ci/package_macos.py
+          python - <<'PYTHON'
+          import subprocess
+          for binary in ['target/release/onetagger', 'target/release/onetagger-cli']:
+              libraries = subprocess.check_output(['otool', '-L', binary], text=True)
+              print(libraries)
+              for line in libraries.splitlines()[1:]:
+                  dependency = line.strip().split(' (', 1)[0]
+                  if not dependency.startswith(('/usr/lib/', '/System/Library/')):
+                      raise SystemExit(f'{binary} depends on an unbundled library: {dependency}')
+          PYTHON
           mkdir -p dist
           ditto -c -k --sequesterRsrc --keepParent target/release/bundle/osx/OneTagger.app dist/OneTagger-${{ matrix.artifact }}.zip
           zip -j dist/OneTagger-${{ matrix.artifact }}-cli.zip target/release/onetagger-cli

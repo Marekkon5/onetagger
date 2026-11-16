@@ -31,7 +31,7 @@ pub fn transfer_file(from: &Path, to: &Path, copy: bool, overwrite: bool) -> Res
     if !source.is_file() {
         bail!("Source is not a regular file: {}", from.display());
     }
-    if fs::canonicalize(to).ok().as_ref() == Some(&source) {
+    if same_file::is_same_file(&source, to).unwrap_or(false) {
         return Ok(false);
     }
     if !overwrite && to.symlink_metadata().is_ok() {
@@ -121,6 +121,21 @@ mod tests {
         for copy in [true, false] {
             assert!(!transfer_file(&path, &path, copy, true).unwrap());
             assert_eq!(fs::read(&path).unwrap(), b"audio");
+        }
+    }
+
+    #[test]
+    fn hard_link_alias_is_unchanged_in_copy_and_move_modes() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source"); let alias = dir.path().join("alias");
+        fs::write(&source, b"audio").unwrap();
+        fs::hard_link(&source, &alias).unwrap();
+        for copy in [true, false] {
+            for overwrite in [true, false] {
+                assert!(!transfer_file(&source, &alias, copy, overwrite).unwrap());
+                assert_eq!(fs::read(&source).unwrap(), b"audio");
+                assert_eq!(fs::read(&alias).unwrap(), b"audio");
+            }
         }
     }
 

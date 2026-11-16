@@ -1,6 +1,10 @@
+[env]
+# Build liblzma from its locked crate source instead of linking a build-machine Homebrew library.
+LZMA_API_STATIC = "1"
+
 # Mac OS libraries
 [target.x86_64-apple-darwin]
-rustflags = ["-lz", "-lbz2", "-llzma", "-C", "link-args=-framework AudioUnit"]
+rustflags = ["-lz", "-lbz2", "-C", "link-args=-framework AudioUnit"]
 
 # Windows static build
 [target.x86_64-pc-windows-msvc]
@@ -12,4 +16,4 @@ rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 
 
 [target.aarch64-apple-darwin]
-rustflags = ["-lz", "-lbz2", "-llzma", "-C", "link-args=-framework AudioUnit"]
+rustflags = ["-lz", "-lbz2", "-C", "link-args=-framework AudioUnit"]
