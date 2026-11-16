@@ -31,6 +31,18 @@ Existing tests that call live Beatport, Beatsource, Bandcamp, and MusicBrainz se
 
 Clippy runs across the workspace. Existing style warnings are visible but are not promoted wholesale to errors; compilation and Clippy errors still fail the job.
 
+### Compilation caches and timing
+
+Native jobs use a commit-pinned `Swatinem/rust-cache` action to retain compiled dependencies and Cargo downloads. Before saving, it removes workspace build outputs, incremental artifacts, unpacked registry sources and unused dependency artifacts. It does not cache installed Cargo binaries. Application packages and timing reports are uploaded before this post-job cleanup.
+
+Cache keys separate runner images/architectures, the virtual workspace manifest, toolchain and Cargo configuration. The action additionally hashes compiler versions, Cargo/Rust environment settings, member manifests and dependency versions. There is no commit-SHA suffix, so source-only changes can reuse an exact cache without uploading another copy. Dependency changes can fall back to a compatible prior cache; Cargo still checks fingerprints and every build remains locked. The new cache namespace starts cold and does not restore the previous full-target archives.
+
+Successful native jobs save caches on both PRs and `master`. A PR can restore a cache from its base branch, but its own cache is scoped to that PR's merge ref: it cannot seed `master` or another PR. After merging this workflow, successful `master` native jobs populate the shared baseline. Existing caches expire under GitHub's cache eviction policy; this workflow does not delete them or enlarge the repository's cache allowance.
+
+Only native CI jobs set `CARGO_PROFILE_DEV_DEBUG` and `CARGO_PROFILE_TEST_DEBUG` to `line-tables-only`, retaining filename/line information for backtraces without full variable/type debug data. They also disable incremental compilation because incremental files are not retained by the dependency cache. Debug assertions and overflow checks remain enabled in test builds; local development defaults and optimized release profiles are unchanged. Tests and Clippy still run on all four platforms.
+
+Compare cold and warm runs using **Restore Rust dependency cache**, its post-job cleanup/save log (including compressed archive size), and the native job's step durations. The job summary identifies exact hits; a false result can also mean a partial restore, so check the restore log. Test and release compilation HTML reports are available in `cargo-timings-<platform>` artifacts for seven days. They are diagnostic artifacts, not release packages. Runner queue time is separate from compilation time and is not improved by caching. Validate warm-cache gains on GitHub before quoting a speedup.
+
 ## Frontend development
 
 Start the backend, then run `pnpm --dir client dev`. Vite proxies `/session`, `/ws`, `/audio`, `/thumb`, and `/spotify` to the loopback backend. Open the printed session link with its port changed to 8080, preserving the fragment. The frontend authenticates before mounting. Production and desktop builds use the same session flow.
