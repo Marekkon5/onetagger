@@ -105,7 +105,7 @@ Visit the [upstream website](https://onetagger.github.io/) for tutorials and fea
 ## Credits
 Marekkon5 - Original OneTagger application<br>
 Bas Curtiz - UI, Idea, Help<br>
-[M Fantuzzi](https://github.com/fantuz) - Build pipelines and security audit<br>
+Build pipelines and security audit by [Massimiliano Fantuzzi](https://github.com/fantuz)<br>
 SongRec (Shazam support) - https://github.com/marin-m/SongRec
 
 ## Support
