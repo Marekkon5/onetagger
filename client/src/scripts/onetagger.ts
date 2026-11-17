@@ -212,6 +212,7 @@ class OneTagger {
                 break;
             // Status
             case 'taggingProgress':
+                if (this.taggerStatus.value.done) break;
                 this.taggerStatus.value.progress = json.status.progress;
                 // De duplicate failed
                 var i = this.taggerStatus.value.statuses.findIndex((s) => s[0].status.path == json.status.status.path)
@@ -226,7 +227,8 @@ class OneTagger {
             case 'taggingDone':
                 this.lock.value.locked = false;
                 this.taggerStatus.value.done = true;
-                this.taggerStatus.value.progress = 1.0;
+                this.taggerStatus.value.cancelled = json.cancelled === true;
+                if (!this.taggerStatus.value.cancelled) this.taggerStatus.value.progress = 1.0;
                 this.taggerStatus.value.data = json.data;
                 this.onTaggingDone(json.path);
                 if (json.data?.reportError) {
@@ -632,11 +634,27 @@ class OneTagger {
     }
 
     /// Stop the tagging process
-    stopTagging() {
-        let ws = new WebSocket(wsUrl());
-        ws.onopen = () => {
-            ws.send(JSON.stringify({action: 'stopTagging'}));
-        };
+    stopTagging(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(wsUrl());
+            const finish = (error?: Error) => {
+                clearTimeout(timer);
+                ws.onclose = null; ws.onerror = null; ws.onmessage = null;
+                ws.close();
+                if (error) reject(error); else resolve();
+            };
+            const timer = setTimeout(() => finish(new Error('Stop was not acknowledged. Please retry.')), 10000);
+            ws.onopen = () => ws.send(JSON.stringify({action: 'stopTagging'}));
+            ws.onmessage = (event) => {
+                try {
+                    const response = JSON.parse(event.data);
+                    if (response.action === 'stopTagging' && response.accepted) finish();
+                    else if (response.action === 'error') finish(new Error(response.message));
+                } catch { finish(new Error('Invalid Stop acknowledgement')); }
+            };
+            ws.onerror = () => finish(new Error('Could not send Stop. Please retry.'));
+            ws.onclose = () => finish(new Error('Stop connection closed before acknowledgement. Please retry.'));
+        });
     }
 
     // Handle keydown event for keyboard bindings

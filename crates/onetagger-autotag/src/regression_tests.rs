@@ -13,6 +13,49 @@ fn mp3(path: &Path, title: Option<&str>) {
 }
 
 struct AlbumSource;
+
+struct CancellingSource {
+    stopped: Arc<AtomicBool>,
+    during_extension: bool,
+}
+impl AutotaggerSource for CancellingSource {
+    fn match_track(&mut self, _: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        if !self.during_extension { self.stopped.store(true, Ordering::SeqCst); }
+        Ok(vec![TrackMatch::new(1.0, Track { title: "Must not be written".into(), ..Default::default() })])
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> {
+        assert!(self.during_extension, "Stop after matching must prevent further provider work");
+        self.stopped.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+    fn get_album(&mut self, _: &str, _: &TaggerConfig) -> Result<Option<Album>, Error> {
+        self.stopped.store(true, Ordering::SeqCst);
+        AlbumSource.get_album("album", &TaggerConfig::default())
+    }
+}
+
+#[test]
+fn stop_during_provider_work_prevents_late_track_and_album_writes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("selected.mp3");
+    mp3(&path, Some("Selected"));
+    let original = fs::read(&path).unwrap();
+    let config = TaggerConfig { tags: vec![SupportedTag::Title], overwrite: true, ..Default::default() };
+    for during_extension in [false, true] {
+        let stopped = Arc::new(AtomicBool::new(false));
+        let mut source = Box::new(CancellingSource { stopped: stopped.clone(), during_extension });
+        let result = Tagger::tag_track_with_cancel(&path, &mut source, &config, &|| stopped.load(Ordering::SeqCst));
+        assert_eq!(result.status, TaggingState::Skipped);
+        assert_eq!(result.message.as_deref(), Some("Stopped before writing tags"));
+        assert_eq!(fs::read(&path).unwrap(), original);
+    }
+    let stopped = Arc::new(AtomicBool::new(false));
+    let mut source: Box<dyn AutotaggerSource> = Box::new(CancellingSource { stopped: stopped.clone(), during_extension: false });
+    let statuses = Tagger::tag_album_with_cancel(std::slice::from_ref(&path), "album", &mut source, &config,
+        &|| stopped.load(Ordering::SeqCst)).unwrap();
+    assert!(statuses.is_empty());
+    assert_eq!(fs::read(path).unwrap(), original);
+}
 impl AutotaggerSource for AlbumSource {
     fn match_track(&mut self, _: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
         unreachable!("Album processing must use the supplied album")

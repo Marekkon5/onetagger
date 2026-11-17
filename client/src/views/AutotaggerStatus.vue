@@ -2,6 +2,8 @@
 <div class='text-center'>
 
     <div class='text-subtitle1 text-bold text-primary q-mt-md'>TAGGING STATUS</div>
+    <div v-if='stopping && !$1t.taggerStatus.value.done' role='status' class='q-mt-sm'>Stopping… waiting for in-flight work to finish.</div>
+    <div v-if='$1t.taggerStatus.value.done' role='status' class='q-mt-sm'>{{$1t.taggerStatus.value.cancelled ? 'Stopped' : 'Finished'}}</div>
 
     <!-- Post tagging actions -->
     <div v-if='$1t.taggerStatus.value.done && $1t.taggerStatus.value.data' class='row justify-center q-my-md'>
@@ -155,7 +157,7 @@
 
     <!-- Stop FAB -->
     <q-page-sticky position="bottom-right" :offset='[36, 32]' v-if='$1t.lock.value.locked'>
-        <q-btn @click='stop' fab icon='mdi-stop' color='red' :loading='stopping' :disabled='stopping'></q-btn>
+        <q-btn @click='stop' aria-label='Stop tagging' fab icon='mdi-stop' color='red' :loading='stopping' :disabled='stopping'></q-btn>
     </q-page-sticky>
 
 </div>
@@ -163,7 +165,7 @@
 
 <script lang='ts' setup>
 import { useQuasar } from 'quasar';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { get1t } from '../scripts/onetagger.js';
 import { TaggingStatusWrap } from '../scripts/autotagger';
@@ -223,9 +225,14 @@ function toggleFilter(name: string) {
 }
 
 // Stop tagging process
-function stop() {
+async function stop() {
     stopping.value = true;
-    $1t.stopTagging();
+    try { await $1t.stopTagging(); }
+    catch (error) {
+        if ($1t.taggerStatus.value.done) return;
+        stopping.value = false;
+        $q.dialog({title: 'Could not stop tagging', html: false, message: String(error)});
+    }
 }
 
 // Open QT with result files
@@ -261,12 +268,12 @@ onMounted(() => {
     // Done callback
     $1t.onTaggingDone = (path) => {
         $q.dialog({
-            title: 'Done',
-            message: 'Tagging finished! Would you like to open the folder?',
-            html: true,
+            title: $1t.taggerStatus.value.cancelled ? 'Stopped' : 'Done',
+            message: path ? 'Tagging ended. Would you like to open the folder?' : 'Tagging ended. Review the results below.',
+            html: false,
             ok: {
                 color: 'primary',
-                label: 'Open Folder'
+                label: path ? 'Open Folder' : 'OK'
             },
             cancel: {
                 color: 'primary',
@@ -280,6 +287,11 @@ onMounted(() => {
         });
         stopping.value = false;
     }
+});
+
+onUnmounted(() => {
+    clearInterval(timeInterval);
+    $1t.onTaggingDone = () => {};
 });
 
 </script>

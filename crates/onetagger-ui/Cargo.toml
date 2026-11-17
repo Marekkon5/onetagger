@@ -25,7 +25,7 @@ tinyfiledialogs = "3.9"
 
 axum = { version = "0.8", features = ["ws"] }
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.45", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.45", features = ["rt-multi-thread", "macros", "sync"] }
 
 onetagger-tag = { path = "../onetagger-tag" }
 onetagger-shared = { path = "../onetagger-shared" }

@@ -110,6 +110,7 @@ class TaggerStatus {
     started: number = 0;
     progress: number = 0.0;
     done: boolean = false;
+    cancelled: boolean = false;
     total: number = 0;
     ok: number = 0;
     type?: 'autoTagger' | 'audioFeatures';
@@ -119,6 +120,7 @@ class TaggerStatus {
         this.statuses = [];
         this.started = Date.now();
         this.done = false;
+        this.cancelled = false;
         this.progress = 0.0;
         this.total = 0;
         this.ok = 0;

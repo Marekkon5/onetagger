@@ -957,6 +957,12 @@ impl Tagger {
     pub fn tag_track<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
     where T: AutotaggerSource + ?Sized
     {
+        Self::tag_track_with_cancel(path, tagger, config, &|| STOP_TAGGING.load(Ordering::SeqCst))
+    }
+
+    fn tag_track_with_cancel<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig, cancelled: &impl Fn() -> bool) -> TaggingStatus
+    where T: AutotaggerSource + ?Sized
+    {
         info!("Tagging: {:?}", path.as_ref());
         // Load track
         let (info, mut out) = Self::load_track(&path, config);
@@ -964,9 +970,11 @@ impl Tagger {
             Some(info) => info,
             None => return out,
         };
+        if Self::mark_cancelled(&mut out, cancelled) { return out; }
        
         // Match track
         let result = tagger.match_track(&info, &config);
+        if Self::mark_cancelled(&mut out, cancelled) { return out; }
         let mut tracks = match result {
             Ok(o) => {
                 if o.is_empty() {
@@ -991,6 +999,7 @@ impl Tagger {
             Ok(_) => {},
             Err(e) => warn!("Failed extending track: {e}"),
         }
+        if Self::mark_cancelled(&mut out, cancelled) { return out; }
 
         // Save
         out.release_id = track.track.release_id.clone();
@@ -1009,6 +1018,13 @@ impl Tagger {
         }
 
         out
+    }
+
+    fn mark_cancelled(status: &mut TaggingStatus, cancelled: &impl Fn() -> bool) -> bool {
+        if !cancelled() { return false; }
+        status.status = TaggingState::Skipped;
+        status.message = Some("Stopped before writing tags".into());
+        true
     }
 
     // Tag all files with threads specified in config
@@ -1074,6 +1090,7 @@ impl Tagger {
                         // Check all album statuses
                         let album_tagging = album_tagging.lock().unwrap();
                         for (path, stats) in &album_tagging.folders {
+                            if STOP_TAGGING.load(Ordering::SeqCst) { break; }
                             if !stats.marked {
                                 continue;
                             }
@@ -1109,6 +1126,11 @@ impl Tagger {
 
     /// Tag an album by ID
     pub fn tag_album(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
+        Self::tag_album_with_cancel(files, release_id, source, config, &|| STOP_TAGGING.load(Ordering::SeqCst))
+    }
+
+    fn tag_album_with_cancel(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig, cancelled: &impl Fn() -> bool) -> Result<Vec<TaggingStatus>, Error> {
+        if cancelled() { return Ok(vec![]); }
         info!("Album tagging release: {release_id} in {} selected files", files.len());
 
         // Change strictness since we're working in context of album, and just care about most likely match
@@ -1129,6 +1151,7 @@ impl Tagger {
 
         // Preserve the caller's playlist/selection boundary; never rescan the folder.
         for file in files {
+            if cancelled() { break; }
             let (info, mut status) = Self::load_track(&file, &config);
             let info = match info {
                 Some(i) => i,
@@ -1151,6 +1174,10 @@ impl Tagger {
             status.track_id = track.track.track_id.clone();
             status.release_id = track.track.release_id.clone().or_else(|| Some(release_id.into()));
             status.accuracy = Some(track.accuracy);
+            if Self::mark_cancelled(&mut status, cancelled) {
+                statuses.push(status);
+                break;
+            }
             if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
                 status.status = TaggingState::Error;
                 status.message = Some("Failed writing album tags".into());
