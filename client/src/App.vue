@@ -11,7 +11,7 @@
                     
                     <div class="col-8">
                         <q-tabs style="padding-top: 8px">
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/" class="text-weight-bolder" @click="hideSide">
+                            <q-route-tab aria-label="Home" :disable="$1t.lock.value.locked" to="/" class="text-weight-bolder" @click="hideSide">
                                 <q-icon name="mdi-home" size="sm"></q-icon>
                             </q-route-tab>
                             <q-route-tab :disable="$1t.lock.value.locked" to="/autotagger" class="text-weight-bolder" @click="hideSide" >Auto tag</q-route-tab >

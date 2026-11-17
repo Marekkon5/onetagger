@@ -25,7 +25,7 @@ cargo clippy --workspace --all-targets --locked
 cargo build --workspace --release --locked
 ```
 
-The Build workflow first runs `cargo metadata --locked --format-version 1` in the frontend job to catch inconsistent Rust lockfiles before starting native builds. It then runs the checks above on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. `Required checks` fails unless the frontend and every platform pass. Configure that check as required in the repository ruleset before merging.
+The Build workflow first runs `cargo metadata --locked --format-version 1` in the frontend job to catch inconsistent Rust lockfiles before starting native builds. It then runs the checks above on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. Browser UI tests run alongside the native matrix using the same frontend artifact. `Required checks` fails unless the frontend, browser UI tests, release assets and every platform pass. Configure that check as required in the repository ruleset before merging.
 
 Existing tests that call live Beatport, Beatsource, Bandcamp, and MusicBrainz services are explicitly ignored in normal regression runs. Run them deliberately with `cargo test -p onetagger-platforms --locked -- --ignored --test-threads=1`; external outages and rate limits must not determine ordinary PR validation. New safety and matching tests are deterministic and run without provider accounts.
 
@@ -37,7 +37,9 @@ Native jobs use a commit-pinned `Swatinem/rust-cache` action to retain compiled 
 
 Cache keys separate runner images/architectures, the virtual workspace manifest, toolchain and Cargo configuration. The action additionally hashes compiler versions, Cargo/Rust environment settings, member manifests and dependency versions. There is no commit-SHA suffix, so source-only changes can reuse an exact cache without uploading another copy. Dependency changes can fall back to a compatible prior cache; Cargo still checks fingerprints and every build remains locked. The new cache namespace starts cold and does not restore the previous full-target archives.
 
-Successful native jobs save caches on both PRs and `master`. A PR can restore a cache from its base branch, but its own cache is scoped to that PR's merge ref: it cannot seed `master` or another PR. After merging this workflow, successful `master` native jobs populate the shared baseline. Existing caches expire under GitHub's cache eviction policy; this workflow does not delete them or enlarge the repository's cache allowance.
+Successful native jobs save caches on both PRs and `master`. A PR can restore a cache from its base branch, but its own cache is scoped to that PR's merge ref: it cannot seed `master` or another PR. Successful `master` native jobs populate the shared baseline. The **Clean closed PR Rust caches** workflow removes `v1-onetagger-deps-*` entries scoped to a closed PR, preserving open PR and default-branch caches. It executes only default-branch cleanup code, verifies PR state through GitHub, and never checks out PR code. Its narrow job receives `actions: write` for cache deletion; build jobs remain read-only. The manual action defaults to a dry run and can sweep already-closed PRs after reviewing its output. It does not enlarge the repository cache allowance or delete other cache families.
+
+The frontend caches pnpm's package store by its lockfile and still installs with `--frozen-lockfile`. Browser test Python downloads are cached by their pinned requirements. Browser binaries are installed at their pinned Playwright revisions rather than added to the already large Rust caches. Native compiler keys, debug settings, all-platform checks and release optimization remain unchanged. Cache cleanup reduces storage contention; it is not a guarantee of a particular compilation speedup.
 
 Only native CI jobs set `CARGO_PROFILE_DEV_DEBUG` and `CARGO_PROFILE_TEST_DEBUG` to `line-tables-only`, retaining filename/line information for backtraces without full variable/type debug data. They also disable incremental compilation because incremental files are not retained by the dependency cache. Debug assertions and overflow checks remain enabled in test builds; local development defaults and optimized release profiles are unchanged. Tests and Clippy still run on all four platforms.
 
@@ -48,6 +50,26 @@ Compare cold and warm runs using **Restore Rust dependency cache**, its post-job
 Start the backend, then run `pnpm --dir client dev`. Vite proxies `/session`, `/ws`, `/audio`, `/thumb`, and `/spotify` to the loopback backend. Open the printed session link with its port changed to 8080, preserving the fragment. The frontend authenticates before mounting. Production and desktop builds use the same session flow.
 
 ## Artifacts and releases
+
+### Automated browser UI regressions
+
+`ci/ui/ui_smoke.py` uses Python's unittest and Playwright to exercise the **production-built** frontend in Chromium, Firefox and WebKit. The UI job downloads the existing frontend artifact; it does not rebuild Rust or the frontend. Its pinned dependencies are in `ci/ui/requirements.txt` and are tracked by Dependabot.
+
+The suite checks session exchange and fragment removal, rejected/missing sessions before WebSocket startup, welcome credits, navigation and file filtering, title editing and the outgoing save command, artwork/comment/lyrics removal, and recovery from the minimum-window warning. Each test uses a fresh browser context, synthetic metadata and a mocked WebSocket protocol. Unexpected external requests, unsupported fixture commands and uncaught browser exceptions fail tests. No real music, provider credentials or writes to a user's library are involved.
+
+The `ui-test-results` artifact contains screenshots for all tests, a JSON summary, and Playwright traces for failures, retained for seven days. Screenshots are review aids, not pixel-diff baselines. These tests do not certify native WebView integration, OS dialogs, actual tag writes, playback, or backend authentication; keep the Rust regression tests and native desktop smoke checks for those boundaries.
+
+On a prepared environment, run:
+
+```sh
+python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
+python -m playwright install --with-deps chromium firefox webkit
+python ci/ui/ui_smoke.py
+```
+
+`UI_BROWSERS=chromium` can narrow an interactive investigation; GitHub runs all three engines. For this project's workflow, perform dependency installation, browser execution and compilation on GitHub. To inspect a downloaded failure trace, use `python -m playwright show-trace path/to/trace.zip`.
+
+### Packaged application artifacts
 
 Every successful PR or `master` build uploads application/CLI packages, per-platform SHA-256 checksum files and release manifests. The manifests record `VERSION`, the source commit, repository, build run and every package digest. The **Validate release assets** job downloads all four native artifacts and checks their contents and provenance before **Required checks** can pass. Frontend assets are built once and reused by all native jobs.
 

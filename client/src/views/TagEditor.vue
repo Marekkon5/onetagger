@@ -118,6 +118,7 @@
                         
                         <q-input
                             v-model='file.tags[tag]'
+                            :aria-label='"Tag " + tag'
                             filled
                             dense
                             class='col-8'
@@ -207,7 +208,7 @@
                                 @change='id3CommentsChange'
                             ></q-input>
                             <div class='col-1 q-pl-md q-pt-xs'>
-                                <q-btn round dense flat @click='removeID3Comment(i)'>
+                                <q-btn round dense flat :aria-label='"Remove comment " + (i + 1)' @click='removeID3Comment(i)'>
                                     <q-icon name='mdi-delete' class='text-red'></q-icon>
                                 </q-btn>
                             </div>
@@ -242,7 +243,7 @@
                                     @change='id3USLTChange'
                                 ></q-input>
                                 <div class='col-1 q-pl-md q-pt-xs'>
-                                    <q-btn round dense flat @click='removeID3USLT(i)'>
+                                    <q-btn round dense flat :aria-label='"Remove lyrics " + (i + 1)' @click='removeID3USLT(i)'>
                                         <q-icon name='mdi-delete' class='text-red'></q-icon>
                                     </q-btn>
                                 </div>
