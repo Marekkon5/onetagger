@@ -33,6 +33,7 @@ mod shazam;
 pub mod repo;
 pub mod platforms;
 pub mod audiofeatures;
+pub mod report;
 
 // Re-exports
 pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
@@ -605,6 +606,8 @@ pub struct TaggingStatus {
     pub accuracy: Option<f64>,
     pub used_shazam: bool,
     pub release_id: Option<String>,
+    #[serde(default)]
+    pub track_id: Option<String>,
     pub reason: Option<MatchReason>
 }
 
@@ -653,7 +656,23 @@ pub struct Tagger {}
 impl Tagger {
 
     // Returtns progress receiver, and file count
-    pub fn tag_files(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
+    pub fn tag_files(cfg: &TaggerConfig, files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
+        Self::tag_files_inner(cfg, files, finished, false, None)
+    }
+
+    /// Opt-in report; a Helper manifest is the entire file-selection boundary.
+    pub fn tag_files_report(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, selection: Option<report::Selection>) -> Result<Receiver<TaggingStatusWrap>, Error> {
+        if let Some(selection) = &selection {
+            selection.validate()?;
+            if cfg.move_success || cfg.move_failed {
+                return Err(anyhow!("Disable file moves for a Helper selection; keep its original locations"));
+            }
+            files = selection.files();
+        }
+        Ok(Self::tag_files_inner(cfg, files, finished, true, selection))
+    }
+
+    fn tag_files_inner(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, report_enabled: bool, selection: Option<report::Selection>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
 
         // Shuffle so album tag is more "efficient"
@@ -671,6 +690,7 @@ impl Tagger {
         let (tx, rx) = unbounded();
         let config = cfg.clone();
         std::thread::spawn(move || {
+            let mut report = report_enabled.then(|| report::ReportBuilder::new(&files, selection));
             // Tag
             for (platform_index, platform) in config.platforms.iter().enumerate() {
                 // For progress
@@ -717,6 +737,7 @@ impl Tagger {
                     tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
 
                     results.record(&status);
+                    if let Some(report) = &mut report { report.record(platform, &status); }
                     // A successful fallback no longer needs the remaining providers.
                     if status.status == TaggingState::Ok && !config.multiplatform {
                         files.retain(|path| path != &status.path);
@@ -731,7 +752,10 @@ impl Tagger {
             for file in &results.successful {
                 if config.move_success && config.move_success_path.is_some() {
                     match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
-                        Ok(p) => successful_paths.push(p),
+                        Ok(p) => {
+                            if let Some(report) = &mut report { report.moved(file, &p); }
+                            successful_paths.push(p);
+                        },
                         Err(e) => {
                             warn!("Failed moving file: {file:?} {e}");
                             move_errors.push(format!("{}: {e:#}", file.display()));
@@ -746,7 +770,10 @@ impl Tagger {
             for file in &results.failed {
                 if config.move_failed && config.move_failed_path.is_some() {
                     match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
-                        Ok(p) => failed_paths.push(p),
+                        Ok(p) => {
+                            if let Some(report) = &mut report { report.moved(file, &p); }
+                            failed_paths.push(p);
+                        },
                         Err(e) => {
                             warn!("Failed moving file: {file:?} {e}");
                             move_errors.push(format!("{}: {e:#}", file.display()));
@@ -760,15 +787,34 @@ impl Tagger {
             std::mem::drop(results);
             std::mem::drop(files);
 
+            // Capture final disk values before post-command can change the files.
+            let (report_file, report_error) = match report {
+                Some(report) => match Settings::get_folder().and_then(|folder| report
+                    .finish(STOP_TAGGING.load(Ordering::SeqCst)).save(&folder.join("runs"))) {
+                    Ok(path) => (Some(path.to_string_lossy().into_owned()), None),
+                    Err(error) => {
+                        warn!("Could not save tagging report: {error}");
+                        (None, Some("Could not save the results JSON; check the application log".into()))
+                    },
+                },
+                None => (None, None),
+            };
+
             // Tagging ended, save lists of files
             match Self::write_results(successful_paths, failed_paths, &config) {
                 Ok((failed, success)) => {
                     info!("Written failed songs to: {}, successful to: {}", failed, success);
                     *finished.lock().unwrap() = Some(TaggerFinishedData {
-                        failed_file: failed, success_file: success, move_errors
+                        failed_file: failed, success_file: success, move_errors, report_file, report_error
                     });
                 },
-                Err(e) => warn!("Failed writing failed songs to file! {}", e)
+                Err(e) => {
+                    warn!("Failed writing result playlists: {e}");
+                    move_errors.push("Failed writing result playlists; check the application log".into());
+                    *finished.lock().unwrap() = Some(TaggerFinishedData {
+                        failed_file: String::new(), success_file: String::new(), move_errors, report_file, report_error
+                    });
+                }
             };
             
 
@@ -835,6 +881,7 @@ impl Tagger {
             message: None,
             used_shazam: false,
             release_id: None,
+            track_id: None,
             reason: None
         };
 
@@ -910,6 +957,12 @@ impl Tagger {
     pub fn tag_track<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
     where T: AutotaggerSource + ?Sized
     {
+        Self::tag_track_with_cancel(path, tagger, config, &|| STOP_TAGGING.load(Ordering::SeqCst))
+    }
+
+    fn tag_track_with_cancel<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig, cancelled: &impl Fn() -> bool) -> TaggingStatus
+    where T: AutotaggerSource + ?Sized
+    {
         info!("Tagging: {:?}", path.as_ref());
         // Load track
         let (info, mut out) = Self::load_track(&path, config);
@@ -917,9 +970,11 @@ impl Tagger {
             Some(info) => info,
             None => return out,
         };
+        if Self::mark_cancelled(&mut out, cancelled) { return out; }
        
         // Match track
         let result = tagger.match_track(&info, &config);
+        if Self::mark_cancelled(&mut out, cancelled) { return out; }
         let mut tracks = match result {
             Ok(o) => {
                 if o.is_empty() {
@@ -944,10 +999,13 @@ impl Tagger {
             Ok(_) => {},
             Err(e) => warn!("Failed extending track: {e}"),
         }
+        if Self::mark_cancelled(&mut out, cancelled) { return out; }
 
         // Save
         out.release_id = track.track.release_id.clone();
+        out.track_id = track.track.track_id.clone();
         out.reason = Some(track.reason);
+        out.accuracy = Some(track.accuracy);
         match track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
             Ok(_) => {
                 out.accuracy = Some(track.accuracy);
@@ -960,6 +1018,13 @@ impl Tagger {
         }
 
         out
+    }
+
+    fn mark_cancelled(status: &mut TaggingStatus, cancelled: &impl Fn() -> bool) -> bool {
+        if !cancelled() { return false; }
+        status.status = TaggingState::Skipped;
+        status.message = Some("Stopped before writing tags".into());
+        true
     }
 
     // Tag all files with threads specified in config
@@ -1025,6 +1090,7 @@ impl Tagger {
                         // Check all album statuses
                         let album_tagging = album_tagging.lock().unwrap();
                         for (path, stats) in &album_tagging.folders {
+                            if STOP_TAGGING.load(Ordering::SeqCst) { break; }
                             if !stats.marked {
                                 continue;
                             }
@@ -1060,6 +1126,11 @@ impl Tagger {
 
     /// Tag an album by ID
     pub fn tag_album(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
+        Self::tag_album_with_cancel(files, release_id, source, config, &|| STOP_TAGGING.load(Ordering::SeqCst))
+    }
+
+    fn tag_album_with_cancel(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig, cancelled: &impl Fn() -> bool) -> Result<Vec<TaggingStatus>, Error> {
+        if cancelled() { return Ok(vec![]); }
         info!("Album tagging release: {release_id} in {} selected files", files.len());
 
         // Change strictness since we're working in context of album, and just care about most likely match
@@ -1080,11 +1151,13 @@ impl Tagger {
 
         // Preserve the caller's playlist/selection boundary; never rescan the folder.
         for file in files {
+            if cancelled() { break; }
             let (info, mut status) = Self::load_track(&file, &config);
             let info = match info {
                 Some(i) => i,
                 None => {
                     warn!("Failed to load track info for file: {}", file.display());
+                    statuses.push(status);
                     continue;
                 }
             };
@@ -1098,16 +1171,22 @@ impl Tagger {
                 continue;
             };
 
-            // TODO: Extend track if needed (?)
+            status.track_id = track.track.track_id.clone();
+            status.release_id = track.track.release_id.clone().or_else(|| Some(release_id.into()));
+            status.accuracy = Some(track.accuracy);
+            if Self::mark_cancelled(&mut status, cancelled) {
+                statuses.push(status);
+                break;
+            }
             if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
                 status.status = TaggingState::Error;
+                status.message = Some("Failed writing album tags".into());
                 error!("Album tag writing tags failed: {e} ({})", file.display());
             } else {
                 status.status = TaggingState::Ok;
             }
 
             // Save status
-            status.accuracy = Some(1.0);
             status.reason = Some(MatchReason::Album);
             statuses.push(status);
         }
@@ -1224,6 +1303,8 @@ pub struct TaggerFinishedData {
     pub failed_file: String,
     pub success_file: String,
     pub move_errors: Vec<String>,
+    pub report_file: Option<String>,
+    pub report_error: Option<String>,
 }
 
 

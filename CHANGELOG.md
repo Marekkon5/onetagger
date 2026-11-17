@@ -1,5 +1,11 @@
 ## Unreleased (fantuz fork)
 
+- Add opt-in results JSON with actual before/after tags, provider evidence and exact Helper selection identity; expose it in AutoTagger and the CLI for reviewed imports into rekordbox Migration Helper.
+- Acknowledge Stop requests, show stopping/stopped states, preserve partial progress and ignore updates after completion. Keep blocking progress reception off the async runtime and prevent overlapping browser runs from resetting cancellation.
+- Recheck cancellation after provider lookups and before tag writes; skip queued album work after Stop. Already-running requests and writes may need to finish.
+- Use stable provider IDs for draggable cards and keep checkbox clicks out of drag gestures.
+- Exercise report exchange and cancellation in browser/Rust regressions, and add a real Linux executable/WebKitGTK control test in GitHub Actions.
+
 ## 1.7.2 — 2026-11-17
 
 - Keep album tagging within the selected playlist/file set, including when neighbouring tracks share the same folder.

@@ -71,6 +71,10 @@ python ci/ui/ui_smoke.py
 
 ### Packaged application artifacts
 
+The Linux build also runs `ci/ui/native_linux.py` against the actual release executable through the system `WebKitWebDriver`, Xvfb and a virtual audio sink. The hidden `--webdriver` option explicitly opts into WebKit automation; ordinary launches keep it disabled. The test repeats provider/tag controls and navigation without provider requests. Its `native-linux-ui` artifact contains a screenshot, driver log and success summary. This software-rendered CI display does not reproduce every Wayland/GPU configuration.
+
+Browser regression tests additionally exercise Helper manifest loading, cancelled completion, in-flight results, ignored late progress and retry after a rejected Stop request. Rust tests ensure cancellation during provider lookup/extension prevents the subsequent tag write and cancellation during album lookup prevents queued album processing.
+
 Every successful PR or `master` build uploads application/CLI packages, per-platform SHA-256 checksum files and release manifests. The manifests record `VERSION`, the source commit, repository, build run and every package digest. The **Validate release assets** job downloads all four native artifacts and checks their contents and provenance before **Required checks** can pass. Frontend assets are built once and reused by all native jobs.
 
 ### Automatic release after a version PR

@@ -42,25 +42,35 @@ fn main() {
 
     let action = cli.action.unwrap();
     match &action {
-        Actions::Autotagger { path, .. } => {
+        Actions::Autotagger { path, report, selection_manifest, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
             debug!("{:?}", config);
 
             // Get files
-            let files = if path.is_file() {
+            let selection = selection_manifest.as_ref().map(|path| {
+                let data = std::fs::read_to_string(path)?;
+                onetagger_autotag::report::Selection::parse(&data)
+            }).transpose().expect("Invalid Helper selection manifest");
+            let files = if let Some(selection) = &selection { selection.files() } else if path.is_file() {
                 onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
             } else {
                 AudioFileInfo::get_file_list(&path, config.include_subfolders)
             };
 
             let finished = Arc::new(Mutex::new(None));
-            let rx = Tagger::tag_files(&config, files, finished.clone());
+            let rx = if *report || selection.is_some() {
+                Tagger::tag_files_report(&config, files, finished.clone(), selection).expect("Invalid report settings")
+            } else { Tagger::tag_files(&config, files, finished.clone()) };
             let start = timestamp!();
             for status in rx {
                 debug!("{status:?}");
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             let finished = finished.lock().unwrap();
+            if let Some(result) = finished.as_ref() {
+                if let Some(path) = &result.report_file { println!("Results JSON: {path}"); }
+                if let Some(error) = &result.report_error { eprintln!("{error}"); std::process::exit(1); }
+            }
             match finished.as_ref() {
                 Some(result) if result.move_errors.is_empty() => {},
                 Some(result) => {
@@ -187,6 +197,14 @@ enum Actions {
         /// Path to music files (overrides config)
         #[clap(short, long)]
         path: PathBuf,
+
+        /// Save a JSON report with actual before/after tags and provider evidence
+        #[clap(long)]
+        report: bool,
+
+        /// Helper JSON selection; overrides the input path and implies --report
+        #[clap(long)]
+        selection_manifest: Option<PathBuf>,
 
         /// Specify a path to config file
         #[clap(short, long)]
@@ -386,7 +404,7 @@ impl Actions {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
                 overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
                 short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
-                skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform } => {
+                skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform, .. } => {
 
                 // Load config
                 let mut config = if let Some(config_path) = config {

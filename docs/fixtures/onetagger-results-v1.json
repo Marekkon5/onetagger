@@ -1,0 +1,57 @@
+{
+  "schema": "onetagger.tagging-results",
+  "version": 1,
+  "run_id": "dddddddddddddddddddddddddddddddd",
+  "application_version": "1.7.2",
+  "application_commit": "synthetic-contract-fixture",
+  "created_at": "2026-11-17T12:00:00Z",
+  "completed_at": "2026-11-17T12:01:00Z",
+  "cancelled": false,
+  "selection": {
+    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "snapshot": "snapshot-fixture",
+    "snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "scope_key": "capture:fixture",
+    "mapping_revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "tracks": [
+    {
+      "track_id": "library-1",
+      "local_path": "/music/100%20 Café.mp3",
+      "final_path": "/music/100%20 Café.mp3",
+      "before": {
+        "title": "Original",
+        "artist": "Artist",
+        "album": null,
+        "genre": "House",
+        "year": null
+      },
+      "after": {
+        "title": "Tagged Café",
+        "artist": "Artist",
+        "album": null,
+        "genre": "Techno",
+        "year": 2020
+      },
+      "file_state": {
+        "size": 1024,
+        "modified_ns": "1794916800000000000"
+      },
+      "before_error": null,
+      "after_error": null,
+      "status": "written",
+      "attempts": [
+        {
+          "provider": "fixture",
+          "track_id": "provider-42",
+          "release_id": "album-1",
+          "status": "written",
+          "score": 0.91,
+          "reason": "fuzzy",
+          "used_shazam": false
+        }
+      ]
+    }
+  ]
+}
+

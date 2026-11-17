@@ -4,6 +4,8 @@
 
     <!-- Path -->
     <div v-if='!manualTag'>
+        <LibraryReport />
+        <div v-if='!$1t.taggingSelection.value'>
         <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT</div>
         <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or<span class='keybind-icon text-caption text-bold'>CLICK</span> the browse <span><q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span></div>
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
@@ -38,6 +40,7 @@
         </div>
 
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 8px;"' inset color="dark"/>
+        </div>
     </div>
     
     <!-- Tags -->
@@ -51,6 +54,7 @@
             <!-- All tags -->
             <div v-for='tag in SUPPORTED_TAGS'>
                 <q-checkbox 
+                    :data-tag='tag.tag'
                     :disable='!isSupported(tag.tag)'
                     class='tag checkbox text-grey-4' 
                     :label='tag.label'
@@ -77,6 +81,7 @@
 </template>
 
 <script lang='ts' setup>
+import LibraryReport from './LibraryReport.vue';
 import { get1t } from '../scripts/onetagger';
 import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 import PlaylistDropZone from './PlaylistDropZone.vue';

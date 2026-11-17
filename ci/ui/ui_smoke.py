@@ -21,6 +21,10 @@ ROOT = Path(__file__).resolve().parents[2]
 RESULTS = ROOT / "ui-test-results"
 TOKEN = "a" * 64  # Synthetic capability, never a real application session.
 PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1XcAAAAASUVORK5CYII="
+PLATFORMS = [{"builtIn": True, "requiresAuth": False, "supportedTags": ["title", "genre"], "icon": PNG,
+              "platform": {"id": identity, "name": name, "description": "Offline fixture", "version": "1",
+                           "maxThreads": 1, "customOptions": {"options": []}}}
+             for identity, name in [("beatport", "Beatport"), ("traxsource", "Traxsource")]]
 TRACK = {
     "filename": "Synthetic track.mp3", "path": "/music/Synthetic track.mp3", "format": "mp3",
     "tags": {"TIT2": "Synthetic title", "TPE1": "Test artist"},
@@ -52,6 +56,9 @@ class Backend:
         self.connections = 0
         self.unexpected_requests = []
         self.unexpected_commands = []
+        self.hold_tagging = False
+        self.tagging_socket = None
+        self.reject_stop = False
 
     def http(self, route):
         request = route.request
@@ -82,7 +89,15 @@ class Backend:
                             "renamerDocs": {}, "startContext": {"serverMode": False,
                             "expose": False, "browser": True, "startPath": "/music"}}
             elif action == "loadPlatforms":
-                response = {"action": action, "platforms": []}
+                response = {"action": action, "platforms": deepcopy(PLATFORMS)}
+            elif action == "startTagging":
+                ws.send(json.dumps({"action":action,"files":len((data.get('selection') or {}).get('tracks',[])),"type":"autoTagger"}))
+                self.tagging_socket = ws
+                if not self.hold_tagging:
+                    response = self.tagging_done()
+            elif action == "stopTagging":
+                response = ({"action":"error","message":"Simulated Stop failure"} if self.reject_stop else
+                            {"action":"stopTagging","accepted":True})
             elif action == "defaultCustomPlatformSettings":
                 response = {"action": action, "custom": {}}
             elif action == "spotifyAuthorized":
@@ -133,6 +148,15 @@ class Backend:
 
     def saves(self):
         return [command["changes"] for command in self.commands if command["action"] == "tagEditorSave"]
+
+    @staticmethod
+    def tagging_done(cancelled=False):
+        return {"action":"taggingDone","path":None,"cancelled":cancelled,"data":{"successFile":"/synthetic/success.m3u",
+                "failedFile":"/synthetic/failed.m3u","moveErrors":[],"reportError":None,"reportFile":"/synthetic/results.json"}}
+
+    def tagging_progress(self,path='/music/in-flight.mp3'):
+        self.tagging_socket.send(json.dumps({"action":"taggingProgress","status":{"platform":"beatport","progress":0.25,
+            "status":{"path":path,"status":"ok","accuracy":1.0,"usedShazam":False}}}))
 
 
 class BrowserTests(unittest.TestCase):
@@ -195,6 +219,70 @@ class BrowserTests(unittest.TestCase):
         expect(page.get_by_text("NO FILE SELECTED", exact=True)).to_be_visible()
         page.locator("#fileList").get_by_text("Synthetic track.mp3", exact=True).click()
         expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Synthetic title")
+
+    def test_helper_selection_is_the_tagging_boundary_and_report_is_exposed(self):
+        with self.session() as (page, backend):
+            page.get_by_role('tab',name='Auto tag',exact=True).click()
+            page.get_by_text('Input & Tags',exact=True).click()
+            selected={'schema':1,'id':'a'*32,'snapshot':'synthetic','snapshot_digest':'b'*64,
+                      'scope_key':'capture:fixture','mapping_revision':'c'*64,
+                      'tracks':[{'track_id':'library-1','local_path':'/music/100%20 Café.mp3'}]}
+            page.get_by_label('Helper selection manifest (optional)',exact=True).set_input_files({
+                'name':'selection.json','mimeType':'application/json','buffer':json.dumps(selected).encode()})
+            expect(page.get_by_text('1 selected library tracks.',exact=False)).to_be_visible()
+            expect(page.get_by_label('Path',exact=True)).to_have_count(0)
+            page.get_by_role('button',name='Start tagging',exact=True).click()
+            expect(page.get_by_role('button',name='Open results JSON',exact=True)).to_be_visible()
+            command=next(c for c in backend.commands if c['action']=='startTagging')
+            self.assertEqual(command['selection'],selected);self.assertTrue(command['report']);self.assertIsNone(command['playlist'])
+            expect(page.get_by_text('Results JSON: /synthetic/results.json',exact=False)).to_be_visible()
+
+    def test_invalid_helper_manifest_blocks_folder_fallback(self):
+        with self.session() as (page, _):
+            page.get_by_role('tab',name='Auto tag',exact=True).click()
+            page.get_by_text('Input & Tags',exact=True).click()
+            page.get_by_label('Path',exact=True).fill('/music')
+            page.get_by_label('Helper selection manifest (optional)',exact=True).set_input_files({
+                'name':'bad.json','mimeType':'application/json','buffer':b'{"schema":2,"tracks":[]}'})
+            expect(page.get_by_role('alert')).to_contain_text('Choose a Helper selection manifest')
+            expect(page.get_by_role('button',name='Start tagging',exact=True)).to_be_disabled()
+
+    def test_stop_waits_for_completion_retains_results_and_ignores_late_progress(self):
+        with self.session() as (page, backend):
+            backend.hold_tagging=True
+            page.get_by_role('tab',name='Auto tag',exact=True).click()
+            page.get_by_text('Input & Tags',exact=True).click()
+            page.get_by_label('Path',exact=True).fill('/music')
+            page.get_by_role('button',name='Start tagging',exact=True).click()
+            stop=page.get_by_role('button',name='Stop tagging',exact=True)
+            expect(stop).to_be_visible();stop.click()
+            expect(page.get_by_role('status')).to_contain_text('Stopping')
+            expect(stop).to_be_disabled()
+            backend.tagging_progress()
+            expect(page.get_by_text('/music/in-flight.mp3',exact=True)).to_be_visible()
+            backend.tagging_socket.send(json.dumps(backend.tagging_done(cancelled=True)))
+            expect(stop).to_have_count(0)
+            page.get_by_role('button',name='OK',exact=True).click()
+            expect(page.get_by_role('status')).to_have_text('Stopped')
+            expect(page.locator('.progress')).to_contain_text('25%')
+            backend.tagging_progress('/music/late.mp3')
+            expect(page.get_by_text('/music/late.mp3',exact=True)).to_have_count(0)
+            self.assertEqual(len([c for c in backend.commands if c['action']=='stopTagging']),1)
+
+    def test_failed_stop_acknowledgement_allows_retry(self):
+        with self.session() as (page, backend):
+            backend.hold_tagging=True;backend.reject_stop=True
+            page.get_by_role('tab',name='Auto tag',exact=True).click()
+            page.get_by_text('Input & Tags',exact=True).click()
+            page.get_by_label('Path',exact=True).fill('/music')
+            page.get_by_role('button',name='Start tagging',exact=True).click()
+            stop=page.get_by_role('button',name='Stop tagging',exact=True)
+            stop.click()
+            expect(page.get_by_text('Could not stop tagging',exact=True)).to_be_visible()
+            page.get_by_role('button',name='OK',exact=True).click()
+            expect(stop).to_be_enabled()
+            backend.reject_stop=False;stop.click()
+            expect(page.get_by_role('status')).to_contain_text('Stopping')
 
     def test_welcome_credits_and_session_exchange(self):
         with self.session() as (page, backend):

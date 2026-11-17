@@ -1,12 +1,13 @@
 <template>
     <div class='row justify-center'>
-        <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' item-key='id'>
+        <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' :item-key='platformKey'
+            filter='.q-checkbox' :prevent-on-filter='false'>
             <template #item='{ element: platform }'>
                 <q-card flat class='card q-ma-md'>
                     <q-card-section horizontal class='row justify-between'>
                         <q-card-section>
                             <div class='row'>
-                                <q-checkbox :model-value='isEnabled(platform.platform.id)' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
+                                <q-checkbox :model-value='isEnabled(platform.platform.id)' :aria-label='platform.platform.name' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
                                 <div class='text-h6 q-mt-xs'>
                                     {{platform.platform.name}}
 
@@ -91,6 +92,9 @@ const { dense } = defineProps({
 });
 const $1t = get1t();
 const platformsRepoButtonLoading = ref(false);
+
+// Platform IDs live inside the descriptor, not on the wrapper object.
+function platformKey(platform: AutotaggerPlatform) { return platform.platform.id; }
 
 // Update config
 function update(platform: string) {

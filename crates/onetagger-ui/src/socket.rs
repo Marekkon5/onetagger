@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use anyhow::Error;
 use axum::extract::ws::{WebSocket, Message};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
 use onetagger_renamer::ac::Autocomplete;
@@ -24,6 +24,21 @@ use crate::quicktag::{QuickTag, QuickTagFile, QuickTagData};
 use crate::tageditor::TagEditor;
 use crate::browser::{FileBrowser, FolderBrowser};
 
+// STOP_TAGGING is shared by the engines. A second browser tab must not reset
+// that flag while another run is stopping or finishing its result files.
+static TAGGING_ACTIVE: AtomicBool = AtomicBool::new(false);
+struct TaggingLease<'a>(&'a AtomicBool);
+impl<'a> TaggingLease<'a> {
+    fn acquire(active: &'a AtomicBool) -> Result<Self, Error> {
+        active.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map_err(|_| anyhow!("A tagging run is already active; wait for it to finish"))?;
+        Ok(Self(active))
+    }
+}
+impl Drop for TaggingLease<'_> {
+    fn drop(&mut self) { self.0.store(false, Ordering::SeqCst); }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase")]
@@ -43,7 +58,8 @@ enum Action {
     GeneratePlaylist { paths: Vec<String> },
 
     LoadPlatforms,
-    StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
+    StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist>,
+        #[serde(default)] report: bool, selection: Option<onetagger_autotag::report::Selection> },
     StopTagging,
     ConfigCallback { config: Value, platform: String, id: String },
     RepoManifest,
@@ -328,7 +344,8 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 })).await.ok();
             }
         }
-        Action::StartTagging { config, playlist } => {
+        Action::StartTagging { config, playlist, report, selection } => {
+            let _lease = TaggingLease::acquire(&TAGGING_ACTIVE)?;
             config.debug_print();
 
             // Load playlist
@@ -341,6 +358,11 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
+                    if let Some(selection) = &selection {
+                        selection.validate()?;
+                        files = selection.files();
+                        file_count = files.len();
+                    }
                     // Load file list
                     if files.is_empty() {
                         let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or_default();
@@ -348,10 +370,13 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                         file_count = files.len();
                         folder_path = Some(path);
                     }
-                    let rx = Tagger::tag_files(&c, files, tagger_finished.clone());
+                    let rx = if report || selection.is_some() {
+                        Tagger::tag_files_report(&c, files, tagger_finished.clone(), selection)?
+                    } else { Tagger::tag_files(&c, files, tagger_finished.clone()) };
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {
+                    if report || selection.is_some() { return Err(anyhow!("Results reports require AutoTagger")); }
                     if files.is_empty() {
                         let path = c.path.as_ref().map(|i| i.to_owned()).unwrap_or_default().to_owned();
                         files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
@@ -372,8 +397,15 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 "files": file_count,
                 "type": tagger_type
             })).await.ok();
-            // Tagging
-            for status in rx {
+            // Receiving from crossbeam blocks. Keep it off the async runtime so
+            // the separate Stop connection remains responsive on small machines.
+            let (updates_tx, mut updates) = tokio::sync::mpsc::channel(64);
+            tokio::task::spawn_blocking(move || {
+                for status in rx {
+                    if updates_tx.blocking_send(status).is_err() { break; }
+                }
+            });
+            while let Some(status) = updates.recv().await {
                 send_socket(websocket, json!({
                     "action": "taggingProgress",
                     "status": status
@@ -381,14 +413,17 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
             // Done
+            let data = tagger_finished.lock().unwrap().clone();
             send_socket(websocket, json!({
                 "action": "taggingDone",
                 "path": folder_path,
-                "data": *tagger_finished.lock().unwrap()
+                "data": data,
+                "cancelled": onetagger_autotag::STOP_TAGGING.load(Ordering::SeqCst)
             })).await.ok();
         },
         Action::StopTagging => {
             onetagger_autotag::STOP_TAGGING.store(true, Ordering::SeqCst);
+            send_socket(websocket, json!({"action": "stopTagging", "accepted": true})).await?;
         },
         Action::Waveform { path } => {
             let source = AudioSources::from_path(&path)?;
@@ -686,6 +721,16 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
 #[cfg(test)]
 mod save_tests {
     use super::*;
+
+    #[test]
+    fn overlapping_runs_cannot_reset_cancellation_and_lease_releases() {
+        let active = AtomicBool::new(false);
+        let first = TaggingLease::acquire(&active).unwrap();
+        assert!(TaggingLease::acquire(&active).is_err());
+        drop(first);
+        assert!(TaggingLease::acquire(&active).is_ok());
+        assert!(!active.load(Ordering::SeqCst));
+    }
 
     fn request(path: &Path, request_id: Option<&str>) -> Action {
         let mut value = json!({"action": "tagEditorSave", "changes": {
