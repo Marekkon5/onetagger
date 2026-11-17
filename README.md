@@ -85,6 +85,12 @@ Reviewed version-bump PRs trigger publication after the full GitHub build passes
 
 See [development and validation](docs/DEVELOPMENT.md) for the GitHub Actions pipeline, [safe file operations and browser sessions](docs/SAFETY.md) for file-handling details, and the [security policy](SECURITY.md) for trust boundaries and vulnerability reporting.
 
+## Related projects
+
+[rekordbox Migration Helper · Library Workbench](https://github.com/fantuz/rekordbox-migration-helper) complements OneTagger with library inspection, duplicate review and migration preparation for rekordbox collections.
+
+Its [OneTagger bridge](https://github.com/fantuz/rekordbox-migration-helper/blob/main/docs/AUDIO-MATCHING-AND-ONETAGGER.md#onetagger-handoff) exports an M3U selection of local music files for tagging in OneTagger, then rescans their tags so you can review and stage selected metadata changes. Run both tools on the same computer for this handoff. OneTagger writes the audio-file tags; the bridge stages approved fields in Workbench while preserving personal stars, cues and original file references.
+
 ## Preview and tutorials
 
 https://user-images.githubusercontent.com/15169286/193469224-cbf3af71-f6d7-4ecd-bdbf-5a1dca2d99c8.mp4
