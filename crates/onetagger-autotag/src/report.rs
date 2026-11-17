@@ -31,10 +31,15 @@ pub struct SelectionTrack {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Selection {
     pub schema: u32,
+    /// Older Helper manifests negotiate the original five-field report.
+    #[serde(default = "legacy_results_version")]
+    pub results_version: u32,
     #[serde(flatten)]
     pub identity: SelectionIdentity,
     pub tracks: Vec<SelectionTrack>,
 }
+
+fn legacy_results_version() -> u32 { 1 }
 
 impl Selection {
     pub fn parse(data: &str) -> Result<Self> {
@@ -45,7 +50,7 @@ impl Selection {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.schema != 1 || self.tracks.is_empty() || self.tracks.len() > 500 {
+        if self.schema != 1 || ![1, 2].contains(&self.results_version) || self.tracks.is_empty() || self.tracks.len() > 500 {
             bail!("Choose a schema-1 Helper selection with 1–500 tracks");
         }
         let id = &self.identity;
@@ -101,6 +106,10 @@ pub struct Tags {
     pub album: Option<String>,
     pub genre: Option<String>,
     pub year: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composer: Option<String>,
 }
 
 fn read_tags(path: &Path) -> Result<(Tags, FileState)> {
@@ -122,7 +131,20 @@ fn read_tags(path: &Path) -> Result<(Tags, FileState)> {
         _ => tag.get_raw("TDRC").or_else(|| tag.get_raw("TYER")),
     };
     let year = date.and_then(|v| v.first().and_then(|s| s.get(..4)).and_then(|s| s.parse().ok()));
-    let tags = Tags { title: text(Field::Title), artist: text(Field::Artist), album: text(Field::Album), genre: text(Field::Genre), year };
+    let composer_key = match wrapper.format() {
+        AudioFileFormat::FLAC | AudioFileFormat::OGG => "COMPOSER",
+        AudioFileFormat::MP4 => "©wrt",
+        _ => "TCOM",
+    };
+    let composer = tag.get_raw(composer_key).and_then(|values| {
+        let value = match wrapper.format() {
+            AudioFileFormat::FLAC | AudioFileFormat::OGG => values.first().cloned().unwrap_or_default(),
+            _ => values.join(", "),
+        };
+        (!value.is_empty()).then_some(value)
+    });
+    let tags = Tags { title: text(Field::Title), artist: text(Field::Artist), album: text(Field::Album),
+        genre: text(Field::Genre), year, label: text(Field::Label), composer };
     if FileState::read(path)? != state { bail!("File changed during tag read-back"); }
     Ok((tags, state))
 }
@@ -182,7 +204,7 @@ impl ReportBuilder {
             (path.clone(), Row { track_id: None, local_path: path.clone(), final_path: path.clone(), before,
                 after: None, file_state: None, before_error, after_error: None, status: "unprocessed".into(), attempts: vec![] })
         }).collect();
-        Self { report: Report { schema: "onetagger.tagging-results".into(), version: 1,
+        Self { report: Report { schema: "onetagger.tagging-results".into(), version: selection.as_ref().map_or(2, |s| s.results_version),
             run_id: format!("{:032x}", rand::random::<u128>()),
             application_version: onetagger_shared::VERSION.into(), application_commit: onetagger_shared::COMMIT.into(),
             created_at: Utc::now().to_rfc3339(), completed_at: String::new(), cancelled: false,
@@ -210,6 +232,12 @@ impl ReportBuilder {
             match read_tags(&row.final_path) {
                 Ok((tags, state)) => { row.after = Some(tags); row.file_state = Some(state); },
                 Err(_) => row.after_error = Some("Could not verify final audio tags".into()),
+            }
+            if self.report.version == 1 {
+                for tags in [&mut row.before, &mut row.after].into_iter().flatten() {
+                    tags.label = None;
+                    tags.composer = None;
+                }
             }
         }
         self.report.tracks = if let Some(selection) = self.selection {
@@ -243,10 +271,12 @@ mod tests {
 
     #[test]
     fn serialized_contract_matches_the_helper_fixture() {
-        let data = include_str!("../../../docs/fixtures/onetagger-results-v1.json");
-        let report: Report = serde_json::from_str(data).unwrap();
-        let original: serde_json::Value = serde_json::from_str(data).unwrap();
-        assert_eq!(serde_json::to_value(report).unwrap(), original);
+        for data in [include_str!("../../../docs/fixtures/onetagger-results-v1.json"),
+                     include_str!("../../../docs/fixtures/onetagger-results-v2.json")] {
+            let report: Report = serde_json::from_str(data).unwrap();
+            let original: serde_json::Value = serde_json::from_str(data).unwrap();
+            assert_eq!(serde_json::to_value(report).unwrap(), original);
+        }
     }
 
     fn audio(path: &Path, title: &str) {
@@ -258,7 +288,7 @@ mod tests {
     }
 
     fn selection(path: &Path) -> Selection {
-        Selection { schema: 1, identity: SelectionIdentity { id: "a".repeat(32), snapshot: "snapshot".into(),
+        Selection { schema: 1, results_version: 1, identity: SelectionIdentity { id: "a".repeat(32), snapshot: "snapshot".into(),
             snapshot_digest: "b".repeat(64), scope_key: "capture:fixture".into(), mapping_revision: "c".repeat(64) },
             tracks: vec![SelectionTrack { track_id: "library-1".into(), local_path: dunce::canonicalize(path).unwrap() }] }
     }
@@ -313,5 +343,29 @@ mod tests {
         let config = onetagger_tagger::TaggerConfig { move_success: true, ..Default::default() };
         let finished = std::sync::Arc::new(std::sync::Mutex::new(None));
         assert!(crate::Tagger::tag_files_report(&config, vec![], finished, Some(selected)).is_err());
+    }
+
+    #[test]
+    fn negotiates_extended_metadata_without_changing_legacy_reports() {
+        let dir = tempfile::tempdir().unwrap(); let path = dir.path().join("track.mp3"); audio(&path, "Title");
+        let mut tag = Tag::load_file(&path, false).unwrap();
+        tag.tag_mut().set_field(Field::Label, vec!["Independent label".into()], true);
+        tag.tag_mut().set_raw("TCOM", vec!["Composer".into()], true);
+        tag.tag_mut().save_file(&path).unwrap();
+        let mut selected = selection(&path);
+        let mut legacy = serde_json::to_value(&selected).unwrap();
+        legacy.as_object_mut().unwrap().remove("results_version");
+        assert_eq!(Selection::parse(&legacy.to_string()).unwrap().results_version, 1);
+        for version in [1, 2] {
+            selected.results_version = version;
+            let result = ReportBuilder::new(&selected.files(), Some(selected.clone())).finish(false);
+            assert_eq!(result.version, version);
+            let after = result.tracks[0].after.as_ref().unwrap();
+            assert_eq!(after.label.as_deref(), if version == 2 { Some("Independent label") } else { None });
+            assert_eq!(after.composer.as_deref(), if version == 2 { Some("Composer") } else { None });
+            if version == 1 { assert!(!serde_json::to_value(after).unwrap().as_object().unwrap().contains_key("label")); }
+        }
+        selected.results_version = 3;
+        assert!(selected.validate().is_err());
     }
 }

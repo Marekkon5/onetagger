@@ -29,6 +29,7 @@ def main():
             sock.bind(('127.0.0.1', 0)); port = sock.getsockname()[1]
         log = root/'driver.log'
         session = None
+        interactions = []
         with log.open('w') as output:
             driver = subprocess.Popen(['WebKitWebDriver', '--port='+str(port)], env=env,
                                       stdout=output, stderr=subprocess.STDOUT)
@@ -56,27 +57,58 @@ def main():
                 deadline = time.monotonic()+15
                 while True:
                     try:
-                        # WebKit's automatic top alignment can put the target
-                        # underneath the fixed navigation bar. Center it first;
-                        # the action itself still uses native pointer input.
-                        script("document.querySelector(arguments[0])?.scrollIntoView({block:'center',inline:'center',behavior:'instant'});", selector)
+                        # A routed page can exist before its fade/step transition
+                        # finishes. Do not measure coordinates during that interval.
+                        wait("""const e=document.querySelector(arguments[0]);
+                            return !!e && !document.querySelector('.fade-enter-active,.fade-leave-active') &&
+                                document.getAnimations().every(a =>
+                                !a.effect?.target?.contains(e) ||
+                                !Number.isFinite(a.effect.getComputedTiming().endTime) ||
+                                (a.playState !== 'running' && !a.pending));""",selector)
                         position_code = """const e=document.querySelector(arguments[0]);
                             if(!e)return null;const r=e.getBoundingClientRect();
                             const x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);
                             const hit=document.elementFromPoint(x,y);
                             return r.width && r.height && hit && e.contains(hit) ? {x,y} : null;"""
                         position = script(position_code, selector)
+                        # Scroll only the app's content panel. scrollIntoView can
+                        # move multiple ancestors during a route transition and
+                        # considers controls underneath the fixed header visible.
+                        if not position:
+                            script("""const e=document.querySelector(arguments[0]);
+                                const panel=e?.closest('.content');
+                                if(panel){
+                                    const r=e.getBoundingClientRect(),p=panel.getBoundingClientRect();
+                                    const header=document.querySelector('.q-header')?.getBoundingClientRect();
+                                    const top=Math.max(p.top,header?.bottom || 0)+8;
+                                    const bottom=Math.min(p.bottom,innerHeight)-80;
+                                    panel.scrollTop += (r.top+r.height/2)-(top+bottom)/2;
+                                }""",selector)
+                            time.sleep(.2)
+                            position = script(position_code, selector)
                         time.sleep(.2)
                         settled = script(position_code, selector)
                         if not position or settled != position:
                             raise RuntimeError('element not interactable: layout is moving or covered')
-                        # WebKit's Element Click may scroll a nested Quasar panel
-                        # again after locating the element. Pointer Actions uses
-                        # the settled, hit-tested position without that extra scroll.
+                        # Moving the native pointer can trigger hover/layout work
+                        # after the DOM scroll has settled. Complete that action
+                        # separately and recheck the hit target before pressing.
                         command('/actions', {'actions':[{'type':'pointer','id':'mouse',
                             'parameters':{'pointerType':'mouse'},'actions':[
-                                {'type':'pointerMove','duration':0,'origin':'viewport',**position},
-                                {'type':'pointerDown','button':0},{'type':'pointerUp','button':0}]}]})
+                                {'type':'pointerMove','duration':100,'origin':'viewport',**position},
+                                {'type':'pause','duration':100}]}]})
+                        if script(position_code, selector) != position:
+                            raise RuntimeError('element not interactable: target moved after pointer motion')
+                        script("window.nativeClickTarget=document.querySelector(arguments[0]); window.nativePointerEvents=[];",selector)
+                        command('/actions', {'actions':[{'type':'pointer','id':'mouse',
+                            'parameters':{'pointerType':'mouse'},'actions':[
+                                {'type':'pointerDown','button':0},
+                                {'type':'pause','duration':100},
+                                {'type':'pointerUp','button':0}]}]})
+                        events = script('return window.nativePointerEvents')
+                        interactions.append({'selector':selector,'position':position,'events':events})
+                        if not any(e['type']=='click' and e['intended'] and e['trusted'] for e in events):
+                            raise AssertionError('Native click missed its target: '+json.dumps(interactions[-1]))
                         return
                     except RuntimeError as error:
                         if time.monotonic()>=deadline or not any(reason in str(error) for reason in
@@ -98,14 +130,33 @@ def main():
                 if not handles: raise AssertionError('Native application has no window')
                 command('/window', {'handle':handles[0]})
                 wait("return !!document.querySelector('a[href=\"#/autotagger\"]') && !document.body.innerText.includes('Loading platforms...')")
-                script("window.nativeErrors=[]; addEventListener('error',e=>nativeErrors.push(e.message)); addEventListener('unhandledrejection',e=>nativeErrors.push(String(e.reason)))")
+                script("""window.nativeErrors=[]; window.nativePointerEvents=[];
+                    addEventListener('error',e=>nativeErrors.push(e.message));
+                    addEventListener('unhandledrejection',e=>nativeErrors.push(String(e.reason)));
+                    for (const type of ['pointerdown','pointerup','click']) {
+                        document.addEventListener(type,e=>{
+                            const control=e.target.closest('.q-checkbox,a,.q-stepper__tab');
+                            nativePointerEvents.push({type, trusted:e.isTrusted,
+                                intended:!!window.nativeClickTarget?.contains(e.target),
+                                label:control?.getAttribute('aria-label') || control?.innerText,
+                                tag:control?.dataset.tag, x:e.clientX, y:e.clientY,
+                                scrollTop:document.querySelector('.content')?.scrollTop,
+                                windowScrollY:window.scrollY,
+                                targetRect:window.nativeClickTarget?.getBoundingClientRect().toJSON(),
+                                active:document.activeElement?.outerHTML.slice(0,300)});
+                        },true);
+                    }""")
                 for cycle in range(3):
                     click('a[href="#/autotagger"]')
-                    wait("return document.querySelectorAll('.card .q-checkbox').length > 0")
-                    for _ in range(10):
-                        before = script("return document.querySelector('.card .q-checkbox').getAttribute('aria-checked')")
-                        click('.card .q-checkbox')
-                        wait("return document.querySelector('.card .q-checkbox').getAttribute('aria-checked') !== arguments[0]",before)
+                    # Keep the same provider identity across async renders and
+                    # route changes instead of following whichever card is first.
+                    selector = '.card .q-checkbox[aria-label="Beatport"]'
+                    wait("return !!document.querySelector(arguments[0])",selector)
+                    for toggle in range(10):
+                        before = script("return document.querySelector(arguments[0]).getAttribute('aria-checked')",selector)
+                        click(selector+' .q-checkbox__inner')
+                        wait("return document.querySelector(arguments[0]).getAttribute('aria-checked') !== arguments[1]",selector,before)
+                        print(f'Native cycle {cycle+1}: provider toggle {toggle+1}/10 passed',flush=True)
                     click('.q-stepper__tab:nth-child(2)')
                     wait("return !!document.querySelector('input[aria-label=\"Path\"]')")
                     script("const e=document.querySelector('input[aria-label=\"Path\"]'); e.value=arguments[0]; e.dispatchEvent(new Event('input',{bubbles:true}));",str(music))
@@ -125,9 +176,10 @@ def main():
                     'engine':'system WebKitGTK via real OneTagger executable','provider_requests':0},indent=2))
                 print('Native Linux Autotagger navigation and repeated controls passed')
             finally:
+                args.output.joinpath('interactions.json').write_text(json.dumps(interactions,indent=2))
                 if session:
                     try:
-                        diagnostics = script("return [...document.querySelectorAll('.q-checkbox,.q-stepper__tab')].map(e=>({text:e.innerText,tag:e.dataset.tag,checked:e.getAttribute('aria-checked'),disabled:e.getAttribute('aria-disabled'),rect:e.getBoundingClientRect().toJSON()}))")
+                        diagnostics = script("return [...document.querySelectorAll('.q-checkbox,.q-stepper__tab')].map(e=>({text:e.innerText,label:e.getAttribute('aria-label'),tag:e.dataset.tag,checked:e.getAttribute('aria-checked'),disabled:e.getAttribute('aria-disabled'),rect:e.getBoundingClientRect().toJSON()}))")
                         args.output.joinpath('controls.json').write_text(json.dumps(diagnostics,indent=2))
                     except Exception: pass
                     try: args.output.joinpath('native.png').write_bytes(base64.b64decode(command('/screenshot')))

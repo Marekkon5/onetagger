@@ -214,6 +214,30 @@ class BrowserTests(unittest.TestCase):
         finally:
             context.close()
 
+    def test_autotagger_checkbox_mouse_and_keyboard(self):
+        with self.session() as (page, _backend):
+            def exercise(control):
+                initial = control.get_attribute('aria-checked')
+                toggled = 'false' if initial == 'true' else 'true'
+                control.click()
+                expect(control).to_have_attribute('aria-checked', toggled)
+                # Mouse interaction must leave the actual checkbox keyboard-
+                # accessible, including Space and Enter.
+                control.focus()
+                expect(control).to_be_focused()
+                control.press('Space')
+                expect(control).to_have_attribute('aria-checked', initial)
+                control.press('Enter')
+                expect(control).to_have_attribute('aria-checked', toggled)
+                # Restore the selected provider before checking supported tags.
+                control.click()
+                expect(control).to_have_attribute('aria-checked', initial)
+
+            page.get_by_role('tab', name='Auto tag', exact=True).click()
+            exercise(page.get_by_role('checkbox', name='Beatport', exact=True))
+            page.get_by_text('Input & Tags', exact=True).click()
+            exercise(page.locator('.tags .q-checkbox[data-tag="title"]'))
+
     def open_editor(self, page):
         page.get_by_role("tab", name="Edit Tags", exact=True).click()
         expect(page.get_by_text("NO FILE SELECTED", exact=True)).to_be_visible()

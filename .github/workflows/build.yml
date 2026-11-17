@@ -151,6 +151,29 @@ jobs:
           # Cleanup/save happens after packaging and artifact uploads.
       - name: Regression tests
         run: cargo test --workspace --all-targets --locked --timings
+      - name: Check out the pinned Helper importer
+        if: runner.os == 'Linux'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: fantuz/rekordbox-migration-helper
+          ref: b437fe95d432da4ec356cc5c8bc98ea081713910
+          path: .ci-helper
+          persist-credentials: false
+      - name: Verify the actual producer-to-importer round trip
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          python3 -m venv "$RUNNER_TEMP/helper-roundtrip-venv"
+          "$RUNNER_TEMP/helper-roundtrip-venv/bin/python" -m pip install -r .ci-helper/requirements.txt
+          "$RUNNER_TEMP/helper-roundtrip-venv/bin/python" .ci-helper/packaging/check_onetagger_roundtrip.py --producer . --output roundtrip-results
+      - name: Upload cross-repository round-trip evidence
+        if: runner.os == 'Linux' && always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: helper-roundtrip
+          path: roundtrip-results/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked
       - name: Build release binaries
