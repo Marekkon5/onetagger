@@ -61,9 +61,9 @@ fn selected_file_without_album_match_reports_error_without_panicking_or_writing(
     assert_eq!(fs::read(path).unwrap(), original);
 }
 
-fn status(path: &Path, status: TaggingState) -> TaggingStatus {
+pub(super) fn status(path: &Path, status: TaggingState) -> TaggingStatus {
     TaggingStatus { path: path.into(), status, message: None, accuracy: None,
-        used_shazam: false, release_id: None, reason: None }
+        used_shazam: false, release_id: None, track_id: None, reason: None }
 }
 
 #[test]

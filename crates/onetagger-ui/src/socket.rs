@@ -43,7 +43,8 @@ enum Action {
     GeneratePlaylist { paths: Vec<String> },
 
     LoadPlatforms,
-    StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist> },
+    StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist>,
+        #[serde(default)] report: bool, selection: Option<onetagger_autotag::report::Selection> },
     StopTagging,
     ConfigCallback { config: Value, platform: String, id: String },
     RepoManifest,
@@ -328,7 +329,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 })).await.ok();
             }
         }
-        Action::StartTagging { config, playlist } => {
+        Action::StartTagging { config, playlist, report, selection } => {
             config.debug_print();
 
             // Load playlist
@@ -341,6 +342,11 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             // Load taggers
             let (tagger_type, rx) = match config {
                 TaggerConfigs::AutoTagger(c) => {
+                    if let Some(selection) = &selection {
+                        selection.validate()?;
+                        files = selection.files();
+                        file_count = files.len();
+                    }
                     // Load file list
                     if files.is_empty() {
                         let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or_default();
@@ -348,7 +354,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                         file_count = files.len();
                         folder_path = Some(path);
                     }
-                    let rx = Tagger::tag_files(&c, files, tagger_finished.clone());
+                    let rx = if report || selection.is_some() {
+                        Tagger::tag_files_report(&c, files, tagger_finished.clone(), selection)?
+                    } else { Tagger::tag_files(&c, files, tagger_finished.clone()) };
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {

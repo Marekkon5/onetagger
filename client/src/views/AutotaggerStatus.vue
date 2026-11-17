@@ -5,8 +5,13 @@
 
     <!-- Post tagging actions -->
     <div v-if='$1t.taggerStatus.value.done && $1t.taggerStatus.value.data' class='row justify-center q-my-md'>
-        <q-btn color='primary' class='q-mx-md text-black' @click='goQT(false)'>Open failed in QuickTag</q-btn>
-        <q-btn color='primary' class='q-mx-md text-black' @click='goQT(true)'>Open successful in QuickTag</q-btn>
+        <q-btn v-if='$1t.taggerStatus.value.data.failedFile' color='primary' class='q-mx-md text-black' @click='goQT(false)'>Open failed in QuickTag</q-btn>
+        <q-btn v-if='$1t.taggerStatus.value.data.successFile' color='primary' class='q-mx-md text-black' @click='goQT(true)'>Open successful in QuickTag</q-btn>
+        <q-btn v-if='$1t.taggerStatus.value.data.reportFile' color='primary' outline class='q-mx-md'
+            @click='$1t.send("openFile", {path: $1t.taggerStatus.value.data.reportFile})'>Open results JSON</q-btn>
+    </div>
+    <div v-if='$1t.taggerStatus.value.data?.reportFile' class='text-caption q-px-md' style='overflow-wrap: anywhere'>
+        Results JSON: {{$1t.taggerStatus.value.data.reportFile}}
     </div>
 
     <!-- Info -->

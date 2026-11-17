@@ -184,7 +184,9 @@ async function startTagging() {
     setTimeout(() => {
         $1t.send('startTagging', {
             config: $1t.config.value,
-            playlist
+            playlist: $1t.taggingSelection.value ? null : playlist,
+            report: $1t.saveTaggingReport.value,
+            selection: $1t.taggingSelection.value
         });
     }, 100);
 
@@ -195,7 +197,7 @@ async function startTagging() {
 
 }
 
-const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)) 
+const canStart = computed(() => (($1t.taggingSelection.value || $1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data))
     && $1t.config.value.platforms.length > 0) ? true : false);
 
 </script>

@@ -26,6 +26,8 @@ class OneTagger {
     folderBrowser: Ref<FolderBrowser> = ref(new FolderBrowser());
     taggerStatus: Ref<TaggerStatus> = ref(new TaggerStatus());
     autoTaggerPlaylist: Ref<Playlist> = ref({});
+    saveTaggingReport = ref(false);
+    taggingSelection: Ref<{schema: number; id: string; tracks: {track_id: string; local_path: string}[]} | null> = ref(null);
     manualTag: Ref<ManualTag> = ref(new ManualTag());
 
     // Websocket
@@ -225,6 +227,9 @@ class OneTagger {
                 this.taggerStatus.value.progress = 1.0;
                 this.taggerStatus.value.data = json.data;
                 this.onTaggingDone(json.path);
+                if (json.data?.reportError) {
+                    Dialog.create({ title: 'Results report could not be saved', html: false, message: json.data.reportError });
+                }
                 if (json.data?.moveErrors?.length) {
                     Dialog.create({ title: 'Some files could not be moved', html: false,
                         message: json.data.moveErrors.join('\n') });

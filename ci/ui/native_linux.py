@@ -53,9 +53,20 @@ def main():
                     time.sleep(.2)
                 raise AssertionError('Native UI did not reach expected state: '+code)
             def click(selector):
-                element = command('/element', {'using':'css selector', 'value':selector})
-                identity = element['element-6066-11e4-a52e-4f735466cecf']
-                command('/element/'+identity+'/click', {})
+                deadline = time.monotonic()+15
+                while True:
+                    try:
+                        element = command('/element', {'using':'css selector', 'value':selector})
+                        identity = element['element-6066-11e4-a52e-4f735466cecf']
+                        command('/element/'+identity+'/click', {})
+                        return
+                    except RuntimeError as error:
+                        if time.monotonic()>=deadline or not any(reason in str(error) for reason in
+                                ('element click intercepted','element not interactable','stale element reference')):
+                            raise
+                        # Wait for actual animated page transitions, never replace
+                        # native input with a JavaScript click that bypasses hit tests.
+                        time.sleep(.2)
             try:
                 for _ in range(100):
                     if driver.poll() is not None: raise RuntimeError('WebKitWebDriver exited')
