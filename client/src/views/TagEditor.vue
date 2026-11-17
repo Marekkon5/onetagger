@@ -111,8 +111,8 @@
                     <div v-for='tag in tagNames' :key='tag' class='row q-my-sm'>
                         <div class='col-3 text-body2 text-uppercase text-primary text-weight-medium q-mt-sm q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
                             
-                            <span v-if='ABSTRACTIONS[tag]'><span class='text-uppercase text-primary text-weight-medium'>{{ABSTRACTIONS[tag]}} </span><span class="text-grey-4 monospace text-caption"> {{tag}}</span></span>
-                            <span v-if='!ABSTRACTIONS[tag]'>{{tag}}</span>
+                            <span v-if='tagLabel(tag)'><span class='text-uppercase text-primary text-weight-medium'>{{tagLabel(tag)}} </span><span class="text-grey-4 monospace text-caption"> {{tag}}</span></span>
+                            <span v-if='!tagLabel(tag)'>{{tag}}</span>
                         </div>
                         
                         
@@ -483,6 +483,10 @@ function clearCustom() {
 /*
     Text Tags
 */
+
+function tagLabel(tag: string): string | undefined {
+    return ABSTRACTIONS[tag];
+}
 
 // Delete tag
 function removeTag(tag: string) {
