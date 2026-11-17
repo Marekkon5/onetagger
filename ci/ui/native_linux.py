@@ -127,7 +127,9 @@ def main():
                             nativePointerEvents.push({type, trusted:e.isTrusted,
                                 intended:!!window.nativeClickTarget?.contains(e.target),
                                 label:control?.getAttribute('aria-label') || control?.innerText,
-                                tag:control?.dataset.tag, x:e.clientX, y:e.clientY});
+                                tag:control?.dataset.tag, x:e.clientX, y:e.clientY,
+                                scrollTop:document.querySelector('.content')?.scrollTop,
+                                active:document.activeElement?.outerHTML.slice(0,300)});
                         },true);
                     }""")
                 for cycle in range(3):
