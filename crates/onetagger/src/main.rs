@@ -41,7 +41,7 @@ fn main() {
     std::thread::spawn(move || {
         onetagger_ui::start_all(context).expect("Failed to start servers!");
     });
-    start_webview(&launch_url).expect("Failed to start webview!");
+    start_webview(&launch_url, cli.webdriver).expect("Failed to start webview!");
     debug!("Exitting gracefully...");
 }
 
@@ -63,6 +63,10 @@ struct Cli {
     /// Open in browser
     #[clap(long)]
     browser: bool,
+
+    /// Allow local WebKitWebDriver control for native Linux regression tests.
+    #[clap(long, hide = true)]
+    webdriver: bool,
 }
 
 /// Show warning for old macOS
@@ -107,7 +111,7 @@ fn old_macos_warning() -> Result<(), Error> { Ok(()) }
 
 
 /// Start webview window
-pub fn start_webview(launch_url: &str) -> Result<(), Error> {
+pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
     // Setup wry
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -121,6 +125,8 @@ pub fn start_webview(launch_url: &str) -> Result<(), Error> {
         .build(&event_loop)?;
     window.set_inner_size(Size::Logical(LogicalSize::new(1280.0, 720.0)));
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
+    // Opt-in only: normal application sessions never enable automation.
+    context.set_allows_automation(webdriver);
     let p = proxy.clone();
 
     // Register menu for MacOS shortcuts to work

@@ -161,6 +161,22 @@ jobs:
           mkdir -p dist
           tar -czf dist/OneTagger-linux-x64.tar.gz -C target/release onetagger
           tar -czf dist/OneTagger-linux-x64-cli.tar.gz -C target/release onetagger-cli
+      - name: Exercise native Linux Autotagger controls
+        if: runner.os == 'Linux'
+        timeout-minutes: 5
+        run: |
+          sudo apt-get install -y webkit2gtk-driver xvfb pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=onetagger_test
+          dbus-run-session -- xvfb-run -a python3 ci/ui/native_linux.py target/release/onetagger
+      - name: Upload native Linux UI evidence
+        if: runner.os == 'Linux' && always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-linux-ui
+          path: native-ui-results/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Package Windows
         if: runner.os == 'Windows'
         shell: pwsh
