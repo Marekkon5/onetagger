@@ -156,7 +156,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: fantuz/rekordbox-migration-helper
-          ref: f90ddda0e4eed05e849c96b9bd34781593d866c6
+          ref: b437fe95d432da4ec356cc5c8bc98ea081713910
           path: .ci-helper
           persist-credentials: false
       - name: Verify the actual producer-to-importer round trip
