@@ -1,7 +1,9 @@
 <template>
-<div class='full-height'>
+<div class='full-height' :aria-busy='saving'>
+    <q-banner v-if='saveError' role='alert' class='bg-red-10 text-white'>{{saveError}}</q-banner>
+    <div v-if='saving' role='status' class='q-pa-sm'>Saving changes…</div>
 
-    <div class='row full-height'>
+    <div class='row full-height' :inert='saving'>
         <!-- File browser -->
         <div 
             @contextmenu.prevent="" 
@@ -365,7 +367,8 @@ import AddAlbumArt from '../components/AddAlbumArt.vue';
 import draggable from 'vuedraggable';
 import { ABSTRACTIONS } from '../scripts/tags';
 import type { ID3Comment, TagEditorImage } from '../scripts/tags';
-import { computed, onDeactivated, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { get1t } from '../scripts/onetagger';
 import { useQuasar } from 'quasar';
 import ManualTag from '../components/ManualTag.vue';
@@ -392,6 +395,34 @@ const addAlbumArtDialog = ref(false);
 const customList = ref($1t.settings.value.tagEditorCustom);
 const id3v24 = ref(false);
 const manualTagPath = ref<string | undefined>(undefined);
+const saving = ref(false);
+const saveError = ref<string | undefined>(undefined);
+const versionChanged = ref(false);
+watch(id3v24, () => { versionChanged.value = true; });
+const dirty = computed(() => changes.value.length > 0 || versionChanged.value);
+let saveSequence = 0;
+let switchingFile = false;
+let pendingSave: { id: string; path: string; promise: Promise<boolean>; resolve: (ok: boolean) => void } | undefined;
+
+async function prepareToLeave(): Promise<boolean> {
+    if (pendingSave && !await pendingSave.promise) return false;
+    if (!dirty.value) return true;
+    if ($1t.settings.value.tagEditorAutosave) return save();
+    return new Promise(resolve => {
+        $q.dialog({ title: 'Unsaved changes',
+            message: 'Discard the unsaved changes to this track?',
+            cancel: true, persistent: true,
+            ok: { label: 'Discard changes', color: 'negative' }
+        }).onOk(() => resolve(true)).onCancel(() => resolve(false));
+    });
+}
+
+onBeforeRouteLeave(async () => {
+    if (!await prepareToLeave()) return false;
+    changes.value = [];
+    versionChanged.value = false;
+    return true;
+});
 
 
 function loadFiles(f?: string) {
@@ -402,17 +433,20 @@ function browse() {
     $1t.browse('te', path.value);
 }
 
-function loadFile(path: string) {
-    // Autosave
-    if (file.value && $1t.settings.value.tagEditorAutosave) {
-        save();
+async function loadFile(path: string) {
+    if (switchingFile) return;
+    switchingFile = true;
+    try {
+        if (!await prepareToLeave()) return;
+        changes.value = [];
+        versionChanged.value = false;
+        saveError.value = undefined;
+        await $1t.send('tagEditorLoad', {path});
+        if ($1t.settings.value.tagEditorPlayer)
+            $1t.player.value.loadTrack(path);
+    } finally {
+        switchingFile = false;
     }
-    changes.value = [];
-
-    // Will be joined in backend
-    $1t.send('tagEditorLoad', {path});
-    if ($1t.settings.value.tagEditorPlayer)
-        $1t.player.value.loadTrack(path);
 }
 
 // If file is currently open
@@ -677,17 +711,50 @@ function removePOPM() {
     Saving and backend
 */
 
-// Save to file
-function save() {
+// Keep the edits until this exact request is acknowledged. The editor is inert
+// while saving so edits/removals cannot change underneath the submitted batch.
+function save(): Promise<boolean> {
+    if (pendingSave) return pendingSave.promise;
+    if (!file.value) return Promise.resolve(true);
+    if (!$1t.isConnected) {
+        saveError.value = 'Cannot save: the connection is closed. Your edits are retained in this page.';
+        return Promise.resolve(false);
+    }
+    const id = `tag-editor-${++saveSequence}`;
+    let resolve!: (ok: boolean) => void;
+    const promise = new Promise<boolean>(done => { resolve = done; });
+    pendingSave = { id, path: file.value.path, promise, resolve };
+    saving.value = true;
+    saveError.value = undefined;
     $1t.send('tagEditorSave', {
+        requestId: id,
         changes: {
-            path: file.value.path, 
-            changes: changes.value,
+            path: file.value.path,
+            changes: JSON.parse(JSON.stringify(changes.value)),
             separators: {id3: ', ', vorbis: null, mp4: ', '},
             id3v24: id3v24.value
         }
-    });
-    changes.value = [];
+    }).catch(error => finishSave(false, String(error)));
+    return promise;
+}
+
+function finishSave(ok: boolean, message?: string) {
+    if (!pendingSave) return;
+    const pending = pendingSave;
+    pendingSave = undefined;
+    saving.value = false;
+    if (ok) {
+        changes.value = [];
+        versionChanged.value = false;
+        $q.notify({ message: 'Tags written!', timeout: 4000, position: 'top-right' });
+    } else {
+        saveError.value = `Save was not confirmed. Your edits are retained. ${message ?? 'Please retry Save.'}`;
+    }
+    pending.resolve(ok);
+}
+
+function onSocketClose() {
+    finishSave(false, 'The connection closed before the save was confirmed.');
 }
 
 function saveSettings() {
@@ -726,12 +793,13 @@ function wsCallback(e: any) {
         case 'tagEditorLoad':
             file.value = e.data;
             break;
+        case 'tagEditorDisconnected':
+            onSocketClose();
+            break;
         case 'tagEditorSave':
-            $q.notify({
-                message: 'Tags written!',
-                timeout: 4000,
-                position: 'top-right'
-            });
+            if (pendingSave && e.requestId === pendingSave.id && e.path === pendingSave.path) {
+                finishSave(e.status === 'ok', e.message);
+            }
             break;
         // Internal callback
         case '_tagEditorSave':
@@ -782,7 +850,7 @@ onMounted(() => {
 })
 
 // Unregister
-onDeactivated(() => {
+onUnmounted(() => {
     $1t.onTagEditorEvent = () => {};
 })
 

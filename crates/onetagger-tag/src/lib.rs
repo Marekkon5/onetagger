@@ -445,7 +445,8 @@ impl TagChanges {
     pub fn commit(&self) -> Result<Tag, Error> {
         use base64::Engine;
         
-        let mut tag_wrap = Tag::load_file(&self.path, false)?;
+        // Match the editor: create only a missing ID3 tag, preserving parse/I/O errors.
+        let mut tag_wrap = Tag::load_file(&self.path, true)?;
         tag_wrap.set_separators(&self.separators);
 
         // Format specific changes
@@ -573,3 +574,40 @@ pub struct LyricsLinePart {
 }
 
 
+
+#[cfg(all(test, feature = "tag"))]
+mod commit_tests {
+    use super::*;
+    use std::fs;
+
+    fn changes(path: PathBuf) -> TagChanges {
+        TagChanges {
+            path, changes: vec![TagChange::Raw { tag: "TIT2".into(), value: vec!["First title".into()] }],
+            separators: TagSeparators::default(), id3v24: true, id3_comm_lang: None,
+        }
+    }
+
+    #[test]
+    fn editor_can_commit_first_id3_tag_without_losing_audio_payload() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("untagged.mp3");
+        let audio = [0u8; 64];
+        fs::write(&path, audio).unwrap();
+        assert!(Tag::load_file(&path, true).is_ok());
+        changes(path.clone()).commit().unwrap();
+        assert_eq!(Tag::load_file(&path, false).unwrap().tag().get_field(Field::Title).unwrap(), vec!["First title"]);
+        assert!(fs::read(path).unwrap().ends_with(&audio));
+    }
+
+    #[test]
+    fn editor_commit_preserves_corrupt_files_and_does_not_create_missing_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("missing.mp3");
+        assert!(changes(path.clone()).commit().is_err());
+        assert!(!path.exists());
+        let corrupt = b"ID3\x05\x00\x00\x00\x00\x00\x06broken";
+        fs::write(&path, corrupt).unwrap();
+        assert!(changes(path.clone()).commit().is_err());
+        assert_eq!(fs::read(path).unwrap(), corrupt);
+    }
+}

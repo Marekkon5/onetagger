@@ -52,7 +52,10 @@ class OneTagger {
         // Setup WS connection
         this.ws = new WebSocket(wsUrl());
         this.ws.addEventListener('error', (e) => this.onError(e ?? 'Websocket error!'));
-        this.ws.addEventListener('close', (_) => this.onError('WebSocket closed!'));
+        this.ws.addEventListener('close', (_) => {
+            this.onTagEditorEvent({action: 'tagEditorDisconnected'});
+            this.onError('WebSocket closed!');
+        });
         this.ws.addEventListener('open', (_) => {
             // Resolve connection promise
             if (this.wsPromiseResolve) {
@@ -120,6 +123,10 @@ class OneTagger {
         });
 
         console.error(msg);
+    }
+
+    get isConnected(): boolean {
+        return this.ws.readyState === WebSocket.OPEN;
     }
 
     // Send action to WebSocket

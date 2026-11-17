@@ -40,9 +40,13 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 class Backend:
     """Fixture protocol only. Outgoing commands are recorded for assertions."""
-    def __init__(self, base_url, session_status=204):
+    def __init__(self, base_url, session_status=204, autosave=False):
         self.base_url = base_url
         self.session_status = session_status
+        self.autosave = autosave
+        self.save_failures = 0
+        self.hold_saves = False
+        self.pending_saves = []
         self.commands = []
         self.sessions = []
         self.connections = 0
@@ -88,9 +92,27 @@ class Backend:
                     {"filename": name, "path": "/music/" + name, "dir": False, "playlist": False}
                     for name in ["Synthetic track.mp3", "Another track.flac"]]}
             elif action == "tagEditorLoad":
-                response = {"action": action, "data": deepcopy(TRACK)}
+                track = deepcopy(TRACK)
+                track["path"] = data["path"]
+                track["filename"] = data["path"].rsplit("/", 1)[-1]
+                response = {"action": action, "data": track}
             elif action == "tagEditorSave":
-                response = {"action": action}
+                if self.hold_saves:
+                    self.pending_saves.append((ws, data))
+                else:
+                    ok = self.save_failures == 0
+                    self.save_failures = max(0, self.save_failures - 1)
+                    response = self.save_response(data, ok)
+            elif action == "loadSettings" and self.autosave:
+                # These nested fields are required by the saved-settings decoder.
+                # An empty quickTag object throws before autosave can be restored.
+                response = {"action": action, "settings": {
+                    "path": "/music", "tagEditorAutosave": True, "autoTaggerConfig": {},
+                    "audioFeatures": {}, "renamer": {}, "quickTag": {
+                        "noteTag": {"tag": {"id3": "COMM", "vorbis": "COMMENT", "mp4": "©cmt"}},
+                        "moodTag": {"id3": "TMOO", "vorbis": "MOOD", "mp4": "iTunes:MOOD"},
+                        "energyTag": {"tag": {"id3": "TCOM", "vorbis": "COMPOSER", "mp4": "©wrt"}},
+                        "energyKeys": [None] * 5}}}
             elif action not in {"loadSettings", "saveSettings", "playerVolume", "playerStop"}:
                 self.unexpected_commands.append(action)
             # A first-run backend may have no saved settings; preserve actual UI defaults.
@@ -98,6 +120,16 @@ class Backend:
                 ws.send(json.dumps(response))
 
         ws.on_message(message)
+
+    @staticmethod
+    def save_response(data, ok=True):
+        return {"action": "tagEditorSave", "requestId": data["requestId"],
+                "path": data["changes"]["path"], "status": "ok" if ok else "error",
+                "message": None if ok else "Simulated write permission failure"}
+
+    def acknowledge_next_save(self, ok=True):
+        ws, data = self.pending_saves.pop(0)
+        ws.send(json.dumps(self.save_response(data, ok)))
 
     def saves(self):
         return [command["changes"] for command in self.commands if command["action"] == "tagEditorSave"]
@@ -127,13 +159,13 @@ class BrowserTests(unittest.TestCase):
         cls.thread.join(timeout=5)
 
     @contextmanager
-    def session(self, status=204, fragment=None):
+    def session(self, status=204, fragment=None, autosave=False):
         context = self.browser.new_context(viewport={"width": 1440, "height": 900},
                                            locale="en-US", timezone_id="UTC", service_workers="block")
         context.tracing.start(screenshots=True, snapshots=True, sources=False)
         page = context.new_page()
         page.set_default_timeout(10000)
-        backend = Backend(self.base_url, status)
+        backend = Backend(self.base_url, status, autosave)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.route("**/*", backend.http)
@@ -230,6 +262,120 @@ class BrowserTests(unittest.TestCase):
             self.assertIn({"type": "removePicture", "kind": "CoverFront"}, changes)
             self.assertIn({"type": "id3Comments", "comments": []}, changes)
             self.assertIn({"type": "id3UnsynchronizedLyrics", "lyrics": []}, changes)
+
+    def edit_title(self, page, title="Unsaved title"):
+        field = page.get_by_label("Tag TIT2", exact=True)
+        field.fill(title)
+        field.press("Tab")
+
+    def select_other_track(self, page):
+        page.locator("#fileList").get_by_text("Another track.flac", exact=True).click()
+
+    def test_failed_save_retains_edits_and_retry_resends_original_changes(self):
+        with self.session() as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            backend.save_failures = 1
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_role("alert")).to_contain_text("Your edits are retained")
+            expect(page.get_by_text("Tags written!", exact=True)).not_to_be_visible()
+            expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_text("Tags written!", exact=True)).to_be_visible()
+            expect(page.get_by_role("alert").filter(has_text="Your edits are retained")).to_have_count(0)
+            self.assertEqual(len(backend.saves()), 2)
+            self.assertEqual(backend.saves()[0], backend.saves()[1])
+            self.assertTrue(backend.saves()[1]["changes"])
+
+    def test_autosave_failure_keeps_current_track_until_retry_succeeds(self):
+        with self.session(autosave=True) as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            backend.save_failures = 1
+            self.select_other_track(page)
+            expect(page.get_by_role("alert")).to_contain_text("Your edits are retained")
+            expect(page.locator(".text-center.monospace")).to_have_text(TRACK["filename"])
+            self.assertFalse(any(c["action"] == "tagEditorLoad" and c["path"].endswith(".flac") for c in backend.commands))
+            self.select_other_track(page)
+            expect(page.locator(".text-center.monospace")).to_have_text("Another track.flac")
+            self.assertEqual(backend.saves()[0], backend.saves()[1])
+
+    def test_autosave_waits_for_acknowledgement_before_loading_next_track(self):
+        with self.session(autosave=True) as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            backend.hold_saves = True
+            self.select_other_track(page)
+            expect(page.get_by_role("status")).to_have_text("Saving changes…")
+            expect(page.locator(".text-center.monospace")).to_have_text(TRACK["filename"])
+            self.assertEqual(len(backend.pending_saves), 1)
+            self.assertFalse(any(c["action"] == "tagEditorLoad" and c["path"].endswith(".flac") for c in backend.commands))
+            backend.acknowledge_next_save()
+            expect(page.locator(".text-center.monospace")).to_have_text("Another track.flac")
+            self.assertEqual(len(backend.saves()), 1)
+
+    def test_autosave_failure_blocks_route_navigation_until_retry(self):
+        with self.session(autosave=True) as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            backend.save_failures = 1
+            page.get_by_role("tab", name="Home", exact=True).click()
+            expect(page.get_by_role("alert")).to_contain_text("Your edits are retained")
+            expect(page.get_by_role("tab", name="Edit Tags", exact=True)).to_have_attribute("aria-selected", "true")
+            page.get_by_role("tab", name="Home", exact=True).click()
+            expect(page.get_by_text("The ultimate cross-platform music tagger for DJs", exact=True)).to_be_visible()
+            self.assertEqual(backend.saves()[0], backend.saves()[1])
+
+    def test_unrelated_save_acknowledgement_cannot_clear_pending_edits(self):
+        with self.session() as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            backend.hold_saves = True
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_role("status")).to_have_text("Saving changes…")
+            ws, data = backend.pending_saves[0]
+            unrelated = backend.save_response(data)
+            unrelated["requestId"] = "some-other-request"
+            ws.send(json.dumps(unrelated))
+            backend.acknowledge_next_save(False)
+            expect(page.get_by_role("alert")).to_contain_text("Your edits are retained")
+            expect(page.get_by_text("Tags written!", exact=True)).not_to_be_visible()
+            backend.hold_saves = False
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_text("Tags written!", exact=True)).to_be_visible()
+            self.assertEqual(backend.saves()[0], backend.saves()[1])
+
+    def test_disconnect_before_acknowledgement_preserves_editor_values(self):
+        with self.session() as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            backend.hold_saves = True
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_role("status")).to_have_text("Saving changes…")
+            backend.pending_saves[0][0].close()
+            expect(page.get_by_role("alert")).to_contain_text("Your edits are retained")
+            expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
+            expect(page.get_by_text("Tags written!", exact=True)).not_to_be_visible()
+            page.get_by_role("dialog").filter(has_text="WebSocket closed!").get_by_role("button", name="OK", exact=True).click()
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_role("alert")).to_contain_text("the connection is closed")
+            expect(page.get_by_role("status")).to_have_count(0)
+            expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
+            self.assertEqual(len(backend.saves()), 1)
+
+    def test_unsaved_track_switch_requires_explicit_discard_without_autosave(self):
+        with self.session() as (page, backend):
+            self.open_editor(page)
+            self.edit_title(page)
+            self.select_other_track(page)
+            dialog = page.get_by_role("dialog").filter(has_text="Unsaved changes")
+            expect(dialog).to_be_visible()
+            dialog.get_by_role("button", name="Cancel", exact=True).click()
+            expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
+            self.select_other_track(page)
+            dialog.get_by_role("button", name="Discard changes", exact=True).click()
+            expect(page.locator(".text-center.monospace")).to_have_text("Another track.flac")
+            self.assertEqual(backend.saves(), [])
 
     def test_minimum_window_warning_recovers_after_resize(self):
         with self.session() as (page, _):
