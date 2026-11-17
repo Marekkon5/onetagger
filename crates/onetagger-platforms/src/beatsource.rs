@@ -1,11 +1,10 @@
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use chrono::NaiveDate;
 use reqwest::blocking::Client;
-use scraper::{Html, Selector};
-use serde_json::Value;
 use serde::{Serialize, Deserialize};
+use serde_json::json;
 
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, TrackMatch};
 
@@ -19,21 +18,44 @@ impl Beatsource {
     pub fn new(token_manager: BeatsourceTokenManager) -> Beatsource {
         Beatsource {
             client: Client::builder()
-                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
+                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
+                .timeout(Duration::from_secs(60))
                 .build()
                 .unwrap(),
             token_manager
         }
     }
 
+    /// Strip ALL parentheses to prevent Beatsource API 403/400 decoding errors
+    pub fn clear_search_query(query: &str) -> String {
+        query
+            .replace("(", " ")
+            .replace(")", " ")
+            .replace("[", " ")
+            .replace("]", " ")
+            .replace(",", " ")
+            .replace("Ft.", "")
+            .replace("ft.", "")
+            .replace(" Ft ", " ")
+            .replace(" ft ", " ")
+            .replace(" feat. ", " ")
+            .replace(" feat ", " ")
+            .replace("  ", " ")
+            .trim()
+            .to_string()
+    }
+
     /// Search for tracks
     pub fn search(&self, query: &str) -> Result<BeatsourceSearchResponse, Error> {
+        // Run the query through the cleaner before sending it to the API
+        let safe_query = Self::clear_search_query(query);
+
         let res: BeatsourceSearchResponse = self.client.get("https://api.beatsource.com/v4/catalog/search")
             .query(&[
-                ("pubper_page", "100"),
+                ("per_page", "100"), // Fixed typo from pubper_page
                 ("page", "1"),
                 ("type", "tracks"),
-                ("q", query)
+                ("q", safe_query.as_str()) // Use the cleaned query here
             ])
             .bearer_auth(self.token_manager.token()?)
             .send()?
@@ -63,8 +85,6 @@ impl AutotaggerSource for Beatsource {
     fn extend_track(&mut self, _track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         Ok(())
     }
-
-    
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,6 +186,12 @@ pub struct BeatsourceToken {
     pub expires: u128
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BeatsourceOAuth {
+    pub access_token: String,
+    pub expires_in: u128
+}
+
 /// Manages the OAuth token
 #[derive(Debug, Clone)]
 pub struct BeatsourceTokenManager {
@@ -177,7 +203,8 @@ impl BeatsourceTokenManager {
     /// Create new instance and fetch token
     pub fn new() -> BeatsourceTokenManager {
         let client = Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
+            .timeout(Duration::from_secs(60))
             .build()
             .unwrap();
         BeatsourceTokenManager {
@@ -204,21 +231,25 @@ impl BeatsourceTokenManager {
         Ok(code)
     }
 
-    /// Fetch token from homepage
+    /// Fetch token via API directly
     fn fetch_token(&self) -> Result<BeatsourceToken, Error> {
         debug!("Updating Beatsource token!");
-        let body = self.client.get("https://www.beatsource.com").send()?.text()?;
-        let document = Html::parse_document(&body);
-        let selector = Selector::parse("script#__NEXT_DATA__").unwrap();
-        let elem = document.select(&selector).next().ok_or(anyhow!("Missing __NEXT_DATA__"))?;
-        let text = elem.text().collect::<Vec<_>>().join("");
-        let json: Value = serde_json::from_str(&text)?;
-        let token = json["props"]["rootStore"]["authStore"]["user"]["access_token"].as_str().ok_or(anyhow!("Missing access_token"))?;
-        let expires = json["props"]["rootStore"]["authStore"]["user"]["expires_in"].as_u64().unwrap();
-        debug!("New Beatsource token: {}", token);
+        
+        // Beatsource and Beatport share the same account API. 
+        // We can safely request an OAuth token using the embed client_credentials.
+        let response: BeatsourceOAuth = self.client.post("https://account.beatport.com/o/token/")
+            .form(&json!({
+                "client_id": "2tiTbKxmQFwnbFjMONU4k7njMRZmV3ZMwRBndiZs",
+                "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
+                "grant_type": "client_credentials"
+            }))
+            .send()?
+            .json()?;
+
+        debug!("New Beatsource token retrieved.");
         Ok(BeatsourceToken {
-            token: token.to_string(),
-            expires: timestamp!() + expires as u128 - 100
+            token: response.access_token,
+            expires: response.expires_in * 1000 + timestamp!() - 10_000
         })
     }
 }
@@ -246,7 +277,7 @@ impl AutotaggerSourceBuilder for BeatsourceBuilder {
             description: "Overall more specialized in open-format (Hip Hop/Latin/Dancehall)".to_string(),
             icon: include_bytes!("../assets/beatsource.png"),
             max_threads: 0,
-            version: "1.0.0".to_string(),
+            version: "1.0.1".to_string(),
             requires_auth: false,
             supported_tags: supported_tags!(Title, Version, Artist, Album, Key, BPM, Genre, AlbumArt, URL, Label, CatalogNumber, TrackId, ReleaseId, Duration, Remixer, ReleaseDate, ISRC),
             custom_options: PlatformCustomOptions::new()

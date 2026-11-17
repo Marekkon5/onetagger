@@ -167,22 +167,35 @@ pub fn start_webview() -> Result<(), Error> {
 
     // Windows webview2 does NOT support custom DnD, janky workaround
     if cfg!(target_os = "windows") {
-        // Handler
-        let proxy = proxy.clone();
-        let handle_url = move |url: String| -> bool {
-            debug!("Navigation/NewWindow to: {url}");
+        // Navigation handler only requires url string tracking
+        let p_nav = proxy.clone();
+        let handle_nav = move |url: String| -> bool {
+            debug!("Navigation to: {url}");
             if url.starts_with("file://") {
                 let url = url.replace("file:///", "");
                 let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
-                proxy.send_event(CustomWindowEvent::DropFolder(path.into())).ok();
+                p_nav.send_event(CustomWindowEvent::DropFolder(path.into())).ok();
                 return false;
             }
             true
         };
+
+       // New window handler requires url tracking and window properties context
+        let p_win = proxy.clone();
+        let handle_new_window = move |url: String, _: _| -> wry::NewWindowResponse {
+            debug!("NewWindow requested to: {url}");
+            if url.starts_with("file://") {
+                let url = url.replace("file:///", "");
+                let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
+                p_win.send_event(CustomWindowEvent::DropFolder(path.into())).ok();
+                return wry::NewWindowResponse::Deny; // Changed from Ignore
+            }
+            wry::NewWindowResponse::Allow // Changed from Handled
+        };
         
-        // Register
-        webview = webview.with_navigation_handler(handle_url.clone());
-        webview = webview.with_new_window_req_handler(handle_url);
+        // Register separated handlers built for Wry 0.55 architecture
+        webview = webview.with_navigation_handler(handle_nav);
+        webview = webview.with_new_window_req_handler(handle_new_window);
     }
 
     // Handle dropped folders (for all other than Windows)
@@ -190,7 +203,11 @@ pub fn start_webview() -> Result<(), Error> {
         webview = webview.with_drag_drop_handler(move |event| {
             match event {
                 DragDropEvent::Drop { mut paths, .. } => {
-                    if paths.len() > 1 || paths.is_empty() {
+                    // Ignore empty drops (internal drag operations like vuedraggable)
+                    if paths.is_empty() {
+                        return false;
+                    }
+                    if paths.len() > 1 {
                         warn!("Drop only 1 path!");
                         return true;
                     }

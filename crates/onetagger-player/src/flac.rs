@@ -30,7 +30,7 @@ impl AudioSource for FLACSource {
     }
 
     // Get rodio decoder
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = f32> + Send>, Error> {
         Ok(Box::new(Decoder::new_flac(BufReader::new(File::open(&self.path)?))?))
     }
 }

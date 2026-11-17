@@ -205,7 +205,10 @@ class OneTagger {
                 // De duplicate failed
                 var i = this.taggerStatus.value.statuses.findIndex((s) => s[0].status.path == json.status.status.path)
                 if (i != -1) {
-                    this.taggerStatus.value.statuses[i].push(json.status);
+                    // Move updated file to the front so "newest first" means last updated
+                    const entry = this.taggerStatus.value.statuses.splice(i, 1)[0];
+                    entry.push(json.status);
+                    this.taggerStatus.value.statuses.unshift(entry);
                     return;
                 }
                 this.taggerStatus.value.statuses.unshift([json.status]);

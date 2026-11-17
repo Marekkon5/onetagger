@@ -1,6 +1,5 @@
 use anyhow::Error;
 use mp4parse::{SampleEntry, CodecType};
-use rodio::decoder::Mp4Type;
 use std::io::BufReader;
 use std::fs::File;
 use std::path::{PathBuf, Path};
@@ -42,7 +41,7 @@ impl AudioSource for MP4Source {
         self.duration
     }
 
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
+    fn get_source(&self) -> Result<Box<dyn Source<Item = f32> + Send>, Error> {
         // ALAC MP4
         if self.alac {
             let alac = ALACSource::new(&self.path)?;
@@ -50,7 +49,7 @@ impl AudioSource for MP4Source {
         }
         
         // Symphonia 
-        let decoder = Decoder::new_mp4(BufReader::new(File::open(&self.path)?), Mp4Type::M4a)?;
+        let decoder = Decoder::new_mp4(BufReader::new(File::open(&self.path)?))?;
         return Ok(Box::new(decoder));
         
     }
