@@ -36,7 +36,7 @@ fn album_tagging_preserves_unselected_neighbours_and_deduplicates_selection() {
     let mut context = AlbumTagContext::new();
     context.init(&[selected.clone(), selected.clone()]);
     let files = &context.folders.get(dir.path()).unwrap().files;
-    assert_eq!(files, &[selected.clone()]);
+    assert_eq!(files, std::slice::from_ref(&selected));
     let mut source: Box<dyn AutotaggerSource> = Box::new(AlbumSource);
     let config = TaggerConfig { tags: vec![SupportedTag::Genre], ..Default::default() };
     let statuses = Tagger::tag_album(files, "album", &mut source, &config).unwrap();
@@ -54,7 +54,7 @@ fn selected_file_without_album_match_reports_error_without_panicking_or_writing(
     mp3(&path, None);
     let original = fs::read(&path).unwrap();
     let mut source: Box<dyn AutotaggerSource> = Box::new(AlbumSource);
-    let statuses = Tagger::tag_album(&[path.clone()], "album", &mut source, &TaggerConfig::default()).unwrap();
+    let statuses = Tagger::tag_album(std::slice::from_ref(&path), "album", &mut source, &TaggerConfig::default()).unwrap();
     assert_eq!(statuses.len(), 1);
     assert_eq!(statuses[0].status, TaggingState::Error);
     assert!(statuses[0].message.as_ref().unwrap().contains("No album match"));
@@ -77,7 +77,7 @@ fn provider_fallback_success_cannot_enter_failed_moves_or_failed_playlist() {
     }
     // Exercise the same failed-file move input as the batch finalizer.
     for failed in &results.failed {
-        Tagger::move_file(failed, &dir.path().join("failed")).unwrap();
+        Tagger::move_file(failed, dir.path().join("failed")).unwrap();
     }
     assert_eq!(results.successful.into_iter().collect::<Vec<_>>(), vec![path.clone()]);
     assert!(results.failed.is_empty());
@@ -139,8 +139,14 @@ fn artwork_response(status: &str, body: Vec<u8>) -> (String, std::thread::JoinHa
     let server = std::thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
         stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
-        let mut request = [0; 4096];
-        stream.read(&mut request).unwrap();
+        let mut request = Vec::new();
+        let mut buffer = [0; 1024];
+        while !request.ends_with(b"\r\n\r\n") {
+            let count = stream.read(&mut buffer).unwrap();
+            assert!(count > 0, "Connection closed before the request headers");
+            request.extend_from_slice(&buffer[..count]);
+            assert!(request.len() <= 16384, "Unexpectedly large fixture request");
+        }
         stream.write_all(response.as_bytes()).unwrap();
         stream.write_all(&body).unwrap();
     });
