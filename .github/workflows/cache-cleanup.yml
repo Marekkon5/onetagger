@@ -1,0 +1,34 @@
+name: Clean closed PR Rust caches
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List eligible caches without deleting them
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+concurrency:
+  group: closed-pr-cache-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Only trusted default-branch code runs with actions:write. Never check out
+      # the PR head or merge ref, and never execute code from a cached artifact.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/master
+          persist-credentials: false
+      - name: Remove only Rust caches belonging to closed pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOSED_PR: ${{ github.event.pull_request.number }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: python3 ci/cache_cleanup.py

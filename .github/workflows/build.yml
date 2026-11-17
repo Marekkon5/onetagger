@@ -32,12 +32,14 @@ jobs:
           python3 ci/release_tools.py check
       - name: Validate locked Rust dependency graph
         run: cargo metadata --locked --format-version 1 > /dev/null
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: '10.11.0'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
       - name: Build and typecheck locked frontend
         run: |
           pnpm --dir client install --frozen-lockfile
@@ -47,6 +49,41 @@ jobs:
           name: frontend
           path: client/dist/
           if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+  ui:
+    name: Browser UI tests
+    needs: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend
+          path: client/dist
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ci/ui/requirements.txt
+      - name: Install pinned browser test dependencies
+        run: |
+          python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
+          python -m pip check
+          python -m playwright install --with-deps chromium firefox webkit
+      - name: Exercise the production frontend in three browser engines
+        run: python ci/ui/ui_smoke.py
+      - name: Upload UI screenshots and failure traces
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-test-results
+          path: ui-test-results/
+          if-no-files-found: warn
           retention-days: 7
           overwrite: true
 
@@ -220,12 +257,13 @@ jobs:
   checks:
     name: Required checks
     if: always()
-    needs: [frontend, build, release-assets]
+    needs: [frontend, ui, build, release-assets]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every platform to pass
         env:
           FRONTEND: ${{ needs.frontend.result }}
+          UI: ${{ needs.ui.result }}
           BUILD: ${{ needs.build.result }}
           RELEASE_ASSETS: ${{ needs.release-assets.result }}
-        run: test "$FRONTEND" = success && test "$BUILD" = success && test "$RELEASE_ASSETS" = success
+        run: test "$FRONTEND" = success && test "$UI" = success && test "$BUILD" = success && test "$RELEASE_ASSETS" = success

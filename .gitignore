@@ -17,3 +17,5 @@ assets/vc_redist.x64.exe
 perf.data
 perf.data.old
 flamegraph.svg
+
+ui-test-results/
