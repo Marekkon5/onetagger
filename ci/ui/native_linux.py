@@ -56,6 +56,10 @@ def main():
                 deadline = time.monotonic()+15
                 while True:
                     try:
+                        # WebKit's automatic top alignment can put the target
+                        # underneath the fixed navigation bar. Center it first;
+                        # the action itself still uses native pointer input.
+                        script("document.querySelector(arguments[0])?.scrollIntoView({block:'center',inline:'center'});", selector)
                         element = command('/element', {'using':'css selector', 'value':selector})
                         identity = element['element-6066-11e4-a52e-4f735466cecf']
                         command('/element/'+identity+'/click', {})
@@ -85,12 +89,17 @@ def main():
                     click('a[href="#/autotagger"]')
                     wait("return document.querySelectorAll('.card .q-checkbox').length > 0")
                     for _ in range(10):
+                        before = script("return document.querySelector('.card .q-checkbox').getAttribute('aria-checked')")
                         click('.card .q-checkbox')
+                        wait("return document.querySelector('.card .q-checkbox').getAttribute('aria-checked') !== arguments[0]",before)
                     click('.q-stepper__tab:nth-child(2)')
                     wait("return !!document.querySelector('input[aria-label=\"Path\"]')")
                     script("const e=document.querySelector('input[aria-label=\"Path\"]'); e.value=arguments[0]; e.dispatchEvent(new Event('input',{bubbles:true}));",str(music))
                     for _ in range(6):
-                        click('.q-stepper__step-content .q-checkbox')
+                        selector = '.tags .q-checkbox:not([aria-disabled="true"])'
+                        before = script("return document.querySelector(arguments[0]).getAttribute('aria-checked')",selector)
+                        click(selector)
+                        wait("return document.querySelector(arguments[0]).getAttribute('aria-checked') !== arguments[1]",selector,before)
                     click('.q-stepper__tab:nth-child(4)')
                     wait("return document.body.innerText.includes('Miscellaneous options')")
                     click('a[href="#/"]')

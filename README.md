@@ -89,7 +89,9 @@ See [development and validation](docs/DEVELOPMENT.md) for the GitHub Actions pip
 
 [rekordbox Migration Helper · Library Workbench](https://github.com/fantuz/rekordbox-migration-helper) complements OneTagger with library inspection, duplicate review and migration preparation for rekordbox collections.
 
-Its [OneTagger bridge](https://github.com/fantuz/rekordbox-migration-helper/blob/main/docs/AUDIO-MATCHING-AND-ONETAGGER.md#onetagger-handoff) exports an M3U selection of local music files for tagging in OneTagger, then rescans their tags so you can review and stage selected metadata changes. Run both tools on the same computer for this handoff. OneTagger writes the audio-file tags; the bridge stages approved fields in Workbench while preserving personal stars, cues and original file references.
+Its [OneTagger bridge](https://github.com/fantuz/rekordbox-migration-helper/blob/main/docs/AUDIO-MATCHING-AND-ONETAGGER.md#onetagger-handoff) exports a JSON selection manifest or M3U of local music files. Load the manifest in **Auto tag → Input & Tags** to save a results JSON with before/after tags and provider evidence, then import it into the same Helper selection for review. The Helper independently verifies the files and stages only the fields you select. [Bridge instructions and report format](docs/ONETAGGER-RESULTS.md).
+
+Run both tools on the same computer. OneTagger writes the audio-file tags; the bridge stages approved fields in Workbench while preserving personal stars, cues and original file references. The original tag-rescan workflow remains available.
 
 ## Preview and tutorials
 

@@ -196,7 +196,7 @@ impl ReportBuilder {
                 row.status = outcome.into();
             }
             row.attempts.push(Attempt { provider: provider.into(), track_id: status.track_id.clone(),
-                release_id: status.release_id.clone(), status: outcome.into(), score: status.accuracy.filter(|s| s.is_finite()),
+                release_id: status.release_id.clone(), status: outcome.into(), score: status.accuracy.filter(|s| s.is_finite() && (0.0..=1.0).contains(s)),
                 reason: status.reason, used_shazam: status.used_shazam });
         }
     }
@@ -240,6 +240,14 @@ impl Report {
 mod tests {
     use super::*;
     use crate::regression_tests::status;
+
+    #[test]
+    fn serialized_contract_matches_the_helper_fixture() {
+        let data = include_str!("../../../docs/fixtures/onetagger-results-v1.json");
+        let report: Report = serde_json::from_str(data).unwrap();
+        let original: serde_json::Value = serde_json::from_str(data).unwrap();
+        assert_eq!(serde_json::to_value(report).unwrap(), original);
+    }
 
     fn audio(path: &Path, title: &str) {
         fs::write(path, [0u8; 64]).unwrap();

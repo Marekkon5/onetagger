@@ -7,8 +7,9 @@
             class='q-mt-sm' @update:model-value='loadSelection' />
         <div v-if='$1t.taggingSelection.value' class='text-caption text-primary q-mt-sm'>
             {{$1t.taggingSelection.value.tracks.length}} selected library tracks. This selection supplies the input files. Disable file moves before starting.
+            <q-btn flat dense label='Clear Helper selection' @click='clearSelection' />
         </div>
-        <div v-if='error' role='alert' class='text-negative q-mt-sm'>{{error}}</div>
+        <div v-if='$1t.selectionError.value' role='alert' class='text-negative q-mt-sm'>{{$1t.selectionError.value}}</div>
     </div>
 </template>
 
@@ -17,11 +18,12 @@ import { ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
 const $1t = get1t();
 const file = ref<File | null>(null);
-const error = ref('');
 let generation = 0;
+function clearSelection() { file.value = null; void loadSelection(null); }
 async function loadSelection(value: File | null) {
     const current = ++generation;
-    error.value = ''; $1t.taggingSelection.value = null;
+    $1t.selectionError.value = ''; $1t.taggingSelection.value = null;
+    $1t.selectionLoading.value = !!value;
     if (!value) return;
     try {
         if (value.size > 2 * 1024 * 1024) throw new Error('Selection manifest exceeds 2 MiB');
@@ -32,7 +34,9 @@ async function loadSelection(value: File | null) {
         $1t.taggingSelection.value = selection;
         $1t.saveTaggingReport.value = true;
     } catch (e) {
-        if (current === generation) error.value = e instanceof Error ? e.message : String(e);
+        if (current === generation) $1t.selectionError.value = e instanceof Error ? e.message : String(e);
+    } finally {
+        if (current === generation) $1t.selectionLoading.value = false;
     }
 }
 </script>

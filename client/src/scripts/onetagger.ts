@@ -27,6 +27,8 @@ class OneTagger {
     taggerStatus: Ref<TaggerStatus> = ref(new TaggerStatus());
     autoTaggerPlaylist: Ref<Playlist> = ref({});
     saveTaggingReport = ref(false);
+    selectionError = ref('');
+    selectionLoading = ref(false);
     taggingSelection: Ref<{schema: number; id: string; tracks: {track_id: string; local_path: string}[]} | null> = ref(null);
     manualTag: Ref<ManualTag> = ref(new ManualTag());
 
