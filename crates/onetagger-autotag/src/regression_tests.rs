@@ -95,3 +95,90 @@ fn repeated_provider_failures_have_one_final_failure_and_skips_stay_separate() {
     assert!(results.successful.is_empty());
     assert_eq!(results.failed.into_iter().collect::<Vec<_>>(), vec![failed.to_path_buf()]);
 }
+
+fn atom(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+    let mut bytes = ((data.len() + 8) as u32).to_be_bytes().to_vec();
+    bytes.extend(kind);
+    bytes.extend(data);
+    bytes
+}
+
+fn mp4_with_cover(path: &Path) -> Vec<u8> {
+    // Minimal ISO-BMFF metadata container plus a sentinel media payload. The test
+    // exercises MP4 tag parsing/writing, not decoding or playback.
+    let mut metadata = vec![0; 4];
+    metadata.extend(atom(b"ilst", &[]));
+    let mut bytes = atom(b"ftyp", b"M4A \0\0\0\0M4A isom");
+    bytes.extend(atom(b"moov", &atom(b"udta", &atom(b"meta", &metadata))));
+    bytes.extend(atom(b"mdat", b"preserve-media-payload"));
+    fs::write(path, bytes).unwrap();
+    let old_cover = b"existing artwork bytes".to_vec();
+    let mut tag = Tag::load_file(path, false).unwrap();
+    tag.tag_mut().set_art(CoverType::CoverFront, "image/jpeg", Some("Original"), old_cover.clone());
+    tag.tag_mut().save_file(path).unwrap();
+    old_cover
+}
+
+fn artwork_response(status: &str, body: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
+    use std::net::TcpListener;
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/cover", listener.local_addr().unwrap());
+    let response = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+        let mut request = [0; 4096];
+        stream.read(&mut request).unwrap();
+        stream.write_all(response.as_bytes()).unwrap();
+        stream.write_all(&body).unwrap();
+    });
+    (url, server)
+}
+
+#[test]
+fn failed_or_invalid_mp4_artwork_download_preserves_existing_cover() {
+    for (http_status, body) in [("404 Not Found", vec![]), ("200 OK", vec![b'x'; 5000])] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.m4a");
+        let old_cover = mp4_with_cover(&path);
+        let (url, server) = artwork_response(http_status, body);
+        let track = Track { title: "Updated title".into(), art: Some(url), ..Default::default() };
+        let config = TaggerConfig { tags: vec![SupportedTag::Title, SupportedTag::AlbumArt],
+            overwrite: true, remove_all_covers: true, ..Default::default() };
+        track.write_to_file(&path, &config).unwrap();
+        server.join().unwrap();
+        let tag = Tag::load_file(&path, false).unwrap();
+        assert_eq!(tag.tag().get_art().len(), 1);
+        assert_eq!(tag.tag().get_art()[0].data, old_cover);
+        assert_eq!(tag.tag().get_field(Field::Title).unwrap(), vec!["Updated title"]);
+        assert!(fs::read(path).unwrap().windows(22).any(|w| w == b"preserve-media-payload"));
+    }
+}
+
+#[test]
+fn valid_mp4_artwork_replaces_old_cover_after_validation() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("track.m4a");
+    let old_cover = mp4_with_cover(&path);
+    let mut seed = 0x12345678u32;
+    let image = image::RgbImage::from_fn(128, 128, |_, _| {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        image::Rgb([seed as u8, (seed >> 8) as u8, (seed >> 16) as u8])
+    });
+    let mut body = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgb8(image).write_to(&mut body, image::ImageFormat::Png).unwrap();
+    assert!(body.get_ref().len() >= 4096);
+    let (url, server) = artwork_response("200 OK", body.into_inner());
+    let track = Track { art: Some(url), ..Default::default() };
+    let config = TaggerConfig { tags: vec![SupportedTag::AlbumArt], overwrite: true, ..Default::default() };
+    track.write_to_file(&path, &config).unwrap();
+    server.join().unwrap();
+    let tag = Tag::load_file(&path, false).unwrap();
+    let pictures = tag.tag().get_art();
+    assert_eq!(pictures.len(), 1);
+    assert_ne!(pictures[0].data, old_cover);
+    assert_eq!(image::guess_format(&pictures[0].data).unwrap(), image::ImageFormat::Jpeg);
+    assert_eq!(image::load_from_memory(&pictures[0].data).unwrap().width(), 128);
+}

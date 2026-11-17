@@ -90,14 +90,6 @@ impl TrackImpl for Track {
                 }
             }
         }
-        // MP4 Album art override
-        if let Tag::MP4(mp4) = &mut tag_wrap {
-            // Has art
-            if (config.overwrite_tag(SupportedTag::AlbumArt) || mp4.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
-                mp4.remove_all_artworks();
-            }
-        }
-        
         let tag = tag_wrap.tag_mut();
         // Set tags
         if config.tag_enabled(SupportedTag::Title) {
@@ -275,30 +267,31 @@ impl TrackImpl for Track {
             tag.set_explicit(self.explicit.unwrap());
         }
 
-        // Album art
+        // Download and validate before removing anything from the existing tag.
         let mut cover_data = None;
-        if (config.overwrite_tag(SupportedTag::AlbumArt) || tag.get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
+        if (config.overwrite_tag(SupportedTag::AlbumArt) || tag_wrap.tag().get_art().is_empty()) && self.art.is_some() && config.tag_enabled(SupportedTag::AlbumArt) {
             info!("Downloading art: {:?}", self.art);
             match self.download_art(self.art.as_ref().unwrap()) {
-                Ok(data) => {
-                    match data {
-                        Some(data) => {
-                            // Remove covers
-                            if config.remove_all_covers {
-                                for t in CoverType::types() {
-                                    tag.remove_art(t);
-                                }
-                            }
-
-                            tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
-                            cover_data = Some(data);
-                        },
-                        None => warn!("Invalid album art!")
-                    } 
-                },
-                Err(e) => warn!("Error downloading album art! {}", e)
+                Ok(Some(data)) => {
+                    // MP4 artwork kinds are synthetic indexes; replace the collection
+                    // only after a usable replacement is available.
+                    if let Tag::MP4(mp4) = &mut tag_wrap {
+                        mp4.remove_all_artworks();
+                    }
+                    let tag = tag_wrap.tag_mut();
+                    if config.remove_all_covers {
+                        for kind in CoverType::types() {
+                            tag.remove_art(kind);
+                        }
+                    }
+                    tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
+                    cover_data = Some(data);
+                }
+                Ok(None) => warn!("Invalid album art; existing artwork preserved"),
+                Err(e) => warn!("Error downloading album art; existing artwork preserved: {e}"),
             }
         }
+        let tag = tag_wrap.tag_mut();
 
         // Meta tags (date / success)
         if config.tag_enabled(SupportedTag::MetaTags) {
@@ -355,7 +348,16 @@ impl TrackImpl for Track {
             }
         }
        
-        Ok(Some(response.bytes()?.to_vec()))
+        let data = response.bytes()?.to_vec();
+        // Reject truncated/non-image responses and keep the embedded MIME and .jpg
+        // sidecar consistent when a provider returns PNG or another image format.
+        let decoded = image::load_from_memory(&data)?;
+        if image::guess_format(&data)? == image::ImageFormat::Jpeg {
+            return Ok(Some(data));
+        }
+        let mut jpeg = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgb8(decoded.into_rgb8()).write_to(&mut jpeg, image::ImageFormat::Jpeg)?;
+        Ok(Some(jpeg.into_inner()))
     }
 
     /// Merge styles by config
