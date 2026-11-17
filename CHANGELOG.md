@@ -1,11 +1,16 @@
 ## Unreleased (fantuz fork)
 
+## 1.7.2 — 2026-11-17
+
 - Keep album tagging within the selected playlist/file set, including when neighbouring tracks share the same folder.
 - Keep final success/failure results disjoint across provider fallbacks, preventing successful tracks from entering failed-file moves or playlists.
 - Preserve existing MP4/M4A artwork when a replacement download is unavailable or invalid; validate downloaded images before replacing covers.
 - Retain editor changes until the matching save acknowledgement, preserve failed edits for retry, and wait for successful autosave before switching tracks or pages.
 - Allow first-time ID3 saves in the tag editor while continuing to reject corrupt tags and I/O errors.
-- Add backend file-integrity regressions and browser tests for failed/delayed saves, retries, disconnects and navigation.
+- Add backend file-integrity regressions and 45 browser test executions across Chromium, Firefox and WebKit, covering session handling, editing, failed/delayed saves, retries, disconnects and navigation.
+- Refresh locked Rust/frontend dependencies, including Wry, scraper, Quasar and vue-tsc; adopt TypeScript 6 with bundler module resolution and compatible editor payload types.
+- Reuse pnpm and Python package caches and automatically remove Rust caches belonging to closed pull requests.
+- Refresh README badges and platform download links, document the rekordbox Migration Helper handoff, and update build/security audit credits.
 
 ## 1.7.1 — 2026-11-16
 
