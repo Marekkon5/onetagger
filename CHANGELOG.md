@@ -1,10 +1,19 @@
 ## Unreleased (fantuz fork)
 
-- Add opt-in results JSON with actual before/after tags, provider evidence and exact Helper selection identity; expose it in AutoTagger and the CLI for reviewed imports into rekordbox Migration Helper.
+## 1.7.3 — 2026-11-17
+
+- Add opt-in tagging-results JSON in AutoTagger and the CLI, recording actual before/after tags, provider attempts and file identity for reviewed imports into rekordbox Migration Helper.
+- Accept Helper selection manifests to keep tagging within the selected files and preserve the selection identity in the report.
+- Extend negotiated version-2 reports with stored label and composer metadata. Older selection manifests retain the original five-field version-1 report; this does not add automatic composer lookup by providers.
 - Acknowledge Stop requests, show stopping/stopped states, preserve partial progress and ignore updates after completion. Keep blocking progress reception off the async runtime and prevent overlapping browser runs from resetting cancellation.
-- Recheck cancellation after provider lookups and before tag writes; skip queued album work after Stop. Already-running requests and writes may need to finish.
+- Recheck cancellation after provider lookups and before tag writes, and skip queued album work after Stop. Already-running requests and writes may need to finish.
+- Filter successful paths once per provider batch, reducing repeated scans while preserving provider fallback and multiplatform behavior.
 - Use stable provider IDs for draggable cards and keep checkbox clicks out of drag gestures.
-- Exercise report exchange and cancellation in browser/Rust regressions, and add a real Linux executable/WebKitGTK control test in GitHub Actions.
+- Verify the real producer-to-importer round trip on GitHub, including MP3/M4A, duplicate selected IDs, provider fallback, legacy reports, cancellation and stale-file rejection. Keep the Helper importer revision pinned.
+- Expand browser regression coverage to 60 test executions across Chromium, Firefox and WebKit, including mouse/keyboard controls and cancellation. Exercise the actual Linux executable through WebKitGTK with three navigation cycles and 48 checkbox toggles; stabilize the native test's scrolling around page transitions and fixed navigation.
+- Add the README credit: Build pipelines and security audit by Massimiliano Fantuzzi.
+
+Native Linux CI uses a virtual display and does not establish a fix for every Wayland/GPU-specific freeze. Results reports support reviewed Helper imports; they do not directly update a live rekordbox database.
 
 ## 1.7.2 — 2026-11-17
 

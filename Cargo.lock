@@ -3591,7 +3591,7 @@ checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 
 [[package]]
 name = "onetagger"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -3646,7 +3646,7 @@ dependencies = [
 
 [[package]]
 name = "onetagger-cli"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -3730,7 +3730,7 @@ dependencies = [
 
 [[package]]
 name = "onetagger-shared"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "anyhow",
  "backtrace",
