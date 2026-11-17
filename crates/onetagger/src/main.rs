@@ -178,7 +178,13 @@ pub fn start_webview(launch_url: &str) -> Result<(), Error> {
         
         // Register
         webview = webview.with_navigation_handler(handle_url.clone());
-        webview = webview.with_new_window_req_handler(handle_url);
+        webview = webview.with_new_window_req_handler(move |url, _features| {
+            if handle_url(url) {
+                wry::NewWindowResponse::Allow
+            } else {
+                wry::NewWindowResponse::Deny
+            }
+        });
     }
 
     // Handle dropped folders (for all other than Windows)

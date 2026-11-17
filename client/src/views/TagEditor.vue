@@ -97,7 +97,7 @@
 
         <!-- Tags -->
         <div 
-            :class='{"col-8": !$1t.settings.value.tagEditorDouble, "col-6": $1t.settings.value.tagEditorDouble}'
+            :class='{"col-8": !doubleLayout, "col-6": doubleLayout}'
             style='max-height: 100%; overflow-y: scroll;'>
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 
@@ -108,7 +108,7 @@
             <div v-if='file' class='q-px-md'>
                 <div class='text-center q-py-md text-subtitle2 text-grey-5 monospace'>{{file.filename}}</div>
                 <div class='q-mt-md'>
-                    <div v-for='(tag, i) in Object.keys(file.tags)' :key='i' class='row q-my-sm'>
+                    <div v-for='tag in tagNames' :key='tag' class='row q-my-sm'>
                         <div class='col-3 text-body2 text-uppercase text-primary text-weight-medium q-mt-sm q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
                             
                             <span v-if='ABSTRACTIONS[tag]'><span class='text-uppercase text-primary text-weight-medium'>{{ABSTRACTIONS[tag]}} </span><span class="text-grey-4 monospace text-caption"> {{tag}}</span></span>
@@ -153,7 +153,7 @@
                     </q-btn>
                 </div>
                 <div class='text-grey-4 albumart-container text-center'>
-                    <div v-for='(image, i) in file.images' :key='"art"+i' class='q-mr-md'>
+                    <div v-for='(image, i) in images' :key='"art"+i' class='q-mr-md'>
                         <!-- <q-img :src='image.data' class='albumart clickable' @click='albumArt = image.data; showAlbumArt = true'></q-img>
                         <div class='q-pt-sm q-mb-md'>
                             <div v-if='file.format != "mp4"' class='text-caption'>{{image.kind}}</div>
@@ -180,7 +180,7 @@
                         </q-btn>
                     </div>
                     <div>
-                        <div v-for='(comment, i) in file.id3.comments' :key='"comm"+i' class='row q-py-sm'>
+                        <div v-for='(comment, i) in comments' :key='"comm"+i' class='row q-py-sm'>
                             <q-input
                                 filled
                                 dense
@@ -222,7 +222,7 @@
                         </q-btn>
                     </div>
                     <div>
-                        <div v-for='(lyric, i) in file.id3.unsync_lyrics' :key='"uslt"+i' class='q-py-sm'>
+                        <div v-for='(lyric, i) in unsyncLyrics' :key='"uslt"+i' class='q-py-sm'>
                             <div class='row'>
                                 <q-input
                                     filled
@@ -363,6 +363,7 @@ import TagField from '../components/TagField.vue';
 import AddAlbumArt from '../components/AddAlbumArt.vue';
 import draggable from 'vuedraggable';
 import { ABSTRACTIONS } from '../scripts/tags';
+import type { ID3Comment, TagEditorImage } from '../scripts/tags';
 import { computed, onDeactivated, onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { useQuasar } from 'quasar';
@@ -375,6 +376,12 @@ const path = ref($1t.settings.value.path);
 const files = ref<any[]>([]);
 const originalFiles = ref<any[]>([]);
 const file = ref<any>(undefined);
+// Keep template iteration typed even though WebSocket events are dynamically decoded.
+const tagNames = computed<string[]>(() => Object.keys(file.value?.tags ?? {}));
+const images = computed<TagEditorImage[]>(() => file.value?.images ?? []);
+const comments = computed<ID3Comment[]>(() => file.value?.id3?.comments ?? []);
+const unsyncLyrics = computed<ID3Comment[]>(() => file.value?.id3?.unsync_lyrics ?? []);
+const doubleLayout = computed(() => $1t.settings.value.tagEditorDouble);
 const filter = ref<any>(undefined);
 const changes = ref<any[]>([]);
 const newTag = ref<any>(undefined);

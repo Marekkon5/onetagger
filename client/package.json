@@ -12,7 +12,7 @@
     "@quasar/extras": "1.16.16",
     "axios": "1.21.1",
     "compare-versions": "6.1.1",
-    "quasar": "2.32.2",
+    "quasar": "2.35.4",
     "vue": "3.5.45",
     "vue-router": "4.6.4",
     "vuedraggable": "4.1.0"
@@ -24,7 +24,7 @@
     "sass": "1.108.2",
     "typescript": "5.7.3",
     "vite": "6.4.5",
-    "vue-tsc": "3.0.5"
+    "vue-tsc": "3.3.14"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {

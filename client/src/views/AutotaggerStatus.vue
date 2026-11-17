@@ -106,7 +106,7 @@
     <!-- Statuses -->
     <q-list class='list text-left bg-dark q-py-sm'>
         <q-virtual-scroll :items='statuses' :class='{"status-list": !$1t.taggerStatus.value.done, "status-list-done": $1t.taggerStatus.value.done}'>
-            <template v-slot="{item, index: i}">
+            <template v-slot="{item, index: i}: {item: TaggingStatusWrap[]; index: number}">
                 <q-item :key='i'>
                     <q-item-section>
                         <q-item-label overline>
@@ -118,7 +118,7 @@
                                     <q-tooltip v-if='i.status.message'>
                                         {{i.status.message}}
                                     </q-tooltip>
-                                    <q-tooltip v-if='i.status.status == "ok"'>
+                                    <q-tooltip v-if='i.status.status == "ok" && i.status.accuracy != null'>
                                         Accuracy: {{ (i.status.accuracy * 100).toFixed(2) }}%
                                         <span v-if='i.status.reason'>, Reason: {{ i.status.reason }}</span>
                                     </q-tooltip>
