@@ -54,6 +54,7 @@
             <!-- All tags -->
             <div v-for='tag in SUPPORTED_TAGS'>
                 <q-checkbox 
+                    :data-tag='tag.tag'
                     :disable='!isSupported(tag.tag)'
                     class='tag checkbox text-grey-4' 
                     :label='tag.label'

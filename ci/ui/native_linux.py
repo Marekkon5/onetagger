@@ -96,9 +96,9 @@ def main():
                     wait("return !!document.querySelector('input[aria-label=\"Path\"]')")
                     script("const e=document.querySelector('input[aria-label=\"Path\"]'); e.value=arguments[0]; e.dispatchEvent(new Event('input',{bubbles:true}));",str(music))
                     for _ in range(6):
-                        selector = '.tags .q-checkbox:not([aria-disabled="true"])'
+                        selector = '.tags .q-checkbox[data-tag="title"]'
                         before = script("return document.querySelector(arguments[0]).getAttribute('aria-checked')",selector)
-                        click(selector)
+                        click(selector+' .q-checkbox__inner')
                         wait("return document.querySelector(arguments[0]).getAttribute('aria-checked') !== arguments[1]",selector,before)
                     click('.q-stepper__tab:nth-child(4)')
                     wait("return document.body.innerText.includes('Miscellaneous options')")
@@ -112,6 +112,10 @@ def main():
                 print('Native Linux Autotagger navigation and repeated controls passed')
             finally:
                 if session:
+                    try:
+                        diagnostics = script("return [...document.querySelectorAll('.q-checkbox,.q-stepper__tab')].map(e=>({text:e.innerText,tag:e.dataset.tag,checked:e.getAttribute('aria-checked'),disabled:e.getAttribute('aria-disabled'),rect:e.getBoundingClientRect().toJSON()}))")
+                        args.output.joinpath('controls.json').write_text(json.dumps(diagnostics,indent=2))
+                    except Exception: pass
                     try: args.output.joinpath('native.png').write_bytes(base64.b64decode(command('/screenshot')))
                     except Exception: pass
                     try: call('DELETE','/session/'+session)
