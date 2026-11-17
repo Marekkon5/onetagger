@@ -1,5 +1,12 @@
 ## Unreleased (fantuz fork)
 
+- Keep album tagging within the selected playlist/file set, including when neighbouring tracks share the same folder.
+- Keep final success/failure results disjoint across provider fallbacks, preventing successful tracks from entering failed-file moves or playlists.
+- Preserve existing MP4/M4A artwork when a replacement download is unavailable or invalid; validate downloaded images before replacing covers.
+- Retain editor changes until the matching save acknowledgement, preserve failed edits for retry, and wait for successful autosave before switching tracks or pages.
+- Allow first-time ID3 saves in the tag editor while continuing to reject corrupt tags and I/O errors.
+- Add backend file-integrity regressions and browser tests for failed/delayed saves, retries, disconnects and navigation.
+
 ## 1.7.1 — 2026-11-16
 
 First published release of the maintained fantuz fork, based on upstream OneTagger 1.7.0. Original authorship and the GPL-3.0 license are preserved.

@@ -3805,6 +3805,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sysinfo",
+ "tempfile",
  "tinyfiledialogs",
  "tokio",
  "tower",

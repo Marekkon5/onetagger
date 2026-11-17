@@ -68,7 +68,8 @@ enum Action {
 
     TagEditorFolder { path: Option<String>, subdir: Option<String>, recursive: Option<bool>  },
     TagEditorLoad { path: PathBuf },
-    TagEditorSave { changes: TagChanges },
+    #[serde(rename_all = "camelCase")]
+    TagEditorSave { changes: TagChanges, request_id: Option<String> },
 
     RenamerSyntaxHighlight { template: String },
     RenamerAutocomplete { template: String },
@@ -209,6 +210,21 @@ async fn send_socket<D: Serialize>(ws: &mut WebSocket, json: D) -> Result<(), Er
 async fn send_socket_inner<D: Serialize>(ws: &mut WebSocket, json: D) -> Result<(), Error> {
     ws.send(Message::from(serde_json::to_string(&json)?)).await?;
     Ok(())
+}
+
+// Keep save acknowledgements correlated with the file and request, including
+// failures. A legacy client still receives the generic error event it understands.
+fn tag_editor_save_response(changes: &TagChanges, request_id: Option<String>) -> Value {
+    match changes.commit() {
+        Ok(_) => json!({ "action": "tagEditorSave", "status": "ok",
+            "requestId": request_id, "path": changes.path }),
+        Err(error) => {
+            warn!("Tag editor save failed: {error:#}");
+            json!({ "action": if request_id.is_some() { "tagEditorSave" } else { "error" },
+                "status": "error", "requestId": request_id, "path": changes.path,
+                "message": format!("{error:#}") })
+        }
+    }
 }
 
 async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut SocketContext) -> Result<(), Error> {
@@ -511,11 +527,8 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             })).await.ok();
         },
         // Save changes
-        Action::TagEditorSave { changes } => {
-            let _tag = changes.commit()?;
-            send_socket(websocket, json!({
-                "action": "tagEditorSave"
-            })).await.ok();
+        Action::TagEditorSave { changes, request_id } => {
+            send_socket(websocket, tag_editor_save_response(&changes, request_id)).await?;
         },
         // Syntax highlight for renamer
         Action::RenamerSyntaxHighlight { template } => {
@@ -668,4 +681,49 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
     }
    
     Ok(())
+}
+
+#[cfg(test)]
+mod save_tests {
+    use super::*;
+
+    fn request(path: &Path, request_id: Option<&str>) -> Action {
+        let mut value = json!({"action": "tagEditorSave", "changes": {
+            "path": path, "changes": [{"type": "raw", "tag": "TIT2", "value": ["Saved title"]}],
+            "separators": {"id3": ", ", "vorbis": null, "mp4": ", "}, "id3v24": true
+        }});
+        if let Some(id) = request_id { value["requestId"] = json!(id); }
+        serde_json::from_value(value).unwrap()
+    }
+
+    #[test]
+    fn save_acknowledges_persisted_first_tag_with_request_and_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("untagged.mp3");
+        std::fs::write(&path, [0u8; 64]).unwrap();
+        let Action::TagEditorSave { changes, request_id } = request(&path, Some("save-1")) else { panic!() };
+        let response = tag_editor_save_response(&changes, request_id);
+        assert_eq!(response["status"], "ok");
+        assert_eq!(response["requestId"], "save-1");
+        assert_eq!(response["path"], json!(path));
+        assert_eq!(Tag::load_file(&path, false).unwrap().tag().get_field(Field::Title).unwrap(), vec!["Saved title"]);
+    }
+
+    #[test]
+    fn failed_save_is_correlated_and_legacy_errors_cannot_look_successful() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("corrupt.mp3");
+        let original = b"ID3\x05\x00\x00\x00\x00\x00\x06broken";
+        std::fs::write(&path, original).unwrap();
+        for id in [Some("save-2"), None] {
+            let Action::TagEditorSave { changes, request_id } = request(&path, id) else { panic!() };
+            let response = tag_editor_save_response(&changes, request_id);
+            assert_eq!(response["action"], if id.is_some() { "tagEditorSave" } else { "error" });
+            assert_eq!(response["status"], "error");
+            assert_eq!(response["requestId"], json!(id));
+            assert_eq!(response["path"], json!(path));
+            assert!(!response["message"].as_str().unwrap().is_empty());
+            assert_eq!(std::fs::read(&path).unwrap(), original);
+        }
+    }
 }

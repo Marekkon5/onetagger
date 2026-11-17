@@ -8,6 +8,12 @@ This requires enough free space for a second copy of the audio file. Symlinks ar
 
 A missing ID3 tag may be created. A parsing, unsupported-format, or I/O error is returned instead of being treated as an empty tag. WAV input must have a valid, non-truncated RIFF/WAVE header.
 
+The tag editor uses the same missing-ID3 handling when opening and saving a file. Save acknowledgements identify the request and file. Pending edits stay in the editor until a matching success response; a write error or disconnected session keeps them available. The editor pauses interaction during a save. Autosave waits for confirmation before switching tracks or pages; without autosave, discarding dirty edits requires confirmation. These pending edits live in browser memory and do not survive a page reload or application exit.
+
+Album tagging processes only the files supplied to the batch, including playlist subsets. Other files in the same folder are not implicitly added. Provider failures are deduplicated per file, and any successful provider removes that file from final failed-file processing.
+
+Downloaded artwork is decoded before existing covers are removed. Unavailable or invalid replacement artwork leaves the original covers intact; other requested metadata can still be saved. Non-JPEG downloads are converted to JPEG to match the embedded MIME and sidecar extension.
+
 ## Moves and renames
 
 The renamer checks the full planned batch for duplicate destinations and destinations that are another source in the batch. Such conflicts are reported without modifying those entries, including with overwrite enabled. Existing destinations are rejected unless overwrite was selected. Identical source and destination files are left unchanged. Moving a symbolic link is rejected without touching its target; select the target file explicitly instead. Copying through a symbolic link copies the target data.
