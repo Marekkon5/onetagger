@@ -29,15 +29,7 @@
 
 <script lang='ts' setup>
 import { PropType, ref } from 'vue';
-
-interface TagEditorImage {
-    mime: string,
-    data?: string,
-    kind?: string,
-    description: string,
-    width: number,
-    height: number
-};
+import type { TagEditorImage } from '../scripts/tags';
 
 const { image } = defineProps({ image: { type: Object as PropType<TagEditorImage>, required: true }});
 const emit = defineEmits(['click', 'remove', 'replace']);

@@ -121,4 +121,20 @@ const ID3 = [
     "MVNM (Movement Name)"
 ];
 
+// Tag editor payloads mirror onetagger-ui/src/tageditor.rs.
+export interface TagEditorImage {
+    mime: string;
+    data: string;
+    kind: string;
+    description: string;
+    width: number;
+    height: number;
+}
+
+export interface ID3Comment {
+    lang: string;
+    description: string;
+    text: string;
+}
+
 export { ABSTRACTIONS, MP4, VORBIS, ID3 };

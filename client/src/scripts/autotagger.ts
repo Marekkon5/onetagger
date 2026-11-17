@@ -135,9 +135,10 @@ interface TaggingStatusWrap {
 
 interface TaggingStatus {
     status: 'ok' | 'error' | 'skipped';
-    path: 'string',
+    path: string;
     message?: string;
     accuracy?: number;
+    reason?: string;
     usedShazam: boolean
 }
 
