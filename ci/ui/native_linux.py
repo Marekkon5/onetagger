@@ -59,10 +59,24 @@ def main():
                         # WebKit's automatic top alignment can put the target
                         # underneath the fixed navigation bar. Center it first;
                         # the action itself still uses native pointer input.
-                        script("document.querySelector(arguments[0])?.scrollIntoView({block:'center',inline:'center'});", selector)
-                        element = command('/element', {'using':'css selector', 'value':selector})
-                        identity = element['element-6066-11e4-a52e-4f735466cecf']
-                        command('/element/'+identity+'/click', {})
+                        script("document.querySelector(arguments[0])?.scrollIntoView({block:'center',inline:'center',behavior:'instant'});", selector)
+                        position_code = """const e=document.querySelector(arguments[0]);
+                            if(!e)return null;const r=e.getBoundingClientRect();
+                            const x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);
+                            const hit=document.elementFromPoint(x,y);
+                            return r.width && r.height && hit && e.contains(hit) ? {x,y} : null;"""
+                        position = script(position_code, selector)
+                        time.sleep(.2)
+                        settled = script(position_code, selector)
+                        if not position or settled != position:
+                            raise RuntimeError('element not interactable: layout is moving or covered')
+                        # WebKit's Element Click may scroll a nested Quasar panel
+                        # again after locating the element. Pointer Actions uses
+                        # the settled, hit-tested position without that extra scroll.
+                        command('/actions', {'actions':[{'type':'pointer','id':'mouse',
+                            'parameters':{'pointerType':'mouse'},'actions':[
+                                {'type':'pointerMove','duration':0,'origin':'viewport',**position},
+                                {'type':'pointerDown','button':0},{'type':'pointerUp','button':0}]}]})
                         return
                     except RuntimeError as error:
                         if time.monotonic()>=deadline or not any(reason in str(error) for reason in
