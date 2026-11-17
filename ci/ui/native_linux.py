@@ -60,7 +60,8 @@ def main():
                         # A routed page can exist before its fade/step transition
                         # finishes. Do not measure coordinates during that interval.
                         wait("""const e=document.querySelector(arguments[0]);
-                            return !!e && document.getAnimations().every(a =>
+                            return !!e && !document.querySelector('.fade-enter-active,.fade-leave-active') &&
+                                document.getAnimations().every(a =>
                                 !a.effect?.target?.contains(e) ||
                                 !Number.isFinite(a.effect.getComputedTiming().endTime) ||
                                 (a.playState !== 'running' && !a.pending));""",selector)
@@ -70,11 +71,20 @@ def main():
                             const hit=document.elementFromPoint(x,y);
                             return r.width && r.height && hit && e.contains(hit) ? {x,y} : null;"""
                         position = script(position_code, selector)
-                        # Avoid scrolling an already clickable control. Repeated
-                        # centering moves nested WebKit scroll containers and can
-                        # leave native hit testing behind the DOM's new position.
+                        # Scroll only the app's content panel. scrollIntoView can
+                        # move multiple ancestors during a route transition and
+                        # considers controls underneath the fixed header visible.
                         if not position:
-                            script("document.querySelector(arguments[0])?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});", selector)
+                            script("""const e=document.querySelector(arguments[0]);
+                                const panel=e?.closest('.content');
+                                if(panel){
+                                    const r=e.getBoundingClientRect(),p=panel.getBoundingClientRect();
+                                    const header=document.querySelector('.q-header')?.getBoundingClientRect();
+                                    const top=Math.max(p.top,header?.bottom || 0)+8;
+                                    const bottom=Math.min(p.bottom,innerHeight)-80;
+                                    panel.scrollTop += (r.top+r.height/2)-(top+bottom)/2;
+                                }""",selector)
+                            time.sleep(.2)
                             position = script(position_code, selector)
                         time.sleep(.2)
                         settled = script(position_code, selector)
