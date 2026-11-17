@@ -2,7 +2,7 @@
 #[macro_use] extern crate anyhow;
 #[macro_use] extern crate onetagger_shared;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use anyhow::Error;
 use onetagger_renamer::{Renamer, RenamerConfig, TemplateParser};
 use rand::seq::SliceRandom;
@@ -606,6 +606,28 @@ pub struct TaggingStatus {
     pub reason: Option<MatchReason>
 }
 
+/// Final outcomes are disjoint even when several providers fail before one succeeds.
+#[derive(Default)]
+struct TaggingResults {
+    successful: BTreeSet<PathBuf>,
+    failed: BTreeSet<PathBuf>,
+}
+
+impl TaggingResults {
+    fn record(&mut self, status: &TaggingStatus) {
+        match status.status {
+            TaggingState::Ok => {
+                self.failed.remove(&status.path);
+                self.successful.insert(status.path.clone());
+            }
+            TaggingState::Error if !self.successful.contains(&status.path) => {
+                self.failed.insert(status.path.clone());
+            }
+            _ => {}
+        }
+    }
+}
+
 // Wrap for sending into UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -639,8 +661,7 @@ impl Tagger {
         }
         
         // let original_files = files.clone();
-        let mut succesful_files = vec![];
-        let mut failed_files = vec![];
+        let mut results = TaggingResults::default();
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
@@ -693,25 +714,10 @@ impl Tagger {
                     // Send to UI
                     tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
 
-                    if status.status == TaggingState::Ok {
-                        // Save good files
-                        if !succesful_files.contains(&status.path) {
-                            succesful_files.push(status.path.to_owned());
-                        }
-                        // Fallback
-                        if !config.multiplatform {
-                            if let Some(index) = files.iter().position(|f| f == &status.path) {
-                                files.remove(index);
-                            }
-                        }
-                        // Remove from failed
-                        if let Some(i) = failed_files.iter().position(|i| i == &status.path) {
-                            failed_files.remove(i);
-                        }
-                    }
-                    // Log failed
-                    if status.status == TaggingState::Error && !succesful_files.contains(&status.path) {
-                        failed_files.push(status.path.to_owned());
+                    results.record(&status);
+                    // A successful fallback no longer needs the remaining providers.
+                    if status.status == TaggingState::Ok && !config.multiplatform {
+                        files.retain(|path| path != &status.path);
                     }
 
                 }
@@ -720,7 +726,7 @@ impl Tagger {
             // Move files
             let mut successful_paths = vec![];
             let mut move_errors = vec![];
-            for file in &succesful_files {
+            for file in &results.successful {
                 if config.move_success && config.move_success_path.is_some() {
                     match Self::move_file(file, &config.move_success_path.as_ref().unwrap()) {
                         Ok(p) => successful_paths.push(p),
@@ -735,7 +741,7 @@ impl Tagger {
                 }
             }
             let mut failed_paths = vec![];
-            for file in &failed_files {
+            for file in &results.failed {
                 if config.move_failed && config.move_failed_path.is_some() {
                     match Self::move_file(file, &config.move_failed_path.as_ref().unwrap()) {
                         Ok(p) => failed_paths.push(p),
@@ -749,8 +755,7 @@ impl Tagger {
                     failed_paths.push(PathBuf::from(file))
                 }
             }
-            std::mem::drop(succesful_files);
-            std::mem::drop(failed_files);
+            std::mem::drop(results);
             std::mem::drop(files);
 
             // Tagging ended, save lists of files
@@ -1023,7 +1028,7 @@ impl Tagger {
                             }
 
                             // Tag
-                            match Self::tag_album(path, &stats.get_album_id().unwrap(), &mut source, &config) {
+                            match Self::tag_album(&stats.files, &stats.get_album_id().unwrap(), &mut source, &config) {
                                 Ok(statuses) => {
                                     for status in statuses {
                                         tx.send(status).ok();
@@ -1052,8 +1057,8 @@ impl Tagger {
     }
 
     /// Tag an album by ID
-    pub fn tag_album(path: impl AsRef<Path>, release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
-        info!("Album tagging release: {release_id} in {}", path.as_ref().display());
+    pub fn tag_album(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
+        info!("Album tagging release: {release_id} in {} selected files", files.len());
 
         // Change strictness since we're working in context of album, and just care about most likely match
         let mut config = config.clone();
@@ -1071,8 +1076,7 @@ impl Tagger {
 
         let mut statuses = vec![];
 
-        // Load files
-        let files = std::fs::read_dir(&path)?.filter_map(|e| e.ok()).map(|f| f.path()).collect::<Vec<_>>();
+        // Preserve the caller's playlist/selection boundary; never rescan the folder.
         for file in files {
             let (info, mut status) = Self::load_track(&file, &config);
             let info = match info {
@@ -1086,8 +1090,12 @@ impl Tagger {
             // Find closest match
             let mut tracks = MatchingUtils::match_track(&info, &album.tracks, &config, false);
             MatchingUtils::sort_tracks(&mut tracks, &config);
-            let track = tracks.remove(0);
-            
+            let Some(track) = tracks.into_iter().next() else {
+                status.message = Some("No album match for selected file".into());
+                statuses.push(status);
+                continue;
+            };
+
             // TODO: Extend track if needed (?)
             if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
                 status.status = TaggingState::Error;
@@ -1131,8 +1139,8 @@ impl AlbumTagContext {
 
     /// Initialize internal counters
     pub fn init(&mut self, paths: &[PathBuf]) {
-        for path in paths {
-            if let Some(path) = path.parent() {
+        for file in paths {
+            if let Some(path) = file.parent() {
                 let stats = match self.folders.get_mut(path) {
                     Some(v) => v,
                     None => {
@@ -1140,7 +1148,9 @@ impl AlbumTagContext {
                         self.folders.get_mut(path).unwrap()
                     }
                 };
-                stats.files += 1;
+                if !stats.files.contains(file) {
+                    stats.files.push(file.to_owned());
+                }
             }
         }
     }
@@ -1168,7 +1178,7 @@ impl AlbumTagContext {
         };
 
         // Should be considered as 
-        if (count as f32 / stats.files as f32) >= config.album_tagging_ratio {
+        if (count as f32 / stats.files.len() as f32) >= config.album_tagging_ratio {
             stats.marked = true;
             return Some((path.to_owned(), release_id.to_owned()));
         }
@@ -1189,8 +1199,8 @@ impl AlbumTagContext {
 
 #[derive(Debug, Clone, Default)]
 struct AlbumTagFolderStats {
-    /// How many files
-    pub files: usize,
+    /// Only the files selected for this batch, including playlist subsets.
+    pub files: Vec<PathBuf>,
     /// album_id: count
     pub albums: HashMap<String, usize>,
     /// Is already marked as album
@@ -1323,3 +1333,6 @@ pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>,
     track.merge_styles(&config.styles_options).write_to_file(&path, &config)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod regression_tests;

@@ -36,3 +36,6 @@ onetagger-player = { path = "../onetagger-player" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-renamer = { path = "../onetagger-renamer" }
 onetagger-platforms = { path = "../onetagger-platforms" }
+
+[dev-dependencies]
+tempfile = "3.20"
