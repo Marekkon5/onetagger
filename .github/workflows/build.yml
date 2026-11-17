@@ -38,7 +38,7 @@ jobs:
       - name: Install NodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -96,7 +96,7 @@ jobs:
       - name: Install NodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -148,7 +148,7 @@ jobs:
 
   build-mac-universal:
     name: macOS Universal
-    runs-on: macos-15
+    runs-on: macos-14
 
     steps:
       - name: Checkout v4
@@ -176,10 +176,10 @@ jobs:
             cargo install cargo-bundle --version 0.6.1 --locked
           fi
 
-      - name: Install NodeJS 22
+      - name: Install NodeJS 18
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
 
       - name: Install pnpm 8
         uses: pnpm/action-setup@v4
