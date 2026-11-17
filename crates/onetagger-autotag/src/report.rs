@@ -271,10 +271,12 @@ mod tests {
 
     #[test]
     fn serialized_contract_matches_the_helper_fixture() {
-        let data = include_str!("../../../docs/fixtures/onetagger-results-v1.json");
-        let report: Report = serde_json::from_str(data).unwrap();
-        let original: serde_json::Value = serde_json::from_str(data).unwrap();
-        assert_eq!(serde_json::to_value(report).unwrap(), original);
+        for data in [include_str!("../../../docs/fixtures/onetagger-results-v1.json"),
+                     include_str!("../../../docs/fixtures/onetagger-results-v2.json")] {
+            let report: Report = serde_json::from_str(data).unwrap();
+            let original: serde_json::Value = serde_json::from_str(data).unwrap();
+            assert_eq!(serde_json::to_value(report).unwrap(), original);
+        }
     }
 
     fn audio(path: &Path, title: &str) {
