@@ -22,20 +22,20 @@ importers:
         version: 2.35.4
       vue:
         specifier: 3.5.45
-        version: 3.5.45(typescript@5.7.3)
+        version: 3.5.45(typescript@6.0.3)
       vue-router:
         specifier: 4.6.4
-        version: 4.6.4(vue@3.5.45(typescript@5.7.3))
+        version: 4.6.4(vue@3.5.45(typescript@6.0.3))
       vuedraggable:
         specifier: 4.1.0
-        version: 4.1.0(vue@3.5.45(typescript@5.7.3))
+        version: 4.1.0(vue@3.5.45(typescript@6.0.3))
     devDependencies:
       '@quasar/vite-plugin':
         specifier: 1.12.0
-        version: 1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
+        version: 1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
       '@vitejs/plugin-vue':
         specifier: 5.2.4
-        version: 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
+        version: 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
       path:
         specifier: ^0.12.7
         version: 0.12.7
@@ -43,14 +43,14 @@ importers:
         specifier: 1.108.2
         version: 1.108.2
       typescript:
-        specifier: 5.7.3
-        version: 5.7.3
+        specifier: 6.0.3
+        version: 6.0.3
       vite:
         specifier: 6.4.5
         version: 6.4.5(sass@1.108.2)
       vue-tsc:
         specifier: 3.3.14
-        version: 3.3.14(typescript@5.7.3)
+        version: 3.3.14(typescript@6.0.3)
 
 packages:
 
@@ -748,8 +748,8 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  typescript@5.7.3:
-    resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -990,12 +990,12 @@ snapshots:
 
   '@quasar/extras@1.16.16': {}
 
-  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))':
+  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))':
     dependencies:
-      '@vitejs/plugin-vue': 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))
+      '@vitejs/plugin-vue': 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
       quasar: 2.35.4
       vite: 6.4.5(sass@1.108.2)
-      vue: 3.5.45(typescript@5.7.3)
+      vue: 3.5.45(typescript@6.0.3)
 
   '@rollup/rollup-android-arm-eabi@4.68.3':
     optional: true
@@ -1077,34 +1077,34 @@ snapshots:
 
   '@types/estree@1.0.10': {}
 
-  '@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@5.7.3))':
+  '@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))':
     dependencies:
       vite: 6.4.5(sass@1.108.2)
-      vue: 3.5.45(typescript@5.7.3)
+      vue: 3.5.45(typescript@6.0.3)
 
   '@volar/language-core@2.4.30':
     dependencies:
       '@volar/source-map': 2.4.30
 
-  '@volar/language-service@2.4.30(typescript@5.7.3)':
+  '@volar/language-service@2.4.30(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.30
       vscode-languageserver-protocol: 3.18.5
       vscode-languageserver-textdocument: 1.0.16
       vscode-uri: 3.2.0
     optionalDependencies:
-      typescript: 5.7.3
+      typescript: 6.0.3
 
   '@volar/source-map@2.4.30': {}
 
-  '@volar/typescript@2.4.30(typescript@5.7.3)':
+  '@volar/typescript@2.4.30(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.30
-      '@volar/language-service': 2.4.30(typescript@5.7.3)
+      '@volar/language-service': 2.4.30(typescript@6.0.3)
       path-browserify: 1.0.1
       vscode-uri: 3.2.0
     optionalDependencies:
-      typescript: 5.7.3
+      typescript: 6.0.3
 
   '@vue/compiler-core@3.5.45':
     dependencies:
@@ -1435,7 +1435,7 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
-  typescript@5.7.3: {}
+  typescript@6.0.3: {}
 
   util@0.10.4:
     dependencies:
@@ -1466,18 +1466,18 @@ snapshots:
 
   vscode-uri@3.2.0: {}
 
-  vue-router@4.6.4(vue@3.5.45(typescript@5.7.3)):
+  vue-router@4.6.4(vue@3.5.45(typescript@6.0.3)):
     dependencies:
       '@vue/devtools-api': 6.6.4
-      vue: 3.5.45(typescript@5.7.3)
+      vue: 3.5.45(typescript@6.0.3)
 
-  vue-tsc@3.3.14(typescript@5.7.3):
+  vue-tsc@3.3.14(typescript@6.0.3):
     dependencies:
-      '@volar/typescript': 2.4.30(typescript@5.7.3)
+      '@volar/typescript': 2.4.30(typescript@6.0.3)
       '@vue/language-core': 3.3.14
-      typescript: 5.7.3
+      typescript: 6.0.3
 
-  vue@3.5.45(typescript@5.7.3):
+  vue@3.5.45(typescript@6.0.3):
     dependencies:
       '@vue/compiler-dom': 3.5.45
       '@vue/compiler-sfc': 3.5.45
@@ -1485,9 +1485,9 @@ snapshots:
       '@vue/server-renderer': 3.5.45
       '@vue/shared': 3.5.45
     optionalDependencies:
-      typescript: 5.7.3
+      typescript: 6.0.3
 
-  vuedraggable@4.1.0(vue@3.5.45(typescript@5.7.3)):
+  vuedraggable@4.1.0(vue@3.5.45(typescript@6.0.3)):
     dependencies:
       sortablejs: 1.14.0
-      vue: 3.5.45(typescript@5.7.3)
+      vue: 3.5.45(typescript@6.0.3)
