@@ -5,6 +5,7 @@ use id3::{Version, Tag, Timestamp, Content, TagLike, Encoder, Frame, Encoding};
 use id3::frame::{Picture, PictureType, Comment, Lyrics, Popularimeter, ExtendedText, SynchronisedLyrics, TimestampFormat, SynchronisedLyricsType};
 use serde::{Serialize, Deserialize};
 use crate::{TagDate, CoverType, Field, TagImpl};
+use crate::id3_raw;
 
 const COVER_TYPES: [(PictureType, CoverType); 21] = [
     (PictureType::Other, CoverType::Other),
@@ -49,7 +50,9 @@ impl ID3Tag {
         let ext = path.as_ref().extension().unwrap_or_default().to_ascii_lowercase();
         // MP3
         if ext == "mp3" {
-            let tag = Tag::read_from_path(path)?;
+            let mut tag = Tag::read_from_path(path.as_ref())?;
+            // Keep duplicate GEOB (Serato) and empty RVA2 frames
+            id3_raw::preserve_raw_frames(&mut tag, path.as_ref(), id3_raw::Container::Mp3);
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
@@ -64,7 +67,8 @@ impl ID3Tag {
         }
         // AIFF
         if ext == "aif" || ext == "aiff" {
-            let tag = Tag::read_from_path(path)?;
+            let mut tag = Tag::read_from_path(path.as_ref())?;
+            id3_raw::preserve_raw_frames(&mut tag, path.as_ref(), id3_raw::Container::Aiff);
             let version = tag.version();
             return Ok(ID3Tag {
                 tag,
@@ -79,7 +83,8 @@ impl ID3Tag {
         }
         // WAV
         if ext == "wav" {
-            let tag = crate::wav::read_wav(path)?;
+            let mut tag = crate::wav::read_wav(path.as_ref())?;
+            id3_raw::preserve_raw_frames(&mut tag, path.as_ref(), id3_raw::Container::Wav);
             let version = tag.version();
             return Ok(ID3Tag { 
                 tag,
@@ -210,6 +215,11 @@ impl TagImpl for ID3Tag {
         if self.id3v24 {
             self.set_raw("TRCK", self.get_raw("TRCK").unwrap_or(vec![]), true);
             self.set_raw("TPOS", self.get_raw("TPOS").unwrap_or(vec![]), true);
+        }
+
+        // Raw GEOB frames can't use v2.4-only text encodings in v2.3
+        if !self.id3v24 {
+            id3_raw::geob_for_v23(&mut self.tag);
         }
 
         // Write
