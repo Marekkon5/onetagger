@@ -53,7 +53,7 @@
                             It reads the <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Artist</span></q-badge> & <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Title</span></q-badge> tag from your local MP3, AIFF, FLAC & M4A files (or filename or playlist), <br>feeds it into the search engine of the selected platforms, fetches the tags & writes it to your files.<p></p>
                             When no tags or proper filename is present, you can enable <span @click='$1t.url("https://shazam.com")' class='clickable doc-link'>Shazam</span> to identify the track & still fetch tags.<br>
                                             
-                            <span @click='$1t.url("https://beatport.com")' class='clickable doc-link'>Beatport</span> , <span @click='$1t.url("https://junodownload.com")' class='clickable doc-link'>Juno Download</span> & <span @click='$1t.url("https://traxsource.com")' class='clickable doc-link'>Traxsource</span> are based on a method called scraping. <br>
+                            <span @click='$1t.url("https://beatport.com")' class='clickable doc-link'>Beatport</span> & <span @click='$1t.url("https://traxsource.com")' class='clickable doc-link'>Traxsource</span> are based on a method called scraping. <br>
                             <span @click='$1t.url("https://beatsource.com")' class='clickable doc-link'>Beatsource</span> , <span @click='$1t.url("https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/index.html")' class='clickable doc-link'>iTunes</span> & <span @click='$1t.url("https://musicbrainz.org")' class='clickable doc-link'>MusicBrainz</span> are based on their API.
                             <span @click='$1t.url("https://discogs.com")' class='clickable doc-link'>Discogs</span> & <span @click='$1t.url("https://spotify.com")' class='clickable doc-link'>Spotify</span> too, but need a free account.
                         
@@ -85,7 +85,7 @@
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Album</span></q-badge></div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>BPM</span></q-badge>
                                 <q-icon name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs'>
-                                    <q-tooltip>Available from:  • Beatport  • Beatsource  • Juno Download  • Traxsource</q-tooltip>
+                                    <q-tooltip>Available from:  • Beatport  • Beatsource  • Traxsource</q-tooltip>
                                 </q-icon>
                             </div>
                             <div class='col-3 q-mt-xs'><q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Genre</span></q-badge> , <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>Style / Subgenre</span></q-badge>

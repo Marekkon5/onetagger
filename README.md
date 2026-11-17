@@ -19,7 +19,7 @@
 
 Temporary Beatport fix build May 2026
 Cross-platform music tagger.
-It can fetch metadata from Beatport, Traxsource, Juno Download, Discogs, Musicbrainz and Spotify.
+It can fetch metadata from Beatport, Traxsource, Discogs, Musicbrainz and Spotify.
 It is also able to fetch Spotify's Audio Features based on ISRC & exact match. 
 There is a manual tag editor and quick tag editor which lets you use keyboard shortcuts. Written in Rust, Vue.js and Quasar.
 

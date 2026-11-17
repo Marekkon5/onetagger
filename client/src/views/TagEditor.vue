@@ -164,7 +164,7 @@
                         <TagEditorAlbumArt 
                             :image='image' 
                             @click='albumArt = image.data; showAlbumArt = true' 
-                            @remove='removeArt(i)'
+                            @remove='removeArt(i as number)'
                             @replace='addAlbumArt'
                         ></TagEditorAlbumArt>
                     </div>
@@ -207,7 +207,7 @@
                                 @change='id3CommentsChange'
                             ></q-input>
                             <div class='col-1 q-pl-md q-pt-xs'>
-                                <q-btn round dense flat @click='removeID3Comment(i)'>
+                                <q-btn round dense flat @click='removeID3Comment(i as number)'>
                                     <q-icon name='mdi-delete' class='text-red'></q-icon>
                                 </q-btn>
                             </div>
@@ -242,7 +242,7 @@
                                     @change='id3USLTChange'
                                 ></q-input>
                                 <div class='col-1 q-pl-md q-pt-xs'>
-                                    <q-btn round dense flat @click='removeID3USLT(i)'>
+                                    <q-btn round dense flat @click='removeID3USLT(i as number)'>
                                         <q-icon name='mdi-delete' class='text-red'></q-icon>
                                     </q-btn>
                                 </div>

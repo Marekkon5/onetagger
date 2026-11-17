@@ -203,7 +203,11 @@ pub fn start_webview() -> Result<(), Error> {
         webview = webview.with_drag_drop_handler(move |event| {
             match event {
                 DragDropEvent::Drop { mut paths, .. } => {
-                    if paths.len() > 1 || paths.is_empty() {
+                    // Ignore empty drops (internal drag operations like vuedraggable)
+                    if paths.is_empty() {
+                        return false;
+                    }
+                    if paths.len() > 1 {
                         warn!("Drop only 1 path!");
                         return true;
                     }

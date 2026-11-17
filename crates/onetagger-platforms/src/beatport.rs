@@ -94,33 +94,47 @@ impl Beatport {
     }
 
     pub fn update_token(&self) -> Result<String, Error> {
-        let mut token = self.access_token.lock().unwrap();
+        // BOUNDED RETRY LOOP: Prevents infinite recursion if the Beatport API 
+        // continually serves expired tokens (e.g., due to severe clock skew).
+        for attempt in 1..=2 {
+            let mut token = self.access_token.lock().unwrap();
 
-        if (*token).is_none() {
-            let mut response: BeatportOAuth = self.client.post("https://account.beatport.com/o/token/")
-                .form(&json!({
-                    "client_id": "2tiTbKxmQFwnbFjMONU4k7njMRZmV3ZMwRBndiZs",
-                    "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
-                    "grant_type": "client_credentials"
-                }))
-                .send()?
-                .json()?;
+            if (*token).is_none() {
+                let mut response: BeatportOAuth = self.client.post("https://account.beatport.com/o/token/")
+                    .form(&json!({
+                        "client_id": "2tiTbKxmQFwnbFjMONU4k7njMRZmV3ZMwRBndiZs",
+                        "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
+                        "grant_type": "client_credentials"
+                    }))
+                    .send()?
+                    .json()?;
 
-            response.expires_in = response.expires_in * 1000 + timestamp!() - 10_000;
-            *token = Some(response);
-            debug!("OAuth: {:?}", token);
-        }
+                response.expires_in = response.expires_in * 1000 + timestamp!() - 10_000;
+                *token = Some(response);
+                debug!("OAuth: {:?}", token);
+            }
 
-        let t = token.clone().unwrap();
-        if t.expires_in <= timestamp!() {
+            let t = token.clone().unwrap();
+            
+            // If the token is valid, return it immediately.
+            if t.expires_in > timestamp!() {
+                return Ok(t.access_token);
+            }
+
+            // If we are here, the token registered as instantly expired.
+            if attempt == 2 {
+                return Err(anyhow!("Beatport API continuously provided an expired token. Please check your system clock sync."));
+            }
+
+            // Clear the token to force a fresh fetch on the next iteration.
             *token = None;
-            drop(token); // FIX: Explicitly drop the mutex guard to prevent deadlocks on recursion
-            return self.update_token();
+            // The Mutex guard (`token`) is automatically and safely dropped here at the end of the loop scope.
         }
 
-        Ok(t.access_token)
+        Err(anyhow!("Failed to acquire a valid Beatport token."))
     }
 
+    
     pub fn track(&self, id: i64) -> Result<Option<BeatportTrack>, Error> {
         let token = self.update_token()?;
 

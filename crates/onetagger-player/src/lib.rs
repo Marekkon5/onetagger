@@ -7,7 +7,7 @@ use std::path::Path;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use hound::{WavSpec, SampleFormat, WavWriter};
-use rodio::{Player, Source};
+use rodio::{Source};
 
 pub mod mp3;
 pub mod mp4;
