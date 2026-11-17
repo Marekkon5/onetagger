@@ -234,9 +234,13 @@ class BrowserTests(unittest.TestCase):
     def test_minimum_window_warning_recovers_after_resize(self):
         with self.session() as (page, _):
             page.set_viewport_size({"width": 1100, "height": 700})
-            expect(page.get_by_role("dialog")).to_contain_text("1200x550")
+            # Quasar may still be animating the separate platform-loading dialog.
+            # Identify this warning by its content instead of assuming only one dialog.
+            warning = page.get_by_role("dialog").filter(has_text="One Tagger requires")
+            expect(warning).to_be_visible()
+            expect(warning).to_contain_text("1200x550")
             page.set_viewport_size({"width": 1440, "height": 900})
-            expect(page.get_by_role("dialog")).to_have_count(0)
+            expect(warning).to_have_count(0)
             self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 1440)
 
 

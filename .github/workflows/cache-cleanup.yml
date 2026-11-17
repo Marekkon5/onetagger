@@ -10,6 +10,7 @@ on:
         default: true
 permissions:
   contents: read
+  pull-requests: read
   actions: write
 concurrency:
   group: closed-pr-cache-cleanup
