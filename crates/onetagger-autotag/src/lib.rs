@@ -730,6 +730,7 @@ impl Tagger {
                 };
                 // Start tagging
                 info!("Starting {platform}");
+                let mut matched = BTreeSet::new();
                 for status in rx {
                     info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}", status.status, status.accuracy, status.path);
                     processed += 1;
@@ -740,10 +741,13 @@ impl Tagger {
                     if let Some(report) = &mut report { report.record(platform, &status); }
                     // A successful fallback no longer needs the remaining providers.
                     if status.status == TaggingState::Ok && !config.multiplatform {
-                        files.retain(|path| path != &status.path);
+                        matched.insert(status.path);
                     }
 
                 }
+                // Workers already own this batch. Filter once per provider instead
+                // of scanning the remaining files after every successful result.
+                if !matched.is_empty() { files.retain(|path| !matched.contains(path)); }
             }
 
             // Move files
