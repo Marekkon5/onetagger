@@ -219,6 +219,7 @@ let timeInterval: any = undefined;
 
 // Convert platform name to display label
 function platformText(p: string) {
+    if (p == 'junodownload') return 'JUNO DOWNLOAD';
     if (p == 'audioFeatures') return 'AUDIO FEATURES';
     return p.toUpperCase();
 }
