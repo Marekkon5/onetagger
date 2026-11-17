@@ -64,16 +64,18 @@ def main():
                                 !a.effect?.target?.contains(e) ||
                                 !Number.isFinite(a.effect.getComputedTiming().endTime) ||
                                 (a.playState !== 'running' && !a.pending));""",selector)
-                        # WebKit's automatic top alignment can put the target
-                        # underneath the fixed navigation bar. Center it first;
-                        # the action itself still uses native pointer input.
-                        script("document.querySelector(arguments[0])?.scrollIntoView({block:'center',inline:'center',behavior:'instant'});", selector)
                         position_code = """const e=document.querySelector(arguments[0]);
                             if(!e)return null;const r=e.getBoundingClientRect();
                             const x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/2);
                             const hit=document.elementFromPoint(x,y);
                             return r.width && r.height && hit && e.contains(hit) ? {x,y} : null;"""
                         position = script(position_code, selector)
+                        # Avoid scrolling an already clickable control. Repeated
+                        # centering moves nested WebKit scroll containers and can
+                        # leave native hit testing behind the DOM's new position.
+                        if not position:
+                            script("document.querySelector(arguments[0])?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});", selector)
+                            position = script(position_code, selector)
                         time.sleep(.2)
                         settled = script(position_code, selector)
                         if not position or settled != position:
@@ -129,6 +131,8 @@ def main():
                                 label:control?.getAttribute('aria-label') || control?.innerText,
                                 tag:control?.dataset.tag, x:e.clientX, y:e.clientY,
                                 scrollTop:document.querySelector('.content')?.scrollTop,
+                                windowScrollY:window.scrollY,
+                                targetRect:window.nativeClickTarget?.getBoundingClientRect().toJSON(),
                                 active:document.activeElement?.outerHTML.slice(0,300)});
                         },true);
                     }""")

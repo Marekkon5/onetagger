@@ -7,10 +7,7 @@
                     <q-card-section horizontal class='row justify-between'>
                         <q-card-section>
                             <div class='row'>
-                                <!-- Quasar focuses without scrolling on click. Avoid WebKit's
-                                     default mouse-down focus moving the panel before release. -->
-                                <q-checkbox :model-value='isEnabled(platform.platform.id)' :aria-label='platform.platform.name' class='cb'
-                                    @mousedown.left.prevent @update:model-value='update(platform.platform.id)'></q-checkbox>
+                                <q-checkbox :model-value='isEnabled(platform.platform.id)' :aria-label='platform.platform.name' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
                                 <div class='text-h6 q-mt-xs'>
                                     {{platform.platform.name}}
 

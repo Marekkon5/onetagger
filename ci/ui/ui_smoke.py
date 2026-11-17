@@ -221,14 +221,17 @@ class BrowserTests(unittest.TestCase):
                 toggled = 'false' if initial == 'true' else 'true'
                 control.click()
                 expect(control).to_have_attribute('aria-checked', toggled)
-                # Suppressing default mouse-down focus must leave the actual
-                # checkbox keyboard-accessible, including Space and Enter.
+                # Mouse interaction must leave the actual checkbox keyboard-
+                # accessible, including Space and Enter.
                 control.focus()
                 expect(control).to_be_focused()
                 control.press('Space')
                 expect(control).to_have_attribute('aria-checked', initial)
                 control.press('Enter')
                 expect(control).to_have_attribute('aria-checked', toggled)
+                # Restore the selected provider before checking supported tags.
+                control.click()
+                expect(control).to_have_attribute('aria-checked', initial)
 
             page.get_by_role('tab', name='Auto tag', exact=True).click()
             exercise(page.get_by_role('checkbox', name='Beatport', exact=True))

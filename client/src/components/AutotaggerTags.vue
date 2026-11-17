@@ -53,15 +53,12 @@
 
             <!-- All tags -->
             <div v-for='tag in SUPPORTED_TAGS'>
-                <!-- Let Quasar focus without scrolling on click, keeping the
-                     mouse-down and mouse-up target stable in native WebKit. -->
                 <q-checkbox 
                     :data-tag='tag.tag'
                     :disable='!isSupported(tag.tag)'
                     class='tag checkbox text-grey-4' 
                     :label='tag.label'
                     :model-value='$1t.config.value.tags.includes(tag.tag)'
-                    @mousedown.left.prevent
                     @update:model-value="toggleTag(tag.tag)"
                 >
                     <q-icon v-if='tag.tooltip' name='mdi-help-circle-outline text-grey-6' class='onetagger-tooltip q-mx-xs mt-n2' >
