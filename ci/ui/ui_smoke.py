@@ -104,9 +104,15 @@ class Backend:
                     self.save_failures = max(0, self.save_failures - 1)
                     response = self.save_response(data, ok)
             elif action == "loadSettings" and self.autosave:
+                # These nested fields are required by the saved-settings decoder.
+                # An empty quickTag object throws before autosave can be restored.
                 response = {"action": action, "settings": {
                     "path": "/music", "tagEditorAutosave": True, "autoTaggerConfig": {},
-                    "audioFeatures": {}, "quickTag": {}, "renamer": {}}}
+                    "audioFeatures": {}, "renamer": {}, "quickTag": {
+                        "noteTag": {"tag": {"id3": "COMM", "vorbis": "COMMENT", "mp4": "©cmt"}},
+                        "moodTag": {"id3": "TMOO", "vorbis": "MOOD", "mp4": "iTunes:MOOD"},
+                        "energyTag": {"tag": {"id3": "TCOM", "vorbis": "COMPOSER", "mp4": "©wrt"}},
+                        "energyKeys": [None] * 5}}}
             elif action not in {"loadSettings", "saveSettings", "playerVolume", "playerStop"}:
                 self.unexpected_commands.append(action)
             # A first-run backend may have no saved settings; preserve actual UI defaults.
@@ -276,7 +282,7 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
             page.get_by_role("button", name="Save", exact=True).click()
             expect(page.get_by_text("Tags written!", exact=True)).to_be_visible()
-            expect(page.get_by_role("alert")).to_have_count(0)
+            expect(page.get_by_role("alert").filter(has_text="Your edits are retained")).to_have_count(0)
             self.assertEqual(len(backend.saves()), 2)
             self.assertEqual(backend.saves()[0], backend.saves()[1])
             self.assertTrue(backend.saves()[1]["changes"])

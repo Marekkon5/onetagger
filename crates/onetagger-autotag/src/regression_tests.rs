@@ -109,7 +109,19 @@ fn mp4_with_cover(path: &Path) -> Vec<u8> {
     let mut metadata = vec![0; 4];
     metadata.extend(atom(b"ilst", &[]));
     let mut bytes = atom(b"ftyp", b"M4A \0\0\0\0M4A isom");
-    bytes.extend(atom(b"moov", &atom(b"udta", &atom(b"meta", &metadata))));
+    // Version-0 movie header (100-byte payload), required by mp4ameta.
+    let mut movie_header = vec![0; 100];
+    movie_header[12..16].copy_from_slice(&1000u32.to_be_bytes()); // timescale
+    movie_header[16..20].copy_from_slice(&1000u32.to_be_bytes()); // duration
+    movie_header[20..24].copy_from_slice(&0x00010000u32.to_be_bytes()); // rate
+    movie_header[24..26].copy_from_slice(&0x0100u16.to_be_bytes()); // volume
+    for (offset, value) in [(36, 0x00010000u32), (52, 0x00010000), (68, 0x40000000)] {
+        movie_header[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
+    }
+    movie_header[96..100].copy_from_slice(&1u32.to_be_bytes());
+    let mut movie = atom(b"mvhd", &movie_header);
+    movie.extend(atom(b"udta", &atom(b"meta", &metadata)));
+    bytes.extend(atom(b"moov", &movie));
     bytes.extend(atom(b"mdat", b"preserve-media-payload"));
     fs::write(path, bytes).unwrap();
     let old_cover = b"existing artwork bytes".to_vec();
