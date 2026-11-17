@@ -15,7 +15,7 @@
         <span a class='doc-link text-subtitle2 clickable' @click='$1t.url("https://onetagger.github.io")'>OneTagger.GitHub.io</span>
         <div class='q-pt-sm q-pb-xs text-subtitle2 text-grey-4 text-center'>
             Developed by Marekkon5 & UI design by Bas Curtiz<br>
-            Fixed build and security by Massimiliano Fantuzzi
+            Build pipelines and security audit by Massimiliano Fantuzzi
         </div>
 
         <div class="getting-started-cards flex flex-center column" style="min-height: 50px; width: 100%;">
