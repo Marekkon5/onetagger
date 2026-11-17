@@ -716,6 +716,10 @@ function removePOPM() {
 function save(): Promise<boolean> {
     if (pendingSave) return pendingSave.promise;
     if (!file.value) return Promise.resolve(true);
+    if (!$1t.isConnected) {
+        saveError.value = 'Cannot save: the connection is closed. Your edits are retained in this page.';
+        return Promise.resolve(false);
+    }
     const id = `tag-editor-${++saveSequence}`;
     let resolve!: (ok: boolean) => void;
     const promise = new Promise<boolean>(done => { resolve = done; });

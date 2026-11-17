@@ -125,6 +125,10 @@ class OneTagger {
         console.error(msg);
     }
 
+    get isConnected(): boolean {
+        return this.ws.readyState === WebSocket.OPEN;
+    }
+
     // Send action to WebSocket
     async send(action: string, params = {}) {
         // Wait for WS connection

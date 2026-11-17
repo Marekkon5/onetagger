@@ -356,6 +356,12 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_role("alert")).to_contain_text("Your edits are retained")
             expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
             expect(page.get_by_text("Tags written!", exact=True)).not_to_be_visible()
+            page.get_by_role("dialog").filter(has_text="WebSocket closed!").get_by_role("button", name="OK", exact=True).click()
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_role("alert")).to_contain_text("the connection is closed")
+            expect(page.get_by_role("status")).to_have_count(0)
+            expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
+            self.assertEqual(len(backend.saves()), 1)
 
     def test_unsaved_track_switch_requires_explicit_discard_without_autosave(self):
         with self.session() as (page, backend):
