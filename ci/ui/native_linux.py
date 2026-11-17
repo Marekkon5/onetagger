@@ -59,7 +59,11 @@ def main():
                     try:
                         # A routed page can exist before its fade/step transition
                         # finishes. Do not measure coordinates during that interval.
-                        wait("return document.getAnimations().every(a => a.playState !== 'running' && a.playState !== 'pending')")
+                        wait("""const e=document.querySelector(arguments[0]);
+                            return !!e && document.getAnimations().every(a =>
+                                !a.effect?.target?.contains(e) ||
+                                !Number.isFinite(a.effect.getComputedTiming().endTime) ||
+                                (a.playState !== 'running' && !a.pending));""",selector)
                         # WebKit's automatic top alignment can put the target
                         # underneath the fixed navigation bar. Center it first;
                         # the action itself still uses native pointer input.
