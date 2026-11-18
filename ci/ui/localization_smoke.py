@@ -21,7 +21,7 @@ NATIVE_NAMES = {"en": "English", "it": "Italiano", "fr": "Français", "nl": "Ned
 # Exact defaults from the pinned Quasar v2.35.4 ui/lang/{en-US,fr,ru}.js.
 # OK is identical in these packs; Cancel is what proves the pack changes.
 QUASAR_CANCEL = {"en": "Cancel", "fr": "Annuler", "ru": "Отмена"}
-RAW_KEY = re.compile(r"\b(?:autotag|quicktag|tools|common|backend|core)\.[A-Za-z][A-Za-z0-9_]*\b")
+RAW_KEY = re.compile(r"\b(?:autotag|quicktag|tools|common|backend|core|providers|help)\.[A-Za-z][A-Za-z0-9_]*\b")
 
 
 def message(locale, namespace, key):
@@ -94,7 +94,7 @@ class LocalizationTests(unittest.TestCase):
         backend = LocalizedBackend(self.base_url, status)
         errors = []
         warnings = []
-        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.on("pageerror", lambda error: errors.append(error.stack or str(error)))
         page.on("console", lambda entry: warnings.append(entry.text)
                 if entry.type in {"warning", "error"} and "[intlify]" in entry.text else None)
         page.route("**/*", backend.http)
@@ -102,12 +102,11 @@ class LocalizationTests(unittest.TestCase):
         output = RESULTS / f"{self.engine}-{self._testMethodName}-{suffix or expected}"
         try:
             page.goto(self.base_url + "/#session=" + TOKEN)
-            expect(page.locator("html")).to_have_attribute("lang", expected)
             if status == 204:
-                expect(page.get_by_test_id("nav-home")).to_be_visible()
-                # Clicking navigation also waits for the platform-loading dialog
-                # to close, independently of its translated caption.
+                self.wait_initialized(page, backend, expected)
                 page.get_by_test_id("nav-home").click()
+            else:
+                expect(page.locator("html")).to_have_attribute("lang", expected)
             yield page, backend
             self.assertEqual(errors, [], "Browser JavaScript exceptions")
             self.assertEqual(warnings, [], "Missing keys or invalid message compilation")
@@ -122,6 +121,24 @@ class LocalizationTests(unittest.TestCase):
             context.tracing.stop()
         finally:
             context.close()
+
+    def wait_initialized(self, page, backend, locale, previous=0):
+        # Navigation is mounted before the delayed startup handshake finishes.
+        # This command is sent only after the client applies loadPlatforms;
+        # then wait for Quasar's outgoing loading-dialog portal to detach.
+        deadline = time.monotonic() + 10
+        while sum(c["action"] == "defaultCustomPlatformSettings" for c in backend.commands) <= previous:
+            if time.monotonic() >= deadline:
+                self.fail("The frontend did not finish its platform-loading handshake")
+            page.wait_for_timeout(20)
+        expect(page.get_by_role("dialog")).to_have_count(0)
+        expect(page.get_by_test_id("nav-home")).to_be_visible()
+        expect(page.locator("html")).to_have_attribute("lang", locale)
+
+    def dismiss_dialog(self, dialog, button=None):
+        (button if button is not None else dialog.get_by_role("button").first).click()
+        # Quasar retains the outgoing portal during its leave transition.
+        expect(dialog).to_have_count(0)
 
     def choose_locale(self, page, locale):
         selector = page.get_by_test_id("language-selector").first
@@ -164,7 +181,8 @@ class LocalizationTests(unittest.TestCase):
             page.wait_for_timeout(20)
         backend.tagging_socket.send(json.dumps(backend.tagging_done()))
         backend.hold_tagging = False
-        dialog = page.get_by_role("dialog")
+        locale = page.locator("html").get_attribute("lang")
+        dialog = page.get_by_role("dialog").filter(has_text=message(locale, "autotag", "reviewResults"))
         expect(dialog).to_be_visible()
         return dialog
 
@@ -177,7 +195,7 @@ class LocalizationTests(unittest.TestCase):
                 dialog = self.finish_selected_tagging(page, backend)
                 if locale in QUASAR_CANCEL:
                     expect(dialog.get_by_role("button", name=QUASAR_CANCEL[locale], exact=True)).to_be_visible()
-                dialog.get_by_role("button").first.click()
+                self.dismiss_dialog(dialog)
                 command = next(c for c in backend.commands if c["action"] == "startTagging")
                 self.assertEqual(command["selection"], chosen)
                 self.assertTrue(command["report"])
@@ -206,9 +224,9 @@ class LocalizationTests(unittest.TestCase):
             before = page.get_by_test_id("nav-tageditor").inner_text()
             self.choose_locale(page, "it")
             expect(page.get_by_test_id("nav-tageditor")).not_to_have_text(before)
+            initializations = sum(c["action"] == "defaultCustomPlatformSettings" for c in backend.commands)
             page.reload()
-            expect(page.locator("html")).to_have_attribute("lang", "it")
-            expect(page.get_by_test_id("nav-home")).to_be_visible()
+            self.wait_initialized(page, backend, "it", previous=initializations)
             self.choose_locale(page, "ru")
             self.assertRegex(page.get_by_test_id("nav-tageditor").inner_text(), r"[\u0400-\u04ff]")
             for locale in ("ru", "fr", "en"):
@@ -218,12 +236,13 @@ class LocalizationTests(unittest.TestCase):
                 dialog = self.finish_selected_tagging(page, backend)
                 cancel = dialog.get_by_role("button", name=QUASAR_CANCEL[locale], exact=True)
                 expect(cancel).to_be_visible()
-                cancel.click()
+                self.dismiss_dialog(dialog, cancel)
                 backend.socket.send(json.dumps({"action": "error", "message": "Quasar default button fixture"}))
                 # This error dialog has no custom OK label, unlike Auto-tag.
-                default_ok = page.get_by_role("dialog").get_by_role("button", name="OK", exact=True)
+                error_dialog = page.get_by_role("dialog").filter(has_text="Quasar default button fixture")
+                default_ok = error_dialog.get_by_role("button", name="OK", exact=True)
                 expect(default_ok).to_be_visible()
-                default_ok.click()
+                self.dismiss_dialog(error_dialog, default_ok)
             self.choose_locale(page, "el")
             self.assertRegex(page.get_by_test_id("nav-tageditor").inner_text(), r"[\u0370-\u03ff]")
             self.choose_locale(page, "en")
@@ -261,31 +280,61 @@ class LocalizationTests(unittest.TestCase):
             detail = '<img src=x onerror="window.i18nInjected=true"> provider & file'
             backend.socket.send(json.dumps({"action": "error", "message": "Legacy fallback",
                                              "messageKey": "backend.requestFailed", "messageArgs": {"detail": detail}}))
-            dialog = page.get_by_role("dialog")
+            dialog = page.get_by_role("dialog").filter(has_text=detail)
             expect(dialog.get_by_role("button", name="OK", exact=True)).to_be_visible()
             expect(dialog).to_contain_text(detail)
             self.assertIsNone(page.evaluate("window.i18nInjected"))
             expect(dialog.locator("img")).to_have_count(0)
             expect(dialog).not_to_contain_text("Legacy fallback")
-            dialog.get_by_role("button").first.click()
+            self.dismiss_dialog(dialog)
             fallback = "Unknown provider detail <raw>"
             backend.socket.send(json.dumps({"action": "error", "message": fallback,
                                              "messageKey": "backend.futureMessage", "messageArgs": {}}))
-            expect(page.get_by_role("dialog")).to_contain_text(fallback)
-            expect(page.get_by_role("dialog").locator("raw")).to_have_count(0)
-            page.get_by_role("dialog").get_by_role("button").first.click()
+            dialog = page.get_by_role("dialog").filter(has_text=fallback)
+            expect(dialog).to_contain_text(fallback)
+            expect(dialog.locator("raw")).to_have_count(0)
+            self.dismiss_dialog(dialog)
             malformed = "Older backend message remains available"
             backend.socket.send(json.dumps({"action": "error", "message": malformed,
                                              "messageKey": "backend.requestFailed",
                                              "messageArgs": {"detail": {"unexpected": "object"}}}))
-            expect(page.get_by_role("dialog")).to_contain_text(malformed)
-            page.get_by_role("dialog").get_by_role("button").first.click()
+            dialog = page.get_by_role("dialog").filter(has_text=malformed)
+            expect(dialog).to_contain_text(malformed)
+            self.dismiss_dialog(dialog)
             backend.socket.send(json.dumps({"action": "error", "message": "Legacy fallback",
                                              "messageKey": "backend.requestFailed", "messageArgs": {
                                                  "detail": "Prototype guard", "__proto__": {"i18nPolluted": True}}}))
-            expect(page.get_by_role("dialog")).to_contain_text("Prototype guard")
+            dialog = page.get_by_role("dialog").filter(has_text="Prototype guard")
+            expect(dialog).to_contain_text("Prototype guard")
             self.assertIsNone(page.evaluate("({}).i18nPolluted"))
-            page.get_by_role("dialog").get_by_role("button").first.click()
+            self.dismiss_dialog(dialog)
+
+    def test_help_prose_and_rich_slots_follow_language_switches(self):
+        with self.session() as (page, _):
+            page.get_by_test_id("nav-autotagger").click()
+            for locale in LOCALES:
+                with self.subTest(locale=locale):
+                    self.choose_locale(page, locale)
+                    page.locator(".help-button").click()
+                    dialog = page.get_by_role("dialog").filter(has=page.locator(".help-card"))
+                    expect(dialog).to_be_visible()
+                    expect(dialog).to_contain_text(message(locale, "help", "autoFetchesMetadataAutomaticallyWritesTagsToYour"))
+                    badges = dialog.locator(".q-badge")
+                    expect(badges.get_by_text(message(locale, "common", "artist"), exact=True).first).to_be_visible()
+                    expect(badges.get_by_text(message(locale, "common", "title"), exact=True).first).to_be_visible()
+                    expect(dialog.get_by_text("Shazam", exact=True).first).to_be_visible()
+                    expect(dialog.get_by_text("ISRC", exact=True)).to_be_visible()
+                    self.assertNotRegex(dialog.inner_text(), RAW_KEY)
+                    self.assertNotRegex(dialog.inner_text(), r"\{[A-Za-z][A-Za-z0-9_]*\}")
+                    dialog.get_by_role("button", name=message(locale, "common", "next"), exact=True).click()
+                    expect(dialog).to_contain_text(message(locale, "help", "autoCheckTheBoxToFetchFromParticular"))
+                    expect(dialog.locator(".q-badge").get_by_text(message(locale, "common", "next"), exact=True).first).to_be_visible()
+                    self.assertNotRegex(dialog.inner_text(), RAW_KEY)
+                    self.assertNotRegex(dialog.inner_text(), r"\{[A-Za-z][A-Za-z0-9_]*\}")
+                    dialog.get_by_role("button", name=message(locale, "common", "previous"), exact=True).click()
+                    expect(dialog).to_contain_text(message(locale, "help", "autoFetchesMetadataAutomaticallyWritesTagsToYour"))
+                    page.keyboard.press("Escape")
+                    expect(dialog).to_have_count(0)
 
     def test_longer_languages_fit_and_all_main_screens_remain_navigable(self):
         for locale in ("de", "nl", "el", "ru"):

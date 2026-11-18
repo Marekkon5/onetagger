@@ -123,7 +123,6 @@
   "pause": "Pause",
   "volume": "Volume",
   "help": "Help",
-  "helpReferenceNotice": "Some detailed reference text is currently available in English.",
   "helpAutoTag": "Getting started with Auto Tag",
   "helpAudio": "Getting started with Audio Features",
   "helpQuickTag": "Getting started with Quick Tag",
@@ -200,11 +199,5 @@
   "start": "START",
   "keys": "keys",
   "spacebar": "spacebar",
-  "character": "CHARACTER",
-  "autoWorkflowGuide": "Select platforms and drag their cards to set fallback priority. Choose a folder or playlist, select the tags to fetch, review platform and advanced options, then start tagging.",
-  "audioWorkflowGuide": "Connect your Spotify account, choose the audio files and matching method, select audio features and destination tag fields, then review thresholds before starting.",
-  "quickWorkflowGuide": "Open Settings to choose a folder or playlist. Define energy, moods, genres, custom values and destination tag fields. Assign keyboard shortcuts, listen to each track, apply values and save.",
-  "editorWorkflowGuide": "Choose a folder using the path control, then select a file to inspect its tags. Edit, add or remove fields and save. Enable Your list in Preferences to collect files from multiple folders.",
-  "manualWorkflowGuide": "Select a track and open Manual Tag. Choose platforms and tags, start the search, select the matching release and apply it. Open a result’s link to verify the release before writing.",
-  "renameWorkflowGuide": "Choose the source folder and define a filename template using the documented variables and functions. Review the preview and destination before renaming. Keep template keywords unchanged; use / to separate folders."
+  "character": "CHARACTER"
 }

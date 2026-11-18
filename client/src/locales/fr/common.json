@@ -123,7 +123,6 @@
   "pause": "Pause",
   "volume": "Volume",
   "help": "Aide",
-  "helpReferenceNotice": "Certains textes de référence détaillés sont actuellement disponibles en anglais.",
   "helpAutoTag": "Premiers pas avec l’étiquetage automatique",
   "helpAudio": "Premiers pas avec les caractéristiques audio",
   "helpQuickTag": "Premiers pas avec l’étiquetage rapide",
@@ -200,11 +199,5 @@
   "start": "DÉMARRER",
   "keys": "touches",
   "spacebar": "barre d’espace",
-  "character": "CARACTÈRE",
-  "autoWorkflowGuide": "Sélectionnez les plateformes et faites glisser leurs cartes pour définir leur priorité. Choisissez un dossier ou une liste, les tags à récupérer, vérifiez les options des plateformes et les options avancées, puis démarrez.",
-  "audioWorkflowGuide": "Connectez votre compte Spotify, choisissez les fichiers et la méthode de correspondance, sélectionnez les caractéristiques et leurs champs de destination, puis vérifiez les seuils avant de démarrer.",
-  "quickWorkflowGuide": "Ouvrez les paramètres pour choisir un dossier ou une liste. Définissez énergie, humeurs, genres, valeurs personnalisées et champs de destination. Attribuez des raccourcis, écoutez chaque morceau, appliquez les valeurs et enregistrez.",
-  "editorWorkflowGuide": "Choisissez un dossier avec le contrôle du chemin, puis un fichier pour examiner ses tags. Modifiez, ajoutez ou supprimez des champs et enregistrez. Activez Votre liste dans les Préférences pour regrouper plusieurs dossiers.",
-  "manualWorkflowGuide": "Sélectionnez un morceau et ouvrez l’étiquetage manuel. Choisissez plateformes et tags, lancez la recherche, sélectionnez la bonne parution et appliquez-la. Ouvrez le lien du résultat pour vérifier avant d’écrire.",
-  "renameWorkflowGuide": "Choisissez le dossier source et définissez un modèle avec les variables et fonctions documentées. Vérifiez l’aperçu et la destination avant de renommer. Ne traduisez pas les mots-clés du modèle ; séparez les dossiers avec /."
+  "character": "CARACTÈRE"
 }

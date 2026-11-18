@@ -123,7 +123,6 @@
   "pause": "Pauzeren",
   "volume": "Volume",
   "help": "Help",
-  "helpReferenceNotice": "Sommige uitgebreide naslagteksten zijn momenteel in het Engels beschikbaar.",
   "helpAutoTag": "Aan de slag met automatisch taggen",
   "helpAudio": "Aan de slag met audiokenmerken",
   "helpQuickTag": "Aan de slag met snel taggen",
@@ -200,11 +199,5 @@
   "start": "STARTEN",
   "keys": "toetsen",
   "spacebar": "spatiebalk",
-  "character": "TEKEN",
-  "autoWorkflowGuide": "Selecteer platforms en versleep hun kaarten om de volgorde te bepalen. Kies een map of afspeellijst en de op te halen tags, controleer platformopties en geavanceerde opties en start het taggen.",
-  "audioWorkflowGuide": "Koppel je Spotify-account, kies audiobestanden en de zoekmethode, selecteer audiokenmerken en doeltagvelden en controleer de drempels voordat je begint.",
-  "quickWorkflowGuide": "Open Instellingen om een map of afspeellijst te kiezen. Definieer energie, stemmingen, genres, eigen waarden en doeltagvelden. Stel sneltoetsen in, beluister elk nummer, pas waarden toe en sla op.",
-  "editorWorkflowGuide": "Kies een map via het padveld en selecteer een bestand om tags te bekijken. Bewerk, voeg velden toe of verwijder ze en sla op. Schakel Je lijst in bij Voorkeuren om bestanden uit meerdere mappen te verzamelen.",
-  "manualWorkflowGuide": "Selecteer een nummer en open Handmatig taggen. Kies platforms en tags, start de zoekopdracht, selecteer de juiste release en pas deze toe. Open de resultaatlink om de release vooraf te controleren.",
-  "renameWorkflowGuide": "Kies de bronmap en stel een bestandsnaamsjabloon op met de beschreven variabelen en functies. Controleer voorbeeld en bestemming voordat je hernoemt. Laat sjabloonwoorden ongewijzigd; scheid mappen met /."
+  "character": "TEKEN"
 }

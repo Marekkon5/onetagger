@@ -21,6 +21,9 @@ async function start() {
     window.onWebviewEvent = (e) => get1t().onOSMessage(e);
     createApp(App).use(i18n).use(router).use(Quasar, {
         plugins: { Dialog, Notify }, iconSet,
+        // The application locale owns HTML language/direction. Quasar's
+        // English control pack uses en-US while our catalog locale is en.
+        config: { lang: { noHtmlAttrs: true } },
         lang: quasarLanguagePacks[i18n.global.locale.value as SupportedLocale],
     }).mount('#app');
 }

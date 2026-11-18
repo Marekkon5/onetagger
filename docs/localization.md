@@ -11,6 +11,9 @@ catalogs are UTF-8 JSON under `client/src/locales/<language>/`. Application text
 and Quasar's own control labels must switch together. The HTML `lang` attribute
 must reflect the selected language for assistive technology. English provides a
 fallback for unsupported locales and missing messages.
+The application owns HTML language and direction; Quasar's `noHtmlAttrs` setting
+prevents a control pack such as `en-US` from replacing the application locale
+`en`. All supported languages currently use left-to-right layout.
 
 ## Rust boundary and compatibility
 
@@ -74,11 +77,15 @@ language; this PR does not translate CLI help, installers or arbitrary custom
 provider descriptions. Common errors have localized explanations; raw technical
 details can remain in their original language.
 
-The built-in help navigation, section headings and workflow summaries are
-localized. Its detailed reference prose is retained in English, with an explicit
-notice when another language is selected. This includes historical provider/API
-explanations, detailed keyboard walkthroughs, threshold examples and the renamer
-reference. Built-in provider descriptions, option labels and tooltips are
+The built-in help navigation, section headings, workflow summaries and detailed
+reference prose are localized. The `help` namespace contains 90 messages in each
+of the eight languages, covering provider/API explanations, keyboard walkthroughs,
+threshold examples and the renamer reference. Named Vue component slots preserve
+links, icons, code examples and interactive elements while allowing translators
+to reorder complete sentences. Videos, screenshots and linked external pages
+retain their original content.
+
+Built-in provider descriptions, option labels and tooltips are
 translated using explicit provider/option IDs, with a strict built-in check so
 custom plugins keep their own descriptions. Built-in renamer token documentation
 is translated by stable symbol names, while symbol names, format-frame IDs and

@@ -123,7 +123,6 @@
   "pause": "Pausar",
   "volume": "Volumen",
   "help": "Ayuda",
-  "helpReferenceNotice": "Algunos textos de referencia detallados están disponibles actualmente en inglés.",
   "helpAutoTag": "Primeros pasos con el etiquetado automático",
   "helpAudio": "Primeros pasos con las características de audio",
   "helpQuickTag": "Primeros pasos con el etiquetado rápido",
@@ -200,11 +199,5 @@
   "start": "INICIAR",
   "keys": "teclas",
   "spacebar": "barra espaciadora",
-  "character": "CARÁCTER",
-  "autoWorkflowGuide": "Selecciona plataformas y arrastra sus tarjetas para establecer la prioridad. Elige una carpeta o lista y las etiquetas que deseas obtener, revisa las opciones de las plataformas y las avanzadas, e inicia el etiquetado.",
-  "audioWorkflowGuide": "Conecta tu cuenta de Spotify, elige los archivos y el método de coincidencia, selecciona las características y los campos de destino, y revisa los umbrales antes de iniciar.",
-  "quickWorkflowGuide": "Abre Ajustes para elegir una carpeta o lista. Define energía, estados de ánimo, géneros, valores personalizados y campos de destino. Asigna atajos, escucha cada pista, aplica los valores y guarda.",
-  "editorWorkflowGuide": "Elige una carpeta mediante el control de ruta y selecciona un archivo para ver sus etiquetas. Edita, añade o elimina campos y guarda. Activa Tu lista en Preferencias para reunir archivos de varias carpetas.",
-  "manualWorkflowGuide": "Selecciona una pista y abre Etiquetado manual. Elige plataformas y etiquetas, inicia la búsqueda, selecciona el lanzamiento correcto y aplícalo. Abre el enlace del resultado para comprobarlo antes de escribir.",
-  "renameWorkflowGuide": "Elige la carpeta de origen y define una plantilla con las variables y funciones documentadas. Revisa la vista previa y el destino antes de renombrar. Mantén las palabras clave sin traducir y usa / para separar carpetas."
+  "character": "CARÁCTER"
 }

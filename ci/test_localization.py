@@ -8,12 +8,13 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 CATALOGS = ROOT / "client/src/locales"
 LOCALES = {"en", "it", "fr", "nl", "de", "es", "el", "ru"}
-NAMESPACES = {"autotag", "quicktag", "tools", "common", "backend", "core"}
+NAMESPACES = {"autotag", "quicktag", "tools", "common", "backend", "core", "providers", "help"}
 PARAMETER = re.compile(r"\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}")
 LITERAL = re.compile(r"\{'(?:\\.|[^'\\])*'\}")
 MARKUP = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^<>]*?)?/?>")
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\u202a-\u202e\u2066-\u2069]")
 STATIC_KEY = re.compile(r"\b(?:t|translate)\(\s*(['\"])([A-Za-z][\w]*\.[A-Za-z][\w]*)\1")
+STATIC_KEYPATH = re.compile(r"\bkeypath\s*=\s*(['\"])([A-Za-z][\w]*\.[A-Za-z][\w]*)\1")
 
 
 def unique_object(pairs):
@@ -88,7 +89,7 @@ class LocalizationCatalogTests(unittest.TestCase):
             if path.suffix not in {".ts", ".vue"}:
                 continue
             source = path.read_text(encoding="utf-8")
-            for _, key in STATIC_KEY.findall(source):
+            for _, key in STATIC_KEY.findall(source) + STATIC_KEYPATH.findall(source):
                 with self.subTest(file=str(path.relative_to(ROOT)), key=key):
                     self.assertIn(key, keys, "Translation reference has no English fallback")
             for attribute in re.findall(r'''v-html\s*=\s*("[^"]*"|'[^']*')''', source):

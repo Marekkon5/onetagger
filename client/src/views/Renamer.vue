@@ -430,11 +430,17 @@ onMounted(() => {
 });
 
 // Calculate character width after render
-watchEffect(() => {
-    setTimeout(() => {
-        charWidth.value = textWidthRef.value!.offsetWidth / 36.0;
+watchEffect((onCleanup) => {
+    const element = textWidthRef.value;
+    if (!element) return;
+
+    const timer = setTimeout(() => {
+        if (textWidthRef.value === element) {
+            charWidth.value = element.offsetWidth / 36.0;
+        }
     }, 100);
-})
+    onCleanup(() => clearTimeout(timer));
+}, { flush: 'post' });
 
 onUnmounted(() => {
     // Remove event

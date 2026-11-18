@@ -123,7 +123,6 @@
   "pause": "Pausa",
   "volume": "Volume",
   "help": "Aiuto",
-  "helpReferenceNotice": "Parte della documentazione dettagliata è attualmente disponibile in inglese.",
   "helpAutoTag": "Introduzione ai tag automatici",
   "helpAudio": "Introduzione alle caratteristiche audio",
   "helpQuickTag": "Introduzione ai tag rapidi",
@@ -200,11 +199,5 @@
   "start": "AVVIA",
   "keys": "tasti",
   "spacebar": "barra spaziatrice",
-  "character": "CARATTERE",
-  "autoWorkflowGuide": "Seleziona le piattaforme e trascina le schede per impostare la priorità. Scegli una cartella o playlist, seleziona i tag da recuperare, controlla le opzioni della piattaforma e quelle avanzate, quindi avvia.",
-  "audioWorkflowGuide": "Collega l’account Spotify, scegli i file audio e il metodo di ricerca, seleziona le caratteristiche audio e i campi di destinazione, quindi controlla le soglie prima di avviare.",
-  "quickWorkflowGuide": "Apri Impostazioni per scegliere una cartella o playlist. Definisci energia, umori, generi, valori personalizzati e campi di destinazione. Assegna scorciatoie, ascolta ogni brano, applica i valori e salva.",
-  "editorWorkflowGuide": "Scegli una cartella dal controllo del percorso e seleziona un file per esaminarne i tag. Modifica, aggiungi o elimina campi e salva. Abilita Il tuo elenco nelle Preferenze per raccogliere file da più cartelle.",
-  "manualWorkflowGuide": "Seleziona un brano e apri i tag manuali. Scegli piattaforme e tag, avvia la ricerca, seleziona la pubblicazione corretta e applicala. Apri il collegamento del risultato per verificarla prima di scrivere.",
-  "renameWorkflowGuide": "Scegli la cartella di origine e definisci un modello usando le variabili e le funzioni documentate. Controlla l’anteprima e la destinazione prima di rinominare. Non tradurre le parole chiave del modello; usa / per separare le cartelle."
+  "character": "CARATTERE"
 }
