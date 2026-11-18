@@ -139,7 +139,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev \
+            webkit2gtk-driver xvfb pulseaudio
       - name: Install Windows packaging tools
         if: runner.os == 'Windows'
         run: choco install nsis --no-progress -y
@@ -200,7 +201,6 @@ jobs:
         if: runner.os == 'Linux'
         timeout-minutes: 5
         run: |
-          sudo apt-get install -y webkit2gtk-driver xvfb pulseaudio
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=onetagger_test
           dbus-run-session -- xvfb-run -a python3 ci/ui/native_linux.py target/release/onetagger
