@@ -82,6 +82,9 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: ci/ui/requirements.txt
+      - name: Select a fast Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: python3 ci/ubuntu_apt_mirrors.py
       - name: Install pinned browser test dependencies
         run: |
           python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
@@ -135,10 +138,14 @@ jobs:
         with:
           name: frontend
           path: client/dist
+      - name: Select a fast Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: python3 ci/ubuntu_apt_mirrors.py
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
+        timeout-minutes: 12
         run: |
-          sudo apt-get update
+          sudo apt-get -o APT::Update::Error-Mode=any update
           sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev \
             webkit2gtk-driver xvfb pulseaudio
       - name: Install Windows packaging tools
