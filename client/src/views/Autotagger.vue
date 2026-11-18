@@ -251,7 +251,7 @@ const canStart = computed(() => (($1t.taggingSelection.value || $1t.config.value
     right: 0;
     height: 64px;
     bottom: 0;
-    z-index: 5;
+    z-index: 1;
     background-color: var(--q-accent);
 }
 </style>
