@@ -176,8 +176,8 @@ def main():
                     click('.q-stepper__tab:nth-child(1)')
                     wait("return document.querySelector('.content').scrollTop === 0")
                     geometry = script("""const p=document.querySelector('.content');
-                        const step=document.querySelector('.q-stepper__step');
-                        const inner=step.querySelector('.q-stepper__step-inner');
+                        const inner=document.querySelector('.q-stepper__step-inner');
+                        const step=inner.closest('.q-stepper__step');
                         return {unused:step.getBoundingClientRect().height-inner.getBoundingClientRect().height,
                             scrollTop:p.scrollTop, viewport:[innerWidth,innerHeight],
                             documentScroll:document.documentElement.scrollHeight-innerHeight,

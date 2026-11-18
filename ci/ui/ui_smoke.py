@@ -235,8 +235,8 @@ class BrowserTests(unittest.TestCase):
                         page.wait_for_function("document.querySelector('.content').scrollTop === 0")
                         geometry = page.evaluate("""() => {
                             const panel = document.querySelector('.content');
-                            const step = document.querySelector('.q-stepper__step');
-                            const inner = step.querySelector('.q-stepper__step-inner');
+                            const inner = document.querySelector('.q-stepper__step-inner');
+                            const step = inner.closest('.q-stepper__step');
                             const bar = document.querySelector('.at-stepper-bar');
                             return {
                                 unused: step.getBoundingClientRect().height - inner.getBoundingClientRect().height,

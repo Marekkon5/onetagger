@@ -214,6 +214,9 @@ const canStart = computed(() => (($1t.taggingSelection.value || $1t.config.value
 .autotagger {
     padding-bottom: 80px;
 }
+.autotagger > .q-page-sticky {
+    z-index: 2;
+}
 .autotagger .step {
     // Let short panels collapse and long panels extend the single scroll area.
     min-height: 0;
