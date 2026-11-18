@@ -12,7 +12,10 @@ ARCHIVE_URI = re.compile(
     r"^URIs:[ \t]+(https?://(?:[a-z0-9.-]+\.)?archive\.ubuntu\.com/ubuntu/?)[ \t]*$",
     re.MULTILINE,
 )
+ARCHIVE_SUITES = {"noble", "noble-updates", "noble-backports"}
+SUITES = re.compile(r"^Suites:[ \t]+([^\n]+)$", re.MULTILINE)
 ALTERNATIVES = (
+    "http://azure.archive.ubuntu.com/ubuntu",
     "https://archive.ubuntu.com/ubuntu",
     "https://mirrors.edge.kernel.org/ubuntu",
     "https://mirror.math.princeton.edu/pub/ubuntu",
@@ -55,19 +58,36 @@ def mirror_list(original, speeds):
     return "".join(f"{mirror}/\tpriority:{i}\n" for i, mirror in enumerate(ordered, 1))
 
 
+def archive_settings(source):
+    """Rewrite only regular Noble archive stanzas, even if security uses the same URI."""
+    blocks = re.split(r"(\n[ \t]*\n)", source)
+    originals = set()
+    for index in range(0, len(blocks), 2):
+        block = blocks[index]
+        suites = SUITES.search(block)
+        if not suites or not set(suites.group(1).split()) <= ARCHIVE_SUITES:
+            continue
+        matches = list(ARCHIVE_URI.finditer(block))
+        if len(matches) != 1:
+            continue
+        originals.add(matches[0].group(1).rstrip("/"))
+        blocks[index] = ARCHIVE_URI.sub(f"URIs: mirror+file:{MIRROR_LIST}", block, count=1)
+    if len(originals) == 1:
+        return originals.pop(), "".join(blocks)
+    return None
+
+
 def main():
     if (platform.freedesktop_os_release().get("VERSION_CODENAME") != "noble"
             or platform.machine() != "x86_64" or not SOURCES.is_file()):
         print("Keeping the default APT sources on this runner.")
         return
     source = SOURCES.read_text(encoding="utf-8")
-    matches = list(ARCHIVE_URI.finditer(source))
-    if len(matches) != 1:
-        print("Keeping the default APT sources: expected one Ubuntu archive URI.")
+    configuration = archive_settings(source)
+    if configuration is None:
+        print("Keeping the default APT sources: no single regular Noble archive was identified.")
         return
-
-    archive = matches[0]
-    original = archive.group(1).rstrip("/")
+    original, updated = configuration
     candidates = tuple(dict.fromkeys((original, *ALTERNATIVES)))
     with ThreadPoolExecutor(max_workers=len(candidates)) as pool:
         speeds = dict(zip(candidates, pool.map(probe_speed, candidates)))
@@ -82,7 +102,6 @@ def main():
     ranked = mirror_list(original, speeds)
     # Change only the archive URI. Keep the original suites, components,
     # archive signing key, and the separate security repository.
-    updated = source[:archive.start()] + f"URIs: mirror+file:{MIRROR_LIST}" + source[archive.end():]
     for path, contents in ((MIRROR_LIST, ranked), (SOURCES, updated)):
         subprocess.run(
             ["sudo", "tee", str(path)], input=contents, text=True,

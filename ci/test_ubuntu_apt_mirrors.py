@@ -1,7 +1,7 @@
 """Check the Ubuntu mirror ordering and archive source selection."""
 import unittest
 
-from ubuntu_apt_mirrors import ARCHIVE_URI, mirror_list
+from ubuntu_apt_mirrors import MIRROR_LIST, archive_settings, mirror_list
 
 
 class AptMirrorTests(unittest.TestCase):
@@ -19,22 +19,16 @@ class AptMirrorTests(unittest.TestCase):
             "http://us-east-2.ec2.archive.ubuntu.com/ubuntu/\tpriority:3\n"
         ))
 
-    def test_archive_pattern_does_not_match_security_or_other_repositories(self):
-        source = (
-            "Types: deb\n"
-            "URIs: http://us-east-2.ec2.archive.ubuntu.com/ubuntu/\n"
-            "Suites: noble noble-updates noble-backports\n"
-            "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\n"
-            "Types: deb\n"
-            "URIs: https://security.ubuntu.com/ubuntu/\n"
-            "Suites: noble-security\n"
-            "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\n"
-            "Types: deb\n"
-            "URIs: https://packages.microsoft.com/ubuntu/24.04/prod\n"
-        )
-        self.assertEqual(ARCHIVE_URI.findall(source), [
-            "http://us-east-2.ec2.archive.ubuntu.com/ubuntu/",
-        ])
+    def test_rewrites_archive_and_keeps_security_on_the_same_host(self):
+        uri = "http://azure.archive.ubuntu.com/ubuntu/"
+        key = "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg"
+        archive = f"Types: deb\nURIs: {uri}\nSuites: noble noble-updates noble-backports\n{key}\n"
+        security = f"Types: deb\nURIs: {uri}\nSuites: noble-security\n{key}\n"
+        other = "Types: deb\nURIs: https://packages.microsoft.com/ubuntu/24.04/prod\nSuites: noble\n"
+        original, updated = archive_settings(archive + "\n" + security + "\n" + other)
+        expected = archive.replace(uri, f"mirror+file:{MIRROR_LIST}") + "\n" + security + "\n" + other
+        self.assertEqual(original, uri.rstrip("/"))
+        self.assertEqual(updated, expected)
 
 
 if __name__ == "__main__":
