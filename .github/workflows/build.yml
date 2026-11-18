@@ -53,10 +53,22 @@ jobs:
           overwrite: true
 
   ui:
-    name: Browser UI tests
+    name: Browser UI tests (${{ matrix.os }})
     needs: frontend
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            browsers: chromium,firefox,webkit
+            install: chromium firefox webkit
+          - os: windows-2022
+            browsers: chromium
+            install: chromium
+    env:
+      UI_BROWSERS: ${{ matrix.browsers }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,14 +86,14 @@ jobs:
         run: |
           python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
           python -m pip check
-          python -m playwright install --with-deps chromium firefox webkit
+          python -m playwright install --with-deps ${{ matrix.install }}
       - name: Exercise the production frontend in three browser engines
         run: python ci/ui/ui_smoke.py
       - name: Upload UI screenshots and failure traces
         if: always() && !cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ui-test-results
+          name: ui-test-results-${{ matrix.os }}
           path: ui-test-results/
           if-no-files-found: warn
           retention-days: 7
@@ -127,7 +139,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev \
+            webkit2gtk-driver xvfb pulseaudio
       - name: Install Windows packaging tools
         if: runner.os == 'Windows'
         run: choco install nsis --no-progress -y
@@ -188,7 +201,6 @@ jobs:
         if: runner.os == 'Linux'
         timeout-minutes: 5
         run: |
-          sudo apt-get install -y webkit2gtk-driver xvfb pulseaudio
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=onetagger_test
           dbus-run-session -- xvfb-run -a python3 ci/ui/native_linux.py target/release/onetagger
