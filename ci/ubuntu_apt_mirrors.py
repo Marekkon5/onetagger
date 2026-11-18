@@ -8,9 +8,15 @@ import subprocess
 
 SOURCES = Path("/etc/apt/sources.list.d/ubuntu.sources")
 MIRROR_LIST = Path("/etc/apt/onetagger-ubuntu-mirrors.list")
+RUNNER_MIRROR_LIST = Path("/etc/apt/apt-mirrors.txt")
+RUNNER_MIRROR_URI = f"mirror+file:{RUNNER_MIRROR_LIST}"
+UBUNTU_ARCHIVE = r"https?://(?:[a-z0-9.-]+\.)?archive\.ubuntu\.com/ubuntu/?"
 ARCHIVE_URI = re.compile(
-    r"^URIs:[ \t]+(https?://(?:[a-z0-9.-]+\.)?archive\.ubuntu\.com/ubuntu/?)[ \t]*$",
+    rf"^URIs:[ \t]+({UBUNTU_ARCHIVE}|{re.escape(RUNNER_MIRROR_URI)})[ \t]*$",
     re.MULTILINE,
+)
+RUNNER_MIRROR = re.compile(
+    rf"({UBUNTU_ARCHIVE}|https?://security\.ubuntu\.com/ubuntu/?)(?:[ \t]+priority:(\d+))?",
 )
 ARCHIVE_SUITES = {"noble", "noble-updates", "noble-backports"}
 SUITES = re.compile(r"^Suites:[ \t]+([^\n]+)$", re.MULTILINE)
@@ -46,15 +52,25 @@ def probe_speed(mirror):
     return 0
 
 
-def mirror_list(original, speeds):
-    """Give APT measured mirrors in speed order and keep the runner's original."""
+def runner_mirrors(contents):
+    """Read the runner image's Ubuntu archives in their configured order."""
+    mirrors = {}
+    for line in contents.splitlines():
+        match = RUNNER_MIRROR.fullmatch(line.strip())
+        if match:
+            uri, priority = match.groups()
+            mirrors.setdefault(uri.rstrip("/"), int(priority) if priority else 2**31)
+    return sorted(mirrors, key=mirrors.__getitem__)
+
+
+def mirror_list(fallbacks, speeds):
+    """Give APT measured mirrors in speed order, then the runner's fallbacks."""
     ordered = sorted(
         (mirror for mirror, speed in speeds.items() if speed > 0),
         key=speeds.__getitem__,
         reverse=True,
     )
-    if original not in ordered:
-        ordered.append(original)
+    ordered.extend(mirror for mirror in fallbacks if mirror not in ordered)
     return "".join(f"{mirror}/\tpriority:{i}\n" for i, mirror in enumerate(ordered, 1))
 
 
@@ -88,18 +104,26 @@ def main():
         print("Keeping the default APT sources: no single regular Noble archive was identified.")
         return
     original, updated = configuration
-    candidates = tuple(dict.fromkeys((original, *ALTERNATIVES)))
+    if original == RUNNER_MIRROR_URI:
+        fallbacks = runner_mirrors(RUNNER_MIRROR_LIST.read_text(encoding="utf-8"))
+        if not fallbacks:
+            print("Keeping the runner mirror list: no recognized Ubuntu archive was found.")
+            return
+    else:
+        fallbacks = [original]
+    archives = [mirror for mirror in fallbacks if re.fullmatch(UBUNTU_ARCHIVE, mirror)]
+    candidates = tuple(dict.fromkeys((*archives, *ALTERNATIVES)))
     with ThreadPoolExecutor(max_workers=len(candidates)) as pool:
         speeds = dict(zip(candidates, pool.map(probe_speed, candidates)))
 
     for mirror, speed in speeds.items():
         result = f"{speed / 1024:,.0f} KiB/s" if speed else "probe did not finish"
         print(f"Ubuntu mirror {mirror}: {result}", flush=True)
-    if not any(speeds.get(mirror, 0) for mirror in ALTERNATIVES if mirror != original):
-        print("Keeping the default APT archive: no alternate mirror passed the probe.")
+    if not any(speeds.values()):
+        print("Keeping the default APT archive: no mirror passed the probe.")
         return
 
-    ranked = mirror_list(original, speeds)
+    ranked = mirror_list(fallbacks, speeds)
     # Change only the archive URI. Keep the original suites, components,
     # archive signing key, and the separate security repository.
     for path, contents in ((MIRROR_LIST, ranked), (SOURCES, updated)):
