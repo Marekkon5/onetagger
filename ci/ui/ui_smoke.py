@@ -214,6 +214,74 @@ class BrowserTests(unittest.TestCase):
         finally:
             context.close()
 
+    def test_autotagger_short_panels_collapse_after_scrolling_and_resize(self):
+        with self.session() as (page, _):
+            page.get_by_role('tab', name='Auto tag', exact=True).click()
+            for width, height in [(1200, 550), (1280, 720), (1920, 1080)]:
+                with self.subTest(width=width, height=height):
+                    page.set_viewport_size({'width': width, 'height': height})
+                    for _cycle in range(2):
+                        page.get_by_text('Advanced', exact=True).click()
+                        expect(page.get_by_text('Miscellaneous options', exact=True)).to_be_visible()
+                        # Exercise real wheel scrolling, not just DOM assignment.
+                        page.mouse.move(width // 2, height // 2)
+                        page.mouse.wheel(0, 10000)
+                        page.wait_for_function("document.querySelector('.content').scrollTop > 100")
+                        page.get_by_label('Cover filename template', exact=True).scroll_into_view_if_needed()
+                        expect(page.get_by_label('Cover filename template', exact=True)).to_be_visible()
+                        page.get_by_text('Platform Specific Settings', exact=True).click()
+                        message = page.get_by_text('No platform specific settings available for the selected platform(s)', exact=True)
+                        expect(message).to_be_visible()
+                        page.wait_for_function("document.querySelector('.content').scrollTop === 0")
+                        geometry = page.evaluate("""() => {
+                            const panel = document.querySelector('.content');
+                            const inner = document.querySelector('.q-stepper__step-inner');
+                            const step = inner.closest('.q-stepper__step');
+                            const bar = document.querySelector('.at-stepper-bar');
+                            return {
+                                unused: step.getBoundingClientRect().height - inner.getBoundingClientRect().height,
+                                stepHeight: step.getBoundingClientRect().height,
+                                excessScroll: panel.scrollHeight - panel.clientHeight,
+                                documentScroll: document.documentElement.scrollHeight - innerHeight,
+                                width: document.documentElement.scrollWidth,
+                                barBottom: bar.getBoundingClientRect().bottom,
+                            };
+                        }""")
+                        self.assertLessEqual(geometry['unused'], 2, geometry)
+                        self.assertLess(geometry['stepHeight'], 220, geometry)
+                        self.assertLessEqual(geometry['excessScroll'], 2, geometry)
+                        self.assertLessEqual(geometry['documentScroll'], 2, geometry)
+                        self.assertLessEqual(geometry['width'], width, geometry)
+                        self.assertAlmostEqual(geometry['barBottom'], height, delta=2)
+                    page.screenshot(path=str(RESULTS / f'{self.engine}-collapsed-{width}x{height}.png'))
+                    # Returning from another route must start at the panel top.
+                    page.get_by_role('tab', name='Home', exact=True).click()
+                    expect(page.get_by_text('The ultimate cross-platform music tagger for DJs', exact=True)).to_be_visible()
+                    page.get_by_role('tab', name='Auto tag', exact=True).click()
+                    expect(page.get_by_role('checkbox', name='Beatport', exact=True)).to_be_visible()
+                    page.wait_for_function("document.querySelector('.content').scrollTop === 0")
+
+    def test_autotagger_hidden_advanced_options_release_their_space(self):
+        with self.session() as (page, _):
+            page.get_by_role('tab', name='Auto tag', exact=True).click()
+            page.get_by_text('Advanced', exact=True).click()
+            toggle = page.get_by_role('switch', name='Parse metadata from filename', exact=True)
+            # Quasar QToggle exposes the switch role; assert both control and layout.
+            toggle.scroll_into_view_if_needed()
+            if toggle.get_attribute('aria-checked') == 'true':
+                toggle.click()
+            field = page.get_by_label('Filename scheme', exact=True)
+            expect(field).to_have_count(0)
+            panel = page.locator('.q-stepper__step-inner')
+            collapsed = panel.bounding_box()['height']
+            toggle.click()
+            expect(field).to_be_visible()
+            expanded = panel.bounding_box()['height']
+            self.assertGreater(expanded, collapsed + 20)
+            toggle.click()
+            expect(field).to_have_count(0)
+            self.assertAlmostEqual(panel.bounding_box()['height'], collapsed, delta=2)
+
     def test_autotagger_checkbox_mouse_and_keyboard(self):
         with self.session() as (page, _backend):
             def exercise(control):

@@ -46,7 +46,7 @@
             <!-- Content -->
             <q-page-container class="content" ref="contentContainer">
                 <router-view v-slot='{ Component }' v-if='$1t.info.value.ready'>
-                    <transition name="fade">
+                    <transition name="fade" mode="out-in" @before-enter="resetContentScroll">
                         <keep-alive :include='["AudioFeatures"]'>
                             <component :is='Component'></component>
                         </keep-alive>
@@ -124,8 +124,8 @@ import axios from 'axios';
 
 import { compareVersions } from 'compare-versions';
 import { useQuasar } from 'quasar';
-import {computed, onMounted, onUpdated, ref, watch} from "vue";
-import { useRoute, useRouter } from "vue-router";
+import {computed, onMounted, ref, watch} from "vue";
+import { useRouter } from "vue-router";
 import { get1t } from "./scripts/onetagger.js";
 
 import HelpButton from './components/HelpButton.vue';
@@ -261,24 +261,17 @@ onMounted(() => {
     setTimeout(() => checkUpdates(), 5000);
 });
 
-// Dont show scrollbar while transition
-const contentContainer = ref(null);
-watch(useRoute(), (r) => {
-    // @ts-ignore
-    contentContainer.value!.$el.style.overflowY = "hidden";
-    if (r.path == '/quicktag') showSide();
-    if (r.path == '/tageditor') {
+// Only one routed page participates in layout during a transition.
+const contentContainer = ref<{ $el: HTMLElement } | null>(null);
+function resetContentScroll() {
+    if (contentContainer.value) contentContainer.value.$el.scrollTop = 0;
+}
+watch(() => router.currentRoute.value.path, (path) => {
+    if (path == '/quicktag') showSide();
+    else {
         hideSide();
-        footer.value = true;
+        if (path == '/tageditor') footer.value = true;
     }
-});
-
-// Show again scrollbar after transition
-onUpdated(() => {
-    setTimeout(() => {
-        // @ts-ignore
-        contentContainer.value!.$el.style.overflowY = "auto";
-    }, 250);
 });
 
 </script>
@@ -302,8 +295,8 @@ onUpdated(() => {
 .fade-enter-active {
     transition-delay: 0.25s;
 }
-.fade-enter,
-.fade-leave-active {
+.fade-enter-from,
+.fade-leave-to {
     opacity: 0;
 }
 

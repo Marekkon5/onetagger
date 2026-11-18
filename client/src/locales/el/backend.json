@@ -18,5 +18,10 @@
   "trackMatchFailed": "Δεν ήταν δυνατή η αντιστοίχιση του κομματιού: {detail}",
   "trackWriteFailed": "Δεν ήταν δυνατή η εγγραφή των ετικετών: {detail}",
   "audioFeaturesWriteFailed": "Δεν ήταν δυνατή η εγγραφή των χαρακτηριστικών ήχου στις ετικέτες: {detail}",
-  "audioFeaturesSearchFailed": "Δεν ήταν δυνατή η εύρεση των χαρακτηριστικών ήχου μέσω του ISRC του κομματιού: {detail}"
+  "audioFeaturesSearchFailed": "Δεν ήταν δυνατή η εύρεση των χαρακτηριστικών ήχου μέσω του ISRC του κομματιού: {detail}",
+  "providerWorkerPanicked": "Μια διεργασία του παρόχου τερματίστηκε απροσδόκητα. Η πηγή της απενεργοποιήθηκε για αυτή την εκτέλεση.",
+  "providerInitializationPanicked": "Ο πάροχος τερματίστηκε απροσδόκητα κατά την αρχικοποίηση.",
+  "providerInitializationFailed": "Δεν ήταν δυνατή η αρχικοποίηση του παρόχου: {detail}",
+  "providerUnavailable": "Μη διαθέσιμος πάροχος: {provider}",
+  "providerPanickedTryingNext": "Ο πάροχος τερματίστηκε απροσδόκητα. Δοκιμή του επόμενου παρόχου."
 }

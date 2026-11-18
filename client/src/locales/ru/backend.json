@@ -18,5 +18,10 @@
   "trackMatchFailed": "Не удалось найти соответствие для трека: {detail}",
   "trackWriteFailed": "Не удалось записать теги: {detail}",
   "audioFeaturesWriteFailed": "Не удалось записать аудиохарактеристики в теги: {detail}",
-  "audioFeaturesSearchFailed": "Не удалось найти аудиохарактеристики по ISRC трека: {detail}"
+  "audioFeaturesSearchFailed": "Не удалось найти аудиохарактеристики по ISRC трека: {detail}",
+  "providerWorkerPanicked": "Рабочая задача поставщика аварийно завершилась. Её источник отключён для этого запуска.",
+  "providerInitializationPanicked": "Поставщик аварийно завершил работу при инициализации.",
+  "providerInitializationFailed": "Не удалось инициализировать поставщика: {detail}",
+  "providerUnavailable": "Поставщик недоступен: {provider}",
+  "providerPanickedTryingNext": "Поставщик аварийно завершил работу. Будет проверен следующий поставщик."
 }

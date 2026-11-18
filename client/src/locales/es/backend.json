@@ -18,5 +18,10 @@
   "trackMatchFailed": "No se ha podido encontrar una coincidencia para la pista: {detail}",
   "trackWriteFailed": "No se han podido escribir las etiquetas: {detail}",
   "audioFeaturesWriteFailed": "No se han podido escribir las características de audio en las etiquetas: {detail}",
-  "audioFeaturesSearchFailed": "No se han podido encontrar las características de audio mediante el ISRC de la pista: {detail}"
+  "audioFeaturesSearchFailed": "No se han podido encontrar las características de audio mediante el ISRC de la pista: {detail}",
+  "providerWorkerPanicked": "Una tarea del proveedor terminó inesperadamente. Su fuente queda desactivada para esta ejecución.",
+  "providerInitializationPanicked": "El proveedor falló durante la inicialización.",
+  "providerInitializationFailed": "No se pudo inicializar el proveedor: {detail}",
+  "providerUnavailable": "Proveedor no disponible: {provider}",
+  "providerPanickedTryingNext": "El proveedor falló. Se probará con el siguiente."
 }

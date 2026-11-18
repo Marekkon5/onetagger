@@ -1,5 +1,17 @@
 ## Unreleased (fantuz fork)
 
+## 1.7.4 — 2026-11-18
+
+- Let Autotagger steps fit their content instead of reserving a fixed viewport-sized panel, so short settings pages and hidden options release unused space.
+- Reset scrolling when switching Autotagger steps or presentation modes, and prevent outgoing and incoming pages from stacking during navigation.
+- Keep the step navigation bar fixed while preserving access to Start and CLI controls.
+- Remove redundant per-update scroll-style timers and animated step-height transitions.
+- Give advanced toggles accessible names and align the native minimum window width with the frontend's 1200-pixel requirement.
+- Expand layout regression coverage for scrolling, conditional fields, route navigation and window resizing across Chromium, Firefox and WebKit on Linux, plus Chromium on Windows.
+- Extend the real Linux executable's UI checks with resized navigation, layout assertions and system/WebKit diagnostics.
+
+The separate Linux native-window freeze investigation is deferred; this release does not claim to resolve it. Browser mode (`onetagger --server --browser`) remains available.
+
 ## 1.7.3 — 2026-11-17
 
 - Add opt-in tagging-results JSON in AutoTagger and the CLI, recording actual before/after tags, provider attempts and file identity for reviewed imports into rekordbox Migration Helper.

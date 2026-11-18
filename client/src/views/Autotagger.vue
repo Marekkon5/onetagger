@@ -1,11 +1,10 @@
 <template>
-<div>
+<div class='autotagger' ref='autotagger'>
 
     <q-stepper 
         v-model='step' 
         header-nav 
         color='primary' 
-        animated 
         alternative-labels
         flat 
         class='bg-darker'
@@ -149,7 +148,7 @@
 <script lang='ts' setup>
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n({ useScope: 'global' });
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { get1t } from '../scripts/onetagger';
 
@@ -163,6 +162,13 @@ import CliDialog from '../components/CliDialog.vue';
 const $1t = get1t();
 const $router = useRouter();
 const step = ref(0);
+const autotagger = ref<HTMLElement | null>(null);
+
+// A long panel must not leave the next (possibly empty) panel scrolled away.
+watch([step, () => $1t.settings.value.autoTaggerSinglePage], () => {
+    const content = autotagger.value?.closest<HTMLElement>('.content');
+    if (content) content.scrollTop = 0;
+}, { flush: 'post' });
 const cliDialog = ref(false);
 
 async function startTagging() {
@@ -209,12 +215,19 @@ const canStart = computed(() => (($1t.taggingSelection.value || $1t.config.value
 
 
 <style lang='scss'>
-.step {
-    min-height: calc(100vh - 164px);
-    max-height: calc(100vh - 164px);
+.autotagger {
+    padding-bottom: 80px;
+}
+.autotagger > .q-page-sticky {
+    z-index: 2;
+}
+.autotagger .step {
+    // Let short panels collapse and long panels extend the single scroll area.
+    min-height: 0;
+    max-height: none;
     background: #181818;
 }
-.q-stepper__step-inner {
+.autotagger .q-stepper__step-inner {
     background: #181818;
 }
 
@@ -240,9 +253,12 @@ const canStart = computed(() => (($1t.taggingSelection.value || $1t.config.value
 
 .at-stepper-bar {
     width: 100%;
-    position: absolute;
+    position: fixed;
+    left: 0;
+    right: 0;
     height: 64px;
-    bottom: 0%;
+    bottom: 0;
+    z-index: 1;
     background-color: var(--q-accent);
 }
 </style>

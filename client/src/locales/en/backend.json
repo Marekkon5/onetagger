@@ -18,5 +18,10 @@
   "trackMatchFailed": "Could not match the track: {detail}",
   "trackWriteFailed": "Could not write the tags: {detail}",
   "audioFeaturesWriteFailed": "Could not write audio features to the tags: {detail}",
-  "audioFeaturesSearchFailed": "Could not find audio features using the track's ISRC: {detail}"
+  "audioFeaturesSearchFailed": "Could not find audio features using the track's ISRC: {detail}",
+  "providerWorkerPanicked": "A provider worker crashed. Its source is disabled for this run.",
+  "providerInitializationPanicked": "The provider crashed during initialization.",
+  "providerInitializationFailed": "Could not initialize the provider: {detail}",
+  "providerUnavailable": "Provider unavailable: {provider}",
+  "providerPanickedTryingNext": "The provider crashed. Trying the next provider."
 }

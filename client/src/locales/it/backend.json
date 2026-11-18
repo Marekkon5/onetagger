@@ -18,5 +18,10 @@
   "trackMatchFailed": "Impossibile trovare una corrispondenza per la traccia: {detail}",
   "trackWriteFailed": "Impossibile scrivere i tag: {detail}",
   "audioFeaturesWriteFailed": "Impossibile scrivere le caratteristiche audio nei tag: {detail}",
-  "audioFeaturesSearchFailed": "Impossibile trovare le caratteristiche audio tramite l'ISRC della traccia: {detail}"
+  "audioFeaturesSearchFailed": "Impossibile trovare le caratteristiche audio tramite l'ISRC della traccia: {detail}",
+  "providerWorkerPanicked": "Un processo del provider si è interrotto in modo imprevisto. La sua sorgente è disattivata per questa esecuzione.",
+  "providerInitializationPanicked": "Il provider si è interrotto durante l’inizializzazione.",
+  "providerInitializationFailed": "Impossibile inizializzare il provider: {detail}",
+  "providerUnavailable": "Provider non disponibile: {provider}",
+  "providerPanickedTryingNext": "Il provider si è interrotto. Verrà provato il provider successivo."
 }

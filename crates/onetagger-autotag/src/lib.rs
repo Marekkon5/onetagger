@@ -34,6 +34,8 @@ pub mod repo;
 pub mod platforms;
 pub mod audiofeatures;
 pub mod report;
+mod scheduler;
+mod pipeline;
 
 // Re-exports
 pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
@@ -617,6 +619,7 @@ pub struct TaggingStatus {
 
 /// Application-owned status identity. Raw provider/OS details are arguments;
 /// they are never parsed for English text or treated as translation source.
+#[derive(Clone)]
 pub(crate) enum TaggingMessage {
     AlreadyTagged,
     AudioFeaturesAlreadyTagged,
@@ -630,25 +633,35 @@ pub(crate) enum TaggingMessage {
     TrackWriteFailed(String),
     AudioFeaturesWriteFailed(String),
     AudioFeaturesSearchFailed(String),
+    ProviderWorkerPanicked,
+    ProviderInitializationPanicked,
+    ProviderInitializationFailed(String),
+    ProviderUnavailable(String),
+    ProviderPanickedTryingNext,
 }
 
 impl TaggingMessage {
     fn describe(self) -> (String, &'static str, serde_json::Map<String, serde_json::Value>) {
-        let (message, key, detail) = match self {
+        let (message, key, argument) = match self {
             Self::AlreadyTagged => ("Already tagged".into(), "backend.alreadyTagged", None),
             Self::AudioFeaturesAlreadyTagged => ("Already tagged!".into(), "backend.alreadyTagged", None),
             Self::NoMatch => ("No match!".into(), "backend.noMatch", None),
             Self::StoppedBeforeWriting => ("Stopped before writing tags".into(), "backend.stoppedBeforeWriting", None),
             Self::NoAlbumMatch => ("No album match for selected file".into(), "backend.noAlbumMatch", None),
             Self::AlbumWriteFailed => ("Failed writing album tags".into(), "backend.albumWriteFailed", None),
-            Self::ShazamFailed(detail) => (format!("Error Shazaming file: {detail}"), "backend.shazamFailed", Some(detail)),
-            Self::FileLoadFailed(detail) => (format!("Error loading file: {detail}"), "backend.fileLoadFailed", Some(detail)),
-            Self::TrackMatchFailed(detail) => (format!("Error matching track: {detail}"), "backend.trackMatchFailed", Some(detail)),
-            Self::TrackWriteFailed(detail) => (format!("Failed writing tags to file: {detail}"), "backend.trackWriteFailed", Some(detail)),
-            Self::AudioFeaturesWriteFailed(detail) => (format!("Audio features failed writing to tag: {detail}"), "backend.audioFeaturesWriteFailed", Some(detail)),
-            Self::AudioFeaturesSearchFailed(detail) => (format!("Audio features search track by ISRC error: {detail}"), "backend.audioFeaturesSearchFailed", Some(detail)),
+            Self::ShazamFailed(detail) => (format!("Error Shazaming file: {detail}"), "backend.shazamFailed", Some(("detail", detail))),
+            Self::FileLoadFailed(detail) => (format!("Error loading file: {detail}"), "backend.fileLoadFailed", Some(("detail", detail))),
+            Self::TrackMatchFailed(detail) => (format!("Error matching track: {detail}"), "backend.trackMatchFailed", Some(("detail", detail))),
+            Self::TrackWriteFailed(detail) => (format!("Failed writing tags to file: {detail}"), "backend.trackWriteFailed", Some(("detail", detail))),
+            Self::AudioFeaturesWriteFailed(detail) => (format!("Audio features failed writing to tag: {detail}"), "backend.audioFeaturesWriteFailed", Some(("detail", detail))),
+            Self::AudioFeaturesSearchFailed(detail) => (format!("Audio features search track by ISRC error: {detail}"), "backend.audioFeaturesSearchFailed", Some(("detail", detail))),
+            Self::ProviderWorkerPanicked => ("Provider worker panicked; source disabled for this run".into(), "backend.providerWorkerPanicked", None),
+            Self::ProviderInitializationPanicked => ("Provider initialization panicked".into(), "backend.providerInitializationPanicked", None),
+            Self::ProviderInitializationFailed(detail) => (format!("Could not initialize provider: {detail}"), "backend.providerInitializationFailed", Some(("detail", detail))),
+            Self::ProviderUnavailable(provider) => (format!("Provider unavailable: {provider}"), "backend.providerUnavailable", Some(("provider", provider))),
+            Self::ProviderPanickedTryingNext => ("Provider panicked; trying the next provider".into(), "backend.providerPanickedTryingNext", None),
         };
-        let arguments = detail.into_iter().map(|detail| ("detail".into(), serde_json::Value::String(detail))).collect();
+        let arguments = argument.into_iter().map(|(name, value)| (name.into(), serde_json::Value::String(value))).collect();
         (message, key, arguments)
     }
 }
@@ -726,6 +739,10 @@ impl Tagger {
     fn tag_files_inner(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, report_enabled: bool, selection: Option<report::Selection>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
 
+        // A playlist can contain the same file more than once, including aliases.
+        // Keep its first spelling for reports, but never schedule it twice.
+        pipeline::deduplicate_files(&mut files);
+
         // Shuffle so album tag is more "efficient"
         if cfg.album_tagging {
             let mut rng = rand::rng();
@@ -743,6 +760,10 @@ impl Tagger {
         std::thread::spawn(move || {
             let mut report = report_enabled.then(|| report::ReportBuilder::new(&files, selection));
             // Tag
+            if !config.album_tagging {
+                Self::tag_pipeline(&files, &config, &tx, &mut results, &mut report);
+            } else {
+            // Album matching depends on provider-wide folder grouping.
             for (platform_index, platform) in config.platforms.iter().enumerate() {
                 // For progress
                 let mut processed = 0;
@@ -799,6 +820,7 @@ impl Tagger {
                 // Workers already own this batch. Filter once per provider instead
                 // of scanning the remaining files after every successful result.
                 if !matched.is_empty() { files.retain(|path| !matched.contains(path)); }
+            }
             }
 
             // Move files
@@ -1476,3 +1498,4 @@ pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>,
 
 #[cfg(test)]
 mod regression_tests;
+

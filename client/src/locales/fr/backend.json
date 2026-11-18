@@ -18,5 +18,10 @@
   "trackMatchFailed": "Impossible de trouver une correspondance pour le morceau : {detail}",
   "trackWriteFailed": "Impossible d’écrire les tags : {detail}",
   "audioFeaturesWriteFailed": "Impossible d’écrire les caractéristiques audio dans les tags : {detail}",
-  "audioFeaturesSearchFailed": "Impossible de trouver les caractéristiques audio à partir de l’ISRC du morceau : {detail}"
+  "audioFeaturesSearchFailed": "Impossible de trouver les caractéristiques audio à partir de l’ISRC du morceau : {detail}",
+  "providerWorkerPanicked": "Une tâche du fournisseur s’est arrêtée brutalement. Sa source est désactivée pour cette exécution.",
+  "providerInitializationPanicked": "Le fournisseur s’est arrêté brutalement lors de l’initialisation.",
+  "providerInitializationFailed": "Impossible d’initialiser le fournisseur : {detail}",
+  "providerUnavailable": "Fournisseur indisponible : {provider}",
+  "providerPanickedTryingNext": "Le fournisseur s’est arrêté brutalement. Passage au fournisseur suivant."
 }

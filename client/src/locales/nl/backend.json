@@ -18,5 +18,10 @@
   "trackMatchFailed": "Er kon geen overeenkomst voor het nummer worden gevonden: {detail}",
   "trackWriteFailed": "De tags konden niet worden geschreven: {detail}",
   "audioFeaturesWriteFailed": "De audio-eigenschappen konden niet naar de tags worden geschreven: {detail}",
-  "audioFeaturesSearchFailed": "De audio-eigenschappen konden niet via de ISRC van het nummer worden gevonden: {detail}"
+  "audioFeaturesSearchFailed": "De audio-eigenschappen konden niet via de ISRC van het nummer worden gevonden: {detail}",
+  "providerWorkerPanicked": "Een taak van de aanbieder is vastgelopen. De bijbehorende bron is voor deze uitvoering uitgeschakeld.",
+  "providerInitializationPanicked": "De aanbieder is vastgelopen tijdens het initialiseren.",
+  "providerInitializationFailed": "Kan de aanbieder niet initialiseren: {detail}",
+  "providerUnavailable": "Aanbieder niet beschikbaar: {provider}",
+  "providerPanickedTryingNext": "De aanbieder is vastgelopen. De volgende aanbieder wordt geprobeerd."
 }
