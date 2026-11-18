@@ -3,13 +3,13 @@
         <q-layout view="hHh lpR fFf" class="bg-background">
             <!-- Header -->
             <q-header class="bg-darker text-white" height-hint="98">
-                <q-toolbar class="row justify-between">
-                    <div class="col-2 row" style="height: 58px">
+                <q-toolbar class="row no-wrap">
+                    <div class="col-auto row no-wrap" style="height: 58px">
                         <img src="./assets/icon.png" height="42" @click="home" class="logo q-mt-sm" :class="{ spin: $1t.lock.value.locked }" />
                         <LogoText class='q-mt-sm q-ml-xs'></LogoText>
                     </div>
                     
-                    <div class="col-8">
+                    <div class="col" style="min-width: 0">
                         <q-tabs style="padding-top: 8px">
                             <q-route-tab :aria-label="t('common.home')" :disable="$1t.lock.value.locked" data-testid="nav-home" to="/" class="text-weight-bolder" @click="hideSide">
                                 <q-icon name="mdi-home" size="sm"></q-icon>
@@ -23,7 +23,7 @@
                     </div>
 
                     <!-- Settings -->
-                    <div class="col-2 row justify-end items-center">
+                    <div class="col-auto row no-wrap justify-end items-center">
                         <LanguageSelector compact class="q-mr-sm" />
                         <q-btn data-testid="settings-open" :aria-label="t('common.settings')" flat round dense icon="mdi-cog" @click="settings = true" ></q-btn>
                     </div>
@@ -320,10 +320,6 @@ onUpdated(() => {
     animation: rotation 2s infinite linear;
 }
 
-/* Hide tabs arrow */
-.q-tabs__arrow { 
-    opacity: 0 !important;
-}
 .q-tab__indicator {
     background-color: var(--q-primary) !important;
     color: var(--q-primary) !important;

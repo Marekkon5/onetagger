@@ -168,6 +168,41 @@ class LocalizationTests(unittest.TestCase):
                             "Untranslated message key leaked into the interface")
         page.evaluate("document.fonts.ready")
 
+    def assert_header_scroll_controls(self, page):
+        page.evaluate("document.fonts.ready")
+        tabs = page.locator(".q-header .q-tabs")
+        content = tabs.locator(".q-tabs__content")
+        overflow = content.evaluate("""element => [...element.children].reduce(
+            (width, tab) => width + tab.getBoundingClientRect().width, 0) > element.clientWidth + 1""")
+        if not overflow:
+            return
+        expect(tabs).to_have_class(re.compile(r"\bq-tabs--scrollable\b"))
+        # Quasar arrows scroll while the real pointer is held down. Do not use
+        # locator auto-scrolling to make a clipped navigation tab reachable.
+        for direction, target in (("right", "nav-renamer"), ("left", "nav-home")):
+            arrow = tabs.locator(f".q-tabs__arrow--{direction}")
+            expect(arrow).to_be_visible()
+            expect(arrow).not_to_have_css("opacity", "0")
+            expect(arrow).not_to_have_class(re.compile(r"q-tabs__arrow--faded"))
+            arrow.hover()
+            page.mouse.down()
+            try:
+                page.wait_for_function("""direction => {
+                    const element = document.querySelector('.q-header .q-tabs__content');
+                    return direction === 'right'
+                        ? element.scrollWidth - element.clientWidth - element.scrollLeft <= 1
+                        : element.scrollLeft <= 1;
+                }""", arg=direction)
+            finally:
+                page.mouse.up()
+            bounds = content.bounding_box()
+            tab = page.get_by_test_id(target).bounding_box()
+            self.assertIsNotNone(bounds)
+            self.assertIsNotNone(tab)
+            self.assertGreaterEqual(tab["x"], bounds["x"] - 1, "Navigation tab remains clipped on the left")
+            self.assertLessEqual(tab["x"] + tab["width"], bounds["x"] + bounds["width"] + 1,
+                                 "Navigation tab remains clipped on the right")
+
     def finish_selected_tagging(self, page, backend):
         previous = len([c for c in backend.commands if c["action"] == "startTagging"])
         backend.hold_tagging = True
@@ -340,6 +375,7 @@ class LocalizationTests(unittest.TestCase):
         for locale in ("de", "nl", "el", "ru"):
             with self.subTest(locale=locale), self.session(saved=locale, expected=locale,
                     viewport={"width": 1280, "height": 720}) as (page, _):
+                self.assert_header_scroll_controls(page)
                 for route in ("autotagger", "tageditor", "renamer", "audiofeatures", "quicktag", "home"):
                     page.get_by_test_id(f"nav-{route}").click()
                     expect(page.locator(".q-page-container")).not_to_be_empty()
