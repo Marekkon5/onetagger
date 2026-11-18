@@ -12,7 +12,7 @@
             >
                 <span class='text-subtitle1 text-grey-4' v-if='!filename'>
                     <q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs text-grey-6'></q-icon>
-                    Drag & drop M3U Playlist file
+                    {{ t('common.playlistDrop') }}
                 </span>
                 <div v-if='filename'>
                     <q-icon name='mdi-playlist-music' size='sm' class='q-pr-sm q-pb-xs' color='primary'></q-icon>
@@ -31,10 +31,10 @@
             icon='mdi-playlist-music'
             :color='(drag || filename) ? "primary" : undefined'
             @click='filename ? remove() : true'
-            label="Playlist"
+            :label="t('common.playlist')"
         >
             <q-tooltip>
-                Drag & drop playlist here / click to remove it, or export playlist from selected / filtered tracks
+                {{ t('common.playlistHint') }}
             </q-tooltip>
         </q-btn>
     </div>
@@ -42,6 +42,9 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import { PropType, ref } from 'vue';
 import { Playlist } from '../scripts/utils';
 

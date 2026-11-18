@@ -1,16 +1,16 @@
 <template>
 <q-card class='cli-card q-pa-md'>
 
-    <div class='text-h3 text-center q-my-md'>Command line version</div>
+    <div class='text-h3 text-center q-my-md'>{{ t('tools.cliVersion') }}</div>
 
     <!-- Config -->
-    <div class='text-body1 text-center q-mb-lg'>1. Copy and save this config into <span class='monospace'>config.json</span></div>
+    <div class='text-body1 text-center q-mb-lg'>{{ t('tools.cliCopyConfig', { filename: 'config.json' }) }}</div>
     <div class='config code monospace'>
         {{JSON.stringify(config, null, 2)}}
     </div>
 
     <!-- Run -->
-    <div class='text-body1 text-center q-my-lg'>2. Start <span class='monospace'>onetagger-cli</span></div>
+    <div class='text-body1 text-center q-my-lg'>{{ t('tools.cliStart', { program: 'onetagger-cli' }) }}</div>
     <div class='monospace code text-center'>
         {{bin}} <span class='monospace'>{{command}}</span> --config config.json --path {{config.path}} <span class='monospace'>{{extra}}</span>
     </div>
@@ -19,6 +19,8 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { get1t } from '../scripts/onetagger';
 
 const $1t = get1t();
@@ -40,8 +42,9 @@ if ($1t.info.value.os == 'windows') {
 <style lang='scss' scoped>
 
 .cli-card {
-    min-width: 700px;
-    height: 420px;
+    width: 800px;
+    max-width: 94vw;
+    min-height: 420px;
 }
 
 .code {

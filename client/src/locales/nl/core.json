@@ -1,0 +1,23 @@
+{
+  "language": "Taal",
+  "languageHelp": "De taal wordt voor deze browser of dit desktopvenster opgeslagen.",
+  "unexpectedError": "Er is een onverwachte fout opgetreden.",
+  "invalidSession": "Deze OneTagger-sessielink is ongeldig of verlopen.",
+  "sessionLinkRequired": "Open OneTagger via de sessielink die de actieve toepassing weergeeft.",
+  "websocketError": "WebSocket-fout!",
+  "websocketClosed": "WebSocket-verbinding gesloten!",
+  "error": "Fout",
+  "reportSaveFailed": "Het resultatenrapport kon niet worden opgeslagen",
+  "moveFailed": "Sommige bestanden konden niet worden verplaatst",
+  "platformInstalled": "Platform geïnstalleerd",
+  "platformInstallFailed": "Platforminstallatie mislukt",
+  "platformInstallSuccess": "Het platform is geïnstalleerd. Druk op OK om verder te gaan.",
+  "settingsSaved": "Instellingen opgeslagen!",
+  "invalidProfile": "Ongeldig profiel",
+  "loadingPlatforms": "Platforms laden...",
+  "stopNotAcknowledged": "Het stoppen is niet bevestigd. Probeer het opnieuw.",
+  "invalidStopAcknowledgement": "Ongeldige stopbevestiging",
+  "stopSendFailed": "De stopopdracht kon niet worden verzonden. Probeer het opnieuw.",
+  "stopConnectionClosed": "De verbinding is vóór de stopbevestiging gesloten. Probeer het opnieuw.",
+  "trackSaved": "Nummer opgeslagen!"
+}

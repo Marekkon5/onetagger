@@ -1,0 +1,23 @@
+{
+  "language": "Sprache",
+  "languageHelp": "Die Sprache wird für diesen Browser oder dieses Desktopfenster gespeichert.",
+  "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten.",
+  "invalidSession": "Dieser OneTagger-Sitzungslink ist ungültig oder abgelaufen.",
+  "sessionLinkRequired": "Öffnen Sie OneTagger über den Sitzungslink, den die laufende Anwendung ausgibt.",
+  "websocketError": "WebSocket-Fehler!",
+  "websocketClosed": "WebSocket-Verbindung geschlossen!",
+  "error": "Fehler",
+  "reportSaveFailed": "Der Ergebnisbericht konnte nicht gespeichert werden",
+  "moveFailed": "Einige Dateien konnten nicht verschoben werden",
+  "platformInstalled": "Plattform installiert",
+  "platformInstallFailed": "Installation der Plattform fehlgeschlagen",
+  "platformInstallSuccess": "Die Plattform wurde installiert. Drücken Sie OK, um fortzufahren.",
+  "settingsSaved": "Einstellungen gespeichert!",
+  "invalidProfile": "Ungültiges Profil",
+  "loadingPlatforms": "Plattformen werden geladen...",
+  "stopNotAcknowledged": "Das Anhalten wurde nicht bestätigt. Versuchen Sie es erneut.",
+  "invalidStopAcknowledgement": "Ungültige Bestätigung des Anhaltens",
+  "stopSendFailed": "Der Stoppbefehl konnte nicht gesendet werden. Versuchen Sie es erneut.",
+  "stopConnectionClosed": "Die Verbindung wurde vor der Stoppbestätigung geschlossen. Versuchen Sie es erneut.",
+  "trackSaved": "Titel gespeichert!"
+}

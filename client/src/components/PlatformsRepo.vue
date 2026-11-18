@@ -4,7 +4,7 @@
 
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle2 text-bold text-center text-primary'>CUSTOM PLATFORMS</div>
+        <div class='text-subtitle2 text-bold text-center text-primary'>{{ t('common.customPlatforms') }}</div>
     </q-card-section>
 
     <!-- Platforms -->
@@ -25,8 +25,8 @@
                                         <q-icon v-if='platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
                                     </span>
                                     <q-tooltip>
-                                        <span v-if='platform.maxThreads'>This platform allows up to {{platform.maxThreads}} concurrent searches</span>
-                                        <span v-else>This platform allows unlimited concurrent searches</span>
+                                        <span v-if='platform.maxThreads'>{{ t('common.parallelSearches', { count: platform.maxThreads }) }}</span>
+                                        <span v-else>{{ t('common.unlimitedSearches') }}</span>
                                     </q-tooltip>
                                 </span>
 
@@ -36,7 +36,7 @@
                                         <q-icon name='mdi-lock' size='xs' class='q-pb-xs'></q-icon>
                                     </span>
                                     <q-tooltip>
-                                        <span>Platform requires an account</span>
+                                        <span>{{ t('common.accountRequired') }}</span>
                                     </q-tooltip>
                                 </span>
 
@@ -45,13 +45,13 @@
                         <span v-html='platform.description'></span>
                         <br>
                         <!-- Info -->
-                        <span class="text-grey-5">Author: {{ platform.author }}</span>
+                        <span class="text-grey-5">{{ t('common.author', { author: platform.author }) }}</span>
                         <div class='text-grey-8 text-bold monospace text-left' style='font-size: 10px;'>
                             {{platform.id}}@{{platform.version}}
                         </div>
                         <div class='text-red text-bold' v-if='!Object.values(platform.versions).includes($1t.info.value.customPlatformCompat)'>
-                            <span v-if='platform.language != "rust"'>Platform potentially incompatible!</span>
-                            <span v-else>Platform is incompatible!</span>
+                            <span v-if='platform.language != "rust"'>{{ t('common.potentiallyIncompatible') }}</span>
+                            <span v-else>{{ t('common.incompatible') }}</span>
                         </div>
                     </q-card-section>
                     <q-card-section class='column'>
@@ -67,7 +67,7 @@
 
     <!-- Show incompatible -->
     <div>
-        <q-checkbox label='Show incompatible' v-model='showIncompatible'></q-checkbox>
+        <q-checkbox :label="t('common.showIncompatible')" v-model='showIncompatible'></q-checkbox>
     </div>
 </q-card>
 
@@ -77,15 +77,15 @@
 
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle1 text-bold text-center text-primary'>INSTALL {{ selectedPlatform.name.toUpperCase() }}</div>
+        <div class='text-subtitle1 text-bold text-center text-primary'>{{ t('common.installPlatform', { platform: selectedPlatform.name }) }}</div>
     </q-card-section>
 
     <!-- Versions -->
     <div>
         <div v-for='(compat, version) in selectedPlatform.versions' class='q-pa-sm'>
             <div class='row items-center'>
-                <div class='text-body1 q-pb-xs q-px-sm'>Version: <b>{{ version }}</b>, 
-                    Compatibility: <span class='text-bold' :class='{"text-red": compat != $1t.info.value.customPlatformCompat, "text-green": compat == $1t.info.value.customPlatformCompat}'>{{ compat }}</span>
+                <div class='text-body1 q-pb-xs q-px-sm'>{{ t('common.versionLabel') }} <b>{{ version }}</b>, 
+                    {{ t('common.compatibility') }} <span class='text-bold' :class='{"text-red": compat != $1t.info.value.customPlatformCompat, "text-green": compat == $1t.info.value.customPlatformCompat}'>{{ compat }}</span>
                 </div>
                 <q-space></q-space>
                 <q-btn icon='mdi-download' flat round @click='installPlatform(selectedPlatform!, version.toString())'></q-btn>
@@ -102,6 +102,9 @@
 
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import { useDialogPluginComponent, useQuasar } from 'quasar';
 import { RepoPlatform } from '../scripts/autotagger';
 import { PropType, computed, ref } from 'vue';
@@ -127,7 +130,7 @@ function iconUrl(id: string) {
 // Install the selected platform
 function installPlatform(platform: RepoPlatform, version: string) {
     $q.dialog({
-        title: 'Installing',
+        title: t('common.installing'),
         progress: {
             color: 'primary',
         },

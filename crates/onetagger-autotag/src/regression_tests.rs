@@ -47,6 +47,8 @@ fn stop_during_provider_work_prevents_late_track_and_album_writes() {
         let result = Tagger::tag_track_with_cancel(&path, &mut source, &config, &|| stopped.load(Ordering::SeqCst));
         assert_eq!(result.status, TaggingState::Skipped);
         assert_eq!(result.message.as_deref(), Some("Stopped before writing tags"));
+        assert_eq!(result.message_key.as_deref(), Some("backend.stoppedBeforeWriting"));
+        assert_eq!(result.message_args, Some(serde_json::Map::new()));
         assert_eq!(fs::read(&path).unwrap(), original);
     }
     let stopped = Arc::new(AtomicBool::new(false));
@@ -105,8 +107,87 @@ fn selected_file_without_album_match_reports_error_without_panicking_or_writing(
 }
 
 pub(super) fn status(path: &Path, status: TaggingState) -> TaggingStatus {
-    TaggingStatus { path: path.into(), status, message: None, accuracy: None,
+    TaggingStatus { path: path.into(), status, message: None, message_key: None, message_args: None, accuracy: None,
         used_shazam: false, release_id: None, track_id: None, reason: None }
+}
+
+#[test]
+fn legacy_tagging_status_round_trips_without_new_presentation_fields() {
+    let old = serde_json::json!({
+        "status": "error", "path": "library/Музыка/track.mp3", "message": "Provider detail",
+        "accuracy": null, "usedShazam": false, "releaseId": null, "trackId": null, "reason": null
+    });
+    let parsed: TaggingStatus = serde_json::from_value(old.clone()).unwrap();
+    assert!(parsed.message_key.is_none());
+    assert!(parsed.message_args.is_none());
+    assert_eq!(serde_json::to_value(parsed).unwrap(), old);
+}
+
+#[test]
+fn typed_status_messages_preserve_english_and_named_argument_contracts() {
+    let detail = "provider: /Музыка/Ελληνικά/<img onerror=alert(1)> {count}";
+    let cases = [
+        (TaggingMessage::AlreadyTagged, "backend.alreadyTagged", "Already tagged".to_string()),
+        (TaggingMessage::AudioFeaturesAlreadyTagged, "backend.alreadyTagged", "Already tagged!".to_string()),
+        (TaggingMessage::NoMatch, "backend.noMatch", "No match!".to_string()),
+        (TaggingMessage::StoppedBeforeWriting, "backend.stoppedBeforeWriting", "Stopped before writing tags".to_string()),
+        (TaggingMessage::NoAlbumMatch, "backend.noAlbumMatch", "No album match for selected file".to_string()),
+        (TaggingMessage::AlbumWriteFailed, "backend.albumWriteFailed", "Failed writing album tags".to_string()),
+        (TaggingMessage::ShazamFailed(detail.into()), "backend.shazamFailed", format!("Error Shazaming file: {detail}")),
+        (TaggingMessage::FileLoadFailed(detail.into()), "backend.fileLoadFailed", format!("Error loading file: {detail}")),
+        (TaggingMessage::TrackMatchFailed(detail.into()), "backend.trackMatchFailed", format!("Error matching track: {detail}")),
+        (TaggingMessage::TrackWriteFailed(detail.into()), "backend.trackWriteFailed", format!("Failed writing tags to file: {detail}")),
+        (TaggingMessage::AudioFeaturesWriteFailed(detail.into()), "backend.audioFeaturesWriteFailed", format!("Audio features failed writing to tag: {detail}")),
+        (TaggingMessage::AudioFeaturesSearchFailed(detail.into()), "backend.audioFeaturesSearchFailed", format!("Audio features search track by ISRC error: {detail}")),
+    ];
+    let catalogs = [
+        include_str!("../../../client/src/locales/en/backend.json"),
+        include_str!("../../../client/src/locales/it/backend.json"),
+        include_str!("../../../client/src/locales/fr/backend.json"),
+        include_str!("../../../client/src/locales/nl/backend.json"),
+        include_str!("../../../client/src/locales/de/backend.json"),
+        include_str!("../../../client/src/locales/es/backend.json"),
+        include_str!("../../../client/src/locales/el/backend.json"),
+        include_str!("../../../client/src/locales/ru/backend.json"),
+    ];
+    for (message, key, english) in cases {
+        let mut output = status(Path::new("selected.mp3"), TaggingState::Error);
+        let mut legacy = serde_json::to_value(&output).unwrap();
+        output.set_message(message);
+        assert_eq!(output.message.as_deref(), Some(english.as_str()));
+        assert_eq!(output.message_key.as_deref(), Some(key));
+        let arguments = output.message_args.as_ref().unwrap();
+        if english.ends_with(detail) { assert_eq!(arguments["detail"], detail); }
+        else { assert!(arguments.is_empty()); }
+        let mut event = serde_json::to_value(&output).unwrap();
+        event.as_object_mut().unwrap().remove("messageKey");
+        event.as_object_mut().unwrap().remove("messageArgs");
+        legacy["message"] = serde_json::json!(english);
+        assert_eq!(event, legacy, "message metadata must not alter status, paths or matching data");
+        for catalog in catalogs {
+            let catalog: serde_json::Value = serde_json::from_str(catalog).unwrap();
+            let text = catalog[key.strip_prefix("backend.").unwrap()].as_str().unwrap();
+            assert!(!text.trim().is_empty(), "missing translation for {key}");
+            for argument in arguments.keys() {
+                assert!(text.contains(format!("{{{argument}}}").as_str()), "missing {argument} in {key}");
+            }
+        }
+    }
+}
+
+#[test]
+fn translation_arguments_do_not_enter_exported_tagging_reports() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("selected.mp3");
+    mp3(&path, Some("Selected"));
+    let mut report = report::ReportBuilder::new(std::slice::from_ref(&path), None);
+    let mut failed = status(&path, TaggingState::Error);
+    failed.set_message(TaggingMessage::TrackMatchFailed("secret=DO-NOT-EXPORT".into()));
+    report.record("fixture-provider", &failed);
+    let json = serde_json::to_string(&report.finish(false)).unwrap();
+    assert!(!json.contains("DO-NOT-EXPORT"));
+    assert!(!json.contains("messageKey"));
+    assert!(!json.contains("messageArgs"));
 }
 
 #[test]

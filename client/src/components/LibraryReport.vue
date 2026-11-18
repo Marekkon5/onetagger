@@ -1,19 +1,21 @@
 <template>
     <div class='q-mx-auto q-my-md text-left' style='max-width: 550px'>
         <q-checkbox v-model='$1t.saveTaggingReport.value' :disable='!!$1t.taggingSelection.value'
-            label='Save tagging results JSON' />
-        <div class='text-caption text-grey-6'>Records actual tag changes and matching evidence for library review.</div>
-        <q-file v-model='file' filled clearable accept='.json,application/json' label='Helper selection manifest (optional)'
+            :label="t('tools.saveResults')" />
+        <div class='text-caption text-grey-6'>{{ t('tools.resultsDescription') }}</div>
+        <q-file data-testid='helper-selection' v-model='file' filled clearable accept='.json,application/json' :label="t('tools.helperManifest')"
             class='q-mt-sm' @update:model-value='loadSelection' />
-        <div v-if='$1t.taggingSelection.value' class='text-caption text-primary q-mt-sm'>
-            {{$1t.taggingSelection.value.tracks.length}} selected library tracks. This selection supplies the input files. Disable file moves before starting.
-            <q-btn flat dense label='Clear Helper selection' @click='clearSelection' />
+        <div data-testid='helper-selection-count' v-if='$1t.taggingSelection.value' class='text-caption text-primary q-mt-sm'>
+            {{ t('tools.selectedTracks', { count: $1t.taggingSelection.value.tracks.length }, $1t.taggingSelection.value.tracks.length) }}
+            <q-btn flat dense :label="t('tools.clearSelection')" @click='clearSelection' />
         </div>
         <div v-if='$1t.selectionError.value' role='alert' class='text-negative q-mt-sm'>{{$1t.selectionError.value}}</div>
     </div>
 </template>
 
 <script setup lang='ts'>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { ref } from 'vue';
 import { get1t } from '../scripts/onetagger';
 const $1t = get1t();
@@ -26,10 +28,10 @@ async function loadSelection(value: File | null) {
     $1t.selectionLoading.value = !!value;
     if (!value) return;
     try {
-        if (value.size > 2 * 1024 * 1024) throw new Error('Selection manifest exceeds 2 MiB');
+        if (value.size > 2 * 1024 * 1024) throw new Error(t('tools.manifestTooLarge'));
         const selection = JSON.parse(await value.text());
         if (selection.schema !== 1 || !Array.isArray(selection.tracks) || !selection.tracks.length || selection.tracks.length > 500)
-            throw new Error('Choose a Helper selection manifest with 1–500 tracks');
+            throw new Error(t('tools.invalidManifest'));
         if (current !== generation) return;
         $1t.taggingSelection.value = selection;
         $1t.saveTaggingReport.value = true;

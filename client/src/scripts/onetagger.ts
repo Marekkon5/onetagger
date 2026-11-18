@@ -10,6 +10,7 @@ import ExitDialog from '../components/ExitDialog.vue';
 import router from './router';
 import DevToolsVue from '../components/DevTools.vue';
 import PlatformsRepoVue from '../components/PlatformsRepo.vue';
+import { translate as t, translateBackendMessage } from '../i18n';
 
 class OneTagger {
     // Singleton
@@ -55,10 +56,10 @@ class OneTagger {
         this.wsPromise = new Promise((res) => this.wsPromiseResolve = res);
         // Setup WS connection
         this.ws = new WebSocket(wsUrl());
-        this.ws.addEventListener('error', (e) => this.onError(e ?? 'Websocket error!'));
+        this.ws.addEventListener('error', (e) => { console.error(e); this.onError(t('core.websocketError')); });
         this.ws.addEventListener('close', (_) => {
             this.onTagEditorEvent({action: 'tagEditorDisconnected'});
-            this.onError('WebSocket closed!');
+            this.onError(t('core.websocketClosed'));
         });
         this.ws.addEventListener('open', (_) => {
             // Resolve connection promise
@@ -119,7 +120,8 @@ class OneTagger {
     onError(msg: any) {
         // Show error dialog
         Dialog.create({
-            title: 'Error',
+            title: t('core.error'),
+            html: false,
             message: `${msg}`,
             ok: {
                 color: 'primary'
@@ -202,7 +204,7 @@ class OneTagger {
             case 'error':
                 // Unlock, callback
                 this.lock.value.locked = false;
-                this.onError(json.message);
+                this.onError(translateBackendMessage(json));
                 break;
             case 'startTagging':
                 this.lock.value.locked = true;
@@ -232,10 +234,10 @@ class OneTagger {
                 this.taggerStatus.value.data = json.data;
                 this.onTaggingDone(json.path);
                 if (json.data?.reportError) {
-                    Dialog.create({ title: 'Results report could not be saved', html: false, message: json.data.reportError });
+                    Dialog.create({ title: t('core.reportSaveFailed'), html: false, message: json.data.reportError });
                 }
                 if (json.data?.moveErrors?.length) {
-                    Dialog.create({ title: 'Some files could not be moved', html: false,
+                    Dialog.create({ title: t('core.moveFailed'), html: false,
                         message: json.data.moveErrors.join('\n') });
                 }
                 break;
@@ -334,8 +336,9 @@ class OneTagger {
             case 'installPlatform':
                 let isOk = json.status == 'ok';
                 Dialog.create({
-                    title: isOk ? 'Platform Installed' : 'Failed to install platform',
-                    message: isOk ? 'Platform was installed succesfully, press OK to continue' : json.error,
+                    title: isOk ? t('core.platformInstalled') : t('core.platformInstallFailed'),
+                    message: isOk ? t('core.platformInstallSuccess') : translateBackendMessage(json),
+                    html: false,
                     persistent: true,
                     cancel: false,
                     ok: {
@@ -353,7 +356,8 @@ class OneTagger {
                     position: 'top-right',
                     timeout: 5000,
                     progress: true,
-                    message: json.message
+                    message: translateBackendMessage(json),
+                    html: false,
                 });
                 break
 
@@ -499,7 +503,7 @@ class OneTagger {
         // Notification
         if (notif)
             Notify.create({
-                message: "Settings saved!",
+                message: t('core.settingsSaved'),
                 color: 'primary',
                 textColor: 'black',
                 timeout: 500,
@@ -534,7 +538,7 @@ class OneTagger {
     // Load autotagger profile
     loadATProfile(name: string) {
         let profile = this.settings.value.autoTaggerProfiles.find(p => p.name == name);
-        if (profile == null) throw Error('Invalid profile');
+        if (profile == null) throw Error(t('core.invalidProfile'));
 
         this.config.value.loadSettings(profile.config);
         this.settings.value.autoTaggerProfile = name;
@@ -569,7 +573,7 @@ class OneTagger {
     loadPlatforms() {
         this.send('loadPlatforms');
         this.loadingPlatformsDialog = Dialog.create({
-            title: 'Loading platforms...',
+            title: t('core.loadingPlatforms'),
             progress: {
                 color: 'primary'
             },
@@ -643,17 +647,17 @@ class OneTagger {
                 ws.close();
                 if (error) reject(error); else resolve();
             };
-            const timer = setTimeout(() => finish(new Error('Stop was not acknowledged. Please retry.')), 10000);
+            const timer = setTimeout(() => finish(new Error(t('core.stopNotAcknowledged'))), 10000);
             ws.onopen = () => ws.send(JSON.stringify({action: 'stopTagging'}));
             ws.onmessage = (event) => {
                 try {
                     const response = JSON.parse(event.data);
                     if (response.action === 'stopTagging' && response.accepted) finish();
-                    else if (response.action === 'error') finish(new Error(response.message));
-                } catch { finish(new Error('Invalid Stop acknowledgement')); }
+                    else if (response.action === 'error') finish(new Error(translateBackendMessage(response)));
+                } catch { finish(new Error(t('core.invalidStopAcknowledgement'))); }
             };
-            ws.onerror = () => finish(new Error('Could not send Stop. Please retry.'));
-            ws.onclose = () => finish(new Error('Stop connection closed before acknowledgement. Please retry.'));
+            ws.onerror = () => finish(new Error(t('core.stopSendFailed')));
+            ws.onclose = () => finish(new Error(t('core.stopConnectionClosed')));
         });
     }
 
@@ -703,7 +707,7 @@ class OneTagger {
             if (event.code == "KeyS" && (event.ctrlKey || event.metaKey)) {
                 this.saveQTTrack().then(() => {
                     Notify.create({
-                        message: "Track saved!",
+                        message: t('core.trackSaved'),
                         timeout: 3000,
                         position: 'top-right'
                     });

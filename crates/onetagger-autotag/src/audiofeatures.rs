@@ -11,7 +11,7 @@ use onetagger_platforms::spotify::{Spotify, rspotify};
 use onetagger_platforms::spotify::rspotify::model::track::FullTrack;
 use onetagger_tag::{Tag, AudioFileFormat, FrameName, TagSeparators};
 
-use crate::{TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl, STOP_TAGGING};
+use crate::{TaggingMessage, TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl, STOP_TAGGING};
 
 
 // Config from UI
@@ -182,14 +182,15 @@ impl AudioFeatures {
                 let mut status = TaggingStatus {
                     status: TaggingState::Error,
                     path: file.to_owned(),
-                    message: None, accuracy: None, used_shazam: false, release_id: None, track_id: None, reason: None
+                    message: None, message_key: None, message_args: None,
+                    accuracy: None, used_shazam: false, release_id: None, track_id: None, reason: None
                 };
                 // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None, None) {
                     if config.skip_tagged && info.tagged.af() {
                         // Skip tagged
                         status.status = TaggingState::Skipped;
-                        status.message = Some("Already tagged!".to_string());
+                        status.set_message(TaggingMessage::AudioFeaturesAlreadyTagged);
                     } else {
                         // Match and get features
                         match AudioFeatures::find_features(&spotify, &info) {
@@ -201,7 +202,7 @@ impl AudioFeatures {
                                     },
                                     Err(e) => {
                                         error!("Audio features failed writing to tag: {}", e);
-                                        status.message = Some(format!("Audio features failed writing to tag: {}", e));
+                                        status.set_message(TaggingMessage::AudioFeaturesWriteFailed(e.to_string()));
                                         status.status = TaggingState::Error;
                                     }
                                 };
@@ -209,7 +210,7 @@ impl AudioFeatures {
                             // Failed searching track
                             Err(e) => {
                                 error!("Audio features search track by ISRC error: {}", e);
-                                status.message = Some(format!("Audio features search track by ISRC error: {}", e));
+                                status.set_message(TaggingMessage::AudioFeaturesSearchFailed(e.to_string()));
                                 status.status = TaggingState::Error;
                             }
                         }
@@ -301,3 +302,4 @@ impl AudioFeatures {
         Ok(())
     }
 }
+

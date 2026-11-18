@@ -27,6 +27,7 @@ pub mod browser;
 pub mod quicktag;
 pub mod tageditor;
 pub mod session;
+mod messages;
 
 static CLIENT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../client/dist");
 

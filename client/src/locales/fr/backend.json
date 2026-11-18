@@ -1,0 +1,22 @@
+{
+  "requestFailed": "L’opération a échoué : {detail}",
+  "taggingAlreadyActive": "Une opération de marquage est déjà en cours ; attendre sa fin.",
+  "reportsRequireAutoTagger": "Les rapports de résultats nécessitent le mode Auto-tag.",
+  "spotifyUnauthorized": "Connecter Spotify avant d’utiliser les caractéristiques audio.",
+  "playlistSaved": "Liste de lecture enregistrée dans : {path}",
+  "tagEditorSaveFailed": "Impossible d’enregistrer les tags : {detail}",
+  "manualTagFailed": "Impossible d’effectuer une recherche sur ce service : {detail}",
+  "manualTagApplyFailed": "Impossible d’appliquer les tags sélectionnés : {detail}",
+  "platformInstallFailed": "Impossible d’installer le service : {detail}",
+  "alreadyTagged": "Tags déjà présents.",
+  "noMatch": "Aucune correspondance trouvée.",
+  "stoppedBeforeWriting": "Opération arrêtée avant l’écriture des tags.",
+  "noAlbumMatch": "Aucune correspondance dans l’album pour le fichier sélectionné.",
+  "albumWriteFailed": "Impossible d’écrire les tags de l’album.",
+  "shazamFailed": "Impossible d’identifier ce fichier avec Shazam : {detail}",
+  "fileLoadFailed": "Impossible de charger le fichier : {detail}",
+  "trackMatchFailed": "Impossible de trouver une correspondance pour le morceau : {detail}",
+  "trackWriteFailed": "Impossible d’écrire les tags : {detail}",
+  "audioFeaturesWriteFailed": "Impossible d’écrire les caractéristiques audio dans les tags : {detail}",
+  "audioFeaturesSearchFailed": "Impossible de trouver les caractéristiques audio à partir de l’ISRC du morceau : {detail}"
+}

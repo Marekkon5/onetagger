@@ -253,7 +253,7 @@ class BrowserTests(unittest.TestCase):
                       'tracks':[{'track_id':'library-1','local_path':'/music/100%20 Café.mp3'}]}
             page.get_by_label('Helper selection manifest (optional)',exact=True).set_input_files({
                 'name':'selection.json','mimeType':'application/json','buffer':json.dumps(selected).encode()})
-            expect(page.get_by_text('1 selected library tracks.',exact=False)).to_be_visible()
+            expect(page.get_by_text('1 selected library track.',exact=False)).to_be_visible()
             expect(page.get_by_label('Path',exact=True)).to_have_count(0)
             page.get_by_role('button',name='Start tagging',exact=True).click()
             expect(page.get_by_role('button',name='Open results JSON',exact=True)).to_be_visible()

@@ -51,9 +51,19 @@
     --waveform-wave: 40;
 }
 
+:root {
+    --onetagger-ui-font: Dosis, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 * {
-    font-family: Dosis !important;
+    font-family: var(--onetagger-ui-font) !important;
     user-select: none;
+}
+
+// Use platform UI fonts with Greek/Cyrillic coverage rather than depending on
+// the Latin display font. All locale assets remain bundled and work offline.
+:root:lang(el), :root:lang(ru) {
+    --onetagger-ui-font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .text-h5 {

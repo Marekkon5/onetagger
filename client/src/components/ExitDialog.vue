@@ -3,23 +3,23 @@
     <q-card class='q-dialog-plugin'>
 
         <q-card-section>
-            <div class='text-h6' v-if='isQt'>Unsaved changes</div>
-            <div class='text-h6' v-else>Tagging in progress</div>
+            <div class='text-h6' v-if='isQt'>{{ t('common.unsavedChanges') }}</div>
+            <div class='text-h6' v-else>{{ t('common.taggingProgress') }}</div>
         </q-card-section>
 
         <q-card-section>
-            <div v-if='isQt'>Do you want to save pending changes before exitting?</div>
-            <div v-else>Tagging is in progress, do you really want to exit?</div>
+            <div v-if='isQt'>{{ t('common.saveBeforeExit') }}</div>
+            <div v-else>{{ t('common.confirmExit') }}</div>
         </q-card-section>
 
         <q-card-section class='row'>
             <q-space></q-space>
-            <q-btn color='white' flat @click='onDialogCancel()'>Cancel</q-btn>
+            <q-btn color='white' flat @click='onDialogCancel()'>{{ t('common.cancel') }}</q-btn>
             <q-btn color='red' flat @click='exit()'>
-                <span v-if='isQt'>Exit without saving</span>
-                <span v-else>Exit anyway</span>
+                <span v-if='isQt'>{{ t('common.exitWithoutSave') }}</span>
+                <span v-else>{{ t('common.exitAnyway') }}</span>
             </q-btn>
-            <q-btn v-if='isQt' color='primary' flat @click='saveExit()'>Save and exit</q-btn>
+            <q-btn v-if='isQt' color='primary' flat @click='saveExit()'>{{ t('common.saveExit') }}</q-btn>
         </q-card-section>
 
     </q-card>
@@ -27,6 +27,9 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import { useDialogPluginComponent } from 'quasar';
 import { get1t } from '../scripts/onetagger';
 import { toRef } from 'vue';

@@ -4,11 +4,11 @@
     <div class='q-py-lg' v-if='!$1t.lock.value.locked'>
         <div style='max-width: 800px; margin: auto;'>
             <!-- Input and output folders -->
-            <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT / OUTPUT</div>
-            <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or<span class='keybind-icon text-caption text-bold'>CLICK</span> the <q-icon name='mdi-open-in-app'></q-icon> icon to browse</div>
+            <div class='text-subtitle2 text-bold text-primary'>{{ t('tools.selectInputOutput') }}</div>
+            <div class='text-subtitle2 q-mb-md text-grey-6'>{{ t('tools.browseHint') }}</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' label='Input folder' v-model='config.path' @update:model-value="updatePreview()">
+                <q-input filled class='col-10' :label="t('tools.inputFolder')" v-model='config.path' @update:model-value="updatePreview()">
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(false)'></q-btn>
                     </template>
@@ -16,7 +16,7 @@
             </div>
     
             <div class='q-pt-lg row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' label='Output folder (leave empty for same as input)' v-model='config.outDir' @update:model-value="updatePreview()">
+                <q-input filled class='col-10' :label="t('tools.outputFolder')" v-model='config.outDir' @update:model-value="updatePreview()">
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
                     </template>
@@ -25,14 +25,14 @@
             <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 41px;"' inset color="dark"/>
     
             <!-- Template -->            
-            <div class='text-subtitle2 text-bold text-primary custom-margin'>TEMPLATE</div>
-                <div class='text-subtitle2 text-grey-6'>Enter dynamic content and/or static content. More info?<span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> <span class="text-weight-bold text-caption"><q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> HELP</span> on the right</div>
+            <div class='text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.template') }}</div>
+                <div class='text-subtitle2 text-grey-6'>{{ t('tools.templateHelp') }}</div>
             
             <div style='margin-top: -25px;'>
                 <div class='fake-cursor' :style='cursorStyle'>|</div>
                 <div class='template-text'>
                     <span v-if='config.template' v-html='highlighted'></span>
-                    <span v-if='!config.template' class='template-input-placeholder'>Filename template</span>
+                    <span v-if='!config.template' class='template-input-placeholder'>{{ t('tools.filenameTemplate') }}</span>
                 </div>
                 <input
                     class='template-input monospace' 
@@ -81,7 +81,7 @@
                             </div>
     
                             <!-- Actual suggestion -->
-                            <div v-html='suggestions[suggestionIndex].doc'></div>
+                            <div style='white-space: pre-wrap'>{{ renamerDocumentation(suggestions[suggestionIndex]) }}</div>
                         </div>
                     </div>
                 </div>
@@ -92,7 +92,7 @@
 
         <!-- Preview -->              
         <div class='full-width'>            
-            <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>PREVIEW</div>
+            <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.preview') }}</div>
             <div v-for='(file, i) in preview' :key='"prev"+i'>
                 <div class='text-caption monospace text-grey-5 q-my-md'>{{file[1]}}</div>
                 
@@ -103,19 +103,19 @@
         <!-- Options -->
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 34px;"' inset color="dark"/>
         
-        <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>OPTIONS</div>
+        <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>{{ t('tools.options') }}</div>
         
         <div class='column flex-center'>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Copy files instead of moving' v-model='config.copy'></q-toggle>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Overwrite existing target files' v-model='config.overwrite'></q-toggle>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Include subfolders' v-model='config.subfolders'></q-toggle>
-            <q-toggle left-label class='justify-between' style='width: 240px;' label='Keep original subfolders' v-model='config.keepSubfolders'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: min(100%, 420px);' :label="t('tools.copyFiles')" v-model='config.copy'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: min(100%, 420px);' :label="t('tools.overwriteFiles')" v-model='config.overwrite'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: min(100%, 420px);' :label="t('tools.includeSubfolders')" v-model='config.subfolders'></q-toggle>
+            <q-toggle left-label class='justify-between' style='width: min(100%, 420px);' :label="t('tools.keepSubfolders')" v-model='config.keepSubfolders'></q-toggle>
         </div>
         
         <div class='row justify-center q-my-md'>
                 <q-input
                     v-model='config.separator'
-                    label='Separator'
+                    :label="t('tools.separator')"
                     filled
                     style='max-width: 200px;'
                 ></q-input>
@@ -138,7 +138,7 @@
                     @click='start(false)'>
         
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span class='text-weight-medium'>START</span>
+                        <span class='text-weight-medium'>{{ t('tools.startUpper') }}</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -161,7 +161,10 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import RenamerTokenName from '../components/RenamerTokenName.vue';
+import { renamerDocumentation } from '../scripts/renamer-localization';
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { useQuasar } from 'quasar';
@@ -328,12 +331,12 @@ function start(force = false) {
     // Dialog
     if (!force) {
         $q.dialog({
-            title: 'Warning',
-            message: 'Many DJ apps store cue points and other metadata based on the original file name. When renamed, this information will be lost and you will have to reimport these files.',
-            html: true,
+            title: t('tools.warning'),
+            message: t('tools.renameWarning'),
+            html: false,
             ok: {
                 color: 'primary',
-                label: 'Start'
+                label: t('tools.start')
             },
             cancel: {
                 color: 'primary',
@@ -379,13 +382,13 @@ onMounted(() => {
             case 'renamerDone':
                 $1t.lock.value.locked = false;
                 $q.dialog({
-                    title: json.report.failed ? 'Renaming completed with problems' : 'Renaming complete',
-                    message: `${json.report.succeeded} completed, ${json.report.skipped} unchanged, ${json.report.failed} failed or conflicted.\n` +
+                    title: json.report.failed ? t('tools.renameProblems') : t('tools.renameComplete'),
+                    message: t('tools.renameSummary', { completed: json.report.succeeded, skipped: json.report.skipped, failed: json.report.failed }) + '\n' +
                         json.report.results.filter((r: any) => r.message).map((r: any) => `${r.from} → ${r.to}: ${r.message}`).join('\n'),
                     html: false,
                     ok: {
                         color: 'primary',
-                        label: 'Open Folder'
+                        label: t('tools.openFolder')
                     },
                     cancel: {
                         color: 'primary',

@@ -1,0 +1,23 @@
+{
+  "language": "Idioma",
+  "languageHelp": "El idioma se guarda para este navegador o esta ventana de escritorio.",
+  "unexpectedError": "Se ha producido un error inesperado.",
+  "invalidSession": "Este enlace de sesión de OneTagger no es válido o ha caducado.",
+  "sessionLinkRequired": "Abre OneTagger con el enlace de sesión que muestra la aplicación en ejecución.",
+  "websocketError": "¡Error de WebSocket!",
+  "websocketClosed": "¡Conexión WebSocket cerrada!",
+  "error": "Error",
+  "reportSaveFailed": "No se ha podido guardar el informe de resultados",
+  "moveFailed": "No se han podido mover algunos archivos",
+  "platformInstalled": "Plataforma instalada",
+  "platformInstallFailed": "No se ha podido instalar la plataforma",
+  "platformInstallSuccess": "La plataforma se ha instalado correctamente. Pulsa Aceptar para continuar.",
+  "settingsSaved": "¡Ajustes guardados!",
+  "invalidProfile": "Perfil no válido",
+  "loadingPlatforms": "Cargando plataformas...",
+  "stopNotAcknowledged": "No se ha confirmado la detención. Vuelve a intentarlo.",
+  "invalidStopAcknowledgement": "Confirmación de detención no válida",
+  "stopSendFailed": "No se ha podido enviar la orden de detención. Vuelve a intentarlo.",
+  "stopConnectionClosed": "La conexión se ha cerrado antes de confirmar la detención. Vuelve a intentarlo.",
+  "trackSaved": "¡Pista guardada!"
+}

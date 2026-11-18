@@ -1,7 +1,7 @@
 <template>
 <div class='full-height' :aria-busy='saving'>
     <q-banner v-if='saveError' role='alert' class='bg-red-10 text-white'>{{saveError}}</q-banner>
-    <div v-if='saving' role='status' class='q-pa-sm'>Saving changes…</div>
+    <div v-if='saving' role='status' class='q-pa-sm'>{{ t('tools.savingChanges') }}</div>
 
     <div class='row full-height' :inert='saving'>
         <!-- File browser -->
@@ -19,12 +19,12 @@
             <div class='q-mt-sm'>
 
                 <!-- Filter -->
-                <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='(v: any) => applyFilter(v as string)' v-model='filter'></q-input>
+                <q-input data-testid='tag-editor-filter' dense filled :label="t('tools.filter')" class='q-mb-sm' @update:model-value='(v: any) => applyFilter(v as string)' v-model='filter'></q-input>
 
                 <!-- Parent -->
                 <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
                     <q-icon size='xs' class='q-mb-xs text-grey-4' name='mdi-folder-upload'></q-icon>
-                    <span class='q-ml-sm text-caption text-grey-4'>Parent folder</span>
+                    <span class='q-ml-sm text-caption text-grey-4'>{{ t('tools.parentFolder') }}</span>
                 </div>
 
                 <draggable 
@@ -61,7 +61,7 @@
         >
             <div class='bg-darker separator'></div>
             <div class='row justify-between'>
-                <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>Your list</div>
+                <div class='text-weight-bold text-subtitle2 text-primary q-pb-sm'>{{ t('tools.yourList') }}</div>
                 <div>
                     <q-btn round dense size='xs' flat style='margin-right: 2px;' @click='clearCustom'>
                         <q-icon name='mdi-close' color='red'></q-icon>
@@ -103,15 +103,15 @@
             style='max-height: 100%; overflow-y: scroll;'>
             <div v-if='!file' class='justify-center items-center content-center row full-height'>
                 
-                <div class='col-12 text-subtitle2 text-bold text-primary text-center q-my-sm'>NO FILE SELECTED</div><br>
-                <span class='text-center text-subtitle2 text-grey-6'>Tip: <span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> the path to open a folder and select an audio file</span>
+                <div class='col-12 text-subtitle2 text-bold text-primary text-center q-my-sm'>{{ t('tools.noFile') }}</div><br>
+                <span class='text-center text-subtitle2 text-grey-6'>{{ t('tools.selectFileHint') }}</span>
             </div>
 
             <div v-if='file' class='q-px-md'>
                 <div class='text-center q-py-md text-subtitle2 text-grey-5 monospace'>{{file.filename}}</div>
                 <div class='q-mt-md'>
                     <div v-for='tag in tagNames' :key='tag' class='row q-my-sm'>
-                        <div class='col-3 text-body2 text-uppercase text-primary text-weight-medium q-mt-sm q-pr-xs' style='text-overflow: ellipsis; overflow: hidden;'>
+                        <div class='col-3 text-body2 text-uppercase text-primary text-weight-medium q-mt-sm q-pr-xs' style='min-width: 0; overflow-wrap: anywhere;'>
                             
                             <span v-if='tagLabel(tag)'><span class='text-uppercase text-primary text-weight-medium'>{{tagLabel(tag)}} </span><span class="text-grey-4 monospace text-caption"> {{tag}}</span></span>
                             <span v-if='!tagLabel(tag)'>{{tag}}</span>
@@ -120,7 +120,7 @@
                         
                         <q-input
                             v-model='file.tags[tag]'
-                            :aria-label='"Tag " + tag'
+                            :aria-label="t('tools.tagInput', { tag })" :data-testid='"tag-field-" + tag'
                             filled
                             dense
                             class='col-8'
@@ -138,7 +138,7 @@
                 
                 <!-- Add new tag -->
                 <div class='row q-mt-lg' style='margin-top: 40px;'>
-                    <div class='col-3 q-pt-sm text-weight-medium text-grey-4 text-body2'>Add new text tag</div>
+                    <div class='col-3 q-pt-sm text-weight-medium text-grey-4 text-body2'>{{ t('tools.addTextTag') }}</div>
                     <TagField tageditor class='col-8' dense :format='tagFormat!' @update:model-value='newTag = $event'></TagField>
                     <div class='col-1 q-pl-md q-pt-xs'>
                         <q-btn round dense flat @click='addNewTag'>
@@ -150,7 +150,7 @@
                 
                 <!-- Album art -->
                 <div class='text-uppercase text-primary text-weight-medium'>
-                    Album art
+                    {{ t('tools.albumArt') }}
                     <q-btn round flat class='q-mb-xs q-ml-sm' @click='addAlbumArtDialog = true'>
                         <q-icon name='mdi-plus' color='primary'></q-icon>
                     </q-btn>
@@ -162,7 +162,7 @@
                             <div v-if='file.format != "mp4"' class='text-caption'>{{image.kind}}</div>
                             <div v-if='file.format != "mp4"' class='text-caption'>{{image.description}}</div>
                             <div class='text-subtitle3 text-grey-6 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
-                            <q-btn dense push color='red' class='rounded-borders q-px-md q-mt-sm text-weight-medium' @click='removeArt(i)'>Remove</q-btn>
+                            <q-btn dense push color='red' class='rounded-borders q-px-md q-mt-sm text-weight-medium' @click='removeArt(i)'>{{ t('tools.remove') }}</q-btn>
                         </div> -->
                         <TagEditorAlbumArt 
                             :image='image' 
@@ -177,7 +177,7 @@
                 <div v-if='file.id3'>
                     <!-- Comments -->
                     <div class='text-uppercase text-primary text-weight-medium'>
-                        Comments <span class="text-grey-4 monospace text-caption q-pl-xs">COMM</span>
+                        {{ t('tools.comments') }} <span class="text-grey-4 monospace text-caption q-pl-xs">COMM</span>
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3Comment'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -187,7 +187,7 @@
                             <q-input
                                 filled
                                 dense
-                                label='Language'
+                                :label="t('tools.language')"
                                 class='col-2'
                                 v-model='file.id3.comments[i].lang'
                                 maxlength='3'
@@ -196,7 +196,7 @@
                             <q-input
                                 filled
                                 dense
-                                label='Description'
+                                :label="t('tools.description')"
                                 class='col-4 q-pl-sm'
                                 v-model='file.id3.comments[i].description'
                                 @change='id3CommentsChange'
@@ -204,13 +204,13 @@
                             <q-input
                                 filled
                                 dense
-                                label='Text'
+                                :label="t('tools.text')"
                                 class='col-5 q-pl-sm'
                                 v-model='file.id3.comments[i].text'
                                 @change='id3CommentsChange'
                             ></q-input>
                             <div class='col-1 q-pl-md q-pt-xs'>
-                                <q-btn round dense flat :aria-label='"Remove comment " + (i + 1)' @click='removeID3Comment(i)'>
+                                <q-btn round dense flat :aria-label="t('tools.removeComment', { number: i + 1 })" @click='removeID3Comment(i)'>
                                     <q-icon name='mdi-delete' class='text-red'></q-icon>
                                 </q-btn>
                             </div>
@@ -219,7 +219,7 @@
 
                     <!-- Unsynchronized lyrics -->
                     <div class='text-uppercase text-primary text-weight-medium'>
-                        Unsynchronized lyrics <span class="text-grey-4 monospace text-caption q-pl-xs">USLT</span>
+                        {{ t('tools.unsynchronizedLyrics') }} <span class="text-grey-4 monospace text-caption q-pl-xs">USLT</span>
                         <q-btn round flat class='q-mb-xs q-ml-sm' @click='addID3USLT'>
                             <q-icon name='mdi-plus' color='primary'></q-icon>
                         </q-btn>
@@ -230,7 +230,7 @@
                                 <q-input
                                     filled
                                     dense
-                                    label='Language'
+                                    :label="t('tools.language')"
                                     class='col-3'
                                     v-model='file.id3.unsync_lyrics[i].lang'
                                     maxlength='3'
@@ -239,13 +239,13 @@
                                 <q-input
                                     filled
                                     dense
-                                    label='Description'
+                                    :label="t('tools.description')"
                                     class='col-8 q-pl-md'
                                     v-model='file.id3.unsync_lyrics[i].description'
                                     @change='id3USLTChange'
                                 ></q-input>
                                 <div class='col-1 q-pl-md q-pt-xs'>
-                                    <q-btn round dense flat :aria-label='"Remove lyrics " + (i + 1)' @click='removeID3USLT(i)'>
+                                    <q-btn round dense flat :aria-label="t('tools.removeLyrics', { number: i + 1 })" @click='removeID3USLT(i)'>
                                         <q-icon name='mdi-delete' class='text-red'></q-icon>
                                     </q-btn>
                                 </div>
@@ -253,7 +253,7 @@
                             <q-input
                                 filled
                                 dense
-                                label='Text'
+                                :label="t('tools.text')"
                                 v-model='file.id3.unsync_lyrics[i].text'
                                 type='textarea'
                                 class='q-pt-sm q-pb-sm'
@@ -265,7 +265,7 @@
                     <!-- Popularimeter -->
                     <div>
                         <div class='text-uppercase text-primary text-weight-medium'>
-                            Popularimeter <span class="text-grey-4 monospace text-caption q-pl-xs">POPM</span>
+                            {{ t('tools.popularimeter') }} <span class="text-grey-4 monospace text-caption q-pl-xs">POPM</span>
                             <q-btn v-if='!file.id3.popularimeter' round flat class='q-mb-xs q-ml-sm' @click='addPOPM'>
                                 <q-icon name='mdi-plus' color='primary'></q-icon>
                             </q-btn>
@@ -274,7 +274,7 @@
                             <q-input
                                 filled
                                 dense
-                                label='Email'
+                                :label="t('tools.email')"
                                 class='col-4'
                                 v-model='file.id3.popularimeter.email'
                                 @change='id3POPMChange'
@@ -283,7 +283,7 @@
                                 filled
                                 dense
                                 type='number'
-                                label='Play count'
+                                :label="t('tools.playCount')"
                                 class='col-3 q-pl-sm'
                                 v-model='file.id3.popularimeter.counter'
                                 maxlength='9'
@@ -312,11 +312,11 @@
                     <!-- ID3v2.4 -->
                     <div class='q-mt-lg text-center'>
                         <div class='text-subtitle2 text-bold text-primary custom-margin'>
-                            OPTIONS
+                            {{ t('tools.options') }}
                         </div>
                     </div>
                     <div class='column flex-center'>
-                        <q-toggle label='Use ID3v2.4' left-label style='width: 160px;' class='justify-between' v-model='id3v24'></q-toggle>
+                        <q-toggle :label="t('tools.useId3v24')" left-label style='width: 160px;' class='justify-between' v-model='id3v24'></q-toggle>
                     </div>
             </div>
 
@@ -328,7 +328,7 @@
                         @click='manualTagPath = file.path'
                         color="primary"
                         class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium q-mr-md'
-                        label="Manual Tag"
+                        :label="t('tools.manualTag')"
                     ></q-btn>
 
                     <q-btn dense
@@ -336,7 +336,7 @@
                         @click='save'
                         color="primary"
                         class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium'
-                        label="Save"
+                        :label="t('tools.save')" data-testid="tag-editor-save"
                     ></q-btn>
                 </div>
             </q-page-sticky>
@@ -362,10 +362,13 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+import { translateBackendMessage } from '../i18n';
+const { t } = useI18n({ useScope: 'global' });
 import TagField from '../components/TagField.vue';
 import AddAlbumArt from '../components/AddAlbumArt.vue';
 import draggable from 'vuedraggable';
-import { ABSTRACTIONS } from '../scripts/tags';
+import { tagDescription } from '../scripts/tags';
 import type { ID3Comment, TagEditorImage } from '../scripts/tags';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
@@ -409,10 +412,10 @@ async function prepareToLeave(): Promise<boolean> {
     if (!dirty.value) return true;
     if ($1t.settings.value.tagEditorAutosave) return save();
     return new Promise(resolve => {
-        $q.dialog({ title: 'Unsaved changes',
-            message: 'Discard the unsaved changes to this track?',
+        $q.dialog({ title: t('tools.unsavedChanges'),
+            message: t('tools.discardQuestion'),
             cancel: true, persistent: true,
-            ok: { label: 'Discard changes', color: 'negative' }
+            ok: { label: t('tools.discardChanges'), color: 'negative' }
         }).onOk(() => resolve(true)).onCancel(() => resolve(false));
     });
 }
@@ -520,7 +523,7 @@ function clearCustom() {
 */
 
 function tagLabel(tag: string): string | undefined {
-    return ABSTRACTIONS[tag];
+    return tagDescription(tag);
 }
 
 // Delete tag
@@ -537,7 +540,7 @@ function addNewTag() {
     if (!newTag.value) return;
     if (file.value.tags[newTag.value]) {
         $q.notify({
-            message: "Tag already exists!",
+            message: t('tools.tagExists'),
             timeout: 2000,
             position: 'top-right'
         });
@@ -717,7 +720,7 @@ function save(): Promise<boolean> {
     if (pendingSave) return pendingSave.promise;
     if (!file.value) return Promise.resolve(true);
     if (!$1t.isConnected) {
-        saveError.value = 'Cannot save: the connection is closed. Your edits are retained in this page.';
+        saveError.value = t('tools.cannotSaveDisconnected');
         return Promise.resolve(false);
     }
     const id = `tag-editor-${++saveSequence}`;
@@ -746,15 +749,15 @@ function finishSave(ok: boolean, message?: string) {
     if (ok) {
         changes.value = [];
         versionChanged.value = false;
-        $q.notify({ message: 'Tags written!', timeout: 4000, position: 'top-right' });
+        $q.notify({ message: t('tools.tagsWritten'), timeout: 4000, position: 'top-right' });
     } else {
-        saveError.value = `Save was not confirmed. Your edits are retained. ${message ?? 'Please retry Save.'}`;
+        saveError.value = t('tools.saveUnconfirmed', { detail: message ?? t('tools.retrySave') });
     }
     pending.resolve(ok);
 }
 
 function onSocketClose() {
-    finishSave(false, 'The connection closed before the save was confirmed.');
+    finishSave(false, t('tools.connectionClosed'));
 }
 
 function saveSettings() {
@@ -798,7 +801,7 @@ function wsCallback(e: any) {
             break;
         case 'tagEditorSave':
             if (pendingSave && e.requestId === pendingSave.id && e.path === pendingSave.path) {
-                finishSave(e.status === 'ok', e.message);
+                finishSave(e.status === 'ok', translateBackendMessage(e));
             }
             break;
         // Internal callback
@@ -820,9 +823,9 @@ const tagFormat = computed(() => {
 
 // Filter used types
 const albumArtTypes = computed(() => {
-    let types = ["CoverFront", "CoverBack", "Other", "Artist", "Icon", "OtherIcon", 
-        "Leaflet", "Media", "LeadArtist", "Conductor", "Band", "Composer", "Lyricist", 
-        "RecordingLocation", "DuringRecording", "DuringPerformance", "ScreenCapture", 
+    let types = ["CoverFront", "CoverBack", "Other", "Artist", "Icon", "OtherIcon",
+        "Leaflet", "Media", "LeadArtist", "Conductor", "Band", "Composer", "Lyricist",
+        "RecordingLocation", "DuringRecording", "DuringPerformance", "ScreenCapture",
         "BrightFish", "Illustration", "BandLogo", "PublisherLogo"];
     if (!file.value) return types;
     return types.filter((t) => file.value.images.find((i: any) => i.kind == t) ? false : true);

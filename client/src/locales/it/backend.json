@@ -1,0 +1,22 @@
+{
+  "requestFailed": "L'operazione non è riuscita: {detail}",
+  "taggingAlreadyActive": "È già in corso un'operazione di tagging; attendere che termini.",
+  "reportsRequireAutoTagger": "I rapporti sui risultati richiedono Auto-tag.",
+  "spotifyUnauthorized": "Collegare Spotify prima di usare le caratteristiche audio.",
+  "playlistSaved": "Playlist salvata in: {path}",
+  "tagEditorSaveFailed": "Impossibile salvare i tag: {detail}",
+  "manualTagFailed": "Impossibile effettuare la ricerca su questo servizio: {detail}",
+  "manualTagApplyFailed": "Impossibile applicare i tag selezionati: {detail}",
+  "platformInstallFailed": "Impossibile installare il servizio: {detail}",
+  "alreadyTagged": "Tag già presenti.",
+  "noMatch": "Nessuna corrispondenza trovata.",
+  "stoppedBeforeWriting": "Operazione interrotta prima della scrittura dei tag.",
+  "noAlbumMatch": "Nessuna corrispondenza nell'album per il file selezionato.",
+  "albumWriteFailed": "Impossibile scrivere i tag dell'album.",
+  "shazamFailed": "Impossibile identificare questo file con Shazam: {detail}",
+  "fileLoadFailed": "Impossibile caricare il file: {detail}",
+  "trackMatchFailed": "Impossibile trovare una corrispondenza per la traccia: {detail}",
+  "trackWriteFailed": "Impossibile scrivere i tag: {detail}",
+  "audioFeaturesWriteFailed": "Impossibile scrivere le caratteristiche audio nei tag: {detail}",
+  "audioFeaturesSearchFailed": "Impossibile trovare le caratteristiche audio tramite l'ISRC della traccia: {detail}"
+}

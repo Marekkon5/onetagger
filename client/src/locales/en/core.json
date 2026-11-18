@@ -1,0 +1,23 @@
+{
+  "language": "Language",
+  "languageHelp": "Language is saved for this browser or desktop window.",
+  "unexpectedError": "An unexpected error occurred.",
+  "invalidSession": "This OneTagger session link is invalid or expired.",
+  "sessionLinkRequired": "Open OneTagger using the session link printed by the running application.",
+  "websocketError": "Websocket error!",
+  "websocketClosed": "WebSocket closed!",
+  "error": "Error",
+  "reportSaveFailed": "Results report could not be saved",
+  "moveFailed": "Some files could not be moved",
+  "platformInstalled": "Platform Installed",
+  "platformInstallFailed": "Failed to install platform",
+  "platformInstallSuccess": "Platform was installed successfully, press OK to continue",
+  "settingsSaved": "Settings saved!",
+  "invalidProfile": "Invalid profile",
+  "loadingPlatforms": "Loading platforms...",
+  "stopNotAcknowledged": "Stop was not acknowledged. Please retry.",
+  "invalidStopAcknowledgement": "Invalid Stop acknowledgement",
+  "stopSendFailed": "Could not send Stop. Please retry.",
+  "stopConnectionClosed": "Stop connection closed before acknowledgement. Please retry.",
+  "trackSaved": "Track saved!"
+}

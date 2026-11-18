@@ -67,7 +67,8 @@ class ManualTag {
                         this.addMatches(json.matches, json.platform);
                         break;
                     case 'error':
-                        this.errors.push({ platform: json.platform, error: json.error });
+                        this.errors.push({ platform: json.platform, error: json.error,
+                            messageKey: json.messageKey, messageArgs: json.messageArgs, message: json.message });
                         break;
                 }
                 break;
@@ -103,6 +104,9 @@ interface TrackMatch {
 interface ManualTagError {
     platform: string;
     error: string;
+    message?: string;
+    messageKey?: string;
+    messageArgs?: Record<string, string | number>;
 }
 
 export type { TrackMatch };

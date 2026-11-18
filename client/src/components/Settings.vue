@@ -4,11 +4,11 @@
     <q-card flat class='parent-card bg-dark q-pa-lg'>
         <!-- Header -->
         <q-card-section>            
-            <div class='text-subtitle2 text-bold q-mb-sm text-center text-uppercase text-primary'>Settings</div>
+            <div class='text-subtitle2 text-bold q-mb-sm text-center text-uppercase text-primary'>{{ t('common.settings') }}</div>
             <q-tabs v-model='tab'>
-                <q-tab label='Quick Tag' class='q-pa-lg' name='quicktag'></q-tab>
-                <q-tab label='Quick Tag Custom' name='quicktag-custom'></q-tab>
-                <q-tab label='Preferences' name='advanced'></q-tab>
+                <q-tab :label="t('common.quickTag')" class='q-pa-lg' name='quicktag'></q-tab>
+                <q-tab :label="t('common.quickTagCustom')" name='quicktag-custom'></q-tab>
+                <q-tab :label="t('common.preferences')" name='advanced'></q-tab>
             </q-tabs>
         </q-card-section>
 
@@ -19,7 +19,7 @@
                 <!-- Path options -->
                 <div class='select'>
                 <div class='col-1'></div>
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-sm q-mb-sm text-center'>Input</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-sm q-mb-sm text-center'>{{ t('common.input') }}</div>
                 
                     <q-input filled v-model='$1t.settings.value.path'>
                         <!-- <div class='row items-center col-12 text-subtitle2 monospace text-bold text-primary'>{{$1t.settings.value.path}}</div> -->
@@ -31,7 +31,7 @@
                 <div class='q-mt-sm q-pl-xs'>
                     <q-checkbox 
                         v-model='$1t.settings.value.quickTag.recursive'                        
-                        label='Include subfolders'
+                        :label="t('common.includeSubfolders')"
                         class='checkbox'                        
                         @input="$1t.loadQuickTag()"
                     ></q-checkbox>
@@ -46,10 +46,10 @@
 
                 <!-- Energy keybinds --> 
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 24px; margin-bottom: 35px"' inset color="darker"/>
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>Energy</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>{{ t('common.energy') }}</div>
                 <div class='q-mb-sm q-mt-md text-grey-5 text-uppercase text-caption row justify-between'>
-                    <span>Stars</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                    <span>{{ t('common.stars') }}</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>{{ t('common.keyBinds') }}</span>
                 </div>
                 <div class='row q-mb-lg'>
                     <div v-for='i in 5' :key='"energy" + i' class='col row'>
@@ -68,22 +68,22 @@
                 
                 <!-- Energy settings -->                
                 <div class='q-mb-sm row justify-between text-grey-5 text-uppercase text-caption'>
-                    <span>Tag frame</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
+                    <span>{{ t('common.tagFrame') }}</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>{{ t('common.saveTo') }}</span>
                 </div>
                 <q-select
                     v-model='$1t.settings.value.quickTag.energyTag.type'
                     dense
                     filled
-                    label='Tag type'
-                    :options='["rating", "symbol"]'                    
+                    :label="t('common.tagType')"
+                    :options="energyTypes" emit-value map-options                    
                     style='margin-bottom: 40px;'     
                     popup-content-class='no-shadow'               
                 ></q-select>
                 
                 <div v-if='$1t.settings.value.quickTag.energyTag.type != "rating"' class='row'>
                     <div class='col-2 q-pr-md'>
-                        <q-input v-model='$1t.settings.value.quickTag.energyTag.symbol' filled dense label='Symbol'></q-input>
+                        <q-input v-model='$1t.settings.value.quickTag.energyTag.symbol' filled dense :label="t('common.symbol')"></q-input>
                     </div>
                     <div class='col-10 q-mb-xs' :style='"margin-bottom: -4px"'>
                         <TagFields dense v-model='$1t.settings.value.quickTag.energyTag.tag'></TagFields>
@@ -92,17 +92,17 @@
                 
                 <!-- Mood tag -->
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 24px; margin-bottom: 35px"' inset color="darker"/>
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>Mood</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>{{ t('common.mood') }}</div>
                 <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
-                    <span>Tag frame</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Save to</span>
+                    <span>{{ t('common.tagFrame') }}</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>{{ t('common.saveTo') }}</span>
                 </div>
                 <TagFields class='q-mb-sm' v-model='$1t.settings.value.quickTag.moodTag'></TagFields>
 
                 <!-- Moods -->
                 <div class='q-mb-sm q-mt-md text-grey-5 text-uppercase text-caption row justify-between'>
-                    <span>Values</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                    <span>{{ t('common.values') }}</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>{{ t('common.keyBinds') }}</span>
                 </div>
                 <div class='q-mb-md'>
                     <draggable v-model='$1t.settings.value.quickTag.moods' :item-key='(e: any) => `mood`'>
@@ -120,8 +120,8 @@
                                     v-model='$1t.settings.value.quickTag.moods[i].color' 
                                     dense 
                                     filled 
-                                    label='Color'                                    
-                                    :options='colors' 
+                                    :label="t('common.color')"                                    
+                                    :options="colorOptions" emit-value map-options 
                                     :label-color='$1t.settings.value.quickTag.moods[i].color'
                                     :color='$1t.settings.value.quickTag.moods[i].color'
                                     class='col-5 q-pr-md'
@@ -136,17 +136,17 @@
                     </draggable>
 
                     <!-- Add new mood -->
-                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Add new mood</div>
+                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>{{ t('common.addMood') }}</div>
                     <div class='row'>
                         <q-input v-model='newMood.mood' filled dense class='col-5 q-pr-md q-mb-lg'></q-input>
-                        <q-select v-model='newMood.color' :options='colors' filled dense class='col-5 q-pr-md' popup-content-class='no-shadow'></q-select>
+                        <q-select v-model='newMood.color' :options="colorOptions" emit-value map-options filled dense class='col-5 q-pr-md' popup-content-class='no-shadow'></q-select>
                         <div class='col-1'>
                         <q-btn flat round icon='mdi-plus' @click='addMood' color='primary'></q-btn>  
                         </div>                      
                     </div>
 
                     <!-- Sort moods -->
-                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Sort moods</div>
+                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>{{ t('common.sortMoods') }}</div>
                     <div class='row'>
                         <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-ascending' @click='sortMoods(1)'></q-btn>
                         <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-descending' @click='sortMoods(-1)'></q-btn>
@@ -155,10 +155,10 @@
                 
                 <!-- Genres -->
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 16px; margin-bottom: 35px"' inset color="darker"/>
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>Genre</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg text-center' style='margin-top: 31px;'>{{ t('common.genre') }}</div>
                 <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
-                    <span>Values</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Key binds</span>
+                    <span>{{ t('common.values') }}</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>{{ t('common.keyBinds') }}</span>
                 </div>
                 <div>
                     <draggable v-model='$1t.settings.value.quickTag.genres' :item-key='(e: any) => `genre`'>
@@ -179,13 +179,13 @@
                                     ></KeybindVue>
                                 </div>
                                 <div class='row'>
-                                    <div class='col-2 text-body q-mt-sm text-primary'>Subgenres: </div>
+                                    <div class='col-2 text-body q-mt-sm text-primary'>{{ t('common.subgenres') }} </div>
                                     <q-input
                                         clearable
                                         filled
                                         dense
                                         class='col-10'
-                                        placeholder='Use , as separator'
+                                        :placeholder="t('common.separatorHint')"
                                         @update:model-value='(e) => onSubgenreInput(e as string, i)'
                                         :model-value='($1t.settings.value.quickTag.genres[i].subgenres||[]).join(",")'
                                     ></q-input>
@@ -196,7 +196,7 @@
                     </draggable>
 
                     <!-- Add new genre -->
-                    <div class='q-mb-sm text-uppercase text-primary text-subtitle2'>Add new genre</div>
+                    <div class='q-mb-sm text-uppercase text-primary text-subtitle2'>{{ t('common.addGenre') }}</div>
                     <div class='row'>
                         <q-input filled dense class='col-10 q-pr-md' v-model='newGenre'></q-input>
                         <div class='col-1'>
@@ -207,7 +207,7 @@
                     <!-- Subgenre tag -->
                     <div class='q-mt-md q-mb-sm'>
                         <q-checkbox 
-                            label='Custom subgenre tag' 
+                            :label="t('common.customSubgenre')" 
                             :model-value="!!$1t.settings.value.quickTag.subgenreTag"
                             @update:model-value="(v) => enableCustomSubgenreTag(v)"
                         ></q-checkbox>
@@ -215,7 +215,7 @@
                     </div>
 
                     <!-- Sort genres -->
-                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>Sort moods</div>
+                    <div class='q-mt-sm q-mb-sm text-uppercase text-primary text-subtitle2'>{{ t('common.sortGenres') }}</div>
                     <div class='row'>
                         <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-ascending' @click='sortGenres(1)'></q-btn>
                         <q-btn class='q-mr-sm' flat round color='white' size='sm' icon='mdi-sort-alphabetical-descending' @click='sortGenres(-1)'></q-btn>
@@ -228,18 +228,18 @@
             <div v-if='tab == "quicktag-custom"'>
 
                 <!-- Separators -->
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-sm q-mb-sm text-center'>Separators</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-sm q-mb-sm text-center'>{{ t('common.separators') }}</div>
                 <div class='text-center' style='margin-bottom: 40px;'>
                     <Separators v-model='$1t.settings.value.quickTag.separators'></Separators>
                 </div>                
 
                 <!-- Advanced -->
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-sm text-center'>TAG OPTIONS</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-sm text-center'>{{ t('common.tagOptions') }}</div>
                 <div class='text-center' style='margin-bottom: 20px;'>
                     <q-input 
                         v-model='$1t.settings.value.quickTag.id3CommLang' 
                         filled dense
-                        label='ID3 COMM Language'
+                        :label="t('common.commLanguage')"
                         class='input'
                         :rules="[val => !val || val.length == 3]"
                     ></q-input>
@@ -247,10 +247,10 @@
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 20px; margin-bottom: 35px"' inset color="darker"/>
 
                 <!-- Note tag -->
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-sm text-center' style='margin-top: 35px;'>Custom note</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-sm text-center' style='margin-top: 35px;'>{{ t('common.customNote') }}</div>
                     <div class='text-grey-5 text-uppercase text-caption q-mt-md q-mb-sm row justify-between'>
-                    <span>Tag frame</span>
-                    <span class='text-grey-5 text-uppercase text-caption'>Key bind</span>
+                    <span>{{ t('common.tagFrame') }}</span>
+                    <span class='text-grey-5 text-uppercase text-caption'>{{ t('common.keyBind') }}</span>
                 </div>
                 <div class='row'>
                     <TagFields class='col-10 q-mb-md' style='margin-bottom: 20px;' dense v-model='$1t.settings.value.quickTag.noteTag.tag'></TagFields>
@@ -317,14 +317,14 @@
                         style='margin-bottom: 22px;'
                         icon='mdi-plus'
                         @click='addNewQTValue(i)'
-                    >Add new value</q-btn>
+                    >{{ t('common.addValue') }}</q-btn>
                 </div>
 
                 <!-- Add new tag -->                
                 <div class='q-mb-lg'></div>
                 <div class='row q-mt-md'>
-                    <div class='q-mb-sm text-uppercase text-primary text-subtitle2 q-my-lg col-4'>Add new section</div>
-                    <q-input v-model='newCustomQT' filled label='Name' class='q-mt-sm col-7 q-pr-md'></q-input>
+                    <div class='q-mb-sm text-uppercase text-primary text-subtitle2 q-my-lg col-4'>{{ t('common.addSection') }}</div>
+                    <q-input v-model='newCustomQT' filled :label="t('common.name')" class='q-mt-sm col-7 q-pr-md'></q-input>
                     <div class='q-mt-md col-1'>
                         <q-btn round flat icon='mdi-plus' size='md' color='primary' @click='addCustomQT'></q-btn>
                     </div>
@@ -333,6 +333,7 @@
 
             <!-- Advanced -->
             <div v-if='tab == "advanced"'>
+                <LanguageSelector class="q-mb-lg" />
                 
                 <!-- Open settings folder -->
                 <div class='text-center q-mb-xl'>
@@ -340,97 +341,97 @@
                     color='primary'
                     class='rounded-borders q-px-md q-mt-xs text-weight-medium text-black'
                     @click='$1t.send("openSettingsFolder")'
-                >Open data folder</q-btn>
+                >{{ t('common.openDataFolder') }}</q-btn>
                 </div>
                 
                 <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: -8px; margin-bottom: 35px"' inset color="darker"/>
                 
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Auto Tag</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>{{ t('common.autoTag') }}</div>
                 <q-checkbox
                     v-model='$1t.settings.value.autoTaggerSinglePage'
-                    label="Show as single page"
+                    :label="t('common.singlePage')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.showAutoTaggerProfiles'
-                    label="Show profiles"
+                    :label="t('common.showProfiles')"
                     class='checkbox'
                 ></q-checkbox><br>
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Quick Tag</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>{{ t('common.quickTag') }}</div>
                 <q-checkbox
                     v-model='$1t.settings.value.quickTag.autosave'
-                    label='Autosave changes when switching to a different track'
+                    :label="t('common.autosave')"
                     class='checkbox'
                 ></q-checkbox>
                 <q-checkbox
                     v-model='$1t.settings.value.continuePlayback'
-                    label='Continue playback when switching to a different track'
+                    :label="t('common.continuePlayback')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.playOnSeek'
-                    label='Start/continue playback after seeking'
+                    :label="t('common.playOnSeek')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.autoPlayNext'
-                    label='Go to next track when playback ends'
+                    :label="t('common.autoPlayNext')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.quickTag.id3v24'
-                    label='Use ID3v2.4 for MP3 and AIFF'
+                    :label="t('common.useId3')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.externalAudioPlayer'
-                    label='Use external audio player'
+                    :label="t('common.externalPlayer')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.quickTag.thinTracks'
-                    label='Thin, dense tracks'
+                    :label="t('common.thinTracks')"
                     class='checkbox'
                 ></q-checkbox><br>
 
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Edit Tags</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>{{ t('common.editTags') }}</div>
                 <q-checkbox
                     v-model='$1t.settings.value.tagEditorDouble'
-                    label="Show 'Your list'"
+                    :label="t('common.showYourList')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.tagEditorAutosave'
-                    label='Autosave changes when switching to a different track'
+                    :label="t('common.autosave')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.tagEditorPlayer'
-                    label='Show player in tag editor'
+                    :label="t('common.showEditorPlayer')"
                     class='checkbox'
                 ></q-checkbox><br>
 
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Display</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>{{ t('common.display') }}</div>
                 <q-checkbox
                     v-model='$1t.settings.value.helpButton'
-                    label='Show help button'
+                    :label="t('common.showHelp')"
                     class='checkbox'
                 ></q-checkbox>     
                 
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>Advanced</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-xs text-left'>{{ t('common.advanced') }}</div>
                 <q-checkbox
                     v-model='$1t.settings.value.clientSidePlayer'
-                    label='Client side player (for server mode)'
+                    :label="t('common.clientPlayer')"
                     class='checkbox'
                 ></q-checkbox><br>
                 <q-checkbox
                     v-model='$1t.settings.value.nonNativeBrowser'
-                    label='Client side folder browser'
+                    :label="t('common.clientBrowser')"
                     class='checkbox'
                 ></q-checkbox>    
                         
                 <!-- Color picker -->
-                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-md text-left'>Primary color</div>
+                <div class='text-uppercase text-primary text-subtitle2 text-bold q-mt-lg q-mb-md text-left'>{{ t('common.primaryColor') }}</div>
                 <q-color 
                     v-model='$1t.settings.value.primaryColor'
                     @change='colorChange'
@@ -442,7 +443,7 @@
                     flat
                     class='q-mt-sm'
                 >
-                    Reset color to default
+                    {{ t('common.resetColor') }}
                 </q-btn>
             </div>
 
@@ -453,14 +454,18 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import draggable from 'vuedraggable';
-import { Ref, ref, watch } from 'vue';
+import { computed, Ref, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { FrameName, Keybind, Playlist } from '../scripts/utils';
 import KeybindVue from './Keybind.vue';
 import PlaylistDropZone from './PlaylistDropZone.vue';
 import Separators from './Separators.vue';
 import TagFields from './TagFields.vue';
+import LanguageSelector from './LanguageSelector.vue';
 import { setCssVar } from 'quasar';
 
 const props = defineProps({
@@ -488,6 +493,23 @@ const colors = [
     'teal', 'teal-10',
     'yellow',
 ];
+const energyTypes = computed(() => [
+    { label: t('common.rating'), value: 'rating' },
+    { label: t('common.symbol'), value: 'symbol' },
+]);
+const colorKeys: Record<string, string> = {
+    amber: 'colorAmber', blue: 'colorBlue', 'blue-grey': 'colorBlueGrey', brown: 'colorBrown',
+    cyan: 'colorCyan', 'deep-orange': 'colorDeepOrange', 'deep-purple': 'colorDeepPurple',
+    green: 'colorGreen', grey: 'colorGrey', indigo: 'colorIndigo', 'light-blue': 'colorLightBlue',
+    'light-green': 'colorLightGreen', lime: 'colorLime', orange: 'colorOrange', pink: 'colorPink',
+    purple: 'colorPurple', red: 'colorRed', teal: 'colorTeal', yellow: 'colorYellow',
+};
+const colorOptions = computed(() => colors.map(value => {
+    const base = value.replace(/-\d+$/, '');
+    const color = t(`common.${colorKeys[base]}`);
+    const shade = value.match(/-(\d+)$/)?.[1];
+    return { value, label: shade ? t('common.colorShade', { color, shade }) : color };
+}));
 const open = ref(props.modelValue);
 const tab = ref('quicktag');
 const newMood: Ref<{ mood?: string, color: string, keybind?: Keybind }> = ref({ mood: undefined, color: 'red', keybind: undefined });

@@ -1,0 +1,23 @@
+{
+  "language": "Язык",
+  "languageHelp": "Язык сохраняется для этого браузера или окна приложения.",
+  "unexpectedError": "Произошла непредвиденная ошибка.",
+  "invalidSession": "Эта ссылка сеанса OneTagger недействительна или срок её действия истёк.",
+  "sessionLinkRequired": "Откройте OneTagger по ссылке сеанса, которую выводит запущенное приложение.",
+  "websocketError": "Ошибка WebSocket!",
+  "websocketClosed": "Соединение WebSocket закрыто!",
+  "error": "Ошибка",
+  "reportSaveFailed": "Не удалось сохранить отчёт о результатах",
+  "moveFailed": "Не удалось переместить некоторые файлы",
+  "platformInstalled": "Платформа установлена",
+  "platformInstallFailed": "Не удалось установить платформу",
+  "platformInstallSuccess": "Платформа успешно установлена. Нажмите OK, чтобы продолжить.",
+  "settingsSaved": "Настройки сохранены!",
+  "invalidProfile": "Недопустимый профиль",
+  "loadingPlatforms": "Загрузка платформ...",
+  "stopNotAcknowledged": "Остановка не подтверждена. Повторите попытку.",
+  "invalidStopAcknowledgement": "Недопустимое подтверждение остановки",
+  "stopSendFailed": "Не удалось отправить команду остановки. Повторите попытку.",
+  "stopConnectionClosed": "Соединение закрыто до подтверждения остановки. Повторите попытку.",
+  "trackSaved": "Трек сохранён!"
+}

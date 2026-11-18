@@ -23,6 +23,9 @@ importers:
       vue:
         specifier: 3.5.45
         version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
       vue-router:
         specifier: 4.6.4
         version: 4.6.4(vue@3.5.45(typescript@6.0.3))
@@ -226,6 +229,22 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@intlify/core-base@11.4.22':
+    resolution: {integrity: sha512-qEdP+gpuppvC2oKjVr8yZso1E7CuIvArQViule5b6n27ZAQb1QJ7LdiWI7mosMBxNCIobJXw6KBgQWvX7CmHVg==}
+    engines: {node: '>= 22'}
+
+  '@intlify/devtools-types@11.4.22':
+    resolution: {integrity: sha512-zRzElvuCD+j8Sv+LQBf1X8Ve7G61gQUw4WwHDbrxoY1+3FrnRZ1kMgWKGDNyG/qMntwa31h+bQZ3sRTkCqrgMQ==}
+    engines: {node: '>= 22'}
+
+  '@intlify/message-compiler@11.4.22':
+    resolution: {integrity: sha512-X3ButMf+8TvO8kks3xA17tglGeiFLwA2S3TkxHxurRLpz8NpDlN2t9pjHdImKtmjruB6B9I+WgkDWz00zDYkTw==}
+    engines: {node: '>= 22'}
+
+  '@intlify/shared@11.4.22':
+    resolution: {integrity: sha512-RHAe7pwIYDt+AkQs9xQBdMLrux7+O4R8p3FKC47ewpEGhKqNzzJ2vkQ4gApAF/LMzj80nRUwIwQDn0uF/sgnqQ==}
+    engines: {node: '>= 22'}
 
   '@jridgewell/sourcemap-codec@1.6.0':
     resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
@@ -812,6 +831,12 @@ packages:
   vscode-uri@3.2.0:
     resolution: {integrity: sha512-m2gXo3bn0G1kT9InzMf07fTbqMbGtyckj3bH5ktLO+1Ssv+yiATZ4dhwaQv9UZWxJh6E9IFGnQyjgWVDWVBDrg==}
 
+  vue-i18n@11.4.22:
+    resolution: {integrity: sha512-ATfJU6iSSKnUYXubiwH4oScLYIgM2N3KcoqaUD5v5EM2OANePbON7l7CqWsUQhPNHZvszrk9rItqebr8Vo5A5Q==}
+    engines: {node: '>= 22'}
+    peerDependencies:
+      vue: ^3.0.0
+
   vue-router@4.6.4:
     resolution: {integrity: sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg==}
     peerDependencies:
@@ -928,6 +953,24 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.12':
     optional: true
+
+  '@intlify/core-base@11.4.22':
+    dependencies:
+      '@intlify/devtools-types': 11.4.22
+      '@intlify/message-compiler': 11.4.22
+      '@intlify/shared': 11.4.22
+
+  '@intlify/devtools-types@11.4.22':
+    dependencies:
+      '@intlify/core-base': 11.4.22
+      '@intlify/shared': 11.4.22
+
+  '@intlify/message-compiler@11.4.22':
+    dependencies:
+      '@intlify/shared': 11.4.22
+      source-map-js: 1.2.2
+
+  '@intlify/shared@11.4.22': {}
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
@@ -1466,6 +1509,14 @@ snapshots:
 
   vscode-uri@3.2.0: {}
 
+  vue-i18n@11.4.22(vue@3.5.45(typescript@6.0.3)):
+    dependencies:
+      '@intlify/core-base': 11.4.22
+      '@intlify/devtools-types': 11.4.22
+      '@intlify/shared': 11.4.22
+      '@vue/devtools-api': 6.6.4
+      vue: 3.5.45(typescript@6.0.3)
+
   vue-router@4.6.4(vue@3.5.45(typescript@6.0.3)):
     dependencies:
       '@vue/devtools-api': 6.6.4
@@ -1491,3 +1542,4 @@ snapshots:
     dependencies:
       sortablejs: 1.14.0
       vue: 3.5.45(typescript@6.0.3)
+
