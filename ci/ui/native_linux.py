@@ -30,6 +30,7 @@ def main():
         log = root/'driver.log'
         session = None
         interactions = []
+        layouts = []
         with log.open('w') as output:
             driver = subprocess.Popen(['WebKitWebDriver', '--port='+str(port)], env=env,
                                       stdout=output, stderr=subprocess.STDOUT)
@@ -146,7 +147,8 @@ def main():
                                 active:document.activeElement?.outerHTML.slice(0,300)});
                         },true);
                     }""")
-                for cycle in range(3):
+                for cycle, (width, height) in enumerate([(1280, 720), (1440, 900), (1200, 600)]):
+                    command('/window/rect', {'width': width, 'height': height})
                     click('a[href="#/autotagger"]')
                     # Keep the same provider identity across async renders and
                     # route changes instead of following whichever card is first.
@@ -167,6 +169,23 @@ def main():
                         wait("return document.querySelector(arguments[0]).getAttribute('aria-checked') !== arguments[1]",selector,before)
                     click('.q-stepper__tab:nth-child(4)')
                     wait("return document.body.innerText.includes('Miscellaneous options')")
+                    # Scroll a long panel, then ensure a newly selected panel
+                    # starts below the fixed app header with no retained offset.
+                    script("const p=document.querySelector('.content');p.scrollTop=p.scrollHeight")
+                    wait("return document.querySelector('.content').scrollTop > 100")
+                    click('.q-stepper__tab:nth-child(1)')
+                    wait("return document.querySelector('.content').scrollTop === 0")
+                    geometry = script("""const p=document.querySelector('.content');
+                        const step=document.querySelector('.q-stepper__step');
+                        const inner=step.querySelector('.q-stepper__step-inner');
+                        return {unused:step.getBoundingClientRect().height-inner.getBoundingClientRect().height,
+                            scrollTop:p.scrollTop, viewport:[innerWidth,innerHeight],
+                            documentScroll:document.documentElement.scrollHeight-innerHeight,
+                            stepHeight:step.getBoundingClientRect().height,
+                            contentHeight:p.scrollHeight};""")
+                    layouts.append(geometry)
+                    if geometry['unused'] > 2 or geometry['documentScroll'] > 2:
+                        raise AssertionError('Native layout contains unused space: '+repr(geometry))
                     click('a[href="#/"]')
                     wait("return document.body.innerText.includes('The ultimate cross-platform music tagger for DJs')")
                 errors = script('return window.nativeErrors')
@@ -176,6 +195,18 @@ def main():
                     'engine':'system WebKitGTK via real OneTagger executable','provider_requests':0},indent=2))
                 print('Native Linux Autotagger navigation and repeated controls passed')
             finally:
+                args.output.joinpath('layouts.json').write_text(json.dumps(layouts,indent=2))
+                # Collect bounded CI-only diagnostics even when JS is unresponsive.
+                for name, cmd in [
+                    ('system.txt', ['uname', '-a']),
+                    ('webkit-packages.txt', ['dpkg-query', '-W', 'libwebkit2gtk-4.1-0', 'libgtk-3-0t64', 'libgl1-mesa-dri']),
+                    ('processes.txt', ['ps', '-eo', 'pid,ppid,stat,pcpu,pmem,rss,comm']),
+                ]:
+                    try:
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+                        args.output.joinpath(name).write_text(result.stdout+result.stderr)
+                    except (OSError, subprocess.TimeoutExpired):
+                        pass
                 args.output.joinpath('interactions.json').write_text(json.dumps(interactions,indent=2))
                 if session:
                     try:
