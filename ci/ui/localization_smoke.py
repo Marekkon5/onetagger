@@ -22,6 +22,7 @@ NATIVE_NAMES = {"en": "English", "it": "Italiano", "fr": "Français", "nl": "Ned
 # OK is identical in these packs; Cancel is what proves the pack changes.
 QUASAR_CANCEL = {"en": "Cancel", "fr": "Annuler", "ru": "Отмена"}
 RAW_KEY = re.compile(r"\b(?:autotag|quicktag|tools|common|backend|core|providers|help)\.[A-Za-z][A-Za-z0-9_]*\b")
+RENAMER_UNKNOWN_DOC = '<img src=x onerror="window.i18nInjected=true"> literal &lt; Ελληνικά Русский'
 
 
 def message(locale, namespace, key):
@@ -46,6 +47,14 @@ class LocalizedBackend(Backend):
         class Proxy:
             def __getattr__(self, name):
                 return getattr(socket, name)
+
+            def send(self, raw):
+                response = json.loads(raw)
+                if response["action"] == "init":
+                    response["renamerDocs"] = {
+                        "variables": [{"kind": "variable", "name": "future_symbol", "doc": RENAMER_UNKNOWN_DOC}],
+                        "properties": [], "functions": []}
+                socket.send(json.dumps(response))
 
             def on_message(self, callback):
                 def receive(raw):
@@ -141,12 +150,17 @@ class LocalizationTests(unittest.TestCase):
         expect(dialog).to_have_count(0)
 
     def choose_locale(self, page, locale):
+        previous_locale = page.locator("html").get_attribute("lang")
+        previous_saved = page.evaluate("localStorage.getItem('onetagger.locale')")
         selector = page.get_by_test_id("language-selector").first
         expect(selector).to_be_visible()
         selector.click()
         page.get_by_role("option", name=NATIVE_NAMES[locale], exact=True).click()
         expect(page.locator("html")).to_have_attribute("lang", locale)
-        self.assertEqual(page.evaluate("localStorage.getItem('onetagger.locale')"), locale)
+        # QSelect does not emit an update when choosing its current option.
+        # An automatically detected locale need not be saved until it changes.
+        if previous_locale != locale or previous_saved == locale:
+            self.assertEqual(page.evaluate("localStorage.getItem('onetagger.locale')"), locale)
 
     def open_autotag_input(self, page):
         page.get_by_test_id("nav-autotagger").click()
@@ -256,7 +270,7 @@ class LocalizationTests(unittest.TestCase):
 
     def test_switching_updates_current_screen_and_survives_reload(self):
         with self.session() as (page, backend):
-            before = page.get_by_test_id("nav-tageditor").inner_text()
+            before = page.get_by_test_id("nav-tageditor").text_content().strip()
             self.choose_locale(page, "it")
             expect(page.get_by_test_id("nav-tageditor")).not_to_have_text(before)
             initializations = sum(c["action"] == "defaultCustomPlatformSettings" for c in backend.commands)
@@ -370,6 +384,23 @@ class LocalizationTests(unittest.TestCase):
                     expect(dialog).to_contain_text(message(locale, "help", "autoFetchesMetadataAutomaticallyWritesTagsToYour"))
                     page.keyboard.press("Escape")
                     expect(dialog).to_have_count(0)
+
+    def test_unknown_renamer_documentation_remains_literal_text(self):
+        with self.session(saved="fr", expected="fr") as (page, _):
+            page.get_by_test_id("nav-renamer").click()
+            page.locator(".help-button").click()
+            dialog = page.get_by_role("dialog").filter(has=page.locator(".help-card"))
+            expect(dialog.get_by_text(message("fr", "common", "variables"), exact=True)).to_be_visible()
+            dialog.locator(".renamer-doc-token").filter(has_text="future_symbol").click()
+            # Unknown documentation must survive verbatim, including markup
+            # and entity spelling; safety comes from Vue's text rendering.
+            documentation = dialog.get_by_text(RENAMER_UNKNOWN_DOC, exact=True)
+            expect(documentation).to_be_visible()
+            expect(documentation).to_have_text(RENAMER_UNKNOWN_DOC)
+            expect(dialog.locator("img")).to_have_count(0)
+            self.assertIsNone(page.evaluate("window.i18nInjected"))
+            page.keyboard.press("Escape")
+            expect(dialog).to_have_count(0)
 
     def test_longer_languages_fit_and_all_main_screens_remain_navigable(self):
         for locale in ("de", "nl", "el", "ru"):

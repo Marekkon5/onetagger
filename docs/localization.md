@@ -94,6 +94,9 @@ custom provider prose, release changelog text and technical log messages retain
 their source language. These are documented coverage boundaries rather than
 missing catalog keys.
 
+Unknown renamer documentation is rendered verbatim as Vue text, including any
+markup-like characters. It is neither decoded nor treated as sanitized HTML.
+
 ## Catalog conventions
 
 - Use stable semantic keys scoped by feature and role. English wording is not an

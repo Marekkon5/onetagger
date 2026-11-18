@@ -58,10 +58,7 @@ export function renamerDocumentation(symbol: SymbolDocumentation): string {
     }
     const table: Record<string, string> = symbol.kind === 'property' ? properties : symbol.kind === 'function' ? functions : {};
     if (Object.hasOwn(table, symbol.name)) return translate('tools.' + table[symbol.name]);
-    // Unknown/new backend symbols remain readable in their source language.
-    // This is plain text for Vue interpolation, never HTML sanitization/injection.
-    return String(symbol.doc ?? '').replace(/<br\s*\/?>|<\/(?:p|div)>/gi, '\n')
-        .replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-        .replace(/&amp;/g, '&').trim();
+    // Unknown/new backend documentation is literal text, including any markup.
+    // Render only through Vue text interpolation; no HTML sanitization or decoding.
+    return String(symbol.doc ?? '');
 }
