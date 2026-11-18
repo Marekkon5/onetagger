@@ -11,7 +11,7 @@
             </q-item-label>
         </q-item-section>
         <q-item-section avatar>
-            <q-toggle :model-value='modelValue' @update:model-value='(v) => emit("update:modelValue", v)'></q-toggle>
+            <q-toggle :aria-label='label' :model-value='modelValue' @update:model-value='(v) => emit("update:modelValue", v)'></q-toggle>
         </q-item-section>
     </q-item>
 </template>
