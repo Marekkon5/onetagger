@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Generate the targeted Rust lockfile patch
+      - name: Resolve Tokio with terminal event features disabled
         run: |
           cargo update -p tokio --precise 1.51.6
           cargo metadata --locked --no-deps --format-version 1 > /dev/null
