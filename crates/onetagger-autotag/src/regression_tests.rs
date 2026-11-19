@@ -2,6 +2,78 @@ use super::*;
 use onetagger_tagger::Album;
 use std::fs;
 
+struct FallbackSource { stage: usize }
+impl AutotaggerSource for FallbackSource {
+    fn match_track(&mut self, info: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        let item: usize = info.path.file_stem().unwrap().to_str().unwrap().parse().unwrap();
+        if item == 3 && self.stage == 0 { return Err(anyhow!("Mock provider unavailable")); }
+        if item == 3 || (self.stage == 0 && item % 2 == 1) { return Ok(vec![]); }
+        Ok(vec![TrackMatch::new(1.0, Track { title: "Fixture".into(),
+            genres: vec![format!("Provider {}", self.stage)], ..Default::default() })])
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> { Ok(()) }
+}
+
+#[test]
+fn pipeline_preserves_written_tags_reports_and_multiplatform_order() {
+    use crate::scheduler::{self, Attempt, Schedule};
+    for multiplatform in [false, true] {
+        let mut reference = None;
+        for schedule in [Schedule::Batched, Schedule::Pipelined] {
+            let dir = tempfile::tempdir().unwrap();
+            let files: Vec<_> = (0..4).map(|i| {
+                let path = dir.path().join(format!("{i}.mp3"));
+                mp3(&path, Some("Fixture")); path
+            }).collect();
+            let config = TaggerConfig { tags: vec![SupportedTag::Genre], multiplatform, ..Default::default() };
+            let sources: Vec<Vec<_>> = (0..2).map(|stage| (0..2)
+                .map(|_| Mutex::new(Box::new(FallbackSource { stage }))).collect()).collect();
+            let mut results = TaggingResults::default();
+            let mut report = report::ReportBuilder::new(&files, None);
+            scheduler::run(&files, &[1, 2], 2, multiplatform, schedule, || false,
+                |stage, slot, path| {
+                    let mut source = sources[stage][slot].lock().unwrap();
+                    let status = Tagger::tag_track_with_cancel(path, &mut *source, &config, &|| false);
+                    Attempt { matched: status.status == TaggingState::Ok, value: status }
+                }, |stage, _, status, _| {
+                    let status = status.unwrap();
+                    results.record(&status);
+                    report.record(&format!("provider-{stage}"), &status);
+                });
+            assert_eq!(results.successful.len(), 3);
+            assert_eq!(results.failed, BTreeSet::from([files[3].clone()]));
+            let report = report.finish(false);
+            let mut outcomes = vec![];
+            for (item, row) in report.tracks.iter().enumerate() {
+                let expected = if item == 3 { None } else {
+                    Some(format!("Provider {}", if multiplatform || item == 1 { 1 } else { 0 }))
+                };
+                assert_eq!(row.after.as_ref().unwrap().genre, expected);
+                assert_eq!(row.status, if item == 3 { "failed" } else { "written" });
+                outcomes.push((row.after.clone(), serde_json::to_value(&row.attempts).unwrap()));
+            }
+            if let Some(reference) = &reference { assert_eq!(&outcomes, reference); }
+            reference = Some(outcomes);
+        }
+    }
+}
+
+#[test]
+fn pipeline_deduplicates_paths_and_canonical_aliases() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("selected.mp3");
+    mp3(&file, Some("Selected"));
+    let alias = dir.path().join(".").join("selected.mp3");
+    let mut files = vec![file.clone(), alias, file.clone()];
+    #[cfg(unix)] {
+        let link = dir.path().join("alias.mp3");
+        std::os::unix::fs::symlink(&file, &link).unwrap();
+        files.push(link);
+    }
+    crate::pipeline::deduplicate_files(&mut files);
+    assert_eq!(files, vec![file]);
+}
+
 fn mp3(path: &Path, title: Option<&str>) {
     fs::write(path, [0u8; 64]).unwrap();
     let mut tag = Tag::load_file(path, true).unwrap();
@@ -243,3 +315,4 @@ fn valid_mp4_artwork_replaces_old_cover_after_validation() {
     assert_eq!(image::guess_format(&pictures[0].data).unwrap(), image::ImageFormat::Jpeg);
     assert_eq!(image::load_from_memory(&pictures[0].data).unwrap().width(), 128);
 }
+

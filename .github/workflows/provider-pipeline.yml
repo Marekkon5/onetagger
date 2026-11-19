@@ -1,0 +1,41 @@
+name: Provider pipeline
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: provider-pipeline-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scheduler:
+    name: Scheduler tests and benchmarks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15-intel, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Test and benchmark the production scheduler
+        run: python ci/provider_benchmark.py
+      - name: Retain benchmark evidence
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: provider-benchmark-${{ matrix.os }}
+          path: |
+            provider-benchmark-results/*.csv
+            provider-benchmark-results/*.json
+            provider-benchmark-results/*.md
+            provider-benchmark-results/*.log
+          if-no-files-found: error
+          retention-days: 30

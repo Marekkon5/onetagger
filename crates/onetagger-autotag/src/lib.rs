@@ -34,6 +34,8 @@ pub mod repo;
 pub mod platforms;
 pub mod audiofeatures;
 pub mod report;
+mod scheduler;
+mod pipeline;
 
 // Re-exports
 pub use platforms::{AUTOTAGGER_PLATFORMS, AutotaggerPlatforms};
@@ -675,6 +677,10 @@ impl Tagger {
     fn tag_files_inner(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, report_enabled: bool, selection: Option<report::Selection>) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
 
+        // A playlist can contain the same file more than once, including aliases.
+        // Keep its first spelling for reports, but never schedule it twice.
+        pipeline::deduplicate_files(&mut files);
+
         // Shuffle so album tag is more "efficient"
         if cfg.album_tagging {
             let mut rng = rand::rng();
@@ -692,6 +698,10 @@ impl Tagger {
         std::thread::spawn(move || {
             let mut report = report_enabled.then(|| report::ReportBuilder::new(&files, selection));
             // Tag
+            if !config.album_tagging {
+                Self::tag_pipeline(&files, &config, &tx, &mut results, &mut report);
+            } else {
+            // Album matching depends on provider-wide folder grouping.
             for (platform_index, platform) in config.platforms.iter().enumerate() {
                 // For progress
                 let mut processed = 0;
@@ -748,6 +758,7 @@ impl Tagger {
                 // Workers already own this batch. Filter once per provider instead
                 // of scanning the remaining files after every successful result.
                 if !matched.is_empty() { files.retain(|path| !matched.contains(path)); }
+            }
             }
 
             // Move files
@@ -1423,3 +1434,4 @@ pub fn manual_tagger_apply(mut matches: Vec<TrackMatch>, path: impl AsRef<Path>,
 
 #[cfg(test)]
 mod regression_tests;
+
