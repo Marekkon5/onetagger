@@ -1,0 +1,51 @@
+name: Compare Windows installer size
+on:
+  push:
+    branches: [fix/windows-installer-runtime]
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  compare:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: onetagger-windows-x64
+          run-id: '44463164119'
+          github-token: ${{ github.token }}
+          path: reference
+          digest-mismatch: error
+      - name: Use the same verified native executables for the comparison
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -Raw reference/release-manifest-windows-x64.json | ConvertFrom-Json
+          if ($manifest.source_commit -ne '68eed6b04c4a80fa539db795211da1b95a49a480' -or
+              $manifest.run_id -ne '44463164119') { throw 'Unexpected source build' }
+          foreach ($name in @('OneTagger-windows.exe', 'OneTagger-windows-cli.exe', 'OneTagger-windows-setup.exe')) {
+              if ((Get-FileHash "reference/$name").Hash -ne $manifest.sha256.$name) { throw "Checksum mismatch: $name" }
+          }
+          New-Item -ItemType Directory -Force target/release, dist | Out-Null
+          Copy-Item reference/OneTagger-windows.exe target/release/onetagger.exe
+          Copy-Item reference/OneTagger-windows-cli.exe target/release/onetagger-cli.exe
+          Copy-Item reference/OneTagger-windows.exe, reference/OneTagger-windows-cli.exe dist/
+          python ci/check_windows_imports.py target/release/onetagger.exe target/release/onetagger-cli.exe
+      - name: Build and smoke-test the smaller installer
+        shell: pwsh
+        run: |
+          choco install nsis --no-progress -y
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile MicrosoftEdgeWebview2Setup.exe
+          $version = (Get-Content -Raw VERSION).Trim()
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPRODUCT_VERSION=$version.0" 'assets\installer.nsi'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ci/smoke_windows_package.ps1 -Dist dist -Version $version
+          $before = (Get-Item reference/OneTagger-windows-setup.exe).Length
+          $after = (Get-Item dist/OneTagger-windows-setup.exe).Length
+          if ($after -ge $before) { throw 'Expected the new installer to be smaller' }
+          Write-Output "Installer size comparison: $before -> $after bytes"
