@@ -1,5 +1,15 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.2 — 2026-11-19
+
+### AutoTagger
+
+- Continue searching with the next enabled provider when a provider is rate limited.
+- Initialize providers independently so a slow startup does not delay other providers.
+- Show each provider’s observed lookup pace and count of deferred lookups. The pace includes completed attempts that found no match.
+
+[Full changes since v2.1.1](https://github.com/fantuz/onetagger/compare/v2.1.1...v2.1.2)
+
 ## 2.1.1 — 2026-11-19
 
 ### AutoTagger
