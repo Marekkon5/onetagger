@@ -7,20 +7,15 @@ import re
 import sys
 import tempfile
 import urllib.request
+import unicodedata
 
 import ctranslate2
 from huggingface_hub import HfApi, snapshot_download
 from transformers import AutoTokenizer
 
 
-MODELS = {
-    "cs": ("opus-mt-en-cs", ""),
-    "pl": ("opus-mt-en-zlw", ">>pol<< "),
-    "ja": ("opus-mt-en-jap", ""),
-    "ar": ("opus-mt-en-ar", ""),
-}
 TOKENS = re.compile(r"\{(?:[a-zA-Z_][a-zA-Z0-9_]*|'(?:\\.|[^'\\])*')\}|%[a-zA-Z_]+%|\$(?:success|failed)")
-SLOT_MARKERS = tuple(f"QZG{chr(ord('A') + i)}GZQ" for i in range(26))
+SLOT_MARKERS = tuple(str(9876543100 + i) for i in range(26))
 EXACT_TERMS = {
     "Home", "Settings", "Preferences", "Cancel", "OK", "Save", "Close", "Add", "Remove", "Delete",
     "Play", "Pause", "Duration", "Track number", "Title", "Artist", "Album", "Year", "Genre",
@@ -41,25 +36,27 @@ def prepare(segment):
 
 
 def restore(text, replacements):
+
+    if replacements:
+        text = ''.join(str(unicodedata.decimal(ch)) if ch.isdecimal() else ch for ch in text)
     for token, placeholder in replacements:
-        spaced = r"\s*".join(token)
-        text = re.sub(spaced, lambda _: placeholder, text, flags=re.IGNORECASE)
+        spaced = r"[\s,.،٬]*".join(token)
+        text = re.sub(spaced, lambda _: placeholder, text)
     return text
 
 
 def main():
     locale = sys.argv[1]
-    model, prefix = MODELS[locale]
-    repo = f"Helsinki-NLP/{model}"
+    repo = "facebook/m2m100_418M"
     info = HfApi().model_info(repo)
-    if info.card_data is None or info.card_data.license != "apache-2.0":
+    if info.card_data is None or info.card_data.license != "mit":
         raise ValueError(f"Unexpected model license for {repo}")
     print(f"Draft model {repo} at {info.sha}", flush=True)
     ref = os.environ["GITHUB_HELPER_REF"]
     url = f"https://raw.githubusercontent.com/fantuz/rekordbox-migration-helper/{ref}/static/locales.json"
     with ThreadPoolExecutor(max_workers=2) as downloader:
         model_files = downloader.submit(snapshot_download, repo, revision=info.sha,
-                                        allow_patterns=["*.json", "*.spm", "model.safetensors", "pytorch_model.bin"])
+                                        allow_patterns=["*.json", "*.spm", "*.model", "model.safetensors", "pytorch_model.bin"])
         with urllib.request.urlopen(url, timeout=45) as response:
             helper = json.load(response)["messages"]
         model_path = model_files.result()
@@ -89,15 +86,17 @@ def main():
         converted = ctranslate2.converters.TransformersConverter(model_path, trust_remote_code=False)
         converted.convert(temp, quantization="int8", force=True)
         translator = ctranslate2.Translator(temp, compute_type="int8", intra_threads=4)
+        target = [tokenizer.lang_code_to_token[locale]]
         for start in range(0, len(to_infer), 96):
             batch = to_infer[start:start + 96]
-            source_ids = tokenizer([prefix + slots[item][0] for item in batch],
+            source_ids = tokenizer([slots[item][0] for item in batch],
                                    truncation=True, max_length=490).input_ids
             tokens = [tokenizer.convert_ids_to_tokens(ids) for ids in source_ids]
-            predictions = translator.translate_batch(tokens, beam_size=3, max_batch_size=640, batch_type="tokens",
+            predictions = translator.translate_batch(tokens, target_prefix=[target] * len(batch),
+                                                    beam_size=3, max_batch_size=1024, batch_type="tokens",
                                                     max_decoding_length=350, repetition_penalty=1.05)
             for source, prediction in zip(batch, predictions):
-                ids = tokenizer.convert_tokens_to_ids(prediction.hypotheses[0])
+                ids = tokenizer.convert_tokens_to_ids(prediction.hypotheses[0][1:])
                 proposal = tokenizer.decode(ids, skip_special_tokens=True, clean_up_tokenization_spaces=False).strip()
                 translated[source] = restore(proposal, slots[source][1])
             print(f"Translated {min(start+96, len(to_infer))}/{len(to_infer)} draft segments", flush=True)
@@ -108,7 +107,7 @@ def main():
             pieces = re.split(r"(\s*\|\s*|\n+)", source)
             result = "".join(translated.get(segment.strip(), segment) if i % 2 == 0 else segment
                              for i, segment in enumerate(pieces))
-            if not result.strip() or set(TOKENS.findall(result)) != set(TOKENS.findall(source)) or "QZG" in result:
+            if not result.strip() or set(TOKENS.findall(result)) != set(TOKENS.findall(source)) or "98765431" in result:
                 needs_review.append(key)
             draft[key] = result
         print("ONETAGGER_DRAFT " + namespace + " " + json.dumps(draft, ensure_ascii=False), flush=True)
