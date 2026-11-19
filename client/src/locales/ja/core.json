@@ -1,0 +1,23 @@
+{
+  "language": "言語",
+  "languageHelp": "言語の設定は、このブラウザーまたはデスクトップアプリに保存されます。",
+  "unexpectedError": "予期しないエラーが発生しました。",
+  "invalidSession": "この OneTagger セッションのリンクは無効か、期限が切れています。",
+  "sessionLinkRequired": "実行中のアプリに表示されるセッションリンクから OneTagger を開いてください。",
+  "websocketError": "WebSocket 接続でエラーが発生しました。",
+  "websocketClosed": "WebSocket 接続が閉じられました。",
+  "error": "エラー",
+  "reportSaveFailed": "結果レポートを保存できませんでした",
+  "moveFailed": "一部のファイルを移動できませんでした",
+  "platformInstalled": "プラットフォームをインストールしました",
+  "platformInstallFailed": "プラットフォームをインストールできませんでした",
+  "platformInstallSuccess": "プラットフォームをインストールしました。続けるには OK を押してください。",
+  "settingsSaved": "設定を保存しました！",
+  "invalidProfile": "無効なプロファイル",
+  "loadingPlatforms": "プラットフォームを読み込み中…",
+  "stopNotAcknowledged": "停止の応答がありません。もう一度お試しください。",
+  "invalidStopAcknowledgement": "停止の応答が無効です",
+  "stopSendFailed": "停止要求を送信できませんでした。もう一度お試しください。",
+  "stopConnectionClosed": "停止の応答を受け取る前に接続が閉じられました。もう一度お試しください。",
+  "trackSaved": "曲を保存しました！"
+}

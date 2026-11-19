@@ -1,0 +1,23 @@
+{
+  "language": "Jazyk",
+  "languageHelp": "Nastavení jazyka se ukládá pro tento prohlížeč nebo okno aplikace.",
+  "unexpectedError": "Došlo k neočekávané chybě.",
+  "invalidSession": "Odkaz na relaci OneTaggeru je neplatný nebo vypršel.",
+  "sessionLinkRequired": "Otevřete OneTagger pomocí odkazu na relaci, který vypíše spuštěná aplikace.",
+  "websocketError": "Chyba připojení WebSocket.",
+  "websocketClosed": "Připojení WebSocket bylo ukončeno.",
+  "error": "Chyba",
+  "reportSaveFailed": "Výsledkovou zprávu se nepodařilo uložit",
+  "moveFailed": "Některé soubory se nepodařilo přesunout",
+  "platformInstalled": "Platforma nainstalována",
+  "platformInstallFailed": "Platformu se nepodařilo nainstalovat",
+  "platformInstallSuccess": "Platforma byla nainstalována. Pokračujte stisknutím OK.",
+  "settingsSaved": "Nastavení uloženo!",
+  "invalidProfile": "Neplatný profil",
+  "loadingPlatforms": "Načítání platforem…",
+  "stopNotAcknowledged": "Zastavení nebylo potvrzeno. Zkuste to znovu.",
+  "invalidStopAcknowledgement": "Neplatné potvrzení zastavení",
+  "stopSendFailed": "Požadavek na zastavení se nepodařilo odeslat. Zkuste to znovu.",
+  "stopConnectionClosed": "Připojení bylo ukončeno před potvrzením zastavení. Zkuste to znovu.",
+  "trackSaved": "Skladba uložena!"
+}

@@ -1,0 +1,23 @@
+{
+  "language": "اللغة",
+  "languageHelp": "يُحفظ اختيار اللغة في هذا المتصفح أو نافذة التطبيق.",
+  "unexpectedError": "حدث خطأ غير متوقع.",
+  "invalidSession": "رابط جلسة OneTagger غير صالح أو منتهي الصلاحية.",
+  "sessionLinkRequired": "افتح OneTagger من رابط الجلسة الذي يعرضه التطبيق قيد التشغيل.",
+  "websocketError": "حدث خطأ في اتصال WebSocket.",
+  "websocketClosed": "أُغلق اتصال WebSocket.",
+  "error": "خطأ",
+  "reportSaveFailed": "تعذّر حفظ تقرير النتائج",
+  "moveFailed": "تعذّر نقل بعض الملفات",
+  "platformInstalled": "تم تثبيت المنصة",
+  "platformInstallFailed": "تعذّر تثبيت المنصة",
+  "platformInstallSuccess": "تم تثبيت المنصة. اضغط على موافق للمتابعة.",
+  "settingsSaved": "تم حفظ الإعدادات!",
+  "invalidProfile": "ملف تعريف غير صالح",
+  "loadingPlatforms": "جارٍ تحميل المنصات…",
+  "stopNotAcknowledged": "لم يُؤكّد طلب الإيقاف. حاول مرة أخرى.",
+  "invalidStopAcknowledgement": "تأكيد الإيقاف غير صالح",
+  "stopSendFailed": "تعذّر إرسال طلب الإيقاف. حاول مرة أخرى.",
+  "stopConnectionClosed": "أُغلق الاتصال قبل تأكيد الإيقاف. حاول مرة أخرى.",
+  "trackSaved": "تم حفظ المقطع!"
+}
