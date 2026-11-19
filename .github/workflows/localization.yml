@@ -76,6 +76,9 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: ci/ui/requirements.txt
+      - name: Select a fast Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: python3 ci/ubuntu_apt_mirrors.py
       - name: Install pinned browser dependencies
         run: |
           python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
