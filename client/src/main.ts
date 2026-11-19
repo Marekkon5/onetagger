@@ -1,11 +1,11 @@
 import { createApp } from 'vue';
 import { Quasar, Dialog, Notify } from 'quasar';
 import { establishSession } from './scripts/session';
-import iconSet from 'quasar/icon-set/mdi-v6';
+import iconSet from 'quasar/icon-set/mdi-v7';
 import { i18n, quasarLanguagePacks, type SupportedLocale } from './i18n';
 
 // Style
-import '@quasar/extras/mdi-v6/mdi-v6.css';
+import '@quasar/extras/mdi-v7/mdi-v7.css';
 import 'quasar/src/css/index.sass';
 import './style/app.scss';
 

@@ -403,6 +403,20 @@ class BrowserTests(unittest.TestCase):
 
     def test_navigation_and_file_filter(self):
         with self.session() as (page, _):
+            settings_icon = page.get_by_test_id("settings-open").locator(".mdi-cog")
+            expect(settings_icon).to_be_visible()
+            self.assertTrue(settings_icon.evaluate("""
+                async icon => {
+                    await document.fonts.ready;
+                    const { content, fontFamily } = getComputedStyle(icon, "::before");
+                    const iconFont = "Material Design Icons";
+                    return content.startsWith('"') && content.length > 2 &&
+                        fontFamily.includes(iconFont) &&
+                        [...document.fonts].some(font =>
+                            font.family.includes(iconFont) && font.status === "loaded"
+                        );
+                }
+            """), "The settings icon should render using the bundled icon font")
             page.get_by_role("tab", name="Edit Tags", exact=True).click()
             expect(page.locator("#fileList .te-file")).to_have_count(2)
             page.get_by_label("Filter", exact=True).fill("synthetic")

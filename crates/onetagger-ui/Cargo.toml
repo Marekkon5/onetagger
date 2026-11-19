@@ -38,7 +38,7 @@ onetagger-platforms = { path = "../onetagger-platforms" }
 
 # Windows specific 
 [target.'cfg(windows)'.dependencies]
-sysinfo = "0.38"
+sysinfo = "0.38.4"
 
 
 [dev-dependencies]
