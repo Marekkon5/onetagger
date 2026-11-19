@@ -219,18 +219,25 @@ jobs:
           path: native-ui-results/
           retention-days: 7
           if-no-files-found: warn
+      - name: Verify Windows executables can use the static MSVC runtime
+        if: runner.os == 'Windows'
+        run: python ci/check_windows_imports.py target/release/onetagger.exe target/release/onetagger-cli.exe
       - name: Package Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist
-          Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile vc_redist.x64.exe
           Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile MicrosoftEdgeWebview2Setup.exe
-          $version = python -c "import tomllib; print(tomllib.load(open('crates/onetagger/Cargo.toml', 'rb'))['package']['version'] + '.0')"
-          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPRODUCT_VERSION=$version" 'assets\installer.nsi'
+          $version = (Get-Content -Raw VERSION).Trim()
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPRODUCT_VERSION=$version.0" 'assets\installer.nsi'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item target/release/onetagger.exe dist/OneTagger-windows.exe
           Copy-Item target/release/onetagger-cli.exe dist/OneTagger-windows-cli.exe
+      - name: Verify Windows versions and exercise the installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        timeout-minutes: 5
+        run: ./ci/smoke_windows_package.ps1 -Dist dist -Version (Get-Content -Raw VERSION).Trim()
       - name: Package macOS
         if: runner.os == 'macOS'
         run: |
