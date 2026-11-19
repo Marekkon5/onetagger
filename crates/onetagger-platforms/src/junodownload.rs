@@ -1,12 +1,14 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
 use reqwest::blocking::Client;
 use reqwest::StatusCode;
 use scraper::{Html, Selector, ElementRef};
 use chrono::NaiveDate;
 use regex::Regex;
-use std::thread::sleep;
 use std::time::Duration;
 use anyhow::Error;
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 pub struct JunoDownload {
     client: Client
@@ -27,6 +29,7 @@ impl JunoDownload {
 
     // Search releases, generate tracks
     pub fn search(&self, query: &str) -> Result<Vec<Track>, Error> {
+        COOLDOWN.check()?;
         let response = self.client
             .get("https://www.junodownload.com/search/")
             .query(&[("q[all][]", query), ("solrorder", "relevancy"), ("items_per_page", "50")])
@@ -35,9 +38,9 @@ impl JunoDownload {
 
         // Rate limitting
         if response.status() == StatusCode::TOO_MANY_REQUESTS {
-            warn!("JunoDownload rate limit! Sleeping for 2s!");
-            sleep(Duration::from_secs(2));
-            return self.search(query);
+            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
+                .and_then(|header| header.to_str().ok()), Duration::from_secs(2));
+            return Err(COOLDOWN.pause(delay).into());
         }
 
         let response = response.error_for_status()?;

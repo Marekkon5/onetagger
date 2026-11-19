@@ -1,3 +1,4 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
 use anyhow::Error;
 use chrono::NaiveDate;
 use std::time::Duration;
@@ -11,6 +12,8 @@ use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
 use onetagger_shared::{Settings, WEBSERVER_CALLBACKS, PORT};
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag, TrackMatch};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -92,6 +95,7 @@ impl Spotify {
     where
         F: Fn(&Spotify) -> ClientResult<R>
     {
+        COOLDOWN.check()?;
         match f(self) {
             Ok(r) => {
                 // Intentionally slow down to prevent rate limits
@@ -103,15 +107,11 @@ impl Spotify {
                     rspotify::http::HttpError::StatusCode(r) => {
                         // Rate limit
                         if r.status() == 429 {
-                            let delay = r.header("Retry-After").map(|v| v.parse().ok()).flatten().unwrap_or(3);
-                            if delay > 600 {
-                                error!("Spotify rate limit too high!: {delay}");
-                                return Err(anyhow!("Too high rate limit by Spotify"));
-                            }
-
-                            warn!("Spotify rate limit hit, sleeping for: {delay}s...");
-                            std::thread::sleep(Duration::from_secs(delay));
-                            return self.rate_limit_wrap(f);
+                            let fallback = Duration::from_secs(3);
+                            let delay = r.header("Retry-After")
+                                .map(|header| retry_delay(Some(header.as_ref()), fallback))
+                                .unwrap_or(fallback);
+                            return Err(COOLDOWN.pause(delay).into());
                         }
                         return Err(anyhow!("Unknown Spotify status code: {}", r.status()));
                     },

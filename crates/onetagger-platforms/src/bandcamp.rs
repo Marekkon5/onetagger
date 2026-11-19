@@ -1,3 +1,4 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
 use anyhow::Error;
 use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
@@ -6,6 +7,8 @@ use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use serde::{Serialize, Deserialize};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 pub struct Bandcamp {
     client: Client
@@ -25,6 +28,7 @@ impl Bandcamp {
 
     /// Search for tracks
     fn search_tracks(&self, query: &str) -> Result<Vec<BandcampSearchResult>, Error> {
+        COOLDOWN.check()?;
         let response = self.client.post("https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic")
             .json(&json!({
                 "fan_id": null,
@@ -33,28 +37,25 @@ impl Bandcamp {
                 "search_text": query
             }))
             .send()?;
-        // No rate limit
-        if response.status().is_success() {
-            let r: Value = response.json()?;
-            let results = serde_json::from_value(r["auto"]["results"].to_owned())?;
-            return Ok(results)
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
+                .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
+            return Err(COOLDOWN.pause(delay).into());
         }
-        // Rate limit
-        warn!("Bandcamp rate limit... Waiting for few seconds");
-        std::thread::sleep(Duration::from_secs(3));
-        self.search_tracks(query)
+        let result: Value = response.error_for_status()?.json()?;
+        Ok(serde_json::from_value(result["auto"]["results"].to_owned())?)
     }
 
     /// Get data from track page
     fn track_page(&self, url: &str) -> Result<BandcampTrack, Error> {
-        // Fetch with rate limit
+        COOLDOWN.check()?;
         let response = self.client.get(url).send()?;
-        if response.status().is_client_error() {
-            warn!("Bandcamp track page rate limit... Waiting for few seconds");
-            std::thread::sleep(Duration::from_secs(3));
-            return self.track_page(url);
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
+                .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
+            return Err(COOLDOWN.pause(delay).into());
         }
-        let response = response.text()?;
+        let response = response.error_for_status()?.text()?;
         // Get <script> tag
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script[type=\"application/ld+json\"]").unwrap();
