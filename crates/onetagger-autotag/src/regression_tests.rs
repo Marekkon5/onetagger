@@ -1,5 +1,5 @@
 use super::*;
-use onetagger_tagger::Album;
+use onetagger_tagger::{Album, PlatformInfo};
 use std::fs;
 
 struct FallbackSource { stage: usize }
@@ -21,11 +21,17 @@ fn pipeline_preserves_written_tags_reports_and_multiplatform_order() {
         let mut reference = None;
         for schedule in [Schedule::Batched, Schedule::Pipelined] {
             let dir = tempfile::tempdir().unwrap();
-            let files: Vec<_> = (0..4).map(|i| {
+            let files: Vec<_> = (0..5).map(|i| {
                 let path = dir.path().join(format!("{i}.mp3"));
                 mp3(&path, Some("Fixture")); path
             }).collect();
-            let config = TaggerConfig { tags: vec![SupportedTag::Genre], multiplatform, ..Default::default() };
+            write_existing_marker(&files[4]);
+            let existing = fs::read(&files[4]).unwrap();
+            let config = TaggerConfig {
+                tags: vec![SupportedTag::Genre, SupportedTag::MetaTags],
+                skip_tagged: true, multiplatform, ..Default::default()
+            };
+            let run = RunTagState::new(&config);
             let sources: Vec<Vec<_>> = (0..2).map(|stage| (0..2)
                 .map(|_| Mutex::new(Box::new(FallbackSource { stage }))).collect()).collect();
             let mut results = TaggingResults::default();
@@ -33,7 +39,7 @@ fn pipeline_preserves_written_tags_reports_and_multiplatform_order() {
             scheduler::run(&files, &[1, 2], 2, multiplatform, schedule, || false,
                 |stage, slot, path| {
                     let mut source = sources[stage][slot].lock().unwrap();
-                    let status = Tagger::tag_track_with_cancel(path, &mut *source, &config, &|| false);
+                    let status = Tagger::tag_track_with_cancel(path, &mut *source, &config, &run, &|| false);
                     Attempt { matched: status.status == TaggingState::Ok, value: status }
                 }, |stage, _, status, _| {
                     let status = status.unwrap();
@@ -42,14 +48,27 @@ fn pipeline_preserves_written_tags_reports_and_multiplatform_order() {
                 });
             assert_eq!(results.successful.len(), 3);
             assert_eq!(results.failed, BTreeSet::from([files[3].clone()]));
+            assert_eq!(fs::read(&files[4]).unwrap(), existing);
+            let mut next_run_config = config.clone();
+            next_run_config.enable_shazam = true;
+            next_run_config.force_shazam = true;
+            let (info, skipped) = Tagger::load_track(&files[0], &next_run_config);
+            assert!(info.is_none());
+            assert_eq!(skipped.message_key.as_deref(), Some("backend.alreadyTagged"));
             let report = report.finish(false);
             let mut outcomes = vec![];
             for (item, row) in report.tracks.iter().enumerate() {
-                let expected = if item == 3 { None } else {
-                    Some(format!("Provider {}", if multiplatform || item == 1 { 1 } else { 0 }))
+                let (expected, state) = match item {
+                    3 => (None, "failed"),
+                    4 => (None, "skipped"),
+                    _ => (Some(format!("Provider {}", if multiplatform || item == 1 { 1 } else { 0 })), "written"),
                 };
                 assert_eq!(row.after.as_ref().unwrap().genre, expected);
-                assert_eq!(row.status, if item == 3 { "failed" } else { "written" });
+                assert_eq!(row.status, state);
+                if multiplatform && item == 0 {
+                    assert_eq!(row.attempts.iter().map(|attempt| attempt.status.as_str()).collect::<Vec<_>>(),
+                        vec!["written", "written"]);
+                }
                 outcomes.push((row.after.clone(), serde_json::to_value(&row.attempts).unwrap()));
             }
             if let Some(reference) = &reference { assert_eq!(&outcomes, reference); }
@@ -84,7 +103,92 @@ fn mp3(path: &Path, title: Option<&str>) {
     tag.tag_mut().save_file(path).unwrap();
 }
 
+fn write_existing_marker(path: &Path) {
+    let mut tag = Tag::load_file(path, false).unwrap();
+    tag.tag_mut().set_raw("1T_TAGGEDDATE", vec!["2020-10-20 00:00:00_AT".into()], true);
+    tag.tag_mut().save_file(path).unwrap();
+}
+
 struct AlbumSource;
+
+struct AlbumRunProvider(&'static str);
+
+impl AutotaggerSourceBuilder for AlbumRunProvider {
+    fn new() -> Self { Self("fixture") }
+
+    fn get_source(&mut self, _: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        Ok(Box::new(Self(self.0)))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        PlatformInfo {
+            id: self.0.into(),
+            name: self.0.into(),
+            description: String::new(),
+            version: "1.0.0".into(),
+            icon: &[],
+            max_threads: 1,
+            custom_options: Default::default(),
+            supported_tags: vec![SupportedTag::Genre],
+            requires_auth: false,
+        }
+    }
+}
+
+impl AutotaggerSource for AlbumRunProvider {
+    fn match_track(&mut self, info: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        assert_eq!(info.title()?, "Selected");
+        Ok(vec![TrackMatch::new(1.0, Track {
+            title: "Selected".into(), release_id: Some("album".into()),
+            genres: vec![format!("{} track", self.0)], ..Default::default()
+        })])
+    }
+
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> { Ok(()) }
+
+    fn get_album(&mut self, _: &str, _: &TaggerConfig) -> Result<Option<Album>, Error> {
+        let mut album = AlbumSource.get_album("album", &TaggerConfig::default())?.unwrap();
+        album.tracks[0].genres = vec![format!("{} album", self.0)];
+        Ok(Some(album))
+    }
+}
+
+#[test]
+fn album_batches_skip_preexisting_marks_but_can_revisit_tags_from_the_same_run() {
+    let dir = tempfile::tempdir().unwrap();
+    let selected = dir.path().join("selected.mp3");
+    let pretagged = dir.path().join("previous-run.mp3");
+    let neighbour = dir.path().join("not-selected.mp3");
+    mp3(&selected, Some("Selected"));
+    mp3(&pretagged, Some("Already tagged"));
+    mp3(&neighbour, Some("Neighbour"));
+    write_existing_marker(&pretagged);
+    let original = fs::read(&pretagged).unwrap();
+    let untouched = fs::read(&neighbour).unwrap();
+    let files = [selected.clone(), pretagged.clone()];
+    let config = TaggerConfig {
+        tags: vec![SupportedTag::Genre, SupportedTag::MetaTags],
+        album_tagging: true, album_tagging_ratio: 0.5, multiplatform: true, skip_tagged: true,
+        overwrite: true, ..Default::default()
+    };
+    let run = RunTagState::new(&config);
+
+    for provider in ["first", "second"] {
+        let mut builder: Box<dyn AutotaggerSourceBuilder + Send + Sync> = Box::new(AlbumRunProvider(provider));
+        let statuses: Vec<_> = Tagger::tag_batch_in_run(&files, &mut builder, &config, 1, &run)
+            .unwrap().into_iter().collect();
+        let writes: Vec<_> = statuses.iter().filter(|status| status.status == TaggingState::Ok).collect();
+        assert_eq!(writes.len(), 2, "Expected a track save and an album save for {provider}");
+        assert!(writes.iter().all(|status| status.path == selected));
+        assert_eq!(writes[1].reason, Some(MatchReason::Album));
+        assert!(statuses.iter().any(|status|
+            status.path == pretagged && status.message_key.as_deref() == Some("backend.alreadyTagged")));
+        let tag = Tag::load_file(&selected, false).unwrap();
+        assert_eq!(tag.tag().get_field(Field::Genre).unwrap(), vec![format!("{provider} album")]);
+    }
+    assert_eq!(fs::read(&pretagged).unwrap(), original);
+    assert_eq!(fs::read(&neighbour).unwrap(), untouched);
+}
 
 struct CancellingSource {
     stopped: Arc<AtomicBool>,
@@ -116,7 +220,8 @@ fn stop_during_provider_work_prevents_late_track_and_album_writes() {
     for during_extension in [false, true] {
         let stopped = Arc::new(AtomicBool::new(false));
         let mut source = Box::new(CancellingSource { stopped: stopped.clone(), during_extension });
-        let result = Tagger::tag_track_with_cancel(&path, &mut source, &config, &|| stopped.load(Ordering::SeqCst));
+        let result = Tagger::tag_track_with_cancel(&path, &mut source, &config, &RunTagState::default(),
+            &|| stopped.load(Ordering::SeqCst));
         assert_eq!(result.status, TaggingState::Skipped);
         assert_eq!(result.message.as_deref(), Some("Stopped before writing tags"));
         assert_eq!(result.message_key.as_deref(), Some("backend.stoppedBeforeWriting"));
@@ -126,7 +231,7 @@ fn stop_during_provider_work_prevents_late_track_and_album_writes() {
     let stopped = Arc::new(AtomicBool::new(false));
     let mut source: Box<dyn AutotaggerSource> = Box::new(CancellingSource { stopped: stopped.clone(), during_extension: false });
     let statuses = Tagger::tag_album_with_cancel(std::slice::from_ref(&path), "album", &mut source, &config,
-        &|| stopped.load(Ordering::SeqCst)).unwrap();
+        &RunTagState::default(), &|| stopped.load(Ordering::SeqCst)).unwrap();
     assert!(statuses.is_empty());
     assert_eq!(fs::read(path).unwrap(), original);
 }
