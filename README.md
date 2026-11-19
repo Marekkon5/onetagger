@@ -79,6 +79,10 @@ Download the [latest release](https://github.com/fantuz/onetagger/releases/lates
 
 Extract ZIP/tar.gz packages before use. Each release includes a `SHA256SUMS-*.txt` file for each platform. Checksums detect download corruption; they are not a publisher signature. Windows packages are not Authenticode signed. macOS packages are not Developer ID signed or notarized; choose the archive matching your processor. Linux packages are built on Ubuntu 24.04 and require compatible glibc, ALSA and WebKitGTK 4.1 runtimes.
 
+The Windows installer checks for the Microsoft Edge WebView2 Runtime and runs
+the bootstrapper when it is missing. The portable Windows desktop executable
+needs WebView2 installed on the system.
+
 If the Linux native window freezes while browser mode works, launch `./onetagger --server --browser` to use the same local backend in your browser. This avoids the native WebKitGTK display path. Include your distribution, WebKitGTK version, GPU and Wayland/X11 session when reporting a native-window issue; browser success alone does not identify its exact cause.
 
 For newer development builds, use the [Build workflow on master](https://github.com/fantuz/onetagger/actions/workflows/build.yml?query=branch%3Amaster+event%3Apush): choose a successful run and open its **Artifacts** section. Download the `onetagger-` artifact matching your platform and extract its outer ZIP to access the packages and checksums. GitHub requires sign-in for workflow artifacts, which are retained for 14 days. The `frontend` artifact is an intermediate build output, not an installable application.
