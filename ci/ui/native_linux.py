@@ -74,15 +74,19 @@ def main():
                             const hit=document.elementFromPoint(x,y);
                             return r.width && r.height && hit && e.contains(hit) ? {x,y} : null;"""
                         position = script(position_code, selector)
-                        # Scroll the relevant panel/tab strip only. scrollIntoView
-                        # can move several ancestors during a route transition
-                        # and considers controls under the fixed header visible.
+                        # Scroll just the menu, panel or tab strip that owns the
+                        # control. A page scroll can hide it under the header.
                         if not position:
                             script("""const e=document.querySelector(arguments[0]);
                                 const tabs=e?.closest('.q-tabs__content');
                                 if(tabs){
                                     const r=e.getBoundingClientRect(),t=tabs.getBoundingClientRect();
                                     tabs.scrollLeft += (r.left+r.width/2)-(t.left+t.width/2);
+                                }
+                                const menu=e?.closest('.q-menu');
+                                if(menu){
+                                    const r=e.getBoundingClientRect(),m=menu.getBoundingClientRect();
+                                    menu.scrollTop += (r.top+r.height/2)-(m.top+m.height/2);
                                 }
                                 const panel=e?.closest('.content');
                                 if(panel){
