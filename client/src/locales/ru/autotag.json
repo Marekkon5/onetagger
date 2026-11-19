@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Приблизительное совпадение",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "ID платформы",
-  "matchReasonAlbum": "Совпадение по альбому"
+  "matchReasonAlbum": "Совпадение по альбому",
+  "providerPace": "Темп поиска по провайдерам",
+  "providerPaceValue": "{rate} треков/мин",
+  "providerPaceMeasuring": "Измерение темпа поиска",
+  "providerPaceLimited": "Ограниченные или отложенные ({count})"
 }

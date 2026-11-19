@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Coincidencia aproximada",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "ID de la plataforma",
-  "matchReasonAlbum": "Coincidencia de álbum"
+  "matchReasonAlbum": "Coincidencia de álbum",
+  "providerPace": "Ritmo de los proveedores",
+  "providerPaceValue": "{rate} pistas/min",
+  "providerPaceMeasuring": "Midiendo el ritmo de búsqueda",
+  "providerPaceLimited": "Limitadas o aplazadas ({count})"
 }

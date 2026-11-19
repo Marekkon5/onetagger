@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Approximate match",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "Provider ID",
-  "matchReasonAlbum": "Album match"
+  "matchReasonAlbum": "Album match",
+  "providerPace": "Provider pace",
+  "providerPaceValue": "{rate} tracks/min",
+  "providerPaceMeasuring": "Measuring lookup rate",
+  "providerPaceLimited": "Rate-limited or deferred ({count})"
 }

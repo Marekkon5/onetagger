@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "O provedor falhou durante a inicialização.",
   "providerInitializationFailed": "Não foi possível inicializar o provedor ({detail}).",
   "providerUnavailable": "Provedor indisponível ({provider})",
-  "providerPanickedTryingNext": "O provedor falhou. Tentando o próximo."
+  "providerPanickedTryingNext": "O provedor falhou. Tentando o próximo.",
+  "providerRateLimited": "Limite de solicitações do provedor atingido. Tente novamente em {seconds} s."
 }

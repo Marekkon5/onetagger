@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "تعطّل المزوّد أثناء التهيئة.",
   "providerInitializationFailed": "تعذّرت تهيئة المزوّد ({detail}).",
   "providerUnavailable": "المزوّد غير متاح ({provider})",
-  "providerPanickedTryingNext": "تعطّل المزوّد. جارٍ الانتقال إلى المزوّد التالي."
+  "providerPanickedTryingNext": "تعطّل المزوّد. جارٍ الانتقال إلى المزوّد التالي.",
+  "providerRateLimited": "بلغ المزوّد حد الطلبات. حاول مجددًا بعد {seconds} ثانية."
 }

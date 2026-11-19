@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Přibližná shoda",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "ID poskytovatele",
-  "matchReasonAlbum": "Shoda alba"
+  "matchReasonAlbum": "Shoda alba",
+  "providerPace": "Tempo poskytovatelů",
+  "providerPaceValue": "{rate} skladeb/min",
+  "providerPaceMeasuring": "Měření tempa vyhledávání",
+  "providerPaceLimited": "Omezené nebo odložené ({count})"
 }

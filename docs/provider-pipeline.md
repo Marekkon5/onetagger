@@ -29,8 +29,8 @@ and array fields combine their entries.
 
 All providers share the configured thread limit. Each provider's own `max_threads`
 limit also applies. Reusable provider sources are initialized only when needed.
-There are no speculative parallel lookups for the same track, added retries, or
-additional provider attempts compared with the batch scheduler. Exact duplicate
+Each provider initializes its own sources independently. The scheduler submits
+one provider lookup at a time for each track. Exact duplicate
 paths and canonical aliases are collapsed before scheduling. Album tagging keeps
 the existing provider-wide batches because its matching relies on folder groups.
 
@@ -39,6 +39,28 @@ monotonic even when providers finish in a different order. Stop discards queued
 work and waits for already-running provider calls to return. The existing checks
 before extension/tag writing remain in place. This change cannot interrupt a
 blocking HTTP request; the provider's existing timeouts still determine that wait.
+
+## Measure provider pace
+
+Open **Provider pace** from the speedometer beside the elapsed time. The estimate
+counts completed matching attempts, including misses, over up to the last minute.
+It updates as the run proceeds and appears after at least three attempts and
+five seconds of observation. Deferred lookups are shown in the throttling count.
+One matching attempt can make several HTTP requests, so the displayed pace
+measures how many tracks the app is processing with the current settings.
+
+Bandcamp, BPM Supreme, Deezer, Discogs, JunoDownload, MusicBrainz, and Spotify
+share a cooldown across their sources when the provider signals a rate limit.
+The next provider can take over while the cooldown is active. Requests resume
+when the pause expires, including the delay supplied by the provider when
+available. A track that exhausts its providers during a cooldown can be retried
+after the pause.
+
+Try the same track selection and tag options when comparing two provider orders.
+A first provider with a high match rate receives most of the work. Put a provider
+with a higher measured pace first if its results suit your collection. With
+Multiplatform enabled, the run asks each provider for each eligible track, so the
+slowest provider can determine overall throughput.
 
 ## GitHub validation
 
@@ -60,11 +82,12 @@ These are synthetic provider waits, not measurements against live services.
 Attempt counts do not measure HTTP request counts, payload bytes, connection reuse,
 or provider rate-limit responses. Pipelining can reduce idle worker time and tail
 latency; it does not promise fewer bytes or a speedup when the first provider
-already saturates all workers. No additional adaptive throttling or retry policy
-is introduced. Existing provider rate limits remain in force.
+already saturates all workers. The provider tests cover shared cooldowns and
+following the provider's delay. The frontend tests cover the pace estimate
+and distinguish deferred attempts from completed lookups.
 
 The normal **Build** workflow also runs the full Rust regression suite, including
 real audio-tag write/read-back, report parity and skip-marker tests on all
 supported desktop targets. The browser smoke suite verifies the visible
-provider order against the tagging request after toggling a provider. No live-provider credentials are used by these
-tests, and PR artifacts are never published as releases.
+provider order against the tagging request after toggling a provider. It also
+verifies that a deferred lookup appears in the Provider pace panel.

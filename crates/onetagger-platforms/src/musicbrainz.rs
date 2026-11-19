@@ -1,11 +1,13 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
 use anyhow::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
-use rand::Rng;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 pub struct MusicBrainz {
     client: Client
@@ -23,6 +25,7 @@ impl MusicBrainz {
 
     /// Make GET request to MusicBrainz, rate limit inlcuded
     fn get<T: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<T, Error> {
+        COOLDOWN.check()?;
         let mut new_query = query.to_owned();
         new_query.push(("fmt", "json"));
         debug!("MusicBrainz GET: {} {:?}", path, new_query);
@@ -30,11 +33,10 @@ impl MusicBrainz {
         let response = self.client.get(&format!("https://musicbrainz.org/ws/2{}", path))
             .query(&new_query)
             .send()?;
-        if response.status() == StatusCode::SERVICE_UNAVAILABLE {
-            warn!("MusicBrainz rate limit hit! Waiting...");
-            // Use random rate limit delay because threading
-            std::thread::sleep(Duration::from_millis(rand::rng().random_range(1000..3000)));
-            return self.get(path, &query);
+        if matches!(response.status(), StatusCode::SERVICE_UNAVAILABLE | StatusCode::TOO_MANY_REQUESTS) {
+            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
+                .and_then(|header| header.to_str().ok()), Duration::from_secs(2));
+            return Err(COOLDOWN.pause(delay).into());
         }
         Ok(response.error_for_status()?.json()?)
     }

@@ -1,3 +1,4 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
 use anyhow::Error;
 use std::time::Duration;
 use chrono::{DateTime, Utc};
@@ -9,6 +10,8 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 struct BPMSupreme {
     client: Client,
@@ -63,16 +66,16 @@ impl BPMSupreme {
 
     /// Wrapper for GET request with rate limit
     fn get<T: DeserializeOwned>(&self, url: &str, query: &[(&str, &str)]) -> Result<T, Error> {
+        COOLDOWN.check()?;
         let res = self.client.get(url)
             .query(query)
             .send()?;
 
         // Rate limit
         if res.status() == StatusCode::TOO_MANY_REQUESTS {
-            let delay = res.headers().get("retry-after").map(|h| h.to_str().unwrap().parse().ok()).flatten().unwrap_or(3);
-            warn!("BPM Supreme rate limited, waiting for: {delay}s");
-            std::thread::sleep(Duration::from_secs(delay));
-            return self.get(url, query);
+            let delay = retry_delay(res.headers().get(reqwest::header::RETRY_AFTER)
+                .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
+            return Err(COOLDOWN.pause(delay).into());
         }
 
         Ok(res.error_for_status()?.json()?)

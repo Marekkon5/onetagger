@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Przybliżone dopasowanie",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "ID dostawcy",
-  "matchReasonAlbum": "Dopasowanie albumu"
+  "matchReasonAlbum": "Dopasowanie albumu",
+  "providerPace": "Tempo dostawców",
+  "providerPaceValue": "{rate} utworów/min",
+  "providerPaceMeasuring": "Pomiar tempa wyszukiwania",
+  "providerPaceLimited": "Ograniczone lub odroczone ({count})"
 }

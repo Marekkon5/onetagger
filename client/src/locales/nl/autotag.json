@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Benaderende overeenkomst",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "Platform-ID",
-  "matchReasonAlbum": "Albumovereenkomst"
+  "matchReasonAlbum": "Albumovereenkomst",
+  "providerPace": "Tempo per provider",
+  "providerPaceValue": "{rate} nummers/min",
+  "providerPaceMeasuring": "Zoektempo meten",
+  "providerPaceLimited": "Beperkt of uitgesteld ({count})"
 }

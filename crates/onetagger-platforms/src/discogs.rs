@@ -1,3 +1,4 @@
+use crate::cooldown::{retry_delay, ProviderCooldown, ProviderRateLimited};
 use anyhow::Error;
 use std::collections::HashMap;
 use std::thread::sleep;
@@ -11,6 +12,8 @@ use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, 
     AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag, TrackMatch};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 pub struct Discogs {
     client: Client,
@@ -51,20 +54,23 @@ impl Discogs {
 
     // Check if token is valid
     pub fn validate_token(&mut self) -> bool {
-        match self.get("https://api.discogs.com/database/search", vec![("q", "test")]) {
-            Ok(res) => if res.status() == StatusCode::OK { true } else { 
-                error!("Failed validating Discogs token: {}", res.status());
-                false 
-            },
-            Err(e) => {
-                error!("Failed validating Discogs token: {}", e);
+        match self.check_token() {
+            Ok(()) => true,
+            Err(error) => {
+                error!("Failed validating Discogs token: {error}");
                 false
             }
         }
     }
 
+    fn check_token(&mut self) -> Result<(), Error> {
+        self.get("https://api.discogs.com/database/search", vec![("q", "test")])?.error_for_status()?;
+        Ok(())
+    }
+
     // Get request wrapper with rate limit
     fn get(&mut self, url: &str, query: Vec<(&str, &str)>) -> Result<Response, Error> {
+        COOLDOWN.check()?;
         debug!("Discogs GET {}", url);
         // Rate limit
         if self.last_request > 0 && self.rate_limit != -1 {
@@ -81,20 +87,21 @@ impl Discogs {
         if self.token.is_some() {
             request = request.header("Authorization", format!("Discogs token={}", self.token.as_ref().unwrap()));
         }
+        COOLDOWN.check()?;
         let response = request.send()?;
-        
-        // Rate limit
-        let rate_limit_remaining = response.headers().get("X-Discogs-Ratelimit-Remaining")
-            .map(|v| v.to_str().unwrap().parse::<i32>().ok()).flatten().unwrap_or(100);
-        debug!("Discogs rate limit remaining: {}", rate_limit_remaining);
-        if rate_limit_remaining < 1 {
-            warn!("Discogs rate limit hit! Waiting 10s...");
-            sleep(Duration::from_secs(10));
-            return self.get(url, query);
-        }
-
-        // Save last reqeust time for rate limitting
         self.last_request = timestamp!();
+        let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
+            .and_then(|header| header.to_str().ok()), Duration::from_secs(10));
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(COOLDOWN.pause(delay).into());
+        }
+        let remaining = response.headers().get("X-Discogs-Ratelimit-Remaining")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<u32>().ok());
+        if remaining == Some(0) {
+            // Keep the successful response that used the last available request.
+            COOLDOWN.pause(delay);
+        }
         Ok(response)
     }
 
@@ -114,7 +121,7 @@ impl Discogs {
             qp.push(("artist", a));
         }
         // Get
-        let response: Value = self.get("https://api.discogs.com/database/search", qp)?.json()?;
+        let response: Value = self.get("https://api.discogs.com/database/search", qp)?.error_for_status()?.json()?;
         let empty: Vec<Value> = vec![];
         let results: Vec<ReleaseMasterSearchResult> = response["results"].as_array().unwrap_or(&empty).into_iter().filter_map(|r| {
             // Filter only releases and masters
@@ -139,7 +146,7 @@ impl Discogs {
             ReleaseType::Master => "masters",
             ReleaseType::Release => "releases"
         };
-        let response = self.get(&format!("https://api.discogs.com/{}/{}", rtype, id), vec![])?.json()?;
+        let response = self.get(&format!("https://api.discogs.com/{}/{}", rtype, id), vec![])?.error_for_status()?.json()?;
         let release: ReleaseMaster = serde_json::from_value(response)?;
         // Cache
         self.release_cache.insert(id, release.clone());
@@ -453,10 +460,12 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let config: DiscogsConfig = config.get_custom("discogs")?;
         let mut discogs = Discogs::new();
-        // Auth
         discogs.set_auth_token(&config.token);
-        if !discogs.validate_token() {
-            return Err(anyhow!("Invalid Discogs token!"));
+        match discogs.check_token() {
+            Ok(()) => {}
+            // A short cooldown must not mark this source as unusable for the run.
+            Err(error) if error.is::<ProviderRateLimited>() => {}
+            Err(error) => return Err(error.context("Discogs token validation failed")),
         }
         if let Some(rl) = config.rate_limit {
             discogs.set_rate_limit(rl as i16);

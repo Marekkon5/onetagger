@@ -1,3 +1,4 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
 use anyhow::Error;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::Duration;
@@ -6,6 +7,8 @@ use onetagger_tagger::{Track, AutotaggerSourceBuilder, PlatformInfo, TaggerConfi
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 /// Rate limit error code
 const RATE_LIMIT_CODE: i32 = 4;
@@ -33,15 +36,18 @@ impl Deezer {
 
     /// GET with rate limit wrap
     fn get<D: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<D, Error> {
-        let r: DeezerResponse<D> = self.client.get(format!("https://api.deezer.com{path}"))
-            .query(query)
-            .send()?.json()?;
-        if r.error_code() == Some(RATE_LIMIT_CODE) {
-            warn!("Deezer Rate Limit, sleeping for 3s...");
-            std::thread::sleep(Duration::from_secs(3));
-            return self.get(path, query);
+        COOLDOWN.check()?;
+        let response = self.client.get(format!("https://api.deezer.com{path}")).query(query).send()?;
+        let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
+            .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(COOLDOWN.pause(delay).into());
         }
-        Ok(r.into_result()?)
+        let response: DeezerResponse<D> = response.json()?;
+        if response.error_code() == Some(RATE_LIMIT_CODE) {
+            return Err(COOLDOWN.pause(delay).into());
+        }
+        Ok(response.into_result()?)
     }
 
     /// Search tracks on Deezer api

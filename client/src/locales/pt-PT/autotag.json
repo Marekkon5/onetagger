@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Correspondência aproximada",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "ID do fornecedor",
-  "matchReasonAlbum": "Correspondência de álbum"
+  "matchReasonAlbum": "Correspondência de álbum",
+  "providerPace": "Ritmo por fornecedor",
+  "providerPaceValue": "{rate} faixas/min",
+  "providerPaceMeasuring": "A medir o ritmo de pesquisa",
+  "providerPaceLimited": "Limitadas ou adiadas ({count})"
 }

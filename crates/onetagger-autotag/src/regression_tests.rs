@@ -40,6 +40,7 @@ fn pipeline_preserves_written_tags_reports_and_multiplatform_order() {
                 |stage, slot, path| {
                     let mut source = sources[stage][slot].lock().unwrap();
                     let status = Tagger::tag_track_with_cancel(path, &mut *source, &config, &run, &|| false);
+                    assert_eq!(status.lookup_ms.is_some(), status.status != TaggingState::Skipped);
                     Attempt { matched: status.status == TaggingState::Ok, value: status }
                 }, |stage, _, status, _| {
                     let status = status.unwrap();
@@ -285,7 +286,7 @@ fn selected_file_without_album_match_reports_error_without_panicking_or_writing(
 
 pub(super) fn status(path: &Path, status: TaggingState) -> TaggingStatus {
     TaggingStatus { path: path.into(), status, message: None, message_key: None, message_args: None, accuracy: None,
-        used_shazam: false, release_id: None, track_id: None, reason: None }
+        lookup_ms: None, used_shazam: false, release_id: None, track_id: None, reason: None }
 }
 
 #[test]
@@ -297,6 +298,7 @@ fn legacy_tagging_status_round_trips_without_new_presentation_fields() {
     let parsed: TaggingStatus = serde_json::from_value(old.clone()).unwrap();
     assert!(parsed.message_key.is_none());
     assert!(parsed.message_args.is_none());
+    assert!(parsed.lookup_ms.is_none());
     assert_eq!(serde_json::to_value(parsed).unwrap(), old);
 }
 
@@ -320,6 +322,7 @@ fn typed_status_messages_preserve_english_and_named_argument_contracts() {
         (TaggingMessage::ProviderInitializationPanicked, "backend.providerInitializationPanicked", "Provider initialization panicked".to_string()),
         (TaggingMessage::ProviderInitializationFailed(detail.into()), "backend.providerInitializationFailed", format!("Could not initialize provider: {detail}")),
         (TaggingMessage::ProviderUnavailable("fixture-provider".into()), "backend.providerUnavailable", "Provider unavailable: fixture-provider".to_string()),
+        (TaggingMessage::ProviderRateLimited(4), "backend.providerRateLimited", "Provider rate limited. Retry in 4 s.".to_string()),
         (TaggingMessage::ProviderPanickedTryingNext, "backend.providerPanickedTryingNext", "Provider panicked; trying the next provider".to_string()),
     ];
     let catalogs = [
@@ -331,6 +334,12 @@ fn typed_status_messages_preserve_english_and_named_argument_contracts() {
         include_str!("../../../client/src/locales/es/backend.json"),
         include_str!("../../../client/src/locales/el/backend.json"),
         include_str!("../../../client/src/locales/ru/backend.json"),
+        include_str!("../../../client/src/locales/pt-PT/backend.json"),
+        include_str!("../../../client/src/locales/pt-BR/backend.json"),
+        include_str!("../../../client/src/locales/cs/backend.json"),
+        include_str!("../../../client/src/locales/pl/backend.json"),
+        include_str!("../../../client/src/locales/ja/backend.json"),
+        include_str!("../../../client/src/locales/ar/backend.json"),
     ];
     for (message, key, english) in cases {
         let mut output = status(Path::new("selected.mp3"), TaggingState::Error);
@@ -342,6 +351,9 @@ fn typed_status_messages_preserve_english_and_named_argument_contracts() {
         if key == "backend.providerUnavailable" {
             assert_eq!(arguments.len(), 1);
             assert_eq!(arguments["provider"], "fixture-provider");
+        } else if key == "backend.providerRateLimited" {
+            assert_eq!(arguments.len(), 1);
+            assert_eq!(arguments["seconds"], "4");
         } else if english.ends_with(detail) {
             assert_eq!(arguments.len(), 1);
             assert_eq!(arguments["detail"], detail);

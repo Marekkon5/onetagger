@@ -1,4 +1,5 @@
 import { translate } from '../i18n';
+import { ProviderPace } from './providerpace';
 import { FrameName, RustDuration, Separators } from "./utils";
 
 interface AutotaggerPlatform {
@@ -108,6 +109,9 @@ interface SpotifyConfig {
 
 class TaggerStatus {
     statuses: TaggingStatusWrap[][] = [];
+    statusesByPath = new Map<string, TaggingStatusWrap[]>();
+    providerPaces = new Map<string, ProviderPace>();
+    paceUpdatedAt = 0;
     started: number = 0;
     progress: number = 0.0;
     done: boolean = false;
@@ -117,8 +121,33 @@ class TaggerStatus {
     type?: 'autoTagger' | 'audioFeatures';
     data?: any;
 
+    recordProgress(update: TaggingStatusWrap) {
+        this.progress = update.progress;
+        const path = update.status.path;
+        const group = this.statusesByPath.get(path);
+        if (group) {
+            group.push(update);
+        } else {
+            const attempts = [update];
+            this.statusesByPath.set(path, attempts);
+            this.statuses.unshift(attempts);
+        }
+
+        const limited = update.status.messageKey === 'backend.providerRateLimited';
+        if (this.type !== 'autoTagger' || (update.status.lookupMs === undefined && !limited)) return;
+
+        const id = update.providerId ?? update.platform;
+        const pace = this.providerPaces.get(id) ?? new ProviderPace(update.platform);
+        this.paceUpdatedAt = performance.now();
+        pace.record(this.paceUpdatedAt, update.status.lookupMs, limited);
+        this.providerPaces.set(id, pace);
+    }
+
     reset() {
         this.statuses = [];
+        this.statusesByPath.clear();
+        this.providerPaces.clear();
+        this.paceUpdatedAt = 0;
         this.started = Date.now();
         this.done = false;
         this.cancelled = false;
@@ -133,6 +162,7 @@ class TaggerStatus {
 interface TaggingStatusWrap {
     status: TaggingStatus;
     platform: string;
+    providerId?: string;
     progress: number;
 }
 
@@ -143,6 +173,7 @@ interface TaggingStatus {
     messageKey?: string;
     messageArgs?: Record<string, string | number>;
     accuracy?: number;
+    lookupMs?: number;
     reason?: string;
     usedShazam: boolean
 }
