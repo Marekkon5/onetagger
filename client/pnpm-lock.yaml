@@ -35,10 +35,10 @@ importers:
     devDependencies:
       '@quasar/vite-plugin':
         specifier: 1.12.0
-        version: 1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
+        version: 1.12.0(@vitejs/plugin-vue@6.0.11(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
       '@vitejs/plugin-vue':
-        specifier: 5.2.4
-        version: 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
+        specifier: 6.0.11
+        version: 6.0.11(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
       path:
         specifier: ^0.12.7
         version: 0.12.7
@@ -337,6 +337,9 @@ packages:
       vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
       vue: ^3.0.0
 
+  '@rolldown/pluginutils@1.1.1':
+    resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
+
   '@rollup/rollup-android-arm-eabi@4.68.3':
     resolution: {integrity: sha512-mqfypgH/liYjaSCoPI4erckUcROgZtmFUUmyOJ05oyayi/tVqOEYAzWP7ufqCoCT3xB31Fw4XIVO/jX42hYvKA==}
     cpu: [arm]
@@ -470,12 +473,12 @@ packages:
   '@types/estree@1.0.10':
     resolution: {integrity: sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g==}
 
-  '@vitejs/plugin-vue@5.2.4':
-    resolution: {integrity: sha512-7Yx/SXSOcQq5HiiV3orevHUFn+pmMB4cgbEkDYgnkUWb0WfeQ/wa2yFv6D5ICiCQOVpjA7vYDXrC7AGO8yjDHA==}
-    engines: {node: ^18.0.0 || >=20.0.0}
+  '@vitejs/plugin-vue@6.0.11':
+    resolution: {integrity: sha512-m48lskIUJGlB6qUiYhDMI8nd2ngeidz2U4nKTjqI13cFMu5rH8JeEILPkDtK9Fk/TjBA2pkj8AlbenqDaKu+ww==}
+    engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^5.0.0 || ^6.0.0
-      vue: ^3.2.25
+      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vue: ^3.2.25 || ^3.6.0-rc.15
 
   '@volar/language-core@2.4.30':
     resolution: {integrity: sha512-73fjwEV8wat6aOZ6U/y/hqtE30ocrIWECg67b0txGczOMNw+MffLmvJ5fnFfN9drVUEYZzLdaNo6VAy6G6avMw==}
@@ -1033,12 +1036,14 @@ snapshots:
 
   '@quasar/extras@2.1.0': {}
 
-  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))':
+  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@6.0.11(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3)))(quasar@2.35.4)(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))':
     dependencies:
-      '@vitejs/plugin-vue': 5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
+      '@vitejs/plugin-vue': 6.0.11(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))
       quasar: 2.35.4
       vite: 6.4.5(sass@1.108.2)
       vue: 3.5.45(typescript@6.0.3)
+
+  '@rolldown/pluginutils@1.1.1': {}
 
   '@rollup/rollup-android-arm-eabi@4.68.3':
     optional: true
@@ -1120,8 +1125,9 @@ snapshots:
 
   '@types/estree@1.0.10': {}
 
-  '@vitejs/plugin-vue@5.2.4(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))':
+  '@vitejs/plugin-vue@6.0.11(vite@6.4.5(sass@1.108.2))(vue@3.5.45(typescript@6.0.3))':
     dependencies:
+      '@rolldown/pluginutils': 1.1.1
       vite: 6.4.5(sass@1.108.2)
       vue: 3.5.45(typescript@6.0.3)
 
