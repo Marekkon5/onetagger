@@ -427,6 +427,15 @@ pub trait AudioFileInfoImpl {
     fn load_files_iter(path: impl AsRef<Path>, subfolders: bool, filename_template: Option<Regex>, title_regex: Option<Regex>) -> impl Iterator<Item = Result<AudioFileInfo, Error>>;
 }
 
+fn tagged_status(tag: &dyn TagImpl) -> FileTaggedStatus {
+    match tag.get_raw("1T_TAGGEDDATE").and_then(|values| values.into_iter().next()) {
+        Some(value) if value.ends_with("_AT") => FileTaggedStatus::AutoTagger,
+        Some(value) if value.ends_with("_AF") => FileTaggedStatus::AudioFeatures,
+        Some(_) => FileTaggedStatus::Tagged,
+        None => FileTaggedStatus::Untagged,
+    }
+}
+
 impl AudioFileInfoImpl for AudioFileInfo {
     fn load_file(path: impl AsRef<Path>, filename_template: Option<Regex>, title_regex: Option<Regex>) -> Result<AudioFileInfo, Error> {
         let tag_wrap = Tag::load_file(&path, true)?;
@@ -460,19 +469,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
             }
         }
 
-        // Get tagging status
-        let tagged = match tag.get_raw("1T_TAGGEDDATE").map(|t| t.first().map(String::from)).flatten() {
-            Some(val) => {
-                if val.ends_with("_AT") {
-                    FileTaggedStatus::AutoTagger
-                } else if val.ends_with("_AF") {
-                    FileTaggedStatus::AudioFeatures
-                } else {
-                    FileTaggedStatus::Tagged
-                }
-            },
-            None => FileTaggedStatus::Untagged,
-        };
+        let tagged = tagged_status(*tag);
 
         // Clean title
         if let Some(re) = title_regex {
@@ -697,6 +694,26 @@ impl TaggingResults {
     }
 }
 
+/// Remember each file's marker state before this run can write any tags.
+#[derive(Clone, Default)]
+struct RunTagState {
+    initially_tagged: Option<Arc<Mutex<HashMap<PathBuf, bool>>>>,
+}
+
+impl RunTagState {
+    fn new(config: &TaggerConfig) -> Self {
+        Self { initially_tagged: config.skip_tagged.then(Default::default) }
+    }
+
+    fn was_tagged(&self, path: &Path, tagged: bool) -> bool {
+        let Some(initially_tagged) = &self.initially_tagged else { return tagged; };
+        let mut initial = initially_tagged.lock().unwrap();
+        if let Some(previous) = initial.get(path) { return *previous; }
+        initial.insert(path.to_owned(), tagged);
+        tagged
+    }
+}
+
 // Wrap for sending into UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -759,9 +776,10 @@ impl Tagger {
         let config = cfg.clone();
         std::thread::spawn(move || {
             let mut report = report_enabled.then(|| report::ReportBuilder::new(&files, selection));
+            let run = RunTagState::new(&config);
             // Tag
             if !config.album_tagging {
-                Self::tag_pipeline(&files, &config, &tx, &mut results, &mut report);
+                Self::tag_pipeline(&files, &config, &tx, &mut results, &mut report, &run);
             } else {
             // Album matching depends on provider-wide folder grouping.
             for (platform_index, platform) in config.platforms.iter().enumerate() {
@@ -793,7 +811,7 @@ impl Tagger {
                 if platform_info.max_threads > 0 && platform_info.max_threads < config.threads {
                     threads = platform_info.max_threads;
                 }
-                let rx = match Tagger::tag_batch(&files, tagger, &config, threads) {
+                let rx = match Tagger::tag_batch_in_run(&files, tagger, &config, threads, &run) {
                     Some(t) => t,
                     None => {
                         error!("Failed creating platform: {platform:?}, skipping...");
@@ -950,6 +968,10 @@ impl Tagger {
 
     /// Load track, shazam, prepare output
     pub fn load_track(path: impl AsRef<Path>, config: &TaggerConfig) -> (Option<AudioFileInfo>, TaggingStatus) {
+        Self::load_track_in_run(path, config, &RunTagState::default())
+    }
+
+    fn load_track_in_run(path: impl AsRef<Path>, config: &TaggerConfig, run: &RunTagState) -> (Option<AudioFileInfo>, TaggingStatus) {
         // Output
         let mut out = TaggingStatus {
             status: TaggingState::Error,
@@ -975,8 +997,18 @@ impl Tagger {
         // Title cleanup regex
         let title_regex = config.title_regex.as_ref().map(|r| Regex::new(&r).ok()).flatten();
 
+        // Forced recognition still honours an existing AutoTagger marker.
+        let force_shazam = config.enable_shazam && config.force_shazam;
+        if config.skip_tagged && force_shazam {
+            if let Ok(tags) = Tag::load_file(&path, true) {
+                if run.was_tagged(path.as_ref(), tagged_status(*tags.tag()).at()) {
+                    return Self::already_tagged(out);
+                }
+            }
+        }
+
         // Load audio file info by shazam or tags
-        let mut info = if config.enable_shazam && config.force_shazam {
+        let mut info = if force_shazam {
             match AudioFileInfo::shazam(&path) {
                 Ok(i) => {
                     out.used_shazam = true;
@@ -1017,11 +1049,8 @@ impl Tagger {
         };
 
         // Skip tagged
-        if config.skip_tagged && info.tagged.at() {
-            info!("Skipping (already tagged): {:?}", path.as_ref());
-            out.status = TaggingState::Skipped;
-            out.set_message(TaggingMessage::AlreadyTagged);
-            return (None, out);
+        if config.skip_tagged && run.was_tagged(&info.path, info.tagged.at()) {
+            return Self::already_tagged(out);
         }
 
         // Load duration for matching
@@ -1032,19 +1061,29 @@ impl Tagger {
         (Some(info), out)
     }
 
+    fn already_tagged(mut status: TaggingStatus) -> (Option<AudioFileInfo>, TaggingStatus) {
+        info!("Skipping (already tagged): {:?}", status.path);
+        status.status = TaggingState::Skipped;
+        status.set_message(TaggingMessage::AlreadyTagged);
+        (None, status)
+    }
+
     /// Tag single track
     pub fn tag_track<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig) -> TaggingStatus 
     where T: AutotaggerSource + ?Sized
     {
-        Self::tag_track_with_cancel(path, tagger, config, &|| STOP_TAGGING.load(Ordering::SeqCst))
+        Self::tag_track_with_cancel(path, tagger, config, &RunTagState::default(), &|| STOP_TAGGING.load(Ordering::SeqCst))
     }
 
-    fn tag_track_with_cancel<T>(path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig, cancelled: &impl Fn() -> bool) -> TaggingStatus
+    fn tag_track_with_cancel<T>(
+        path: impl AsRef<Path>, tagger: &mut Box<T>, config: &TaggerConfig,
+        run: &RunTagState, cancelled: &impl Fn() -> bool,
+    ) -> TaggingStatus
     where T: AutotaggerSource + ?Sized
     {
         info!("Tagging: {:?}", path.as_ref());
         // Load track
-        let (info, mut out) = Self::load_track(&path, config);
+        let (info, mut out) = Self::load_track_in_run(&path, config, run);
         let info = match info {
             Some(info) => info,
             None => return out,
@@ -1108,6 +1147,13 @@ impl Tagger {
 
     // Tag all files with threads specified in config
     pub fn tag_batch(files: &Vec<PathBuf>, tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>, config: &TaggerConfig, threads: u16) -> Option<Receiver<TaggingStatus>> {
+        Self::tag_batch_in_run(files, tagger, config, threads, &RunTagState::new(config))
+    }
+
+    fn tag_batch_in_run(
+        files: &[PathBuf], tagger: &mut Box<dyn AutotaggerSourceBuilder + Send + Sync>,
+        config: &TaggerConfig, threads: u16, run: &RunTagState,
+    ) -> Option<Receiver<TaggingStatus>> {
         info!("Starting tagging: {} files, {} threads!", files.len(), threads);
         let (tx, rx) = unbounded();
         let (file_tx, file_rx): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
@@ -1126,6 +1172,7 @@ impl Tagger {
             let config = config.clone();
             let finished_tx = finished_tx.clone();
             let album_tagging = album_tagging.clone();
+            let run = run.clone();
             let mut source = match tagger.get_source(&config) {
                 Ok(s) => s,
                 Err(e) => {
@@ -1147,7 +1194,8 @@ impl Tagger {
                     }
 
                     // Tag
-                    let res = Tagger::tag_track(&f, &mut source, &config);
+                    let res = Tagger::tag_track_with_cancel(&f, &mut source, &config, &run,
+                        &|| STOP_TAGGING.load(Ordering::SeqCst));
                     if config.album_tagging {
                         album_tagging.lock().unwrap().process(&res, &config);
                     }
@@ -1160,6 +1208,7 @@ impl Tagger {
         // Spawn album tag thread
         if config.album_tagging {
             let config = config.clone();
+            let run = run.clone();
             match tagger.get_source(&config) {
                 Ok(mut source) => {
                     std::thread::spawn(move || {
@@ -1175,7 +1224,8 @@ impl Tagger {
                             }
 
                             // Tag
-                            match Self::tag_album(&stats.files, &stats.get_album_id().unwrap(), &mut source, &config) {
+                            match Self::tag_album_with_cancel(&stats.files, &stats.get_album_id().unwrap(),
+                                &mut source, &config, &run, &|| STOP_TAGGING.load(Ordering::SeqCst)) {
                                 Ok(statuses) => {
                                     for status in statuses {
                                         tx.send(status).ok();
@@ -1205,10 +1255,14 @@ impl Tagger {
 
     /// Tag an album by ID
     pub fn tag_album(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig) -> Result<Vec<TaggingStatus>, Error> {
-        Self::tag_album_with_cancel(files, release_id, source, config, &|| STOP_TAGGING.load(Ordering::SeqCst))
+        Self::tag_album_with_cancel(files, release_id, source, config, &RunTagState::default(),
+            &|| STOP_TAGGING.load(Ordering::SeqCst))
     }
 
-    fn tag_album_with_cancel(files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>, config: &TaggerConfig, cancelled: &impl Fn() -> bool) -> Result<Vec<TaggingStatus>, Error> {
+    fn tag_album_with_cancel(
+        files: &[PathBuf], release_id: &str, source: &mut Box<dyn AutotaggerSource>,
+        config: &TaggerConfig, run: &RunTagState, cancelled: &impl Fn() -> bool,
+    ) -> Result<Vec<TaggingStatus>, Error> {
         if cancelled() { return Ok(vec![]); }
         info!("Album tagging release: {release_id} in {} selected files", files.len());
 
@@ -1231,7 +1285,7 @@ impl Tagger {
         // Preserve the caller's playlist/selection boundary; never rescan the folder.
         for file in files {
             if cancelled() { break; }
-            let (info, mut status) = Self::load_track(&file, &config);
+            let (info, mut status) = Self::load_track_in_run(&file, &config, run);
             let info = match info {
                 Some(i) => i,
                 None => {

@@ -35,13 +35,13 @@ fn failed(path: &Path, message: Option<TaggingMessage>) -> TaggingStatus {
 }
 
 impl Provider {
-    fn tag(&self, slot: usize, path: &Path, config: &TaggerConfig,
+    fn tag(&self, slot: usize, path: &Path, config: &TaggerConfig, run: &RunTagState,
         builders: &Mutex<&mut AutotaggerPlatforms>) -> TaggingStatus {
         let mut error = None;
         // A failed source constructor must not send a track to a lower-priority
         // provider while this provider still has healthy source instances.
         for offset in 0..self.sources.len() {
-            match self.tag_with_slot((slot + offset) % self.sources.len(), path, config, builders) {
+            match self.tag_with_slot((slot + offset) % self.sources.len(), path, config, run, builders) {
                 Ok(status) => return status,
                 Err(message) => error = Some(message),
             }
@@ -49,7 +49,7 @@ impl Provider {
         failed(path, error)
     }
 
-    fn tag_with_slot(&self, slot: usize, path: &Path, config: &TaggerConfig,
+    fn tag_with_slot(&self, slot: usize, path: &Path, config: &TaggerConfig, run: &RunTagState,
         builders: &Mutex<&mut AutotaggerPlatforms>) -> Result<TaggingStatus, TaggingMessage> {
         let mut stopped = failed(path, None);
         if Tagger::mark_cancelled(&mut stopped, &|| STOP_TAGGING.load(Ordering::SeqCst)) { return Ok(stopped); }
@@ -75,7 +75,8 @@ impl Provider {
             *source = Some(created);
         }
         match source.as_mut().unwrap() {
-            Ok(source) => Ok(Tagger::tag_track(path, source, config)),
+            Ok(source) => Ok(Tagger::tag_track_with_cancel(path, source, config, run,
+                &|| STOP_TAGGING.load(Ordering::SeqCst))),
             Err(message) => Err(message.clone()),
         }
     }
@@ -84,7 +85,7 @@ impl Provider {
 impl Tagger {
     pub(super) fn tag_pipeline(files: &[PathBuf], config: &TaggerConfig,
         tx: &Sender<TaggingStatusWrap>, results: &mut TaggingResults,
-        report: &mut Option<report::ReportBuilder>) {
+        report: &mut Option<report::ReportBuilder>, run: &RunTagState) {
         if files.is_empty() { return; }
         let threads = usize::from(config.threads).max(1).min(files.len());
         // Keep custom plugin libraries/builders alive until every source drops.
@@ -112,7 +113,7 @@ impl Tagger {
         scheduler::run(files, &limits, threads, config.multiplatform, Schedule::Pipelined,
             || STOP_TAGGING.load(Ordering::SeqCst),
             |stage, slot, path| {
-                let status = providers[stage].tag(slot, path, config, &builders);
+                let status = providers[stage].tag(slot, path, config, run, &builders);
                 Attempt { matched: status.status == TaggingState::Ok, value: status }
             },
             |stage, item, value, completed| {
