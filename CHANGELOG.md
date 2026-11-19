@@ -1,5 +1,26 @@
 ## Unreleased (fantuz fork)
 
+## 2.0.0 — 2026-11-19
+
+OneTagger 2.0.0 brings seven new interface languages to the desktop app and browser mode, along with a faster way to handle provider fallbacks in AutoTagger.
+
+### Interface languages
+
+- Use Italian, French, Dutch, German, Spanish, Greek, or Russian alongside English. OneTagger remembers your language choice. The translations cover navigation, settings, in-app help, and common tagging messages, and are bundled for offline use.
+- Long translated navigation labels remain reachable with scroll controls. English is available as the fallback for unsupported locales and missing messages.
+
+### AutoTagger
+
+- When a provider returns no match, a track can move to the next provider immediately while other tracks are still being processed. Each track keeps the configured provider order and first-match behavior, and requests respect the provider and global concurrency limits.
+- Album tagging retains its grouped processing. Tagging results, report formats, and the reviewed rekordbox Migration Helper import workflow remain compatible.
+
+### Release and validation
+
+- GitHub validates the application and CLI packages for Windows x64, Linux x64, Intel macOS, and Apple Silicon. CI covers the localized workflows in Chromium, Firefox, and WebKit, the Linux native WebView, and provider scheduling tests and benchmarks on all four build platforms.
+- A successful build of `master` can now publish a pending version even if a later commit introduced a CI fix. The publisher verifies artifacts and their checksums before publishing.
+
+**Full changelog** [v1.7.4…v2.0.0](https://github.com/fantuz/onetagger/compare/v1.7.4...v2.0.0)
+
 ## 1.7.4 — 2026-11-18
 
 - Let Autotagger steps fit their content instead of reserving a fixed viewport-sized panel, so short settings pages and hidden options release unused space.
