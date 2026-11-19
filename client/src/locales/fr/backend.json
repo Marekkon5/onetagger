@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "Le fournisseur s’est arrêté brutalement lors de l’initialisation.",
   "providerInitializationFailed": "Impossible d’initialiser le fournisseur : {detail}",
   "providerUnavailable": "Fournisseur indisponible : {provider}",
-  "providerPanickedTryingNext": "Le fournisseur s’est arrêté brutalement. Passage au fournisseur suivant."
+  "providerPanickedTryingNext": "Le fournisseur s’est arrêté brutalement. Passage au fournisseur suivant.",
+  "providerRateLimited": "Limite de requêtes du fournisseur atteinte. Réessayez dans {seconds} s."
 }

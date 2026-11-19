@@ -43,7 +43,7 @@ impl Deezer {
         if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
             return Err(COOLDOWN.pause(delay).into());
         }
-        let response: DeezerResponse<D> = response.error_for_status()?.json()?;
+        let response: DeezerResponse<D> = response.json()?;
         if response.error_code() == Some(RATE_LIMIT_CODE) {
             return Err(COOLDOWN.pause(delay).into());
         }

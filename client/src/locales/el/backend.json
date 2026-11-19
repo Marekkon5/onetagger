@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "Ο πάροχος τερματίστηκε απροσδόκητα κατά την αρχικοποίηση.",
   "providerInitializationFailed": "Δεν ήταν δυνατή η αρχικοποίηση του παρόχου: {detail}",
   "providerUnavailable": "Μη διαθέσιμος πάροχος: {provider}",
-  "providerPanickedTryingNext": "Ο πάροχος διακόπηκε απροσδόκητα. Γίνεται δοκιμή του επόμενου."
+  "providerPanickedTryingNext": "Ο πάροχος διακόπηκε απροσδόκητα. Γίνεται δοκιμή του επόμενου.",
+  "providerRateLimited": "Εξαντλήθηκε το όριο αιτημάτων του παρόχου. Δοκιμάστε ξανά σε {seconds} δευτ."
 }

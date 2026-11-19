@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "Поставщик аварийно завершил работу при инициализации.",
   "providerInitializationFailed": "Не удалось инициализировать поставщика: {detail}",
   "providerUnavailable": "Поставщик недоступен: {provider}",
-  "providerPanickedTryingNext": "Поставщик аварийно завершил работу. Будет проверен следующий поставщик."
+  "providerPanickedTryingNext": "Поставщик аварийно завершил работу. Будет проверен следующий поставщик.",
+  "providerRateLimited": "Достигнут лимит запросов к провайдеру. Повторите попытку через {seconds} с."
 }

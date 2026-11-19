@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "The provider crashed during initialization.",
   "providerInitializationFailed": "Could not initialize the provider: {detail}",
   "providerUnavailable": "Provider unavailable: {provider}",
-  "providerPanickedTryingNext": "The provider crashed. Trying the next provider."
+  "providerPanickedTryingNext": "The provider crashed. Trying the next provider.",
+  "providerRateLimited": "Provider rate limited. Retry in {seconds} s."
 }

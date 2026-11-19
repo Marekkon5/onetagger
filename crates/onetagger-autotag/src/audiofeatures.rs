@@ -183,7 +183,7 @@ impl AudioFeatures {
                     status: TaggingState::Error,
                     path: file.to_owned(),
                     message: None, message_key: None, message_args: None,
-                    accuracy: None, used_shazam: false, release_id: None, track_id: None, reason: None
+                    accuracy: None, lookup_ms: None, used_shazam: false, release_id: None, track_id: None, reason: None
                 };
                 // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None, None) {

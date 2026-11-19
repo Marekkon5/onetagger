@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "De aanbieder is vastgelopen tijdens het initialiseren.",
   "providerInitializationFailed": "Kan de aanbieder niet initialiseren: {detail}",
   "providerUnavailable": "Aanbieder niet beschikbaar: {provider}",
-  "providerPanickedTryingNext": "De aanbieder is vastgelopen. De volgende aanbieder wordt geprobeerd."
+  "providerPanickedTryingNext": "De aanbieder is vastgelopen. De volgende aanbieder wordt geprobeerd.",
+  "providerRateLimited": "Verzoeklimiet van de provider bereikt. Probeer het over {seconds} s opnieuw."
 }

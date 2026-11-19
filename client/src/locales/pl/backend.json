@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "Dostawca uległ awarii podczas inicjalizacji.",
   "providerInitializationFailed": "Nie udało się zainicjować dostawcy ({detail}).",
   "providerUnavailable": "Dostawca jest niedostępny ({provider})",
-  "providerPanickedTryingNext": "Dostawca uległ awarii. Trwa próba u kolejnego dostawcy."
+  "providerPanickedTryingNext": "Dostawca uległ awarii. Trwa próba u kolejnego dostawcy.",
+  "providerRateLimited": "Osiągnięto limit żądań dostawcy. Spróbuj ponownie za {seconds} s."
 }

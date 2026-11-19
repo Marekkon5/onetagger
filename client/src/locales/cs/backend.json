@@ -23,5 +23,6 @@
   "providerInitializationPanicked": "Poskytovatel při spuštění selhal.",
   "providerInitializationFailed": "Poskytovatele se nepodařilo spustit ({detail}).",
   "providerUnavailable": "Poskytovatel není dostupný ({provider})",
-  "providerPanickedTryingNext": "Poskytovatel selhal. Zkouší se další."
+  "providerPanickedTryingNext": "Poskytovatel selhal. Zkouší se další.",
+  "providerRateLimited": "Byl dosažen limit požadavků poskytovatele. Zkuste to znovu za {seconds} s."
 }

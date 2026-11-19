@@ -10,7 +10,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use onetagger_platforms::ProviderRateLimited;
 use std::default::Default;
 use std::io::prelude::*;
 use chrono::Local;
@@ -607,6 +608,8 @@ pub struct TaggingStatus {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message_args: Option<serde_json::Map<String, serde_json::Value>>,
     pub accuracy: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lookup_ms: Option<u64>,
     pub used_shazam: bool,
     pub release_id: Option<String>,
     #[serde(default)]
@@ -634,6 +637,7 @@ pub(crate) enum TaggingMessage {
     ProviderInitializationPanicked,
     ProviderInitializationFailed(String),
     ProviderUnavailable(String),
+    ProviderRateLimited(u64),
     ProviderPanickedTryingNext,
 }
 
@@ -656,6 +660,8 @@ impl TaggingMessage {
             Self::ProviderInitializationPanicked => ("Provider initialization panicked".into(), "backend.providerInitializationPanicked", None),
             Self::ProviderInitializationFailed(detail) => (format!("Could not initialize provider: {detail}"), "backend.providerInitializationFailed", Some(("detail", detail))),
             Self::ProviderUnavailable(provider) => (format!("Provider unavailable: {provider}"), "backend.providerUnavailable", Some(("provider", provider))),
+            Self::ProviderRateLimited(seconds) => (format!("Provider rate limited. Retry in {seconds} s."),
+                "backend.providerRateLimited", Some(("seconds", seconds.to_string()))),
             Self::ProviderPanickedTryingNext => ("Provider panicked; trying the next provider".into(), "backend.providerPanickedTryingNext", None),
         };
         let arguments = argument.into_iter().map(|(name, value)| (name.into(), serde_json::Value::String(value))).collect();
@@ -720,6 +726,8 @@ impl RunTagState {
 pub struct TaggingStatusWrap {
     pub status: TaggingStatus,
     pub platform: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<String>,
     pub progress: f64,
 }
 impl TaggingStatusWrap {
@@ -727,6 +735,7 @@ impl TaggingStatusWrap {
     pub fn wrap(platform: &str, status: &TaggingStatus, pi: usize, pl: usize, p: i64, total: usize) -> TaggingStatusWrap {
         TaggingStatusWrap {
             platform: platform.to_string(),
+            provider_id: None,
             status: status.to_owned(),
             progress: (pi as f64 / pl as f64) + ((p as f64 / total as f64) / pl as f64)
         }
@@ -825,7 +834,10 @@ impl Tagger {
                     info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}", status.status, status.accuracy, status.path);
                     processed += 1;
                     // Send to UI
-                    tx.send(TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index, config.platforms.len(), processed, total)).ok();
+                    let mut update = TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index,
+                        config.platforms.len(), processed, total);
+                    update.provider_id = Some(platform.clone());
+                    tx.send(update).ok();
 
                     results.record(&status);
                     if let Some(report) = &mut report { report.record(platform, &status); }
@@ -977,6 +989,7 @@ impl Tagger {
             status: TaggingState::Error,
             path: path.as_ref().to_owned(),
             accuracy: None,
+            lookup_ms: None,
             message: None,
             message_key: None,
             message_args: None,
@@ -1090,8 +1103,10 @@ impl Tagger {
         };
         if Self::mark_cancelled(&mut out, cancelled) { return out; }
        
-        // Match track
-        let result = tagger.match_track(&info, &config);
+        // Time matching separately from local metadata reads and tag writes.
+        let lookup_started = Instant::now();
+        let result = tagger.match_track(&info, config);
+        out.lookup_ms = Some(lookup_started.elapsed().as_millis() as u64);
         if Self::mark_cancelled(&mut out, cancelled) { return out; }
         let mut tracks = match result {
             Ok(o) => {
@@ -1104,7 +1119,12 @@ impl Tagger {
             // Failed matching track
             Err(e) => {
                 error!("Matching error: {} ({:?})", e, path.as_ref());
-                out.set_message(TaggingMessage::TrackMatchFailed(e.to_string()));
+                if let Some(limited) = e.downcast_ref::<ProviderRateLimited>() {
+                    if limited.deferred() { out.lookup_ms = None; }
+                    out.set_message(TaggingMessage::ProviderRateLimited(limited.retry_after_seconds()));
+                } else {
+                    out.set_message(TaggingMessage::TrackMatchFailed(e.to_string()));
+                }
                 return out;
             }
         };
@@ -1115,7 +1135,12 @@ impl Tagger {
         drop(tracks);
         match tagger.extend_track(&mut track.track, config) {
             Ok(_) => {},
-            Err(e) => warn!("Failed extending track: {e}"),
+            Err(e) => {
+                warn!("Failed extending track: {e}");
+                if let Some(limited) = e.downcast_ref::<ProviderRateLimited>() {
+                    out.set_message(TaggingMessage::ProviderRateLimited(limited.retry_after_seconds()));
+                }
+            },
         }
         if Self::mark_cancelled(&mut out, cancelled) { return out; }
 
