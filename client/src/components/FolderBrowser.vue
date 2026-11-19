@@ -18,7 +18,7 @@
 
         <!-- Actions -->
         <div>
-            <q-input filled dense :label="t('common.path')" v-model='path'></q-input>
+            <q-input filled dense dir='ltr' :label="t('common.path')" v-model='path'></q-input>
             <div class='row justify-end q-pt-md'>
                 <q-btn flat color='red' @click='cancel'>{{ t('common.cancel') }}</q-btn>
                 <q-btn class='q-ml-md' flat color='primary' @click='save'>{{ t('common.ok') }}</q-btn>

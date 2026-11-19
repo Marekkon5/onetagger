@@ -136,6 +136,12 @@ mod tests {
             include_str!("../../../client/src/locales/es/backend.json"),
             include_str!("../../../client/src/locales/el/backend.json"),
             include_str!("../../../client/src/locales/ru/backend.json"),
+            include_str!("../../../client/src/locales/pt-PT/backend.json"),
+            include_str!("../../../client/src/locales/pt-BR/backend.json"),
+            include_str!("../../../client/src/locales/cs/backend.json"),
+            include_str!("../../../client/src/locales/pl/backend.json"),
+            include_str!("../../../client/src/locales/ja/backend.json"),
+            include_str!("../../../client/src/locales/ar/backend.json"),
         ];
         let messages = [
             UiMessage::RequestFailed { detail: String::new() }, UiMessage::TaggingAlreadyActive,

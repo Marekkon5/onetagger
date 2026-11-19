@@ -7,7 +7,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOGS = ROOT / "client/src/locales"
-LOCALES = {"en", "it", "fr", "nl", "de", "es", "el", "ru"}
+LOCALES = {"en", "it", "fr", "nl", "de", "es", "el", "ru", "pt-PT", "pt-BR", "cs", "pl", "ja", "ar"}
+PLURAL_FORM_COUNTS = {"ru": 4, "cs": 4, "pl": 4, "ja": 1, "ar": 6}
 NAMESPACES = {"autotag", "quicktag", "tools", "common", "backend", "core", "providers", "help"}
 PARAMETER = re.compile(r"\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}")
 LITERAL = re.compile(r"\{'(?:\\.|[^'\\])*'\}")
@@ -68,9 +69,20 @@ class LocalizationCatalogTests(unittest.TestCase):
                         self.assertNotIn("}", syntax, "Unbalanced interpolation")
                         self.assertNotIn("@:", stripped, "Catalog links are not part of this translation contract")
                         if "|" in LITERAL.sub("", reference[key]):
-                            self.assertGreaterEqual(len(stripped.split("|")), 2, "Plural alternatives were lost")
+                            forms = stripped.split("|")
+                            self.assertEqual(len(forms), PLURAL_FORM_COUNTS.get(locale, 2),
+                                             "Unexpected number of plural forms")
+                            for form in forms:
+                                self.assertEqual(parameters(form), parameters(reference[key]),
+                                                 "Plural form lost a named placeholder")
 
-    def test_locales_are_translated_and_greek_cyrillic_are_preserved(self):
+    def test_locales_are_translated_and_expected_scripts_are_present(self):
+        scripts = {
+            "el": r"[\u0370-\u03ff\u1f00-\u1fff]",
+            "ru": r"[\u0400-\u04ff]",
+            "ja": r"[\u3040-\u30ff]",
+            "ar": r"[\u0621-\u064a]",
+        }
         for locale in sorted(LOCALES - {"en"}):
             catalogs = {path.stem: read_catalog(path) for path in (CATALOGS / locale).glob("*.json")}
             translated = sum(value != self.reference[namespace][key]
@@ -78,10 +90,14 @@ class LocalizationCatalogTests(unittest.TestCase):
             with self.subTest(locale=locale):
                 self.assertGreater(translated, 0, "Locale only duplicates the English fallback")
                 text = " ".join(value for catalog in catalogs.values() for value in catalog.values())
-                if locale == "el":
-                    self.assertRegex(text, r"[\u0370-\u03ff\u1f00-\u1fff]", "Greek glyphs are missing")
-                if locale == "ru":
-                    self.assertRegex(text, r"[\u0400-\u04ff]", "Cyrillic glyphs are missing")
+                if locale in scripts:
+                    self.assertRegex(text, scripts[locale], "Expected script is missing")
+
+    def test_portuguese_catalogs_preserve_regional_file_terminology(self):
+        for locale, files in (("pt-PT", "ficheiros"), ("pt-BR", "arquivos")):
+            with self.subTest(locale=locale):
+                tools = read_catalog(CATALOGS / locale / "tools.json")
+                self.assertIn(files, tools["selectedTracks"])
 
     def test_static_translation_keys_exist_and_translations_are_not_html(self):
         keys = {f"{namespace}.{key}" for namespace, catalog in self.reference.items() for key in catalog}

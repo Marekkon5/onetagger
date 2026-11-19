@@ -220,13 +220,20 @@ def main():
                     if geometry['unused'] > 2 or geometry['documentScroll'] > 2:
                         raise AssertionError('Native layout contains unused space: '+repr(geometry))
                     click('a[href="#/"]')
-                    wait("return document.body.innerText.includes('The ultimate cross-platform music tagger for DJs')")
+                    wait("return document.documentElement.dir==='ltr' && document.body.innerText.includes('The ultimate cross-platform music tagger for DJs')")
                 capture_errors()
 
                 # Real Wry/WebKitGTK locale switching, persisted across a native
                 # reload. Navigation only: no provider lookup, tag write, file
                 # rename, or user music is involved.
-                for locale, native_name in [('de','Deutsch'),('el','Ελληνικά'),('ru','Русский')]:
+                scripts = {
+                    'el': r'[\u0370-\u03ff\u1f00-\u1fff]',
+                    'ru': r'[\u0400-\u04ff]',
+                    'ja': r'[\u3040-\u30ff]',
+                    'ar': r'[\u0621-\u064a]',
+                }
+                for locale, native_name in [('de','Deutsch'),('el','Ελληνικά'),('ru','Русский'),
+                                            ('pt-BR','Português (Brasil)'),('ja','日本語'),('ar','العربية')]:
                     select_language(locale,native_name)
                     refresh_language(locale)
                     expected = json.loads((Path(__file__).resolve().parents[2]/'client/src/locales'/locale/'common.json').read_text(encoding='utf-8'))
@@ -240,18 +247,20 @@ def main():
                             raise AssertionError(f'Native {locale}/{route} has horizontal overflow: {bounds}')
                     wait("return document.fonts.status==='loaded'")
                     evidence = script("""const e=document.querySelector('[data-testid=nav-tageditor]');
-                        return {locale:document.documentElement.lang, saved:localStorage.getItem('onetagger.locale'),
+                        return {locale:document.documentElement.lang, direction:document.documentElement.dir,
+                            saved:localStorage.getItem('onetagger.locale'),
                             label:e.textContent.trim(), fontFamily:getComputedStyle(e).fontFamily,
                             fontStatus:document.fonts.status, rectangle:e.getBoundingClientRect().toJSON(),
                             viewport:{width:innerWidth,height:innerHeight}, scrollWidth:document.documentElement.scrollWidth};""")
                     if evidence['label'] != expected['editTags']:
                         raise AssertionError('Native translated navigation label was not retained: '+repr(evidence))
-                    if locale in {'el','ru'}:
+                    if evidence['direction'] != ('rtl' if locale == 'ar' else 'ltr'):
+                        raise AssertionError('Native direction did not match the active locale: '+repr(evidence))
+                    if locale in scripts:
                         if evidence['fontFamily'].split(',')[0].strip(' "\'') != 'system-ui':
-                            raise AssertionError('Greek/Cyrillic must use the system UI font stack: '+repr(evidence))
-                        script_range = r'[\u0370-\u03ff\u1f00-\u1fff]' if locale == 'el' else r'[\u0400-\u04ff]'
-                        if not re.search(script_range,evidence['label']):
-                            raise AssertionError('Native label lost its Greek/Cyrillic characters: '+repr(evidence))
+                            raise AssertionError('Expected the system UI font stack: '+repr(evidence))
+                        if not re.search(scripts[locale],evidence['label']):
+                            raise AssertionError('Native label lost its translated characters: '+repr(evidence))
                     if evidence['rectangle']['width'] <= 0 or evidence['rectangle']['height'] <= 0:
                         raise AssertionError('Native translated label has no rendered bounds')
                     # Font readiness/CSS do not prove every glyph exists. Retain
