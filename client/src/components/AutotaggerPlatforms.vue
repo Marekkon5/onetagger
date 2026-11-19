@@ -1,6 +1,6 @@
 <template>
     <div class='row justify-center'>
-        <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' :item-key='platformKey'
+        <draggable v-model='providerCards' @update='syncPlatforms()' :item-key='platformKey'
             filter='.q-checkbox' :prevent-on-filter='false'>
             <template #item='{ element: platform }'>
                 <q-card flat class='card q-ma-md'>
@@ -84,7 +84,7 @@
 <script lang='ts' setup>
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n({ useScope: 'global' });
-import { onMounted, ref } from 'vue';
+import { ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
 import { AutotaggerPlatform, SupportedTag } from '../scripts/autotagger';
@@ -96,17 +96,15 @@ const { dense } = defineProps({
 });
 const $1t = get1t();
 const platformsRepoButtonLoading = ref(false);
+const providerCards = ref<AutotaggerPlatform[]>([]);
 
 // Platform IDs live inside the descriptor, not on the wrapper object.
 function platformKey(platform: AutotaggerPlatform) { return platform.platform.id; }
 
-// Update config
 function update(platform: string) {
-    let i = $1t.config.value.platforms.indexOf(platform);
-    if (i == -1)
-        $1t.config.value.platforms.push(platform);
-    else
-        $1t.config.value.platforms.splice(i, 1);
+    const enabled = new Set($1t.config.value.platforms);
+    if (!enabled.delete(platform)) enabled.add(platform);
+    syncPlatforms(enabled);
 }
 
 // Is platform enabled
@@ -114,9 +112,12 @@ function isEnabled(platform: string) {
     return $1t.config.value.platforms.includes(platform);
 }
 
-// Sync platforms order to config
-function syncPlatforms() {
-    $1t.config.value.platforms = $1t.info.value.platforms.map((p) => p.platform.id).filter((p) => $1t.config.value.platforms.includes(p));
+function syncPlatforms(enabled = new Set($1t.config.value.platforms)) {
+    const displayed = providerCards.value.map(platformKey);
+    $1t.config.value.platforms = [
+        ...displayed.filter(id => enabled.has(id)),
+        ...[...enabled].filter(id => !displayed.includes(id)),
+    ];
 }
 
 /// Does the platform have lyrics
@@ -133,15 +134,23 @@ function openPlatformsRepo() {
     }, 2000);
 }
 
-onMounted(() => {
-    $1t.info.value.platforms.sort((a, b) => {
-        let x = $1t.config.value.platforms.indexOf(a.platform.id);
-        let y = $1t.config.value.platforms.indexOf(b.platform.id);
-        if (x == -1) x = 1000;
-        if (y == -1) y = 1000;
-        return x - y;
-    });
-});
+watch(
+    [() => $1t.info.value.platforms, () => $1t.config.value.platforms],
+    ([available, selected], [previousAvailable]) => {
+        const rank = new Map(selected.map((id, index) => [id, index]));
+        if (available === previousAvailable) {
+            const displayed = providerCards.value.map(platformKey);
+            const enabled = displayed.filter(id => rank.has(id));
+            const configured = selected.filter(id => displayed.includes(id));
+            // Checkbox and drag changes already use the displayed order. A
+            // loaded profile can change that order and needs to reorder cards.
+            if (configured.length === enabled.length && configured.every((id, i) => id === enabled[i])) return;
+        }
+        providerCards.value = [...available].sort((a, b) =>
+            (rank.get(platformKey(a)) ?? selected.length) - (rank.get(platformKey(b)) ?? selected.length));
+    },
+    { immediate: true },
+);
 
 </script>
 

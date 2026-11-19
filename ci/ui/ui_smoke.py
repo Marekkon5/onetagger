@@ -306,6 +306,28 @@ class BrowserTests(unittest.TestCase):
             page.get_by_text('Input & Tags', exact=True).click()
             exercise(page.locator('.tags .q-checkbox[data-tag="title"]'))
 
+    def test_autotagger_provider_lookup_order_matches_the_cards_after_reenabling(self):
+        with self.session() as (page, backend):
+            page.get_by_role("tab", name="Auto tag", exact=True).click()
+            beatport = page.get_by_role("checkbox", name="Beatport", exact=True)
+            traxsource = page.get_by_role("checkbox", name="Traxsource", exact=True)
+            expect(beatport).to_have_attribute("aria-checked", "true")
+            traxsource.click()
+            beatport.click()
+            expect(beatport).to_have_attribute("aria-checked", "false")
+            beatport.click()
+            expect(beatport).to_have_attribute("aria-checked", "true")
+            expect(traxsource).to_have_attribute("aria-checked", "true")
+            self.assertEqual(page.locator(".card .q-checkbox").evaluate_all(
+                "boxes => boxes.map(box => box.getAttribute('aria-label'))"),
+                ["Beatport", "Traxsource"])
+
+            page.get_by_text("Input & Tags", exact=True).click()
+            page.get_by_role("button", name="Start tagging", exact=True).click()
+            expect(page.get_by_role("button", name="Open results JSON", exact=True)).to_be_visible()
+            command = next(c for c in backend.commands if c["action"] == "startTagging")
+            self.assertEqual(command["config"]["platforms"], ["beatport", "traxsource"])
+
     def open_editor(self, page):
         page.get_by_role("tab", name="Edit Tags", exact=True).click()
         expect(page.get_by_text("NO FILE SELECTED", exact=True)).to_be_visible()
