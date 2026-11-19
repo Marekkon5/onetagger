@@ -42,6 +42,9 @@ importers:
       path:
         specifier: ^0.12.7
         version: 0.12.7
+      postcss-rtlcss:
+        specifier: 6.0.0
+        version: 6.0.0(postcss@8.5.33)
       sass:
         specifier: 1.108.2
         version: 1.108.2
@@ -612,6 +615,10 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  escalade@3.2.0:
+    resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
+    engines: {node: '>=6'}
+
   estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
 
@@ -729,6 +736,12 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  postcss-rtlcss@6.0.0:
+    resolution: {integrity: sha512-iJMOT4vM6EOnvNUm+uZycpqqTeHCTMGPsyxIHloVUioECgKIrvtWtPIczc5NMc14x5ZJGadwUs0L1o6iZDCldg==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      postcss: ^8.4.21
+
   postcss@8.5.33:
     resolution: {integrity: sha512-RVHEU9/Pp1Fnjr/MpAJsZoADukCKhfIi15OunEYiGktIkYLkPVvC1sioWolGDS7XByMTx9m/IGbro0Js13zhnQ==}
     engines: {node: ^10 || ^12 || >=14}
@@ -754,6 +767,11 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
+  rtlcss@4.3.0:
+    resolution: {integrity: sha512-FI+pHEn7Wc4NqKXMXFM+VAYKEj/mRIcW4h24YVwVtyjI+EqGrLc2Hx/Ny0lrZ21cBWU2goLy36eqMcNj3AQJig==}
+    engines: {node: '>=12.0.0'}
+    hasBin: true
+
   sass@1.108.2:
     resolution: {integrity: sha512-kugK8djotnG9HQRPTOf36asKYlxg8rWWsNLYHOgWDIVOiZQqlRfKBgF4XXM6kfw146kIDMvm57B4GIkvDSyTzA==}
     engines: {node: '>=20.19.0'}
@@ -765,6 +783,10 @@ packages:
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
+
+  strip-json-comments@3.1.1:
+    resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
+    engines: {node: '>=8'}
 
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
@@ -1319,6 +1341,8 @@ snapshots:
       '@esbuild/win32-ia32': 0.25.12
       '@esbuild/win32-x64': 0.25.12
 
+  escalade@3.2.0: {}
+
   estree-walker@2.0.2: {}
 
   fdir@6.5.0(picomatch@4.0.7):
@@ -1421,6 +1445,11 @@ snapshots:
 
   picomatch@4.0.7: {}
 
+  postcss-rtlcss@6.0.0(postcss@8.5.33):
+    dependencies:
+      postcss: 8.5.33
+      rtlcss: 4.3.0
+
   postcss@8.5.33:
     dependencies:
       nanoid: 3.3.20
@@ -1467,6 +1496,13 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.68.3
       fsevents: 2.3.3
 
+  rtlcss@4.3.0:
+    dependencies:
+      escalade: 3.2.0
+      picocolors: 1.1.1
+      postcss: 8.5.33
+      strip-json-comments: 3.1.1
+
   sass@1.108.2:
     dependencies:
       chokidar: 5.0.0
@@ -1478,6 +1514,8 @@ snapshots:
   sortablejs@1.14.0: {}
 
   source-map-js@1.2.2: {}
+
+  strip-json-comments@3.1.1: {}
 
   tinyglobby@0.2.17:
     dependencies:
