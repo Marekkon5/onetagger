@@ -64,12 +64,22 @@ slowest provider can determine overall throughput.
 
 ## GitHub validation
 
-The **Provider pipeline** workflow runs on Linux, Windows, Intel macOS and ARM
-macOS. It compiles the production scheduler directly, runs its concurrency and
+The scheduler tests and benchmarks run on Linux, Windows, Intel macOS and ARM
+macOS. **Provider pipeline** handles Linux, Windows and macOS 15 Intel. The
+existing **Build → macOS ARM64** job runs the same command on macOS 26 before
+the full Rust tests and packaging, sharing one hosted ARM runner allocation.
+ARM scheduler coverage therefore uses macOS 26 instead of the former standalone
+macOS 15 job. This reduces the number of ARM jobs requesting a runner; free
+hosted runner availability can still delay the build.
+
+The command compiles the production scheduler directly, runs its concurrency and
 cancellation tests, then compares provider-wide barriers against pipelining with
 the same worker and provider limits. `ci/provider_benchmark.py` orchestrates the
 Rust harness and publishes a job summary plus CSV, JSON, logs and environment
-metadata as artifacts. Five samples per mode alternate execution order.
+metadata as 30-day artifacts. Find `provider-benchmark-macos-26` in **Build**;
+the other platform reports remain in **Provider pipeline**. Five samples per
+mode alternate execution order. An ARM scheduler or benchmark assertion failure
+fails the native Build job and blocks **Required checks** and release packages.
 
 Scenarios cover first-provider hits, a slow tail, a concurrency-limited provider,
 all misses, provider failures, Multiplatform, and cancellation. The harness asserts
