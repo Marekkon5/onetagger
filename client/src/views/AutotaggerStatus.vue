@@ -95,10 +95,28 @@
                 <q-card flat>
                     <div class='row'>
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
-                            <q-btn icon='mdi-timelapse' round color='teal' class='text-black'>
-                                <q-tooltip>
-                                    {{ t('autotag.timeHint') }}
-                                </q-tooltip>
+                            <q-btn v-if='providerPaces.length' icon='mdi-speedometer' round color='teal' class='text-black'
+                                :aria-label="t('autotag.providerPace')" data-testid='provider-pace'>
+                                <q-tooltip>{{ t('autotag.providerPace') }}</q-tooltip>
+                                <q-menu max-height='50vh'>
+                                    <q-list data-testid='provider-pace-list' dense style='min-width: 220px'>
+                                        <q-item v-for='pace in providerPaces' :key='pace.id'>
+                                            <q-item-section>
+                                                <q-item-label>{{ pace.name }}</q-item-label>
+                                                <q-item-label caption>
+                                                    {{ pace.rate === undefined ? t('autotag.providerPaceMeasuring')
+                                                        : t('autotag.providerPaceValue', { rate: formatRate(pace.rate) }) }}
+                                                </q-item-label>
+                                                <q-item-label v-if='pace.limited' caption>
+                                                    {{ t('autotag.providerPaceLimited', { count: formatRate(pace.limited) }) }}
+                                                </q-item-label>
+                                            </q-item-section>
+                                        </q-item>
+                                    </q-list>
+                                </q-menu>
+                            </q-btn>
+                            <q-btn v-else icon='mdi-timelapse' round color='teal' class='text-black'>
+                                <q-tooltip>{{ t('autotag.timeHint') }}</q-tooltip>
                             </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
@@ -177,9 +195,22 @@ const $q = useQuasar();
 const $1t = get1t();
 const $router = useRouter();
 const time = ref('0:00');
+const paceClock = ref(performance.now());
 const filter = ref<string | undefined>(undefined);
 const stopping = ref(false);
 let timeInterval: any = undefined;
+
+const providerPaces = computed(() => {
+    const status = $1t.taggerStatus.value;
+    const now = status.done ? status.paceUpdatedAt : Math.max(status.paceUpdatedAt, paceClock.value);
+    return Array.from(status.providerPaces, ([id, pace]) => ({
+        id, name: pace.name, rate: pace.perMinute(now), limited: pace.limited,
+    }));
+});
+
+function formatRate(value: number) {
+    return new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }).format(value);
+}
 
 function accuracyPercent(value: number) {
     return new Intl.NumberFormat(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value * 100);
@@ -277,6 +308,7 @@ onMounted(() => {
                 clearInterval(timeInterval);
             return;
         }
+        paceClock.value = performance.now();
         // Timestamp
         let s = (Date.now() - $1t.taggerStatus.value.started) / 1000;
         time.value = `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;

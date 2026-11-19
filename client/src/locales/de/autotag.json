@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Ungefähre Übereinstimmung",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "Plattform-ID",
-  "matchReasonAlbum": "Albumübereinstimmung"
+  "matchReasonAlbum": "Albumübereinstimmung",
+  "providerPace": "Tempo der Anbieter",
+  "providerPaceValue": "{rate} Titel/min",
+  "providerPaceMeasuring": "Suchtempo wird gemessen",
+  "providerPaceLimited": "Gedrosselt oder zurückgestellt ({count})"
 }

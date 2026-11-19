@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "近似一致",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "提供元 ID",
-  "matchReasonAlbum": "アルバム一致"
+  "matchReasonAlbum": "アルバム一致",
+  "providerPace": "プロバイダー別の検索ペース",
+  "providerPaceValue": "毎分 {rate} 曲",
+  "providerPaceMeasuring": "検索ペースを計測中",
+  "providerPaceLimited": "制限または保留（{count} 件）"
 }

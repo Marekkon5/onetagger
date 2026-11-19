@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "تطابق تقريبي",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "معرّف المزوّد",
-  "matchReasonAlbum": "تطابق الألبوم"
+  "matchReasonAlbum": "تطابق الألبوم",
+  "providerPace": "وتيرة البحث لدى المزوّدين",
+  "providerPaceValue": "{rate} مقطع/دقيقة",
+  "providerPaceMeasuring": "جارٍ قياس وتيرة البحث",
+  "providerPaceLimited": "محاولات مقيّدة أو مؤجّلة ({count})"
 }

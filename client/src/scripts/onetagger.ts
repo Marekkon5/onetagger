@@ -215,15 +215,7 @@ class OneTagger {
             // Status
             case 'taggingProgress':
                 if (this.taggerStatus.value.done) break;
-                this.taggerStatus.value.progress = json.status.progress;
-                // De duplicate failed
-                var i = this.taggerStatus.value.statuses.findIndex((s) => s[0].status.path == json.status.status.path)
-                if (i != -1) {
-                    this.taggerStatus.value.statuses[i].push(json.status);
-                    return;
-                }
-                this.taggerStatus.value.statuses.unshift([json.status]);
-                
+                this.taggerStatus.value.recordProgress(json.status);
                 break;
             // Tagging done
             case 'taggingDone':

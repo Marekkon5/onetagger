@@ -178,5 +178,9 @@
   "matchReasonFuzzy": "Κατά προσέγγιση αντιστοίχιση",
   "matchReasonIsrc": "ISRC",
   "matchReasonId": "ID πλατφόρμας",
-  "matchReasonAlbum": "Αντιστοίχιση άλμπουμ"
+  "matchReasonAlbum": "Αντιστοίχιση άλμπουμ",
+  "providerPace": "Ρυθμός ανά πάροχο",
+  "providerPaceValue": "{rate} κομμάτια/λεπτό",
+  "providerPaceMeasuring": "Μέτρηση ρυθμού αναζήτησης",
+  "providerPaceLimited": "Περιορισμένες ή αναβληθείσες ({count})"
 }

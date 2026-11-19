@@ -361,6 +361,29 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_role('alert')).to_contain_text('Choose a Helper selection manifest')
             expect(page.get_by_role('button',name='Start tagging',exact=True)).to_be_disabled()
 
+    def test_provider_pace_shows_deferred_lookups_during_autotag(self):
+        with self.session() as (page, backend):
+            backend.hold_tagging = True
+            page.get_by_role("tab", name="Auto tag", exact=True).click()
+            page.get_by_text("Input & Tags", exact=True).click()
+            page.get_by_label("Path", exact=True).fill("/music")
+            page.get_by_role("button", name="Start tagging", exact=True).click()
+            expect(page.get_by_role("button", name="Stop tagging", exact=True)).to_be_visible()
+
+            backend.tagging_socket.send(json.dumps({
+                "action": "taggingProgress",
+                "status": {"platform": "Beatport", "providerId": "beatport", "progress": 0,
+                           "status": {"status": "error", "path": "/music/fixture.mp3",
+                                      "message": "Provider rate limited. Retry in 4 s.",
+                                      "messageKey": "backend.providerRateLimited",
+                                      "messageArgs": {"seconds": "4"}, "usedShazam": False}},
+            }))
+            page.get_by_role("button", name="Provider pace", exact=True).click()
+            pace = page.get_by_test_id("provider-pace-list")
+            expect(pace).to_contain_text("Beatport")
+            expect(pace).to_contain_text("Measuring lookup rate")
+            expect(pace).to_contain_text("Rate-limited or deferred (1)")
+
     def test_stop_waits_for_completion_retains_results_and_ignores_late_progress(self):
         with self.session() as (page, backend):
             backend.hold_tagging=True
