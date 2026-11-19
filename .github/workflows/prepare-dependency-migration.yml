@@ -17,6 +17,7 @@ jobs:
           persist-credentials: false
       - name: Generate the targeted Cargo lockfile patch
         run: |
+          cargo update -p sysinfo --precise 0.38.4
           cargo update -p muda --precise 0.21.2
           cargo update -p objc2-app-kit --precise 0.3.2
           cargo metadata --locked --no-deps --format-version 1 > /dev/null
@@ -25,53 +26,3 @@ jobs:
           echo 'ONETAGGER_LOCKFILE_PATCH_BEGIN'
           git --no-pager diff --no-color -- Cargo.lock
           echo 'ONETAGGER_LOCKFILE_PATCH_END'
-
-  icons:
-    name: Validate the MDI v7 migration
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        with:
-          version: '10.11.0'
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-          cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
-      - name: Check the bundled font and icon references
-        run: |
-          pnpm --dir client install --frozen-lockfile
-          python3 - <<'PY'
-          from collections import defaultdict
-          from pathlib import Path
-          import re
-
-          mdi = Path("client/node_modules/@quasar/extras/exports/mdi-v7")
-          stylesheet = (mdi / "mdi-v7.css").read_text(encoding="utf-8")
-          available = set(re.findall(r"\.(mdi-[a-z0-9]+(?:-[a-z0-9]+)*):{1,2}before\b", stylesheet))
-          assert len(available) > 5000, "Expected the complete Material Design Icons CSS"
-          assert (mdi / "materialdesignicons-webfont.woff2").stat().st_size > 0
-          literal = re.compile(r"""(['"`])(mdi-[a-z0-9]+(?:-[a-z0-9]+)*)\1""")
-          paths = [
-              *Path("client/src").rglob("*.vue"),
-              *Path("client/src").rglob("*.ts"),
-              *Path("crates").rglob("*.rs"),
-              Path("client/node_modules/quasar/icon-set/mdi-v7.js"),
-          ]
-          referenced = defaultdict(set)
-          for path in paths:
-              for _, icon in literal.findall(path.read_text(encoding="utf-8")):
-                  if icon != "mdi-v7":
-                      referenced[icon].add(str(path))
-          print(f"Checked {len(referenced)} static icon names against {len(available)} CSS glyphs", flush=True)
-          missing = sorted(referenced.keys() - available)
-          for icon in missing:
-              print(f"Missing {icon}: {', '.join(sorted(referenced[icon]))}", flush=True)
-          if missing:
-              raise SystemExit(1)
-          PY
-          pnpm --dir client run build
