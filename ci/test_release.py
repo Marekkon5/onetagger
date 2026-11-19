@@ -154,8 +154,8 @@ class ReleasePlanTests(unittest.TestCase):
     def setUp(self):
         self.api = FakeGitHub()
 
-    def plan(self, automatic=True):
-        return release.plan_release(self.api, RUN, REPO, "master", automatic)
+    def plan(self, automatic=True, run_id=RUN):
+        return release.plan_release(self.api, run_id, REPO, "master", automatic)
 
     def test_version_bump_selects_exact_native_artifacts(self):
         plan, _ = self.plan()
@@ -167,6 +167,22 @@ class ReleasePlanTests(unittest.TestCase):
         for previous in [None, VERSION]:
             self.api.previous = previous
             self.assertIsNone(self.plan()[0])
+
+    def test_followup_push_releases_a_version_newer_than_the_latest_release(self):
+        self.api.previous = VERSION
+        self.api.latest = {"tag_name": "v1.7.0"}
+        plan, _ = self.plan()
+        self.assertEqual((plan["version"], plan["source"], plan["run_id"]), (VERSION, SOURCE, RUN))
+
+    def test_followup_push_skips_version_already_published_from_an_earlier_commit(self):
+        self.api.previous = VERSION
+        self.api.latest = {"tag_name": "v" + VERSION}
+        self.api.tag = {"type": "commit", "sha": PARENT}
+        self.api.release = {"id": 7, "draft": False}
+        plan, reason = self.plan()
+        self.assertIsNone(plan)
+        self.assertIn("already published", reason)
+        self.assertFalse(self.api.writes)
 
     def test_downgrade_is_rejected(self):
         self.api.previous = "2.0.0"
@@ -195,12 +211,31 @@ class ReleasePlanTests(unittest.TestCase):
         with self.assertRaises(release.StaleBuild):
             self.plan(automatic=False)
 
+    def test_manual_release_selects_build_for_current_head_without_an_id(self):
+        self.api.run["event"] = "workflow_dispatch"
+        plan, _ = self.plan(automatic=False, run_id="")
+        self.assertEqual((plan["source"], plan["run_id"]), (SOURCE, RUN))
+        self.assertEqual(set(plan["artifact_ids"].split(",")), {"1", "2", "3", "4"})
+        self.assertFalse(self.api.writes)
+
+    def test_manual_selection_cannot_use_a_build_from_an_older_commit(self):
+        self.api.branch = "c" * 40
+        with self.assertRaises(release.StaleBuild):
+            self.plan(automatic=False, run_id="")
+
+    def test_manual_selection_rechecks_the_discovered_workflow(self):
+        self.api.runs = [copy.deepcopy(self.api.run)]
+        self.api.run["path"] = ".github/workflows/other.yml"
+        with self.assertRaises(ValueError):
+            self.plan(automatic=False, run_id="")
+
     def test_newer_failed_or_pending_build_cannot_be_bypassed(self):
         for state in [("completed", "failure"), ("in_progress", None)]:
             newer = {**self.api.run, "id": 43, "status": state[0], "conclusion": state[1]}
             self.api.runs = [self.api.run, newer]
-            with self.subTest(state=state), self.assertRaises(release.StaleBuild):
-                self.plan(automatic=False)
+            for run_id in (RUN, ""):
+                with self.subTest(state=state, run_id=run_id), self.assertRaises(release.StaleBuild):
+                    self.plan(automatic=False, run_id=run_id)
 
     def test_missing_expired_duplicate_and_foreign_artifacts_are_rejected(self):
         for case in ["missing", "expired", "duplicate", "foreign"]:

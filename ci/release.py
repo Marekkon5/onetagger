@@ -75,29 +75,40 @@ def tag_commit(read, tag):
     return obj["sha"]
 
 
-def validated_run(read, run_id, repository, branch):
+def successful_build(read, run_id, repository, branch):
     if not str(run_id).isdigit() or int(run_id) <= 0:
         raise ValueError("Specify a numeric Build run ID")
     run = read("actions/runs/" + str(run_id))
-    if (run.get("path") != ".github/workflows/build.yml" or
+    if (run.get("id") != int(run_id) or
+            run.get("path") != ".github/workflows/build.yml" or
             run.get("event") not in ("push", "workflow_dispatch") or
             run.get("head_branch") != branch or
-            run.get("head_repository", {}).get("full_name") != repository or
+            (run.get("head_repository") or {}).get("full_name") != repository or
             run.get("status") != "completed" or run.get("conclusion") != "success"):
         raise ValueError("Release requires a successful default-branch Build from this repository")
-    source = run.get("head_sha", "")
-    if not re.fullmatch(r"[0-9a-f]{40}", source):
+    if not re.fullmatch(r"[0-9a-f]{40}", run.get("head_sha", "")):
         raise ValueError("Invalid source commit")
-    if read("branches/" + quote(branch, safe=""))["commit"]["sha"] != source:
+    return run
+
+
+def validated_run(read, run_id, repository, branch):
+    run = successful_build(read, run_id, repository, branch) if run_id else None
+    source = read("branches/" + quote(branch, safe=""))["commit"]["sha"]
+    if run is not None and run["head_sha"] != source:
         raise StaleBuild("The default branch moved; use its latest successful Build")
     query = urlencode({"head_sha": source, "branch": branch, "per_page": 100})
     runs = read("actions/workflows/build.yml/runs?" + query)["workflow_runs"]
     trusted = [r for r in runs if r.get("head_sha") == source and r.get("head_branch") == branch
-               and r.get("head_repository", {}).get("full_name") == repository
+               and (r.get("head_repository") or {}).get("full_name") == repository
                and r.get("event") in ("push", "workflow_dispatch")]
     latest = max(trusted, key=lambda r: (r["id"], r.get("run_attempt", 1)), default=None)
-    if latest is None or latest["id"] != int(run_id) or latest.get("conclusion") != "success" or latest.get("status") != "completed":
-        raise StaleBuild("Use the latest successful Build; a newer run is missing, pending or failed")
+    if latest is None or latest.get("status") != "completed" or latest.get("conclusion") != "success":
+        raise StaleBuild("The latest Build for the current default-branch commit must pass")
+    if run is None:
+        run = successful_build(read, latest["id"], repository, branch)
+    if (run["id"] != latest["id"] or run["head_sha"] != source or
+            run.get("run_attempt", 1) != latest.get("run_attempt", 1)):
+        raise StaleBuild("Use the latest successful Build of the current default-branch commit")
     return run
 
 
@@ -108,21 +119,32 @@ def plan_release(read, run_id, repository, branch, automatic=False):
         if automatic:
             return None, str(error) + "; automatic release skipped."
         raise
+    run_id = str(run["id"])
     source = run["head_sha"]
     version = source_text(read, "VERSION", source).strip()
-    version_key(version)
+    number = version_key(version)
+    if automatic and run["event"] != "push":
+        return None, "Manual Build runs do not automatically publish releases."
+
+    latest = optional(read, "releases/latest")
+    latest_number = None
+    if latest is not None:
+        latest_tag = latest.get("tag_name", "")
+        if not latest_tag.startswith("v"):
+            raise ValueError("The latest published release must have a stable version tag")
+        latest_number = version_key(latest_tag[1:])
     if automatic:
-        if run["event"] != "push":
-            return None, "Manual Build runs do not automatically publish releases."
         parents = read("commits/" + source)["parents"]
         previous = source_text(read, "VERSION", parents[0]["sha"], allow_missing=True) if parents else None
         if previous is None:
             return None, "VERSION baseline added; this does not publish an inherited release."
-        previous = previous.strip()
-        if version == previous:
-            return None, "VERSION did not change; no release is needed."
-        if version_key(version) <= version_key(previous):
+        previous_number = version_key(previous.strip())
+        if number < previous_number:
             raise ValueError("Automatic release versions must increase")
+        if latest_number is None and number == previous_number:
+            return None, "The first automatic release requires a VERSION bump."
+        if number == latest_number:
+            return None, f"Version {version} is already published."
     notes = release_notes(source_text(read, "CHANGELOG.md", source), version)
     tag = "v" + version
     target = tag_commit(read, tag)
@@ -136,11 +158,8 @@ def plan_release(read, run_id, repository, branch, automatic=False):
     marker = "<!-- onetagger-release:" + source + " -->"
     if existing is not None and (target != source or marker not in (existing.get("body") or "")):
         raise ValueError("Existing draft is not an automation draft for this source")
-    latest = optional(read, "releases/latest")
-    if latest is not None:
-        latest_tag = latest.get("tag_name", "")
-        if not latest_tag.startswith("v") or version_key(version) <= version_key(latest_tag[1:]):
-            raise ValueError("The release must be newer than the latest published version")
+    if latest_number is not None and number <= latest_number:
+        raise ValueError("The release must be newer than the latest published version")
     rows = read(f"actions/runs/{run_id}/artifacts?per_page=100")["artifacts"]
     expected = {"onetagger-" + platform for platform in PACKAGES}
     artifacts = [a for a in rows if a["name"] in expected]
@@ -151,7 +170,7 @@ def plan_release(read, run_id, repository, branch, automatic=False):
         origin = artifact.get("workflow_run", {})
         if origin.get("id") != int(run_id) or origin.get("head_sha") != source:
             raise ValueError("Artifact does not belong to the validated source run")
-    return {"version": version, "tag": tag, "source": source, "run_id": str(run_id),
+    return {"version": version, "tag": tag, "source": source, "run_id": run_id,
             "artifact_ids": ",".join(str(int(a["id"])) for a in sorted(artifacts, key=lambda a: a["name"])),
             "notes": notes, "marker": marker}, "Validated release " + tag
 
@@ -234,8 +253,13 @@ def main():
     if os.environ["GITHUB_REF"] != "refs/heads/" + branch:
         raise ValueError("Run release automation from the default branch only")
     api = GitHub(repo)
-    plan, reason = plan_release(api, os.environ["BUILD_RUN_ID"], repo, branch,
-                                automatic=args.command == "plan" and os.environ.get("AUTOMATIC_RELEASE") == "true")
+    run_id = os.environ.get("BUILD_RUN_ID", "").strip()
+    automatic = args.command == "plan" and os.environ.get("AUTOMATIC_RELEASE") == "true"
+    if args.command == "publish" and not run_id:
+        raise ValueError("Publication requires the Build run selected by the release plan")
+    if automatic and not run_id:
+        raise ValueError("An automatic release requires its triggering Build run ID")
+    plan, reason = plan_release(api, run_id, repo, branch, automatic=automatic)
     if args.command == "plan":
         with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
             output.write("release=" + str(plan is not None).lower() + "\n")
