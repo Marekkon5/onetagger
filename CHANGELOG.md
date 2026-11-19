@@ -1,5 +1,23 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.1 — 2026-11-19
+
+### AutoTagger
+
+- Use the displayed order of enabled provider cards for each track's search priority. Drag cards to change priority. Re-enabling a provider uses its current position.
+- Apply **Skip tagged** using the marker first read for each file. Multiplatform and album tagging can continue after the current run writes its own marker. Files with an existing AutoTagger marker are skipped before forced Shazam recognition.
+
+### Windows
+
+- Reduce the installer download by about 64% in GitHub builds by removing the bundled Visual C++ Redistributable. Reuse an installed WebView2 Runtime and run the bootstrapper when needed.
+- Verify executable versions and exercise silent installation and uninstallation in GitHub CI.
+
+### Dependencies
+
+- Update the locked Tokio version to 1.54.1.
+
+[Full changes since v2.1.0](https://github.com/fantuz/onetagger/compare/v2.1.0...v2.1.1)
+
 ## 2.1.0 — 2026-11-19
 
 OneTagger now offers 14 interface languages in the desktop app and browser mode.
