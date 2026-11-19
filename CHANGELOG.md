@@ -1,5 +1,11 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.3 — 2026-11-19
+
+Maintenance release updating the application, CLI, Windows installer and macOS bundle versions. This repackages [v2.1.2](https://github.com/fantuz/onetagger/releases/tag/v2.1.2) without application or third-party dependency changes.
+
+[Full changes since v2.1.2](https://github.com/fantuz/onetagger/compare/v2.1.2...v2.1.3)
+
 ## 2.1.2 — 2026-11-19
 
 ### AutoTagger
