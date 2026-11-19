@@ -3,28 +3,29 @@
         <q-layout view="hHh lpR fFf" class="bg-background">
             <!-- Header -->
             <q-header class="bg-darker text-white" height-hint="98">
-                <q-toolbar class="row justify-between">
-                    <div class="col-2 row" style="height: 58px">
+                <q-toolbar class="row no-wrap">
+                    <div class="col-auto row no-wrap" style="height: 58px">
                         <img src="./assets/icon.png" height="42" @click="home" class="logo q-mt-sm" :class="{ spin: $1t.lock.value.locked }" />
                         <LogoText class='q-mt-sm q-ml-xs'></LogoText>
                     </div>
                     
-                    <div class="col-8">
+                    <div class="col" style="min-width: 0">
                         <q-tabs style="padding-top: 8px">
-                            <q-route-tab aria-label="Home" :disable="$1t.lock.value.locked" to="/" class="text-weight-bolder" @click="hideSide">
+                            <q-route-tab :aria-label="t('common.home')" :disable="$1t.lock.value.locked" data-testid="nav-home" to="/" class="text-weight-bolder" @click="hideSide">
                                 <q-icon name="mdi-home" size="sm"></q-icon>
                             </q-route-tab>
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/autotagger" class="text-weight-bolder" @click="hideSide" >Auto tag</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/audiofeatures" class="text-weight-bolder" @click="audioFeatures" >Audio features</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/quicktag" class="text-weight-bolder" @click="showSide" >Quick Tag</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/tageditor" class="text-weight-bolder" @click="hideSide" >Edit Tags</q-route-tab >
-                            <q-route-tab :disable="$1t.lock.value.locked" to="/renamer" class="text-weight-bolder" @click="hideSide" >Auto Rename</q-route-tab>
+                            <q-route-tab :disable="$1t.lock.value.locked" data-testid="nav-autotagger" to="/autotagger" class="text-weight-bolder" @click="hideSide" >{{ t('common.autoTag') }}</q-route-tab >
+                            <q-route-tab :disable="$1t.lock.value.locked" data-testid="nav-audiofeatures" to="/audiofeatures" class="text-weight-bolder" @click="audioFeatures" >{{ t('common.audioFeatures') }}</q-route-tab >
+                            <q-route-tab :disable="$1t.lock.value.locked" data-testid="nav-quicktag" to="/quicktag" class="text-weight-bolder" @click="showSide" >{{ t('common.quickTag') }}</q-route-tab >
+                            <q-route-tab :disable="$1t.lock.value.locked" data-testid="nav-tageditor" to="/tageditor" class="text-weight-bolder" @click="hideSide" >{{ t('common.editTags') }}</q-route-tab >
+                            <q-route-tab :disable="$1t.lock.value.locked" data-testid="nav-renamer" to="/renamer" class="text-weight-bolder" @click="hideSide" >{{ t('common.autoRename') }}</q-route-tab>
                         </q-tabs>
                     </div>
 
                     <!-- Settings -->
-                    <div class="col-2 row justify-end items-center">
-                        <q-btn flat round dense icon="mdi-cog" @click="settings = true" ></q-btn>
+                    <div class="col-auto row no-wrap justify-end items-center">
+                        <LanguageSelector compact class="q-mr-sm" />
+                        <q-btn data-testid="settings-open" :aria-label="t('common.settings')" flat round dense icon="mdi-cog" @click="settings = true" ></q-btn>
                     </div>
                 </q-toolbar>
             </q-header>
@@ -79,11 +80,10 @@
         <q-dialog v-model="sizeDialog" persistent>
             <q-card>
                 <q-card-section>
-                    <div class="text-h6">Warning</div>
+                    <div class="text-h6">{{ t('common.warning') }}</div>
                 </q-card-section>
                 <q-card-section>
-                    One Tagger requires atleast 1200x550 window size. Please
-                    resize to continue.
+                    {{ t('common.resizeWarning') }}
                 </q-card-section>
             </q-card>
         </q-dialog>
@@ -92,7 +92,7 @@
         <q-dialog v-model="updateDialog">
             <q-card v-if="update">
                 <q-card-section class="text-center">
-                    <div class="text-h5">New update available!</div>
+                    <div class="text-h5">{{ t('common.updateAvailable') }}</div>
                 </q-card-section>
                 <q-card-section>
                     <div class="text-center">
@@ -104,7 +104,7 @@
                     </div>
                 </q-card-section>
                 <q-card-section class="justify-center row">
-                    <q-btn color="primary" class="text-black" @click="$1t.url(update!.url)" > Download </q-btn>
+                    <q-btn color="primary" class="text-black" @click="$1t.url(update!.url)" > {{ t('common.download') }} </q-btn>
                 </q-card-section>
             </q-card>
         </q-dialog>
@@ -117,6 +117,9 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import axios from 'axios';
 
 import { compareVersions } from 'compare-versions';
@@ -127,6 +130,7 @@ import { get1t } from "./scripts/onetagger.js";
 
 import HelpButton from './components/HelpButton.vue';
 import Settings from './components/Settings.vue';
+import LanguageSelector from './components/LanguageSelector.vue';
 import QuickTagRight from './components/QuickTagRight.vue';
 import QuickTagGenreBar from './components/QuickTagGenreBar.vue';
 import QuickTagMoods from './components/QuickTagMoods.vue';
@@ -201,12 +205,12 @@ async function checkUpdates() {
     if (compareVersions(data.version, $1t.info.value.version) == 1) {
         update.value = data;
         $q.notify({
-            message: `New update available (${data.version})!`,
+            message: t('common.updateVersion', { version: data.version }),
             timeout: 10000,
             progress: true,
             actions: [
                 {
-                    label: "Show",
+                    label: t('common.show'),
                     handler: () => {
                         updateDialog.value = true;
                     },
@@ -309,10 +313,6 @@ watch(() => router.currentRoute.value.path, (path) => {
     animation: rotation 2s infinite linear;
 }
 
-/* Hide tabs arrow */
-.q-tabs__arrow { 
-    opacity: 0 !important;
-}
 .q-tab__indicator {
     background-color: var(--q-primary) !important;
     color: var(--q-primary) !important;

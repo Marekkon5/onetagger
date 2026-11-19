@@ -3,33 +3,20 @@
 
     <!-- Login -->
     <div v-if='!$1t.spotify.value.authorized' class='af-content'>
-        <div class='text-subtitle2 text-bold text-primary q-mt-lg'>SETUP</div>
+        <div class='text-subtitle2 text-bold text-primary q-mt-lg'>{{ t('tools.setup') }}</div>
         <SpotifyLogin></SpotifyLogin>
         <!-- Description -->
-        <div class='q-mt-xl text-subtitle2 text-grey-6' style='line-height: 24px'>
-            Automatically tag your local audio files, with so called audio features by Spotify, based on <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>ISRC</span></q-badge> tag or exact match.<br>
-            More info?<span class='q-px-sm text-caption text-bold click-highlight'>CLICK</span> 
-            <span class="text-weight-bold text-caption q-pl-xs">
-                <q-icon style='padding-bottom: 3px;' name='mdi-help-circle-outline'></q-icon> 
-                HELP
-            </span> 
-            on the right <br>            
-        </div>
+        <div class='q-mt-xl text-subtitle2 text-grey-6' style='line-height: 24px'>{{ t('tools.audioFeaturesDescription') }}</div>
     </div>
 
     <!-- Logged in -->
     <div v-if='$1t.spotify.value.authorized' class='af-content'>
         <!-- Path -->
-        <div class='text-subtitle2 text-bold text-primary q-mt-lg'>SELECT INPUT</div>
-        <div class='text-subtitle2 q-mb-md text-grey-6'>
-            Drag & drop folder, copy/paste path directly or<span class='q-px-sm text-caption text-bold click-highlight'>CLICK</span>  
-            the 
-            <q-icon name='mdi-open-in-app'></q-icon> 
-            icon to browse
-        </div>
+        <div class='text-subtitle2 text-bold text-primary q-mt-lg'>{{ t('tools.selectInput') }}</div>
+        <div class='text-subtitle2 q-mb-md text-grey-6'>{{ t('tools.browseHint') }}</div>
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
             <div class='col-1'></div>
-            <q-input filled class='col-10' label='Path' v-model='config.path'>
+            <q-input filled class='col-10' :label="t('tools.path')" v-model='config.path'>
                 <template v-slot:append>
                     <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
                 </template>
@@ -37,7 +24,7 @@
 
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='path-tooltip q-mx-sm q-pt-md q-mt-xs'>
-                    <q-tooltip>Subfolders are included</q-tooltip>
+                    <q-tooltip>{{ t('tools.subfoldersIncluded') }}</q-tooltip>
                 </q-icon>
             </div>
         </div>
@@ -52,35 +39,35 @@
                     
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='playlist-tooltip q-mx-sm q-mt-xl q-pt-sm'>
-                    <q-tooltip>.m3u and .m3u8 extensions are supported</q-tooltip>
+                    <q-tooltip>{{ t('tools.playlistExtensions') }}</q-tooltip>
                 </q-icon>
             </div>
         </div>
 
         <!-- Main tag -->
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 16px; margin-bottom: 35px"' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>PROMINENT TAG</div>
-        <div class='text-subtitle2 text-grey-6'>Converts most prominent audio features value 0-100 to a description - based on threshold - and writes to selected tag frame</div>
-        <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-4'>e.g. #dance-high, #energy-med, #vocal-low, #positive, #popular</div>
+        <div class='text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.prominentTag') }}</div>
+        <div class='text-subtitle2 text-grey-6'>{{ t('tools.prominentDescription') }}</div>
+        <div class='text-subtitle2 q-mt-xs q-mb-md text-grey-4'>{{ t('tools.featureExamples') }}</div>
 
         <TagFields style='max-width: 550px; margin: auto;' v-model='config.mainTag'></TagFields>
 
         <!-- Values -->
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 20px; margin-bottom: 35px"' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>PROPERTIES</div>
+        <div class='text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.properties') }}</div>
         <div class='q-px-xl'>
             <!-- Header -->
             <div class='row text-subtitle3 text-weight-medium q-mb-md text-grey-6'>
-                <div class='col-1'>Include
+                <div class='col-1'>{{ t('tools.include') }}
                     <q-icon name='mdi-help-circle-outline' class='q-ml-xs q-mb-xs'>
                         <q-tooltip>
-                            Include the audio feature in Prominent tag
+                            {{ t('tools.includeFeature') }}
                         </q-tooltip>
                     </q-icon>
                 </div>
-                <div class='col-2'>Audio feature</div>
-                <div class='col-6'>Tag frame</div>
-                <div class='col-3'>Threshold</div>
+                <div class='col-2'>{{ t('tools.audioFeature') }}</div>
+                <div class='col-6'>{{ t('tools.tagFrame') }}</div>
+                <div class='col-3'>{{ t('tools.threshold') }}</div>
             </div>
 
             <div v-for='(_, key, i) in config.properties' :key='"P"+i'>
@@ -91,7 +78,7 @@
                     </div>
                     <!-- Title -->
                     <div class='col-2'>
-                        <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>{{key}}</span></q-badge>
+                        <q-badge outline color='primary'><span class='text-uppercase text-grey-3'>{{ featureLabel(String(key)) }}</span></q-badge>
                     </div>
                     <!-- Tags -->
                     <div class='col-6'>
@@ -114,19 +101,19 @@
 
         <!-- Separators -->
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 20px; margin-bottom: 35px"' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin'>SEPARATORS</div>
+        <div class='text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.separators') }}</div>
         <div class='row q-pb-md q-mt-sm justify-center'>            
             <Separators v-model='config.separators'></Separators>
         </div>
 
         <!-- Advanced -->
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 8px; margin-bottom: 35px"' inset color="dark"/>
-        <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>OPTIONS</div>
+        <div class='text-subtitle2 text-bold text-primary custom-margin' style='margin-bottom: 8px;'>{{ t('tools.options') }}</div>
 
         <div class='column flex-center'>
-            <q-toggle class='justify-between' style='width: 200px;' label='Write OneTagger meta tag' left-label v-model='config.metaTag'></q-toggle>
-            <q-toggle class='justify-between' style='width: 200px;' label='Skip already tagged tracks' left-label v-model='config.skipTagged'></q-toggle>
-            <q-toggle class='justify-between' style='width: 200px;' label='Include subfolders' left-label v-model='config.includeSubfolders'></q-toggle>
+            <q-toggle class='justify-between' style='width: min(100%, 380px);' :label="t('tools.metaTag')" left-label v-model='config.metaTag'></q-toggle>
+            <q-toggle class='justify-between' style='width: min(100%, 380px);' :label="t('tools.skipTagged')" left-label v-model='config.skipTagged'></q-toggle>
+            <q-toggle class='justify-between' style='width: min(100%, 380px);' :label="t('tools.includeSubfolders')" left-label v-model='config.includeSubfolders'></q-toggle>
         </div>
         
 
@@ -139,7 +126,7 @@
                 <div class='q-mr-md q-mt-md'>
                     <q-btn class='bg-grey-9' flat round icon='mdi-console' color='grey-4' @click='cliDialog = true'>
                         <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                            <span class='text-weight-medium'>CLI Version Config</span>
+                            <span class='text-weight-medium'>{{ t('tools.cliConfig') }}</span>
                         </q-tooltip>
                     </q-btn>
                 </div>
@@ -155,7 +142,7 @@
                         @click='start'                
                     >
                         <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                            <span class='text-weight-medium'>START</span>
+                            <span class='text-weight-medium'>{{ t('tools.startUpper') }}</span>
                         </q-tooltip>
                     </q-btn>
                 </div>
@@ -173,6 +160,8 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import TagFields from '../components/TagFields.vue';
 import PlaylistDropZone from '../components/PlaylistDropZone.vue';
 import Separators from '../components/Separators.vue';
@@ -183,6 +172,9 @@ import { onMounted, ref } from 'vue';
 import { AudioFeaturesConfig } from '../scripts/settings';
 import { get1t } from '../scripts/onetagger';
 import { useRouter } from 'vue-router';
+
+const featureKeys: Record<string, string> = { acousticness: 'featureAcousticness', danceability: 'featureDanceability', energy: 'featureEnergy', instrumentalness: 'featureInstrumentalness', liveness: 'featureLiveness', speechiness: 'featureSpeechiness', valence: 'featureValence', popularity: 'featurePopularity' };
+function featureLabel(key: string): string { return Object.hasOwn(featureKeys, key) ? t('tools.' + featureKeys[key]) : key; }
 
 const $1t = get1t();
 const $router = useRouter();

@@ -1,0 +1,23 @@
+{
+  "language": "Lingua",
+  "languageHelp": "La lingua viene salvata per questo browser o questa finestra desktop.",
+  "unexpectedError": "Si è verificato un errore imprevisto.",
+  "invalidSession": "Questo collegamento di sessione OneTagger non è valido o è scaduto.",
+  "sessionLinkRequired": "Apri OneTagger usando il collegamento di sessione mostrato dall’applicazione in esecuzione.",
+  "websocketError": "Errore WebSocket!",
+  "websocketClosed": "Connessione WebSocket chiusa!",
+  "error": "Errore",
+  "reportSaveFailed": "Impossibile salvare il rapporto dei risultati",
+  "moveFailed": "Impossibile spostare alcuni file",
+  "platformInstalled": "Piattaforma installata",
+  "platformInstallFailed": "Installazione della piattaforma non riuscita",
+  "platformInstallSuccess": "Piattaforma installata correttamente. Premi OK per continuare.",
+  "settingsSaved": "Impostazioni salvate!",
+  "invalidProfile": "Profilo non valido",
+  "loadingPlatforms": "Caricamento delle piattaforme...",
+  "stopNotAcknowledged": "L’arresto non è stato confermato. Riprova.",
+  "invalidStopAcknowledgement": "Conferma di arresto non valida",
+  "stopSendFailed": "Impossibile inviare il comando di arresto. Riprova.",
+  "stopConnectionClosed": "Connessione chiusa prima della conferma di arresto. Riprova.",
+  "trackSaved": "Brano salvato!"
+}

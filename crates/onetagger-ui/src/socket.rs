@@ -23,6 +23,7 @@ use crate::StartContext;
 use crate::quicktag::{QuickTag, QuickTagFile, QuickTagData};
 use crate::tageditor::TagEditor;
 use crate::browser::{FileBrowser, FolderBrowser};
+use crate::messages::{localized, request_error, UiMessage, UserError};
 
 // STOP_TAGGING is shared by the engines. A second browser tab must not reset
 // that flag while another run is stopping or finishing its result files.
@@ -31,7 +32,7 @@ struct TaggingLease<'a>(&'a AtomicBool);
 impl<'a> TaggingLease<'a> {
     fn acquire(active: &'a AtomicBool) -> Result<Self, Error> {
         active.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-            .map_err(|_| anyhow!("A tagging run is already active; wait for it to finish"))?;
+            .map_err(|_| UserError::TaggingAlreadyActive)?;
         Ok(Self(active))
     }
 }
@@ -190,10 +191,7 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
                             Err(err) => {
                                 // Send error to UI
                                 error!("Websocket command failed: {:?}", err);
-                                send_socket(&mut websocket, json!({
-                                    "action": "error",
-                                    "message": &format!("{}", err)
-                                })).await.ok();
+                                send_socket(&mut websocket, request_error(&err)).await.ok();
                             }
                         }
                     },
@@ -236,9 +234,10 @@ fn tag_editor_save_response(changes: &TagChanges, request_id: Option<String>) ->
             "requestId": request_id, "path": changes.path }),
         Err(error) => {
             warn!("Tag editor save failed: {error:#}");
-            json!({ "action": if request_id.is_some() { "tagEditorSave" } else { "error" },
+            localized(json!({ "action": if request_id.is_some() { "tagEditorSave" } else { "error" },
                 "status": "error", "requestId": request_id, "path": changes.path,
-                "message": format!("{error:#}") })
+                "message": format!("{error:#}") }),
+                UiMessage::TagEditorSaveFailed { detail: format!("{error:#}") })
         }
     }
 }
@@ -309,10 +308,10 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 "Save playlist"
             ) {
                 std::fs::write(&path, playlist)?;
-                send_socket(websocket, json!({
+                send_socket(websocket, localized(json!({
                     "action": "notify",
                     "message": format!("Playlist saved to: {path}")
-                })).await.ok();
+                }), UiMessage::PlaylistSaved { path })).await.ok();
             }
         }
 
@@ -376,7 +375,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                     ("autoTagger", rx)
                 },
                 TaggerConfigs::AudioFeatures(c) => {
-                    if report || selection.is_some() { return Err(anyhow!("Results reports require AutoTagger")); }
+                    if report || selection.is_some() { return Err(UserError::ReportsRequireAutoTagger.into()); }
                     if files.is_empty() {
                         let path = c.path.as_ref().map(|i| i.to_owned()).unwrap_or_default().to_owned();
                         files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
@@ -384,7 +383,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                         file_count = files.len();
                     }
                     // Authorize spotify
-                    let spotify = context.spotify.as_ref().ok_or(anyhow!("Spotify unauthorized!"))?.to_owned().to_owned();
+                    let spotify = context.spotify.as_ref().ok_or(UserError::SpotifyUnauthorized)?.to_owned().to_owned();
                     let rx = AudioFeatures::start_tagging(c.clone(), spotify, files);
                     ("audioFeatures", rx)
                 },
@@ -652,12 +651,12 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                         })).await.ok();
                     },
                     Err(e) => {
-                        send_socket(websocket, json!({
+                        send_socket(websocket, localized(json!({
                             "action": "manualTag",
                             "platform": platform,
                             "status": "error",
                             "error": e.to_string()
-                        })).await.ok();
+                        }), UiMessage::ManualTagFailed { detail: e.to_string() })).await.ok();
                     },
                 }
             }
@@ -678,11 +677,11 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 },
                 Err(e) => {
                     error!("Failed applying manual tag: {e}");
-                    send_socket(websocket, json!({
+                    send_socket(websocket, localized(json!({
                         "action": "manualTagApplied",
                         "status": "error",
                         "error": e.to_string()
-                    })).await.ok();
+                    }), UiMessage::ManualTagApplyFailed { detail: e.to_string() })).await.ok();
                 },
             }
         },
@@ -702,11 +701,11 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 })).await.ok(),
                 Err(e) => {
                     error!("Failed installing platform {id}@{version}: {e}");
-                    send_socket(websocket, json!({
+                    send_socket(websocket, localized(json!({
                         "action": "installPlatform",
                         "status": "error",
                         "error": e.to_string()
-                    })).await.ok()
+                    }), UiMessage::PlatformInstallFailed { detail: e.to_string() })).await.ok()
                 },
             };
         },
@@ -726,7 +725,9 @@ mod save_tests {
     fn overlapping_runs_cannot_reset_cancellation_and_lease_releases() {
         let active = AtomicBool::new(false);
         let first = TaggingLease::acquire(&active).unwrap();
-        assert!(TaggingLease::acquire(&active).is_err());
+        let error = TaggingLease::acquire(&active).err().unwrap();
+        assert!(error.downcast_ref::<UserError>().is_some());
+        assert_eq!(request_error(&error)["messageKey"], "backend.taggingAlreadyActive");
         drop(first);
         assert!(TaggingLease::acquire(&active).is_ok());
         assert!(!active.load(Ordering::SeqCst));
@@ -768,6 +769,8 @@ mod save_tests {
             assert_eq!(response["requestId"], json!(id));
             assert_eq!(response["path"], json!(path));
             assert!(!response["message"].as_str().unwrap().is_empty());
+            assert_eq!(response["messageKey"], "backend.tagEditorSaveFailed");
+            assert_eq!(response["messageArgs"]["detail"], response["message"]);
             assert_eq!(std::fs::read(&path).unwrap(), original);
         }
     }

@@ -3,34 +3,34 @@
 <q-card class='dev-tools-card'>
     <!-- Title -->
     <q-card-section>
-        <div class='text-subtitle1 text-bold text-center text-primary'>DEV TOOLS</div>
+        <div class='text-subtitle1 text-bold text-center text-primary'>{{ t('common.developerTools') }}</div>
     </q-card-section>
 
     <!-- Body -->
     <q-card-section class='text-body2'>
-        <div>Version: <span class='monospace'>{{ $1t.info.value.version }}</span></div>
-        <div>Commit: <span class='monospace'>{{ $1t.info.value.commit }}</span></div>
-        <div>OS: <span class='monospace'>{{ $1t.info.value.os }}</span></div>
-        <div>Custom Platforms: <span class='monospace'>{{ $1t.info.value.platforms.filter(p => !p.builtIn).map(p => p.platform.id) }}</span></div>
-        <div>Data Directory: <span class='monospace'>{{ $1t.info.value.dataDir }}</span></div>
-        <div>Working Directory: <span class='monospace'>{{ $1t.info.value.workDir }}</span></div>
-        <div>Start Context: <span class='monospace'>{{ $1t.info.value.startContext }}</span></div>
-        <div>Custom Platforms Compatibility: <span class='monospace'>{{ $1t.info.value.customPlatformCompat }}</span></div>
+        <div>{{ t('common.versionLabel') }} <span class='monospace'>{{ $1t.info.value.version }}</span></div>
+        <div>{{ t('common.commit') }} <span class='monospace'>{{ $1t.info.value.commit }}</span></div>
+        <div>{{ t('common.os') }} <span class='monospace'>{{ $1t.info.value.os }}</span></div>
+        <div>{{ t('common.customPlatformsLabel') }} <span class='monospace'>{{ $1t.info.value.platforms.filter(p => !p.builtIn).map(p => p.platform.id) }}</span></div>
+        <div>{{ t('common.dataDirectory') }} <span class='monospace'>{{ $1t.info.value.dataDir }}</span></div>
+        <div>{{ t('common.workingDirectory') }} <span class='monospace'>{{ $1t.info.value.workDir }}</span></div>
+        <div>{{ t('common.startContext') }} <span class='monospace'>{{ $1t.info.value.startContext }}</span></div>
+        <div>{{ t('common.platformCompat') }} <span class='monospace'>{{ $1t.info.value.customPlatformCompat }}</span></div>
         <div>
-            <q-checkbox @update:model-value="(v: any) => {$1t.settings.value.devtools = v; $1t.saveSettings(true)}" :model-value='$1t.settings.value.devtools' label='Enable webview devtools (requires restart)'></q-checkbox>
+            <q-checkbox @update:model-value="(v: any) => {$1t.settings.value.devtools = v; $1t.saveSettings(true)}" :model-value='$1t.settings.value.devtools' :label="t('common.enableWebDevTools')"></q-checkbox>
         </div>
 
         <!-- Actions -->
         <div class='q-my-sm'></div>
-        <q-btn class='q-mr-sm' outline color='primary' @click='reload()'>Reload</q-btn>
-        <q-btn class='q-mx-sm' outline color='primary' @click='devServer()'>Go to dev server</q-btn>
-        <q-btn class='q-mx-sm' outline color='primary' @click='devtools()'>Open webview devtools</q-btn>
-        <q-btn class='q-mx-sm' outline color='primary' @click='$1t.send("openSettingsFolder")'>Open data dir</q-btn>
+        <q-btn class='q-mr-sm' outline color='primary' @click='reload()'>{{ t('common.reload') }}</q-btn>
+        <q-btn class='q-mx-sm' outline color='primary' @click='devServer()'>{{ t('common.devServer') }}</q-btn>
+        <q-btn class='q-mx-sm' outline color='primary' @click='devtools()'>{{ t('common.openWebDevTools') }}</q-btn>
+        <q-btn class='q-mx-sm' outline color='primary' @click='$1t.send("openSettingsFolder")'>{{ t('common.openDataFolder') }}</q-btn>
         <div class='q-my-sm'></div>
 
         <!-- Log -->
         <div class='q-py-sm text-bold monospace'>
-            Log:
+            {{ t('common.log') }}
         </div>
         <q-virtual-scroll ref='logRef' :items='log' v-slot='{ item, index }' style='max-height: calc(100vh - 480px);'>
             <div :key='index'>
@@ -44,8 +44,8 @@
             </div>
         </q-virtual-scroll>
         <div class='q-pt-sm row'>
-            <div class='q-mt-xs q-pt-xs text-bold text-primary clickable monospace' @click='fullLog = !fullLog'>SHOW FULL</div>
-            <div class='q-mt-xs q-pt-xs text-bold q-ml-md text-primary clickable monospace' @click='logBottom()'>TO BOTTOM</div>
+            <div class='q-mt-xs q-pt-xs text-bold text-primary clickable monospace' @click='fullLog = !fullLog'>{{ t('common.showFull') }}</div>
+            <div class='q-mt-xs q-pt-xs text-bold q-ml-md text-primary clickable monospace' @click='logBottom()'>{{ t('common.bottom') }}</div>
             <!-- Filter -->
             <q-checkbox
                 v-for='level in levels'
@@ -64,6 +64,9 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import { useDialogPluginComponent, useQuasar } from 'quasar';
 import { get1t } from '../scripts/onetagger';
 import { computed, onMounted, ref } from 'vue';

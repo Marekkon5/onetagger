@@ -12,7 +12,7 @@
             :class='{"albumart-darker": drag}'
         >
             <div v-show='drag' class='text-h6 full-height row justify-center items-center text-center'>
-                Drop the image to replace
+                {{ t('tools.replaceImage') }}
             </div>
         </q-img>
     </div>
@@ -20,15 +20,18 @@
 
     <!-- Meta -->
     <div class='q-pt-sm q-mb-md'>
-        <div class='text-caption'>{{image.kind}}</div>
+        <div class='text-caption'>{{coverLabel(image.kind)}}</div>
         <div class='text-caption'>{{image.description}}</div>
         <div class='text-subtitle3 text-grey-6 monospace'>{{image.mime}} {{image.width}}x{{image.height}}</div>
-        <q-btn dense push color='red' class='rounded-borders q-px-md q-mt-sm text-weight-medium' @click='emit("remove")'>Remove</q-btn>
+        <q-btn dense push color='red' class='rounded-borders q-px-md q-mt-sm text-weight-medium' @click='emit("remove")'>{{ t('tools.remove') }}</q-btn>
     </div>
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { PropType, ref } from 'vue';
+import { coverLabel } from '../scripts/tags';
 import type { TagEditorImage } from '../scripts/tags';
 
 const { image } = defineProps({ image: { type: Object as PropType<TagEditorImage>, required: true }});

@@ -1,59 +1,63 @@
-const ABSTRACTIONS: Record<string, string> = {
-    "TIT2": "Title",
-    "TCON": "Genre",
-    "TALB": "Album",
-    "TPE2": "Album Artist",
-    "TCOM": "Composer",
-    "TEXT": "Lyricist",
-    "TIT3": "Mix Name",
-    "TOPE": "Original Artist",
-    "TIT1": "Content Group",
-    "GRP1": "Grouping iTunes",
-    "TPUB": "Label",
-    "TPE4": "Remixer",
-    "IPLS": "Producer ID3v2.3",
-    "TIPL": "Producer ID3v2.4",
-    "TPE3": "Conductor",
-    "TBPM": "BPM",
-    "TCOP": "Copyright",
-    "TDAT": "Release Date",
-    "TDOR": "Original Year",
-    "TDRL": "Releasetime",
-    "TKEY": "Key",
-    "TLEN": "Length",
-    "TMOO": "Mood",
-    "TPE1": "Artist",
-    "TPOS": "Discnumber",
-    "TRCK": "Tracknumber",
-    "TSRC": "ISRC",
-    "TYER": "Year",
-    "TDRC": "Date Recorded",
-    "©alb": "Album",
-    "aART": "Album Artist",
-    "tmpo": "BPM",
-    "©cmt": "Comment",
-    "cpil": "Compilation iTunes",
-    "©wrt": "Composer",
-    "cond": "Conductor",
-    "cprt": "Copyright",
-    "©day": "Year/Date",
-    "desc": "Description",
-    "disk": "Disk Number",
-    "©too": "Encoded By",
-    "©gen": "Genre",
-    "©ART": "Artist",
-    "©lyr": "Lyrics",
-    "©grp": "Grouping",
-    "©ope": "Original Artist",
-    "©wrk": "Work",
-    "soaa": "Album Artist Sort Order",
-    "soal": "Album Sort Order",
-    "soar": "Artist Sort Order",
-    "soco": "Composer Sort Order",
-    "MVNM": "Movement Name",
-    "©prd": "(Producer)",
-    "©mvn": "(Movement Name)",
-    "©nam": "(Title)"
+import { translate } from '../i18n';
+
+const TAG_LABEL_KEYS: Record<string, string> = {
+    "TIT2": 'title',
+    "TCON": 'genre',
+    "TALB": 'album',
+    "TPE2": 'albumArtist',
+    "TCOM": 'composer',
+    "TEXT": 'lyricist',
+    "TIT3": 'mixName',
+    "TOPE": 'originalArtist',
+    "TIT1": 'contentGroup',
+    "GRP1": 'groupingItunes',
+    "TPUB": 'label',
+    "TPE4": 'remixer',
+    "IPLS": 'producer23',
+    "TIPL": 'producer24',
+    "TPE3": 'conductor',
+    "TBPM": 'bpm',
+    "TCOP": 'copyright',
+    "TDAT": 'releaseDate',
+    "TDOR": 'originalYear',
+    "TDRL": 'releaseTime',
+    "TKEY": 'key',
+    "TLEN": 'length',
+    "TMOO": 'mood',
+    "TPE1": 'artist',
+    "TPOS": 'discNumber',
+    "TRCK": 'trackNumber',
+    "TSRC": 'isrc',
+    "TYER": 'year',
+    "TDRC": 'recordedDate',
+    "COMM": 'comment',
+    "USLT": 'unsynchronizedLyrics',
+    "©alb": 'album',
+    "aART": 'albumArtist',
+    "tmpo": 'bpm',
+    "©cmt": 'comment',
+    "cpil": 'compilationItunes',
+    "©wrt": 'composer',
+    "cond": 'conductor',
+    "cprt": 'copyright',
+    "©day": 'yearDate',
+    "desc": 'description',
+    "disk": 'diskNumber',
+    "©too": 'encodedBy',
+    "©gen": 'genre',
+    "©ART": 'artist',
+    "©lyr": 'lyrics',
+    "©grp": 'grouping',
+    "©ope": 'originalArtist',
+    "©wrk": 'work',
+    "soaa": 'albumArtistSort',
+    "soal": 'albumSort',
+    "soar": 'artistSort',
+    "soco": 'composerSort',
+    "MVNM": 'movementName',
+    "©prd": 'producer',
+    "©mvn": 'movementName',
+    "©nam": 'title'
 };
 
 const MP4 = [
@@ -137,4 +141,32 @@ export interface ID3Comment {
     text: string;
 }
 
-export { ABSTRACTIONS, MP4, VORBIS, ID3 };
+/** Translate only the label; tag identifiers and stored values never change. */
+export function tagDescription(frame: string): string | undefined {
+    const key = Object.hasOwn(TAG_LABEL_KEYS, frame) ? TAG_LABEL_KEYS[frame] : undefined;
+    return key ? translate('tools.' + key) : undefined;
+}
+
+export function tagOptions(format: string): string[] {
+    const source = format === 'id3' ? ID3 : format === 'mp4' ? MP4 : format === 'vorbis' ? VORBIS : [];
+    return source.map(option => {
+        const match = option.match(/^(.{4}) \(.*\)$/u);
+        if (!match) return option;
+        const label = tagDescription(match[1]);
+        return label ? `${match[1]} (${label})` : option;
+    });
+}
+
+const COVER_LABEL_KEYS: Record<string, string> = {
+    CoverFront: 'coverFront', CoverBack: 'coverBack', Other: 'coverOther', Artist: 'artist',
+    Icon: 'coverIcon', OtherIcon: 'coverOtherIcon', Leaflet: 'coverLeaflet', Media: 'coverMedia',
+    LeadArtist: 'coverLeadArtist', Conductor: 'conductor', Band: 'coverBand', Composer: 'composer',
+    Lyricist: 'lyricist', RecordingLocation: 'coverRecordingLocation', DuringRecording: 'coverDuringRecording',
+    DuringPerformance: 'coverDuringPerformance', ScreenCapture: 'coverScreenCapture', BrightFish: 'coverBrightFish',
+    Illustration: 'coverIllustration', BandLogo: 'coverBandLogo', PublisherLogo: 'coverPublisherLogo',
+};
+export function coverLabel(kind: string): string {
+    return Object.hasOwn(COVER_LABEL_KEYS, kind) ? translate('tools.' + COVER_LABEL_KEYS[kind]) : kind;
+}
+
+export { MP4, VORBIS, ID3 };

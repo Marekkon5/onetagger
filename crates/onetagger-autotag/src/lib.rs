@@ -605,12 +605,74 @@ pub struct TaggingStatus {
     pub status: TaggingState,
     pub path: PathBuf,
     pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_args: Option<serde_json::Map<String, serde_json::Value>>,
     pub accuracy: Option<f64>,
     pub used_shazam: bool,
     pub release_id: Option<String>,
     #[serde(default)]
     pub track_id: Option<String>,
     pub reason: Option<MatchReason>
+}
+
+/// Application-owned status identity. Raw provider/OS details are arguments;
+/// they are never parsed for English text or treated as translation source.
+#[derive(Clone)]
+pub(crate) enum TaggingMessage {
+    AlreadyTagged,
+    AudioFeaturesAlreadyTagged,
+    NoMatch,
+    StoppedBeforeWriting,
+    NoAlbumMatch,
+    AlbumWriteFailed,
+    ShazamFailed(String),
+    FileLoadFailed(String),
+    TrackMatchFailed(String),
+    TrackWriteFailed(String),
+    AudioFeaturesWriteFailed(String),
+    AudioFeaturesSearchFailed(String),
+    ProviderWorkerPanicked,
+    ProviderInitializationPanicked,
+    ProviderInitializationFailed(String),
+    ProviderUnavailable(String),
+    ProviderPanickedTryingNext,
+}
+
+impl TaggingMessage {
+    fn describe(self) -> (String, &'static str, serde_json::Map<String, serde_json::Value>) {
+        let (message, key, argument) = match self {
+            Self::AlreadyTagged => ("Already tagged".into(), "backend.alreadyTagged", None),
+            Self::AudioFeaturesAlreadyTagged => ("Already tagged!".into(), "backend.alreadyTagged", None),
+            Self::NoMatch => ("No match!".into(), "backend.noMatch", None),
+            Self::StoppedBeforeWriting => ("Stopped before writing tags".into(), "backend.stoppedBeforeWriting", None),
+            Self::NoAlbumMatch => ("No album match for selected file".into(), "backend.noAlbumMatch", None),
+            Self::AlbumWriteFailed => ("Failed writing album tags".into(), "backend.albumWriteFailed", None),
+            Self::ShazamFailed(detail) => (format!("Error Shazaming file: {detail}"), "backend.shazamFailed", Some(("detail", detail))),
+            Self::FileLoadFailed(detail) => (format!("Error loading file: {detail}"), "backend.fileLoadFailed", Some(("detail", detail))),
+            Self::TrackMatchFailed(detail) => (format!("Error matching track: {detail}"), "backend.trackMatchFailed", Some(("detail", detail))),
+            Self::TrackWriteFailed(detail) => (format!("Failed writing tags to file: {detail}"), "backend.trackWriteFailed", Some(("detail", detail))),
+            Self::AudioFeaturesWriteFailed(detail) => (format!("Audio features failed writing to tag: {detail}"), "backend.audioFeaturesWriteFailed", Some(("detail", detail))),
+            Self::AudioFeaturesSearchFailed(detail) => (format!("Audio features search track by ISRC error: {detail}"), "backend.audioFeaturesSearchFailed", Some(("detail", detail))),
+            Self::ProviderWorkerPanicked => ("Provider worker panicked; source disabled for this run".into(), "backend.providerWorkerPanicked", None),
+            Self::ProviderInitializationPanicked => ("Provider initialization panicked".into(), "backend.providerInitializationPanicked", None),
+            Self::ProviderInitializationFailed(detail) => (format!("Could not initialize provider: {detail}"), "backend.providerInitializationFailed", Some(("detail", detail))),
+            Self::ProviderUnavailable(provider) => (format!("Provider unavailable: {provider}"), "backend.providerUnavailable", Some(("provider", provider))),
+            Self::ProviderPanickedTryingNext => ("Provider panicked; trying the next provider".into(), "backend.providerPanickedTryingNext", None),
+        };
+        let arguments = argument.into_iter().map(|(name, value)| (name.into(), serde_json::Value::String(value))).collect();
+        (message, key, arguments)
+    }
+}
+
+impl TaggingStatus {
+    pub(crate) fn set_message(&mut self, message: TaggingMessage) {
+        let (message, key, arguments) = message.describe();
+        self.message = Some(message);
+        self.message_key = Some(key.into());
+        self.message_args = Some(arguments);
+    }
 }
 
 /// Final outcomes are disjoint even when several providers fail before one succeeds.
@@ -894,6 +956,8 @@ impl Tagger {
             path: path.as_ref().to_owned(),
             accuracy: None,
             message: None,
+            message_key: None,
+            message_args: None,
             used_shazam: false,
             release_id: None,
             track_id: None,
@@ -920,7 +984,7 @@ impl Tagger {
                 },
                 Err(e) => {
                     out.status = TaggingState::Skipped;
-                    out.message = Some(format!("Error Shazaming file: {}", e));
+                    out.set_message(TaggingMessage::ShazamFailed(e.to_string()));
                     return (None, out);
                 }
             }
@@ -938,14 +1002,14 @@ impl Tagger {
                             // Mark as failed
                             Err(e) => {
                                 out.status = TaggingState::Skipped;
-                                out.message = Some(format!("Error loading file: {}", e));
+                                out.set_message(TaggingMessage::FileLoadFailed(e.to_string()));
                                 return (None, out);
                             }
                         }
                     } else {
                         out.status = TaggingState::Skipped;
                         warn!("Error loading file: {}", e);
-                        out.message = Some(format!("Error loading file: {}", e));
+                        out.set_message(TaggingMessage::FileLoadFailed(e.to_string()));
                         return (None, out);
                     }
                 }
@@ -956,7 +1020,7 @@ impl Tagger {
         if config.skip_tagged && info.tagged.at() {
             info!("Skipping (already tagged): {:?}", path.as_ref());
             out.status = TaggingState::Skipped;
-            out.message = Some("Already tagged".to_string());
+            out.set_message(TaggingMessage::AlreadyTagged);
             return (None, out);
         }
 
@@ -993,7 +1057,7 @@ impl Tagger {
         let mut tracks = match result {
             Ok(o) => {
                 if o.is_empty() {
-                    out.message = Some("No match!".to_owned());
+                    out.set_message(TaggingMessage::NoMatch);
                     return out;
                 }
                 o
@@ -1001,7 +1065,7 @@ impl Tagger {
             // Failed matching track
             Err(e) => {
                 error!("Matching error: {} ({:?})", e, path.as_ref());
-                out.message = Some(format!("Error matching track: {}", e));
+                out.set_message(TaggingMessage::TrackMatchFailed(e.to_string()));
                 return out;
             }
         };
@@ -1028,7 +1092,7 @@ impl Tagger {
             },
             Err(e) => {
                 error!("Failed writing tags to file: {e}");
-                out.message = Some(format!("Failed writing tags to file: {}", e));
+                out.set_message(TaggingMessage::TrackWriteFailed(e.to_string()));
             }
         }
 
@@ -1038,7 +1102,7 @@ impl Tagger {
     fn mark_cancelled(status: &mut TaggingStatus, cancelled: &impl Fn() -> bool) -> bool {
         if !cancelled() { return false; }
         status.status = TaggingState::Skipped;
-        status.message = Some("Stopped before writing tags".into());
+        status.set_message(TaggingMessage::StoppedBeforeWriting);
         true
     }
 
@@ -1181,7 +1245,7 @@ impl Tagger {
             let mut tracks = MatchingUtils::match_track(&info, &album.tracks, &config, false);
             MatchingUtils::sort_tracks(&mut tracks, &config);
             let Some(track) = tracks.into_iter().next() else {
-                status.message = Some("No album match for selected file".into());
+                status.set_message(TaggingMessage::NoAlbumMatch);
                 statuses.push(status);
                 continue;
             };
@@ -1195,7 +1259,7 @@ impl Tagger {
             }
             if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
                 status.status = TaggingState::Error;
-                status.message = Some("Failed writing album tags".into());
+                status.set_message(TaggingMessage::AlbumWriteFailed);
                 error!("Album tag writing tags failed: {e} ({})", file.display());
             } else {
                 status.status = TaggingState::Ok;

@@ -31,6 +31,8 @@ def main():
         session = None
         interactions = []
         layouts = []
+        localization = []
+        captured_errors = []
         with log.open('w') as output:
             driver = subprocess.Popen(['WebKitWebDriver', '--port='+str(port)], env=env,
                                       stdout=output, stderr=subprocess.STDOUT)
@@ -72,11 +74,16 @@ def main():
                             const hit=document.elementFromPoint(x,y);
                             return r.width && r.height && hit && e.contains(hit) ? {x,y} : null;"""
                         position = script(position_code, selector)
-                        # Scroll only the app's content panel. scrollIntoView can
-                        # move multiple ancestors during a route transition and
-                        # considers controls underneath the fixed header visible.
+                        # Scroll the relevant panel/tab strip only. scrollIntoView
+                        # can move several ancestors during a route transition
+                        # and considers controls under the fixed header visible.
                         if not position:
                             script("""const e=document.querySelector(arguments[0]);
+                                const tabs=e?.closest('.q-tabs__content');
+                                if(tabs){
+                                    const r=e.getBoundingClientRect(),t=tabs.getBoundingClientRect();
+                                    tabs.scrollLeft += (r.left+r.width/2)-(t.left+t.width/2);
+                                }
                                 const panel=e?.closest('.content');
                                 if(panel){
                                     const r=e.getBoundingClientRect(),p=panel.getBoundingClientRect();
@@ -118,25 +125,13 @@ def main():
                         # Wait for actual animated page transitions, never replace
                         # native input with a JavaScript click that bypasses hit tests.
                         time.sleep(.2)
-            try:
-                for _ in range(100):
-                    if driver.poll() is not None: raise RuntimeError('WebKitWebDriver exited')
-                    try: call('GET','/status'); break
-                    except URLError: time.sleep(.1)
-                value = call('POST','/session', {'capabilities':{'alwaysMatch':{
-                    'browserName':'wry', 'webkitgtk:browserOptions':{
-                        'binary':str(args.binary.resolve()), 'args':['--webdriver']}}}})
-                session = value['sessionId']
-                handles = command('/window/handles')
-                if not handles: raise AssertionError('Native application has no window')
-                command('/window', {'handle':handles[0]})
-                wait("return !!document.querySelector('a[href=\"#/autotagger\"]') && !document.body.innerText.includes('Loading platforms...')")
+            def install_probes():
                 script("""window.nativeErrors=[]; window.nativePointerEvents=[];
                     addEventListener('error',e=>nativeErrors.push(e.message));
                     addEventListener('unhandledrejection',e=>nativeErrors.push(String(e.reason)));
                     for (const type of ['pointerdown','pointerup','click']) {
                         document.addEventListener(type,e=>{
-                            const control=e.target.closest('.q-checkbox,a,.q-stepper__tab');
+                            const control=e.target.closest('.q-checkbox,a,.q-stepper__tab,[data-testid],[role=option]');
                             nativePointerEvents.push({type, trusted:e.isTrusted,
                                 intended:!!window.nativeClickTarget?.contains(e.target),
                                 label:control?.getAttribute('aria-label') || control?.innerText,
@@ -147,6 +142,44 @@ def main():
                                 active:document.activeElement?.outerHTML.slice(0,300)});
                         },true);
                     }""")
+            def capture_errors():
+                captured_errors.extend(script('return window.nativeErrors || []'))
+                if captured_errors:
+                    raise AssertionError('Native JavaScript errors: '+repr(captured_errors))
+            def select_language(locale, name):
+                click('[data-testid="language-selector"]')
+                wait("return [...document.querySelectorAll('[role=option]')].some(e=>e.textContent.trim()===arguments[0])",name)
+                # Give the visible option a stable locator; selection is still a
+                # trusted native pointer action through the same hit-test path.
+                script("""const e=[...document.querySelectorAll('[role=option]')]
+                    .find(e=>e.textContent.trim()===arguments[0]);
+                    e.setAttribute('data-native-locale-option', arguments[1]);""",name,locale)
+                click('[data-native-locale-option="'+locale+'"]')
+                wait("return document.documentElement.lang===arguments[0] && localStorage.getItem('onetagger.locale')===arguments[0]",locale)
+            def refresh_language(locale):
+                capture_errors()
+                command('/refresh', {})
+                wait("""return document.documentElement.lang===arguments[0] &&
+                    !!document.querySelector('[data-testid="nav-home"]') &&
+                    !!document.querySelector('[data-testid="language-selector"]') &&
+                    !document.querySelector('.q-dialog .q-spinner');""",locale)
+                install_probes()
+            try:
+                for _ in range(100):
+                    if driver.poll() is not None: raise RuntimeError('WebKitWebDriver exited')
+                    try: call('GET','/status'); break
+                    except URLError: time.sleep(.1)
+                value = call('POST','/session', {'capabilities':{'alwaysMatch':{
+                    'browserName':'wry', 'webkitgtk:browserOptions':{
+                        'binary':str(args.binary.resolve()), 'args':['--webdriver','--path',str(music)]}}}})
+                session = value['sessionId']
+                handles = command('/window/handles')
+                if not handles: raise AssertionError('Native application has no window')
+                command('/window', {'handle':handles[0]})
+                wait("return !!document.querySelector('a[href=\"#/autotagger\"]') && !document.body.innerText.includes('Loading platforms...')")
+                install_probes()
+                if script('return document.documentElement.lang') != 'en':
+                    select_language('en','English')
                 for cycle, (width, height) in enumerate([(1280, 720), (1440, 900), (1200, 600)]):
                     command('/window/rect', {'width': width, 'height': height})
                     click('a[href="#/autotagger"]')
@@ -188,12 +221,55 @@ def main():
                         raise AssertionError('Native layout contains unused space: '+repr(geometry))
                     click('a[href="#/"]')
                     wait("return document.body.innerText.includes('The ultimate cross-platform music tagger for DJs')")
-                errors = script('return window.nativeErrors')
-                if errors: raise AssertionError('Native JavaScript errors: '+repr(errors))
+                capture_errors()
+
+                # Real Wry/WebKitGTK locale switching, persisted across a native
+                # reload. Navigation only: no provider lookup, tag write, file
+                # rename, or user music is involved.
+                for locale, native_name in [('de','Deutsch'),('el','Ελληνικά'),('ru','Русский')]:
+                    select_language(locale,native_name)
+                    refresh_language(locale)
+                    expected = json.loads((Path(__file__).resolve().parents[2]/'client/src/locales'/locale/'common.json').read_text(encoding='utf-8'))
+                    wait("return document.querySelector('[data-testid=nav-tageditor]').textContent.trim()===arguments[0]",expected['editTags'])
+                    for route in ['autotagger','tageditor','renamer','audiofeatures','quicktag','home']:
+                        click('[data-testid="nav-'+route+'"]')
+                        target = '/' if route == 'home' else '/'+route
+                        wait("return location.hash==='#'+arguments[0] && !!document.querySelector('.q-page-container')?.textContent.trim()",target)
+                        bounds = script("return {viewport:innerWidth, page:document.documentElement.scrollWidth}")
+                        if bounds['page'] > bounds['viewport']+1:
+                            raise AssertionError(f'Native {locale}/{route} has horizontal overflow: {bounds}')
+                    wait("return document.fonts.status==='loaded'")
+                    evidence = script("""const e=document.querySelector('[data-testid=nav-tageditor]');
+                        return {locale:document.documentElement.lang, saved:localStorage.getItem('onetagger.locale'),
+                            label:e.textContent.trim(), fontFamily:getComputedStyle(e).fontFamily,
+                            fontStatus:document.fonts.status, rectangle:e.getBoundingClientRect().toJSON(),
+                            viewport:{width:innerWidth,height:innerHeight}, scrollWidth:document.documentElement.scrollWidth};""")
+                    if evidence['label'] != expected['editTags']:
+                        raise AssertionError('Native translated navigation label was not retained: '+repr(evidence))
+                    if locale in {'el','ru'}:
+                        if evidence['fontFamily'].split(',')[0].strip(' "\'') != 'system-ui':
+                            raise AssertionError('Greek/Cyrillic must use the system UI font stack: '+repr(evidence))
+                        script_range = r'[\u0370-\u03ff\u1f00-\u1fff]' if locale == 'el' else r'[\u0400-\u04ff]'
+                        if not re.search(script_range,evidence['label']):
+                            raise AssertionError('Native label lost its Greek/Cyrillic characters: '+repr(evidence))
+                    if evidence['rectangle']['width'] <= 0 or evidence['rectangle']['height'] <= 0:
+                        raise AssertionError('Native translated label has no rendered bounds')
+                    # Font readiness/CSS do not prove every glyph exists. Retain
+                    # actual window images for a visual review of glyph rendering.
+                    args.output.joinpath('native-locale-'+locale+'.png').write_bytes(base64.b64decode(command('/screenshot')))
+                    localization.append(evidence)
+                    capture_errors()
+                    print(f'Native locale {locale}: switch, reload, navigation and font policy passed',flush=True)
+                select_language('en','English')
+                refresh_language('en')
+                wait("return document.body.innerText.includes('The ultimate cross-platform music tagger for DJs')")
+                capture_errors()
                 args.output.joinpath('result.json').write_text(json.dumps({
                     'status':'passed','cycles':3,'provider_checkbox_clicks':30,'tag_checkbox_clicks':18,
-                    'engine':'system WebKitGTK via real OneTagger executable','provider_requests':0},indent=2))
-                print('Native Linux Autotagger navigation and repeated controls passed')
+                    'engine':'system WebKitGTK via real OneTagger executable','provider_requests':0,
+                    'localized_languages':['de','el','ru'],'restored_language':'en',
+                    'font_validation':'System UI font policy, Unicode labels and rendered bounds; screenshots retained for glyph review'},indent=2))
+                print('Native Linux controls and localized navigation passed')
             finally:
                 args.output.joinpath('layouts.json').write_text(json.dumps(layouts,indent=2))
                 # Collect bounded CI-only diagnostics even when JS is unresponsive.
@@ -208,6 +284,7 @@ def main():
                     except (OSError, subprocess.TimeoutExpired):
                         pass
                 args.output.joinpath('interactions.json').write_text(json.dumps(interactions,indent=2))
+                args.output.joinpath('localization.json').write_text(json.dumps(localization,ensure_ascii=False,indent=2),encoding='utf-8')
                 if session:
                     try:
                         diagnostics = script("return [...document.querySelectorAll('.q-checkbox,.q-stepper__tab')].map(e=>({text:e.innerText,label:e.getAttribute('aria-label'),tag:e.dataset.tag,checked:e.getAttribute('aria-checked'),disabled:e.getAttribute('aria-disabled'),rect:e.getBoundingClientRect().toJSON()}))")

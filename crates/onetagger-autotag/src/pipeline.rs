@@ -1,7 +1,7 @@
 use super::*;
 use crate::scheduler::{self, Attempt, Schedule};
 
-type SourceSlot = Mutex<Option<Result<Box<dyn AutotaggerSource>, String>>>;
+type SourceSlot = Mutex<Option<Result<Box<dyn AutotaggerSource>, TaggingMessage>>>;
 
 struct Provider {
     id: String,
@@ -15,33 +15,47 @@ pub(super) fn deduplicate_files(files: &mut Vec<PathBuf>) {
     files.retain(|path| seen.insert(dunce::canonicalize(path).unwrap_or_else(|_| path.clone())));
 }
 
-fn failed(path: &Path, message: String) -> TaggingStatus {
-    TaggingStatus { status: TaggingState::Error, path: path.into(), message: Some(message),
-        accuracy: None, used_shazam: false, release_id: None, track_id: None, reason: None }
+fn failed(path: &Path, message: Option<TaggingMessage>) -> TaggingStatus {
+    let mut status = TaggingStatus {
+        status: TaggingState::Error,
+        path: path.into(),
+        message: None,
+        message_key: None,
+        message_args: None,
+        accuracy: None,
+        used_shazam: false,
+        release_id: None,
+        track_id: None,
+        reason: None,
+    };
+    if let Some(message) = message {
+        status.set_message(message);
+    }
+    status
 }
 
 impl Provider {
     fn tag(&self, slot: usize, path: &Path, config: &TaggerConfig,
         builders: &Mutex<&mut AutotaggerPlatforms>) -> TaggingStatus {
-        let mut error = String::new();
+        let mut error = None;
         // A failed source constructor must not send a track to a lower-priority
         // provider while this provider still has healthy source instances.
         for offset in 0..self.sources.len() {
             match self.tag_with_slot((slot + offset) % self.sources.len(), path, config, builders) {
                 Ok(status) => return status,
-                Err(message) => error = message,
+                Err(message) => error = Some(message),
             }
         }
         failed(path, error)
     }
 
     fn tag_with_slot(&self, slot: usize, path: &Path, config: &TaggerConfig,
-        builders: &Mutex<&mut AutotaggerPlatforms>) -> Result<TaggingStatus, String> {
-        let mut stopped = failed(path, String::new());
+        builders: &Mutex<&mut AutotaggerPlatforms>) -> Result<TaggingStatus, TaggingMessage> {
+        let mut stopped = failed(path, None);
         if Tagger::mark_cancelled(&mut stopped, &|| STOP_TAGGING.load(Ordering::SeqCst)) { return Ok(stopped); }
         let mut source = match self.sources[slot].lock() {
             Ok(source) => source,
-            Err(_) => return Err("Provider worker panicked; source disabled for this run".into()),
+            Err(_) => return Err(TaggingMessage::ProviderWorkerPanicked),
         };
         if source.is_none() {
             // Sources are constructed only on demand, then reused for the run.
@@ -53,9 +67,9 @@ impl Provider {
                 match platforms.get_builder(&self.id) {
                     Some(builder) => std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
                         builder.get_source(config)
-                    )).map_err(|_| "Provider initialization panicked".to_string())
-                        .and_then(|r| r.map_err(|e| format!("Could not initialize provider: {e}"))),
-                    None => Err(format!("Provider unavailable: {}", self.id)),
+                    )).map_err(|_| TaggingMessage::ProviderInitializationPanicked)
+                        .and_then(|r| r.map_err(|e| TaggingMessage::ProviderInitializationFailed(e.to_string()))),
+                    None => Err(TaggingMessage::ProviderUnavailable(self.id.clone())),
                 }
             };
             *source = Some(created);
@@ -104,7 +118,7 @@ impl Tagger {
             |stage, item, value, completed| {
                 let provider = &providers[stage];
                 let status = value.unwrap_or_else(|_| failed(&files[item],
-                    "Provider panicked; trying the next provider".into()));
+                    Some(TaggingMessage::ProviderPanickedTryingNext)));
                 info!("[{}] State: {:?}, Accuracy: {:?}, Path: {:?}",
                     provider.id, status.status, status.accuracy, status.path);
                 results.record(&status);

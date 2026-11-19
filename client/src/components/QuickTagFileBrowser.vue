@@ -20,12 +20,12 @@
     <div class='q-mt-sm'>
 
         <!-- Filter -->        
-        <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='applyFilter' v-model='filter'></q-input>
+        <q-input dense filled :label="t('quicktag.filter')" class='q-mb-sm' @update:model-value='applyFilter' v-model='filter'></q-input>
 
         <!-- Parent -->
         <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
             <q-icon size='xs' class='q-mb-xs text-grey-5' name='mdi-folder-upload'></q-icon>
-            <span class='q-ml-sm text-caption text-grey-5'>Parent folder</span>
+            <span class='q-ml-sm text-caption text-grey-5'>{{t('quicktag.parentFolder')}}</span>
         </div>
 
         <!-- Files -->
@@ -48,10 +48,12 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
 import { onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 
 const $1t = get1t();
+const { t } = useI18n({ useScope: 'global' });
 const path = ref($1t.settings.value.path);
 const files = ref<any[]>([]);
 const originalFiles = ref<any[]>([]);

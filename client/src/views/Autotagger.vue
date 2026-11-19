@@ -13,21 +13,22 @@
         <!-- Platforms -->
         <q-step 
             :name='0' 
-            title='Select Platforms' 
+            :title="t('autotag.selectPlatforms')" 
             :done='step > 0 && $1t.config.value.platforms.length > 0'
             icon='mdi-web'
             :error='step > 0 && $1t.config.value.platforms.length == 0'
             class='text-center step'>
 
-            <div class='text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
-            <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>            
+            <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.selectPlatformsHeading') }}</div>
+            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.platformOrderHint') }}</div>            
             <AutotaggerPlatforms></AutotaggerPlatforms>
         </q-step>
 
         <!-- Tags -->
         <q-step
+            data-testid='autotagger-input-step'
             :name='1'
-            title='Input & Tags'
+            :title="t('autotag.inputAndTags')"
             :done='canStart && step > 1'
             icon='mdi-label-multiple'
             :error='!canStart && step > 1'
@@ -39,7 +40,7 @@
         <!-- Platform Specific -->
         <q-step
             :name='2'
-            title='Platform Specific Settings'
+            :title="t('autotag.platformSettings')"
             :done='step > 2'
             icon='mdi-tune'
             class='text-center step'>
@@ -50,13 +51,13 @@
         <!-- Advanced -->
         <q-step
             :name='3'
-            title='Advanced'
+            :title="t('autotag.advanced')"
             :done='step > 3'
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-subtitle2 text-bold text-primary'>ADVANCED</div>
-            <span class='text-subtitle2 text-grey-6'>Miscellaneous options</span>
+            <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.advancedHeading') }}</div>
+            <span class='text-subtitle2 text-grey-6'>{{ t('autotag.miscOptions') }}</span>
             <br>
             <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
         </q-step>
@@ -74,7 +75,7 @@
         <div class='col-6 row align-center items-center justify-center content-center'>
             <div>
                 <q-btn dense push color='primary' class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium' @click='step += 1' v-if='step < 3'>
-                    Next
+                    {{ t('autotag.next') }}
                 </q-btn>
             </div>
         </div>
@@ -90,14 +91,14 @@
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
-                <div class='q-mt-md text-subtitle2 text-bold text-primary'>PROFILES</div>
-                <div class='text-subtitle2 text-grey-6'>Save, create, delete profiles</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-primary'>{{ t('autotag.profilesHeading') }}</div>
+                <div class='text-subtitle2 text-grey-6'>{{ t('autotag.profilesHint') }}</div>
                 <div class='row justify-center'>
                     <AutotaggerProfile style='width: 400px;' class='q-mt-md' v-if='$1t.settings.value.showAutoTaggerProfiles'></AutotaggerProfile>
                 </div>
                 <div class='q-my-lg'></div>
-                <div class='q-mt-md text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
-                <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-primary'>{{ t('autotag.selectPlatformsHeading') }}</div>
+                <div class='text-subtitle2 text-grey-6'>{{ t('autotag.platformOrderHint') }}</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
                 <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
             </div>
@@ -112,7 +113,7 @@
             <div class='q-mr-md q-mt-md'>
                 <q-btn flat round icon='mdi-console' color='grey-8' @click='cliDialog = true'>
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span>CLI Version Config</span>
+                        <span>{{ t('autotag.cliConfig') }}</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -120,16 +121,17 @@
             <!-- Start fab -->
             <div>
                 <q-btn 
+                    data-testid='autotagger-start'
                     fab 
                     push
                     icon='mdi-play' 
                     color='primary'
                     :disable='!canStart'
                     @click='startTagging'
-                    aria-label='Start tagging'
+                    :aria-label="t('autotag.startTagging')"
                 >
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span>START</span>
+                        <span>{{ t('autotag.start') }}</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -144,6 +146,8 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { get1t } from '../scripts/onetagger';

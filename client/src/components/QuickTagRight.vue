@@ -4,7 +4,7 @@
     <!-- Note -->
     <div class='full-width row justify-center q-my-xs'>
             <q-btn outline color='primary' class='text-caption' v-if='$1t.quickTag.value.track' @click='$1t.onQuickTagEvent("onNoteTag")'>         
-            Add custom note            
+            {{t('quicktag.addCustomNote')}}
         </q-btn>
     </div>
     <div v-for='(tag, i) in $1t.settings.value.quickTag.custom' :key='"tag"+i' class='q-pb-md'>
@@ -47,17 +47,19 @@
 
     <!-- Manual tag -->
     <div class='full-width row justify-center' v-if='$1t.quickTag.value.track.tracks.length == 1'>
-        <q-btn outline color='primary' class='text-caption' @click='$1t.onQuickTagEvent("onManualTag", {path: $1t.quickTag.value.track.tracks[0].path})'>MANUAL TAG</q-btn>
+        <q-btn outline color='primary' class='text-caption' @click='$1t.onQuickTagEvent("onManualTag", {path: $1t.quickTag.value.track.tracks[0].path})'>{{t('quicktag.manualTag')}}</q-btn>
     </div>
 
 </div>
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
 import { ref } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 
 const $1t = get1t();
+const { t } = useI18n({ useScope: 'global' });
 const newTag = ref(-1);
 const newTagValue = ref<string | undefined>(undefined);
 

@@ -1,19 +1,19 @@
 <template>
 <div class='text-center'>
 
-    <div class='text-subtitle1 text-bold text-primary q-mt-md'>TAGGING STATUS</div>
-    <div v-if='stopping && !$1t.taggerStatus.value.done' role='status' class='q-mt-sm'>Stopping… waiting for in-flight work to finish.</div>
-    <div v-if='$1t.taggerStatus.value.done' role='status' class='q-mt-sm'>{{$1t.taggerStatus.value.cancelled ? 'Stopped' : 'Finished'}}</div>
+    <div class='text-subtitle1 text-bold text-primary q-mt-md'>{{ t('autotag.taggingStatus') }}</div>
+    <div v-if='stopping && !$1t.taggerStatus.value.done' role='status' class='q-mt-sm'>{{ t('autotag.stopping') }}</div>
+    <div v-if='$1t.taggerStatus.value.done' role='status' class='q-mt-sm'>{{ $1t.taggerStatus.value.cancelled ? t('autotag.stopped') : t('autotag.finished') }}</div>
 
     <!-- Post tagging actions -->
     <div v-if='$1t.taggerStatus.value.done && $1t.taggerStatus.value.data' class='row justify-center q-my-md'>
-        <q-btn v-if='$1t.taggerStatus.value.data.failedFile' color='primary' class='q-mx-md text-black' @click='goQT(false)'>Open failed in QuickTag</q-btn>
-        <q-btn v-if='$1t.taggerStatus.value.data.successFile' color='primary' class='q-mx-md text-black' @click='goQT(true)'>Open successful in QuickTag</q-btn>
+        <q-btn v-if='$1t.taggerStatus.value.data.failedFile' color='primary' class='q-mx-md text-black' @click='goQT(false)'>{{ t('autotag.openFailed') }}</q-btn>
+        <q-btn v-if='$1t.taggerStatus.value.data.successFile' color='primary' class='q-mx-md text-black' @click='goQT(true)'>{{ t('autotag.openSuccessful') }}</q-btn>
         <q-btn v-if='$1t.taggerStatus.value.data.reportFile' color='primary' outline class='q-mx-md'
-            @click='$1t.send("openFile", {path: $1t.taggerStatus.value.data.reportFile})'>Open results JSON</q-btn>
+            @click='$1t.send("openFile", {path: $1t.taggerStatus.value.data.reportFile})'>{{ t('autotag.openResults') }}</q-btn>
     </div>
     <div v-if='$1t.taggerStatus.value.data?.reportFile' class='text-caption q-px-md' style='overflow-wrap: anywhere'>
-        Results JSON: {{$1t.taggerStatus.value.data.reportFile}}
+        {{ t('autotag.resultsPath', { path: $1t.taggerStatus.value.data.reportFile }) }}
     </div>
 
     <!-- Info -->
@@ -25,12 +25,12 @@
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-check' round :color='filter == "ok" ? "primary" : "green"' class='text-black' @click='toggleFilter("ok")'>
                                 <q-tooltip>
-                                    Total amount found
+                                    {{ t('autotag.foundHint') }}
                                 </q-tooltip>
                             </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
-                            <div class='text-subtitle2 text-grey-6'>Matched</div>
+                            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.matched') }}</div>
                             <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("ok")}}</div>
                         </div>
                     </div>
@@ -43,12 +43,12 @@
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-alert-circle-outline' round :color='filter == "error" ? "primary" : "red"' class='text-black' @click='toggleFilter("error")'>
                                 <q-tooltip>
-                                    Total amount not found
+                                    {{ t('autotag.failedHint') }}
                                 </q-tooltip>
                             </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
-                            <div class='text-subtitle2 text-grey-6'>Failed</div>
+                            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.failed') }}</div>
                             <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("error")}}</div>
                         </div>
                     </div>
@@ -61,12 +61,12 @@
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-debug-step-over' round :color='filter == "skipped" ? "primary" : "yellow"' class='text-black' @click='toggleFilter("skipped")'>
                                 <q-tooltip>
-                                    Total amount skipped due missing tags, corruption, or Shazam not being able to identify
+                                    {{ t('autotag.skippedHint') }}
                                 </q-tooltip>
                             </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
-                            <div class='text-subtitle2 text-grey-6'>Skipped</div>
+                            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.skipped') }}</div>
                             <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("skipped")}}</div>
                         </div>
                     </div>
@@ -79,12 +79,12 @@
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-music-box-multiple-outline' round color='grey-6' class='text-black'>
                                 <q-tooltip>
-                                    Total amount of files to process
+                                    {{ t('autotag.totalHint') }}
                                 </q-tooltip>
                             </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
-                            <div class='text-subtitle2 text-grey-6'>Total</div>
+                            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.total') }}</div>
                             <div class='text-subtitle1 monospace text-weight-bold'>{{$1t.taggerStatus.value.total}}</div>
                         </div>
                     </div>
@@ -97,12 +97,12 @@
                         <div class='col q-mt-sm q-pt-xs text-left q-pl-md'>
                             <q-btn icon='mdi-timelapse' round color='teal' class='text-black'>
                                 <q-tooltip>
-                                    Total amount of elapsed time
+                                    {{ t('autotag.timeHint') }}
                                 </q-tooltip>
                             </q-btn>
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
-                            <div class='text-subtitle2 text-grey-6'>Time</div>
+                            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.time') }}</div>
                             <div class='text-subtitle1 monospace text-weight-bold'>{{time}}</div>
                         </div>
                     </div>
@@ -119,15 +119,15 @@
                         <q-item-label overline>
                             <span v-for='(i, index) in item'>
                                 <span v-if='$1t.taggerStatus.value.type != "audioFeatures"' class='selectable text-white'>{{platformText(i.platform)}}</span>
-                                <span v-if='$1t.taggerStatus.value.type == "audioFeatures"' class='selectable text-white'>AUDIO FEATURES</span>
+                                <span v-if='$1t.taggerStatus.value.type == "audioFeatures"' class='selectable text-white'>{{ t('autotag.audioFeatures') }}</span>
                                 <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='i.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(i.status.status)' :color='statusColor(i.status.status)'>
                                     <q-tooltip v-if='i.status.message'>
-                                        {{i.status.message}}
+                                        {{ translateBackendMessage(i.status) }}
                                     </q-tooltip>
                                     <q-tooltip v-if='i.status.status == "ok" && i.status.accuracy != null'>
-                                        Accuracy: {{ (i.status.accuracy * 100).toFixed(2) }}%
-                                        <span v-if='i.status.reason'>, Reason: {{ i.status.reason }}</span>
+                                        {{ t('autotag.accuracy', { percent: accuracyPercent(i.status.accuracy) }) }}
+                                        <span v-if='i.status.reason'> — {{ t('autotag.reason', { reason: matchReasonLabel(i.status.reason) }) }}</span>
                                     </q-tooltip>
                                 </q-icon>
                                 <span class='q-px-sm' v-if='index < item.length - 1'>|</span>
@@ -157,13 +157,16 @@
 
     <!-- Stop FAB -->
     <q-page-sticky position="bottom-right" :offset='[36, 32]' v-if='$1t.lock.value.locked'>
-        <q-btn @click='stop' aria-label='Stop tagging' fab icon='mdi-stop' color='red' :loading='stopping' :disabled='stopping'></q-btn>
+        <q-btn @click='stop' :aria-label="t('autotag.stopTagging')" fab icon='mdi-stop' color='red' :loading='stopping' :disabled='stopping'></q-btn>
     </q-page-sticky>
 
 </div>
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t, locale } = useI18n({ useScope: 'global' });
+import { translateBackendMessage } from '../i18n';
 import { useQuasar } from 'quasar';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -177,6 +180,19 @@ const time = ref('0:00');
 const filter = ref<string | undefined>(undefined);
 const stopping = ref(false);
 let timeInterval: any = undefined;
+
+function accuracyPercent(value: number) {
+    return new Intl.NumberFormat(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value * 100);
+}
+
+function matchReasonLabel(reason: string) {
+    // Display labels only: the Rust enum and report values remain unchanged.
+    const keys: Record<string, string> = {
+        fuzzy: 'autotag.matchReasonFuzzy', isrc: 'autotag.matchReasonIsrc',
+        id: 'autotag.matchReasonId', album: 'autotag.matchReasonAlbum',
+    };
+    return Object.prototype.hasOwnProperty.call(keys, reason) ? t(keys[reason]) : reason;
+}
 
 // Conver platform name
 function platformText(p: string) {
@@ -231,7 +247,7 @@ async function stop() {
     catch (error) {
         if ($1t.taggerStatus.value.done) return;
         stopping.value = false;
-        $q.dialog({title: 'Could not stop tagging', html: false, message: String(error)});
+        $q.dialog({title: t('autotag.stopFailed'), html: false, message: String(error)});
     }
 }
 
@@ -268,12 +284,12 @@ onMounted(() => {
     // Done callback
     $1t.onTaggingDone = (path) => {
         $q.dialog({
-            title: $1t.taggerStatus.value.cancelled ? 'Stopped' : 'Done',
-            message: path ? 'Tagging ended. Would you like to open the folder?' : 'Tagging ended. Review the results below.',
+            title: $1t.taggerStatus.value.cancelled ? t('autotag.stopped') : t('autotag.done'),
+            message: path ? t('autotag.openFolderQuestion') : t('autotag.reviewResults'),
             html: false,
             ok: {
                 color: 'primary',
-                label: path ? 'Open Folder' : 'OK'
+                label: path ? t('autotag.openFolder') : t('autotag.ok')
             },
             cancel: {
                 color: 'primary',

@@ -7,6 +7,7 @@
                 dense
                 v-model='filter'
                 :label-slot="true"
+                :aria-label="t('quicktag.searchTracks')"
                 class='q-pl-md qt-search-bar'
                 filled
                 @update:model-value='filterTracks()'
@@ -20,7 +21,7 @@
         <!-- Sort -->
         <div class='col-9 row q-pb-sm text-caption text-weight-medium bg-darker text-grey-6 text-capitalize justify-between clickable' :style='"margin-top: 13px"'>
             <span v-for='(option, i) in sortOptions' :key='"so"+i' @click='sort(option)' class='row q-pl-xs'>
-                <div :class='{"text-grey-4 clickable": sortOption == option}'>{{option}}</div>
+                <div :class='{"text-grey-4 clickable": sortOption == option}'>{{sortLabels[option]}}</div>
                 <div v-if='sortOption == option'>
                     <q-icon style='margin-bottom: 2px;' name='mdi-arrow-up' v-if='!sortDescending'></q-icon>
                     <q-icon style='margin-bottom: 2px;' name='mdi-arrow-down' v-if='sortDescending'></q-icon>
@@ -33,6 +34,7 @@
             <div class='q-pr-xs'>
                 <q-btn 
                     :icon='$1t.settings.value.quickTag.thinTracks ? "mdi-view-list" : "mdi-format-list-bulleted-square"' 
+                    :aria-label="$1t.settings.value.quickTag.thinTracks ? t('quicktag.showDetailedTracks') : t('quicktag.showCompactTracks')"
                     round
                     flat
                     size='sm' 
@@ -46,16 +48,16 @@
 
     <!-- Stats -->
     <div class='q-mx-lg text-grey-7 q-my-xs text-caption text-center'>
-        Loaded files: <span class='monospace text-bold'>{{$1t.quickTag.value.tracks.length}}</span>
-        <span class='q-ml-md'>Filtered: </span><span class='monospace text-bold'>{{tracks.length}}</span>
-        <span v-if='$1t.quickTag.value.failed.length != 0'><span class='q-ml-md'>Failed to load: </span>
-            <span class='monospace text-bold' @click='failedDialog = true'>{{$1t.quickTag.value.failed.length}} 
-                <span class='text-weight-medium show-link cursor-pointer'>Show details</span>
+        <span>{{t('quicktag.loadedFiles', { count: $1t.quickTag.value.tracks.length })}}</span>
+        <span class='q-ml-md'>{{t('quicktag.filteredFiles', { count: tracks.length })}}</span>
+        <span v-if='$1t.quickTag.value.failed.length != 0'><span class='q-ml-md'>{{t('quicktag.failedFiles', { count: $1t.quickTag.value.failed.length })}}</span>
+            <span class='monospace text-bold' @click='failedDialog = true'>
+                <span class='text-weight-medium show-link cursor-pointer'>{{t('quicktag.showDetails')}}</span>
             </span>
         </span>
         
         <span class='q-ml-md text-caption cursor-pointer' :style='"margin-left: 13px"' v-if='$1t.quickTag.value.isLimited()' @click='$1t.loadQuickTag(undefined, false)'>
-            Loading was capped to <span class='text-caption monospace text-bold'>500</span> tracks! <span class='q-ml-xs text-weight-medium show-link cursor-pointer'>Show all</span>
+            {{t('quicktag.loadingCapped', { count: 500 })}} <span class='q-ml-xs text-weight-medium show-link cursor-pointer'>{{t('quicktag.showAll')}}</span>
         </span>
     </div>
 
@@ -88,7 +90,7 @@
 
         <!-- No results -->
         <div v-if='tracks.length == 0'>
-            <div class='text-center text-h5 text-grey-6 q-my-lg'>No results!</div>
+            <div class='text-center text-h5 text-grey-6 q-my-lg'>{{t('quicktag.noResults')}}</div>
         </div>
     </div>
 
@@ -100,13 +102,13 @@
 
         <!-- No path selected -->
         <div @click='selectFolder' v-if='!$1t.lock.value.locked'>
-            <div class='text-center text-subtitle2 text-bold text-primary q-my-sm'>NO FOLDER SELECTED</div>
-            <div class='text-center text-subtitle2 text-grey-6'><span class='keybind-icon q-px-sm text-caption text-bold'>CLICK</span> here to select folder</div>
+            <div class='text-center text-subtitle2 text-bold text-primary q-my-sm text-uppercase'>{{t('quicktag.noFolderSelected')}}</div>
+            <div class='text-center text-subtitle2 text-grey-6'>{{t('quicktag.selectFolderHint')}}</div>
             
             <div class="q-pa-lg q-mt-lg">
                 <div class="row q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Play / Pause:
+                        {{t('quicktag.playPause')}}
                     </div>
 
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
@@ -116,7 +118,7 @@
 
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Seek back / forwards:        
+                        {{t('quicktag.seek')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
                         <q-icon name='mdi-chevron-left' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-right' class='keybind-icon'></q-icon>
@@ -124,7 +126,7 @@
                 </div>
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Switch Track:
+                        {{t('quicktag.switchTrack')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
                         <q-icon name='mdi-chevron-up' class='keybind-icon q-mr-xs'></q-icon> / <q-icon name='mdi-chevron-down' class='keybind-icon'></q-icon>
@@ -132,15 +134,15 @@
                 </div>
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Select multiple:
+                        {{t('quicktag.selectMultiple')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
-                        <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm'>CLICK</span>
+                        <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm text-uppercase'>{{t('quicktag.click')}}</span>
                     </div>           
                 </div>
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Save:      
+                        {{t('quicktag.saveShortcut')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
                         <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm'>S</span>
@@ -148,7 +150,7 @@
                 </div>
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Delete:
+                        {{t('quicktag.deleteShortcut')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
                         <q-icon name='mdi-apple-keyboard-control' class='keybind-icon q-mr-xs'></q-icon> + <span class='keybind-icon q-px-sm'>DEL</span>
@@ -156,7 +158,7 @@
                 </div>
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Confirm:
+                        {{t('quicktag.confirmShortcut')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
                         <q-icon name='mdi-keyboard-return' class='keybind-icon'></q-icon>
@@ -164,10 +166,10 @@
                 </div>
                 <div class="row text-body q-py-xs text-caption text-grey-6 text-weight-medium text-right">
                     <div class="col">
-                        Context Menu:
+                        {{t('quicktag.contextMenuShortcut')}}
                     </div>
                     <div class="col text-body text-weight-bold text-grey-6 text-left">
-                        <span class='keybind-icon q-pl-sm'>RIGHT</span><span class='keybind-icon q-px-sm'>CLICK</span>
+                        <span class='keybind-icon q-px-sm text-uppercase'>{{t('quicktag.rightClick')}}</span>
                     </div> 
                 </div>
             </div>
@@ -179,14 +181,14 @@
     <q-dialog v-model='saveDialog'>
         <q-card>
             <q-card-section>
-                <div class='text-h6 text-grey-3'>Unsaved changes</div>
+                <div class='text-h6 text-grey-3'>{{t('quicktag.unsavedChanges')}}</div>
             </q-card-section>
             <q-card-section>
-                <div class='text-grey-3'>Warning, there are unsaved changes on this track, do you want to save them?</div>
+                <div class='text-grey-3'>{{t('quicktag.saveChangesQuestion')}}</div>
             </q-card-section>
             <q-card-actions align='right'>
-                <q-btn color='red' flat text @click='saveDialogCallback(false)'>Discard</q-btn>
-                <q-btn color='primary' flat text @click='saveDialogCallback(true)' ref='saveButton'>Save</q-btn>
+                <q-btn color='red' flat text @click='saveDialogCallback(false)'>{{t('quicktag.discard')}}</q-btn>
+                <q-btn color='primary' flat text @click='saveDialogCallback(true)' ref='saveButton'>{{t('quicktag.save')}}</q-btn>
             </q-card-actions>
         </q-card>
     </q-dialog>
@@ -195,13 +197,13 @@
     <q-dialog v-model='noteDialog' @show='onNoteDialogShow'>
         <q-card v-if='$1t.quickTag.value.track'>
             <q-card-section>
-                <div class='text-h6'>Custom note</div>
+                <div class='text-h6'>{{t('quicktag.customNote')}}</div>
             </q-card-section>
             <q-card-section>
                 <q-input
                     filled
                     dense
-                    label="Note tag"
+                    :label="t('quicktag.noteTag')"
                     style='width: 256px;'
                     :model-value='$1t.quickTag.value.track.getNote()'
                     @update:model-value='(d: any) => $1t.quickTag.value.track!.setNote(d)'
@@ -216,7 +218,7 @@
     <q-dialog v-model='failedDialog'>
         <q-card class='q-pa-md'>
             <q-card-section>
-                <div class='text-subtitle2 text-bold text-center text-red'>FAILED TO LOAD</div>
+                <div class='text-subtitle2 text-bold text-center text-red text-uppercase'>{{t('quicktag.failedToLoad')}}</div>
             </q-card-section>
             <q-card-section>
                 <div>
@@ -228,7 +230,7 @@
             </q-card-section>
             <q-card-section horizontal>
                 <q-space></q-space>
-                <q-btn flat color='primary' @click='failedDialog = false'>Close</q-btn>
+                <q-btn flat color='primary' @click='failedDialog = false'>{{t('quicktag.close')}}</q-btn>
             </q-card-section>
         </q-card>
     </q-dialog>
@@ -240,6 +242,7 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
 import { scroll, useQuasar } from 'quasar';
 import { Ref, computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
@@ -254,7 +257,15 @@ const { setVerticalScrollPosition } = scroll;
 
 const $1t = get1t();
 const $q = useQuasar();
+const { t } = useI18n({ useScope: 'global' });
 const sortOptions = ['title', 'artist', 'mood', 'energy', 'genre', 'year', 'bpm', 'key', 'custom'];
+// Labels react to locale changes; saved sort values remain stable identifiers.
+const sortLabels = computed<Record<string, string>>(() => ({
+    title: t('quicktag.sortTitle'), artist: t('quicktag.sortArtist'),
+    mood: t('quicktag.sortMood'), energy: t('quicktag.sortEnergy'),
+    genre: t('quicktag.sortGenre'), year: t('quicktag.sortYear'),
+    bpm: t('quicktag.sortBpm'), key: t('quicktag.sortKey'), custom: t('quicktag.sortCustom'),
+}));
 const saveDialog = ref(false);
 const noteDialog = ref(false);
 const filter = ref<string | undefined>(undefined);
@@ -313,7 +324,7 @@ async function saveDialogCallback(save: boolean) {
     if (save) {
         await $1t.saveQTTrack();
         $q.notify({
-            message: "Tags saved!",
+            message: t('quicktag.tagsSaved'),
             color: 'primary',
             textColor: 'black',
             timeout: 500,
@@ -592,8 +603,8 @@ onMounted(() => {
             case 'onDeleteTrack':
                 // Confirm dialog
                 $q.dialog({
-                    title: 'Delete File',
-                    message: 'Do you really want to delete the selected file(s)?',
+                    title: t('quicktag.deleteFile'),
+                    message: t('quicktag.deleteFilesQuestion'),
                     persistent: false,
                     ok: {
                         color: 'red'                        

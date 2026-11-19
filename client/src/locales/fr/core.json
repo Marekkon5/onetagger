@@ -1,0 +1,23 @@
+{
+  "language": "Langue",
+  "languageHelp": "La langue est enregistrée pour ce navigateur ou cette fenêtre de l’application.",
+  "unexpectedError": "Une erreur inattendue s’est produite.",
+  "invalidSession": "Ce lien de session OneTagger est invalide ou a expiré.",
+  "sessionLinkRequired": "Ouvrez OneTagger avec le lien de session affiché par l’application en cours d’exécution.",
+  "websocketError": "Erreur WebSocket !",
+  "websocketClosed": "Connexion WebSocket fermée !",
+  "error": "Erreur",
+  "reportSaveFailed": "Impossible d’enregistrer le rapport des résultats",
+  "moveFailed": "Certains fichiers n’ont pas pu être déplacés",
+  "platformInstalled": "Plateforme installée",
+  "platformInstallFailed": "Échec de l’installation de la plateforme",
+  "platformInstallSuccess": "La plateforme a été installée. Appuyez sur OK pour continuer.",
+  "settingsSaved": "Paramètres enregistrés !",
+  "invalidProfile": "Profil invalide",
+  "loadingPlatforms": "Chargement des plateformes...",
+  "stopNotAcknowledged": "L’arrêt n’a pas été confirmé. Réessayez.",
+  "invalidStopAcknowledgement": "Confirmation d’arrêt invalide",
+  "stopSendFailed": "Impossible d’envoyer la commande d’arrêt. Réessayez.",
+  "stopConnectionClosed": "La connexion a été fermée avant la confirmation d’arrêt. Réessayez.",
+  "trackSaved": "Morceau enregistré !"
+}

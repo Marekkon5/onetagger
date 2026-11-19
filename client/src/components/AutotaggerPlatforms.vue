@@ -19,8 +19,8 @@
                                             <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
-                                            <span v-if='platform.platform.maxThreads'>This platform allows up to {{platform.platform.maxThreads}} concurrent searches</span>
-                                            <span v-else>This platform allows unlimited concurrent searches</span>
+                                            <span v-if='platform.platform.maxThreads'>{{ t('autotag.concurrentSearches', { count: platform.platform.maxThreads }) }}</span>
+                                            <span v-else>{{ t('autotag.unlimitedSearches') }}</span>
                                         </q-tooltip>
                                     </span>
 
@@ -30,7 +30,7 @@
                                             <q-icon name='mdi-lock' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
-                                            <span>Platform requires an account</span>
+                                            <span>{{ t('autotag.requiresAccount') }}</span>
                                         </q-tooltip>
                                     </span>
 
@@ -40,14 +40,15 @@
                                             <q-icon name='mdi-microphone' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
-                                            <span>Platform can fetch lyrics</span>
+                                            <span>{{ t('autotag.fetchesLyrics') }}</span>
                                         </q-tooltip>
                                     </span>
 
                                 </div>
                             </div>
                             <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6'>
-                                <span v-html='platform.platform.description'></span>
+                                <span v-if='providerDescription(platform.builtIn, platform.platform.id) !== undefined'>{{ providerDescription(platform.builtIn, platform.platform.id) }}</span>
+                                <span v-else v-html='platform.platform.description'></span>
                             </div>
                             <div v-if='!platform.builtIn' class='text-grey-8 q-pl-sm text-bold monospace text-left' style='font-size: 10px;'>
                                 [{{platform.platform.id}}@{{platform.platform.version}}]
@@ -65,15 +66,15 @@
     <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 24px; margin-bottom: 35px"' inset color="dark"/>
 
     <div v-if='!dense' class='q-mt-md q-mb-xl'>
-        <div class='text-subtitle2 text-bold text-primary'>NEED MORE PLATFORMS?</div>
-        <div class='text-subtitle2 text-grey-6'>One Tagger supports custom platforms written in Rust.<br>You can install them using the button below.</div>
+        <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.morePlatforms') }}</div>
+        <div class='text-subtitle2 text-grey-6'>{{ t('autotag.customPlatformsHint') }}</div>
 
         <div class="row items-center justify-center q-mt-md">
-            <q-btn dense push color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="rounded-borders q-px-sm q-mb-xs text-black text-weight-medium text-caption" @click='openPlatformsRepo()'>Platforms Repository</q-btn>
+            <q-btn dense push color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="rounded-borders q-px-sm q-mb-xs text-black text-weight-medium text-caption" @click='openPlatformsRepo()'>{{ t('autotag.platformsRepository') }}</q-btn>
         </div>
 
         <div class='text-caption text-grey-6 text-center q-py-sm'>
-            <span @click='$1t.url("https://github.com/Marekkon5/onetagger-platforms")' class='clickable doc-link'>How to create a custom platform?<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>
+            <span @click='$1t.url("https://github.com/Marekkon5/onetagger-platforms")' class='clickable doc-link'>{{ t('autotag.createPlatform') }}<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>
         </div>
 
     </div>
@@ -81,10 +82,13 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
 import { AutotaggerPlatform, SupportedTag } from '../scripts/autotagger';
+import { providerDescription } from '../i18n/providers';
 
 
 const { dense } = defineProps({

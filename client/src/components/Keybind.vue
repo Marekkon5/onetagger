@@ -14,7 +14,7 @@
     <q-dialog @keydown='keydown' v-model='overlay'>
         <q-card>
             <q-card-section>
-                <div class='text-h6'>Set keybind</div>
+                <div class='text-h6'>{{ t('common.setKeybind') }}</div>
             </q-card-section>
             <q-card-section class='preview'>
                 <q-icon v-if='key.shift' name='mdi-apple-keyboard-shift' size='md' class='q-px-sm'></q-icon>
@@ -23,9 +23,9 @@
                 <q-icon :name='keyIcon(key)' size='md' class='q-px-sm'></q-icon>
             </q-card-section>
             <q-card-section class='text-right'>
-                <q-btn flat color='red' @click='reset' v-if='isSet'>Reset</q-btn>
-                <q-btn flat @click='close'>Cancel</q-btn>
-                <q-btn flat color='primary' v-if='key.key' @click='set'>Save</q-btn>
+                <q-btn flat color='red' @click='reset' v-if='isSet'>{{ t('common.reset') }}</q-btn>
+                <q-btn flat @click='close'>{{ t('common.cancel') }}</q-btn>
+                <q-btn flat color='primary' v-if='key.key' @click='set'>{{ t('common.save') }}</q-btn>
             </q-card-section>
         </q-card>
     </q-dialog>
@@ -34,6 +34,9 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+
 import { computed, onMounted, ref, watch } from 'vue';
 import { Keybind } from '../scripts/utils.js';
 
