@@ -108,7 +108,8 @@ jobs:
     name: ${{ matrix.name }}
     needs: frontend
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    # Retain 45 minutes for native work, 10 for the ARM scheduler, and setup margin.
+    timeout-minutes: ${{ matrix.artifact == 'macos-arm64' && 60 || 45 }}
     env:
       # Keep file/line backtraces without full type/variable debug data in CI.
       # Release profiles and local development defaults are unchanged.
@@ -171,6 +172,28 @@ jobs:
           cache-on-failure: 'false'
           # Save successful PR runs for retries, and master runs for future PRs.
           # Cleanup/save happens after packaging and artifact uploads.
+      # Share the ARM runner allocation with packaging; the other scheduler
+      # platforms remain in provider-pipeline.yml.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: matrix.artifact == 'macos-arm64'
+        with:
+          python-version: '3.12'
+      - name: Test and benchmark the production scheduler on ARM
+        if: matrix.artifact == 'macos-arm64'
+        timeout-minutes: 10
+        run: python ci/provider_benchmark.py
+      - name: Retain ARM benchmark evidence
+        if: matrix.artifact == 'macos-arm64' && always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: provider-benchmark-${{ matrix.os }}
+          path: |
+            provider-benchmark-results/*.csv
+            provider-benchmark-results/*.json
+            provider-benchmark-results/*.md
+            provider-benchmark-results/*.log
+          if-no-files-found: error
+          retention-days: 30
       - name: Regression tests
         run: cargo test --workspace --all-targets --locked --timings
       - name: Check out the pinned Helper importer

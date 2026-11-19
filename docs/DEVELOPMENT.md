@@ -27,6 +27,8 @@ cargo build --workspace --release --locked
 
 The Build workflow first runs `cargo metadata --locked --format-version 1` in the frontend job to catch inconsistent Rust lockfiles before starting native builds. It then runs the checks above on Ubuntu 24.04 x64, Windows Server 2022 x64, macOS 15 Intel, and macOS 26 ARM64. Browser UI tests run alongside the native matrix using the same frontend artifact. `Required checks` fails unless the frontend, browser UI tests, release assets and every platform pass. Configure that check as required in the repository ruleset before merging.
 
+The ARM Build job also runs the production scheduler tests and benchmarks before the full Rust suite, retaining the same assertions and 30-day reports. Linux, Windows and Intel macOS keep their separate **Provider pipeline** jobs. This shares one free hosted ARM allocation between scheduler validation and packaging; it does not guarantee runner availability. ARM scheduler coverage moves from macOS 15 to the native Build job's macOS 26 image. See [provider scheduling validation](provider-pipeline.md#github-validation) for report locations.
+
 Existing tests that call live Beatport, Beatsource, Bandcamp, and MusicBrainz services are explicitly ignored in normal regression runs. Run them deliberately with `cargo test -p onetagger-platforms --locked -- --ignored --test-threads=1`; external outages and rate limits must not determine ordinary PR validation. New safety and matching tests are deterministic and run without provider accounts.
 
 Clippy runs across the workspace. Existing style warnings are visible but are not promoted wholesale to errors; compilation and Clippy errors still fail the job.

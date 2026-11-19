@@ -1,5 +1,19 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.2 — 2026-11-19
+
+### AutoTagger
+
+- Continue searching with the next enabled provider when a provider is rate limited.
+- Initialize providers independently so a slow startup does not delay other providers.
+- Show each provider’s observed lookup pace and count of deferred lookups. The pace includes completed attempts that found no match.
+
+### Build validation
+
+- Share one Apple Silicon runner between scheduler tests, benchmarks and native packaging, retaining all native platforms and benchmark reports. Allow 60 minutes for the combined job, with the scheduler step bounded to 10 minutes.
+
+[Full changes since v2.1.1](https://github.com/fantuz/onetagger/compare/v2.1.1...v2.1.2)
+
 ## 2.1.1 — 2026-11-19
 
 ### AutoTagger
