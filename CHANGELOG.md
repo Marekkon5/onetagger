@@ -1,5 +1,23 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.0 — 2026-11-19
+
+OneTagger now offers 14 interface languages in the desktop app and browser mode.
+
+### Interface languages
+
+- Add Portuguese for Portugal and Brazil, Czech, Polish, Japanese, and Arabic. The Portuguese options use region-specific wording and plural rules.
+- Revise Greek navigation, tagging messages, file operation prompts, and in-app help.
+- Mirror the interface in Arabic. File paths, renamer templates, and the playback waveform retain their left-to-right order.
+- Bundle the catalogs and Quasar control translations for offline use. Language choice is saved per client.
+
+### Dependencies
+
+- Update Tokio to the 1.51.6 LTS patch release. Terminal styling remains available on Windows with Crossterm's event support disabled.
+- Update the Vue Router, Quasar extras, ID3, Clap, Muda, and convert_case dependencies included since v2.0.0.
+
+[Full changes since v2.0.0](https://github.com/fantuz/onetagger/compare/v2.0.0...v2.1.0)
+
 ## 2.0.0 — 2026-11-19
 
 OneTagger 2.0.0 brings seven new interface languages to the desktop app and browser mode, along with a faster way to handle provider fallbacks in AutoTagger.
