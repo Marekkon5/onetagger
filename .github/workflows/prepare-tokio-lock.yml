@@ -1,0 +1,33 @@
+name: Prepare Tokio LTS lockfile
+on:
+  push:
+    branches: [feature/interface-locales-v2.1.0]
+    paths: ['.github/workflows/prepare-tokio-lock.yml']
+permissions:
+  contents: read
+
+jobs:
+  lock:
+    name: Resolve Tokio 1.51.6 LTS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Generate the targeted Rust lockfile patch
+        run: |
+          cargo update -p tokio --precise 1.51.6
+          cargo metadata --locked --no-deps --format-version 1 > /dev/null
+          python3 ci/release_tools.py check
+          git diff --check -- Cargo.lock
+          echo 'ONETAGGER_TOKIO_PATCH_BEGIN'
+          git --no-pager diff --no-color -- Cargo.lock
+          echo 'ONETAGGER_TOKIO_PATCH_END'
+      - name: Review direct Tokio I/O registration calls
+        run: |
+          if rg -n '\bAsyncFd\b' crates; then
+            echo 'Review these direct AsyncFd call sites before publishing.'
+          else
+            echo 'No direct AsyncFd call sites in the application crates.'
+          fi
