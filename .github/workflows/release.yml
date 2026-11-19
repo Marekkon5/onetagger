@@ -1,5 +1,5 @@
 name: Release validated version
-run-name: Release from Build ${{ github.event.workflow_run.id || inputs.build_run_id }}
+run-name: Release from Build ${{ github.event.workflow_run.id || inputs.build_run_id || 'for current master' }}
 
 on:
   workflow_run:
@@ -9,9 +9,10 @@ on:
   workflow_dispatch:
     inputs:
       build_run_id:
-        description: Latest successful master Build run ID (from its Actions URL)
+        description: Optional Build run ID (blank uses the latest Build for the current master commit)
         type: string
-        required: true
+        required: false
+        default: ''
       publish:
         description: Publish when verified (unchecked prepares or resumes a draft)
         type: boolean
@@ -51,7 +52,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Validate the version bump, successful build and available artifacts
+      - name: Validate the release version, successful build and available artifacts
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
