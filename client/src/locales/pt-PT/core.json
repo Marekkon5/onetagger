@@ -1,0 +1,23 @@
+{
+  "language": "Idioma",
+  "languageHelp": "A escolha do idioma é guardada neste navegador ou na aplicação de computador.",
+  "unexpectedError": "Ocorreu um erro inesperado.",
+  "invalidSession": "A ligação para esta sessão do OneTagger é inválida ou expirou.",
+  "sessionLinkRequired": "Abra o OneTagger através da ligação de sessão apresentada pela aplicação em execução.",
+  "websocketError": "Erro na ligação WebSocket.",
+  "websocketClosed": "A ligação WebSocket foi fechada.",
+  "error": "Erro",
+  "reportSaveFailed": "Não foi possível guardar o relatório de resultados",
+  "moveFailed": "Não foi possível mover alguns ficheiros",
+  "platformInstalled": "Plataforma instalada",
+  "platformInstallFailed": "Não foi possível instalar a plataforma",
+  "platformInstallSuccess": "A plataforma foi instalada. Prima OK para continuar.",
+  "settingsSaved": "Definições guardadas!",
+  "invalidProfile": "Perfil inválido",
+  "loadingPlatforms": "A carregar plataformas…",
+  "stopNotAcknowledged": "A aplicação não confirmou o pedido de paragem. Tente novamente.",
+  "invalidStopAcknowledgement": "Confirmação de paragem inválida",
+  "stopSendFailed": "Não foi possível enviar o pedido de paragem. Tente novamente.",
+  "stopConnectionClosed": "A ligação foi fechada antes de confirmar a paragem. Tente novamente.",
+  "trackSaved": "Faixa guardada!"
+}

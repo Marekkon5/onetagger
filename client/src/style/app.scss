@@ -60,9 +60,8 @@
     user-select: none;
 }
 
-// Use platform UI fonts with Greek/Cyrillic coverage rather than depending on
-// the Latin display font. All locale assets remain bundled and work offline.
-:root:lang(el), :root:lang(ru) {
+// Use the platform UI fonts for scripts outside the display font's coverage.
+:root:lang(el), :root:lang(ru), :root:lang(ja), :root:lang(ar) {
     --onetagger-ui-font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 

@@ -1,4 +1,5 @@
-export const SUPPORTED_LOCALES = ['en', 'it', 'fr', 'nl', 'de', 'es', 'el', 'ru'] as const;
+export const SUPPORTED_LOCALES = ['en', 'it', 'fr', 'nl', 'de', 'es', 'el', 'ru',
+    'pt-PT', 'pt-BR', 'cs', 'pl', 'ja', 'ar'] as const;
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number];
 export const LOCALE_STORAGE_KEY = 'onetagger.locale';
 
@@ -9,6 +10,9 @@ function supported(value: unknown): SupportedLocale | undefined {
     const normalized = value.trim().replace(/_/g, '-');
     if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(normalized)) return undefined;
     const language = normalized.split('-')[0].toLowerCase();
+    if (language === 'pt') {
+        return /^pt(?:-[a-z]{4})?-br(?:-|$)/i.test(normalized) ? 'pt-BR' : 'pt-PT';
+    }
     return SUPPORTED_LOCALES.find(locale => locale === language);
 }
 
@@ -21,23 +25,23 @@ export function resolveLocale(preferred?: unknown, browserLanguages: readonly st
     return 'en';
 }
 
-const russianCardinal = new Intl.PluralRules('ru');
 const cardinalRules = Object.fromEntries(SUPPORTED_LOCALES.map(locale => [locale, new Intl.PluralRules(locale)]));
+const slavicForms = ['one', 'few', 'many', 'other'];
+const arabicForms = ['zero', 'one', 'two', 'few', 'many', 'other'];
 
 export function cardinalPluralRule(locale: SupportedLocale, choice: number, choicesLength: number): number {
-    if (locale === 'ru') return russianPluralRule(choice, choicesLength);
     if (choicesLength <= 1) return 0;
-    const one = cardinalRules[locale].select(choice) === 'one';
-    if (choicesLength === 2) return one ? 0 : 1;
+    const category = cardinalRules[locale].select(choice);
+    if (choicesLength === 2) return category === 'one' ? 0 : 1;
+    if (locale === 'ru' || locale === 'cs' || locale === 'pl') {
+        return Math.min(slavicForms.indexOf(category), choicesLength - 1);
+    }
+    if (locale === 'ar') return Math.min(arabicForms.indexOf(category), choicesLength - 1);
     // Three-form messages explicitly provide zero | one | other.
-    return choice === 0 ? 0 : one ? 1 : 2;
+    return choice === 0 ? 0 : category === 'one' ? 1 : 2;
 }
 
 /** Four-form catalog order: one | few | many | other (including fractions). */
 export function russianPluralRule(choice: number, choicesLength: number): number {
-    const category = russianCardinal.select(choice);
-    if (choicesLength <= 1) return 0;
-    if (choicesLength === 2) return category === 'one' ? 0 : 1;
-    const index = category === 'one' ? 0 : category === 'few' ? 1 : category === 'many' ? 2 : 3;
-    return Math.min(index, choicesLength - 1);
+    return cardinalPluralRule('ru', choice, choicesLength);
 }

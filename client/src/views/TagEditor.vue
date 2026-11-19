@@ -13,7 +13,7 @@
         >
             <div class='text-weight-bold text-subtitle2 clickable path-display' @click='browse'>
                 <div class='row inline'>
-                    <span style="direction:ltr;" class='text-primary monospace'>{{path}}</span>
+                    <span dir='ltr' class='text-primary monospace'>{{path}}</span>
                 </div>
             </div>
             <div class='q-mt-sm'>
@@ -120,6 +120,7 @@
                         
                         <q-input
                             v-model='file.tags[tag]'
+                            dir='auto'
                             :aria-label="t('tools.tagInput', { tag })" :data-testid='"tag-field-" + tag'
                             filled
                             dense

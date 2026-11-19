@@ -15,12 +15,18 @@ from ui_smoke import Backend, BrowserTests, ROOT, TOKEN, TRACK
 
 
 RESULTS = ROOT / "localization-results"
-LOCALES = ("en", "it", "fr", "nl", "de", "es", "el", "ru")
-NATIVE_NAMES = {"en": "English", "it": "Italiano", "fr": "Français", "nl": "Nederlands",
-                "de": "Deutsch", "es": "Español", "el": "Ελληνικά", "ru": "Русский"}
-# Exact defaults from the pinned Quasar v2.35.4 ui/lang/{en-US,fr,ru}.js.
-# OK is identical in these packs; Cancel is what proves the pack changes.
-QUASAR_CANCEL = {"en": "Cancel", "fr": "Annuler", "ru": "Отмена"}
+NATIVE_NAMES = {
+    "en": "English", "it": "Italiano", "fr": "Français", "nl": "Nederlands",
+    "de": "Deutsch", "es": "Español", "el": "Ελληνικά", "ru": "Русский",
+    "pt-PT": "Português (Portugal)", "pt-BR": "Português (Brasil)",
+    "cs": "Čeština", "pl": "Polski", "ja": "日本語", "ar": "العربية",
+}
+LOCALES = tuple(NATIVE_NAMES)
+# Exact defaults from the pinned Quasar language packs.
+QUASAR_CANCEL = {
+    "en": "Cancel", "fr": "Annuler", "ru": "Отмена", "pt-PT": "Cancelar", "pt-BR": "Cancelar",
+    "cs": "Zrušit", "pl": "Anuluj", "ja": "キャンセル", "ar": "إلغاء",
+}
 RAW_KEY = re.compile(r"\b(?:autotag|quicktag|tools|common|backend|core|providers|help)\.[A-Za-z][A-Za-z0-9_]*\b")
 RENAMER_UNKNOWN_DOC = '<img src=x onerror="window.i18nInjected=true"> literal &lt; Ελληνικά Русский'
 
@@ -34,7 +40,7 @@ def selection(count=1):
     return {"schema": 1, "id": "a" * 32, "snapshot": "synthetic", "snapshot_digest": "b" * 64,
             "scope_key": "capture:fixture", "mapping_revision": "c" * 64,
             "tracks": [{"track_id": f"library-{index}",
-                        "local_path": f"/music/{index} Café Ελληνικά Русский 100%20.mp3"}
+                        "local_path": f"/music/{index} Café Ελληνικά Русский 日本語 العربية 100%20.mp3"}
                        for index in range(count)]}
 
 
@@ -115,7 +121,7 @@ class LocalizationTests(unittest.TestCase):
                 self.wait_initialized(page, backend, expected)
                 page.get_by_test_id("nav-home").click()
             else:
-                expect(page.locator("html")).to_have_attribute("lang", expected)
+                self.expect_document_locale(page, expected)
             yield page, backend
             self.assertEqual(errors, [], "Browser JavaScript exceptions")
             self.assertEqual(warnings, [], "Missing keys or invalid message compilation")
@@ -142,7 +148,11 @@ class LocalizationTests(unittest.TestCase):
             page.wait_for_timeout(20)
         expect(page.get_by_role("dialog")).to_have_count(0)
         expect(page.get_by_test_id("nav-home")).to_be_visible()
+        self.expect_document_locale(page, locale)
+
+    def expect_document_locale(self, page, locale):
         expect(page.locator("html")).to_have_attribute("lang", locale)
+        expect(page.locator("html")).to_have_attribute("dir", "rtl" if locale == "ar" else "ltr")
 
     def dismiss_dialog(self, dialog, button=None):
         (button if button is not None else dialog.get_by_role("button").first).click()
@@ -156,7 +166,7 @@ class LocalizationTests(unittest.TestCase):
         expect(selector).to_be_visible()
         selector.click()
         page.get_by_role("option", name=NATIVE_NAMES[locale], exact=True).click()
-        expect(page.locator("html")).to_have_attribute("lang", locale)
+        self.expect_document_locale(page, locale)
         # QSelect does not emit an update when choosing its current option.
         # An automatically detected locale need not be saved until it changes.
         if previous_locale != locale or previous_saved == locale:
@@ -193,7 +203,10 @@ class LocalizationTests(unittest.TestCase):
         expect(tabs).to_have_class(re.compile(r"\bq-tabs--scrollable\b"))
         # Quasar arrows scroll while the real pointer is held down. Do not use
         # locator auto-scrolling to make a clipped navigation tab reachable.
-        for direction, target in (("right", "nav-renamer"), ("left", "nav-home")):
+        rtl = content.evaluate("element => getComputedStyle(element).direction === 'rtl'")
+        for direction, to_end, target in (
+                ("left" if rtl else "right", True, "nav-renamer"),
+                ("right" if rtl else "left", False, "nav-home")):
             arrow = tabs.locator(f".q-tabs__arrow--{direction}")
             expect(arrow).to_be_visible()
             expect(arrow).not_to_have_css("opacity", "0")
@@ -201,12 +214,11 @@ class LocalizationTests(unittest.TestCase):
             arrow.hover()
             page.mouse.down()
             try:
-                page.wait_for_function("""direction => {
+                page.wait_for_function("""toEnd => {
                     const element = document.querySelector('.q-header .q-tabs__content');
-                    return direction === 'right'
-                        ? element.scrollWidth - element.clientWidth - element.scrollLeft <= 1
-                        : element.scrollLeft <= 1;
-                }""", arg=direction)
+                    const offset = Math.abs(element.scrollLeft);
+                    return toEnd ? element.scrollWidth - element.clientWidth - offset <= 1 : offset <= 1;
+                }""", arg=to_end)
             finally:
                 page.mouse.up()
             bounds = content.bounding_box()
@@ -256,7 +268,7 @@ class LocalizationTests(unittest.TestCase):
                 title = page.locator('[data-testid="tag-field-TIT2"] input, '
                                      'input[data-testid="tag-field-TIT2"]')
                 expect(title).to_have_value("Synthetic title")
-                raw = 'Café Ελληνικά Русский <img src=x onerror="window.i18nInjected=true">'
+                raw = 'العربية 日本語 Café Ελληνικά Русский <img src=x onerror="window.i18nInjected=true">'
                 title.fill(raw)
                 title.press("Tab")
                 page.get_by_test_id("tag-editor-save").click()
@@ -278,7 +290,7 @@ class LocalizationTests(unittest.TestCase):
             self.wait_initialized(page, backend, "it", previous=initializations)
             self.choose_locale(page, "ru")
             self.assertRegex(page.get_by_test_id("nav-tageditor").inner_text(), r"[\u0400-\u04ff]")
-            for locale in ("ru", "fr", "en"):
+            for locale in ("ru", "fr", "ar", "pt-BR", "en"):
                 self.choose_locale(page, locale)
                 self.open_autotag_input(page)
                 self.upload_selection(page, selection())
@@ -289,7 +301,7 @@ class LocalizationTests(unittest.TestCase):
                 backend.socket.send(json.dumps({"action": "error", "message": "Quasar default button fixture"}))
                 # This error dialog has no custom OK label, unlike Auto-tag.
                 error_dialog = page.get_by_role("dialog").filter(has_text="Quasar default button fixture")
-                default_ok = error_dialog.get_by_role("button", name="OK", exact=True)
+                default_ok = error_dialog.get_by_role("button", name="حسناً" if locale == "ar" else "OK", exact=True)
                 expect(default_ok).to_be_visible()
                 self.dismiss_dialog(error_dialog, default_ok)
             self.choose_locale(page, "el")
@@ -299,7 +311,9 @@ class LocalizationTests(unittest.TestCase):
 
     def test_regional_detection_and_unsupported_saved_language_fallback(self):
         for browser_locale, saved, expected in [("fr-CH", None, "fr"), ("de-CH", None, "de"),
-                                                ("ja-JP", None, "en"), ("fr-CH", "unsupported", "en")]:
+                                                ("ja-JP", None, "ja"), ("ar-EG", None, "ar"),
+                                                ("pt-BR", None, "pt-BR"), ("pt-PT", None, "pt-PT"),
+                                                ("en-US", "PT_br", "pt-BR"), ("fr-CH", "unsupported", "en")]:
             with self.subTest(browser_locale=browser_locale, saved=saved), self.session(
                     browser_locale=browser_locale, saved=saved, expected=expected,
                     suffix=f"{browser_locale}-{saved or 'auto'}") as (page, _):
@@ -403,13 +417,15 @@ class LocalizationTests(unittest.TestCase):
             expect(dialog).to_have_count(0)
 
     def test_longer_languages_fit_and_all_main_screens_remain_navigable(self):
-        for locale in ("de", "nl", "el", "ru"):
+        for locale in ("de", "nl", "el", "ru", "pt-PT", "pl", "ja", "ar"):
             with self.subTest(locale=locale), self.session(saved=locale, expected=locale,
                     viewport={"width": 1280, "height": 720}) as (page, _):
                 self.assert_header_scroll_controls(page)
                 for route in ("autotagger", "tageditor", "renamer", "audiofeatures", "quicktag", "home"):
                     page.get_by_test_id(f"nav-{route}").click()
                     expect(page.locator(".q-page-container")).not_to_be_empty()
+                    if route == "renamer":
+                        expect(page.locator(".template-input")).to_have_css("direction", "ltr")
                     self.assert_layout(page, 1280)
                 page.set_viewport_size({"width": 1100, "height": 700})
                 warning = page.get_by_role("dialog").filter(has_text="1200")

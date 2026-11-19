@@ -1,0 +1,23 @@
+{
+  "language": "Język",
+  "languageHelp": "Ustawienie języka jest zapisywane w tej przeglądarce lub oknie aplikacji.",
+  "unexpectedError": "Wystąpił nieoczekiwany błąd.",
+  "invalidSession": "Link do sesji OneTaggera jest nieprawidłowy lub wygasł.",
+  "sessionLinkRequired": "Otwórz OneTaggera za pomocą linku do sesji wyświetlanego przez uruchomioną aplikację.",
+  "websocketError": "Błąd połączenia WebSocket.",
+  "websocketClosed": "Połączenie WebSocket zostało zamknięte.",
+  "error": "Błąd",
+  "reportSaveFailed": "Nie udało się zapisać raportu wyników",
+  "moveFailed": "Nie udało się przenieść niektórych plików",
+  "platformInstalled": "Platforma zainstalowana",
+  "platformInstallFailed": "Nie udało się zainstalować platformy",
+  "platformInstallSuccess": "Platforma została zainstalowana. Naciśnij OK, aby kontynuować.",
+  "settingsSaved": "Zapisano ustawienia!",
+  "invalidProfile": "Nieprawidłowy profil",
+  "loadingPlatforms": "Wczytywanie platform…",
+  "stopNotAcknowledged": "Brak potwierdzenia zatrzymania. Spróbuj ponownie.",
+  "invalidStopAcknowledgement": "Nieprawidłowe potwierdzenie zatrzymania",
+  "stopSendFailed": "Nie udało się wysłać polecenia zatrzymania. Spróbuj ponownie.",
+  "stopConnectionClosed": "Połączenie zamknięto przed potwierdzeniem zatrzymania. Spróbuj ponownie.",
+  "trackSaved": "Zapisano utwór!"
+}

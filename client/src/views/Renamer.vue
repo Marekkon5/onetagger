@@ -8,7 +8,7 @@
             <div class='text-subtitle2 q-mb-md text-grey-6'>{{ t('tools.browseHint') }}</div>
         
             <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' :label="t('tools.inputFolder')" v-model='config.path' @update:model-value="updatePreview()">
+                <q-input filled class='col-10' dir='ltr' :label="t('tools.inputFolder')" v-model='config.path' @update:model-value="updatePreview()">
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(false)'></q-btn>
                     </template>
@@ -16,7 +16,7 @@
             </div>
     
             <div class='q-pt-lg row justify-center input' style='max-width: 725px; margin: auto;'>
-                <q-input filled class='col-10' :label="t('tools.outputFolder')" v-model='config.outDir' @update:model-value="updatePreview()">
+                <q-input filled class='col-10' dir='ltr' :label="t('tools.outputFolder')" v-model='config.outDir' @update:model-value="updatePreview()">
                     <template v-slot:append>
                         <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse(true)'></q-btn>
                     </template>
@@ -28,7 +28,7 @@
             <div class='text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.template') }}</div>
                 <div class='text-subtitle2 text-grey-6'>{{ t('tools.templateHelp') }}</div>
             
-            <div style='margin-top: -25px;'>
+            <div dir='ltr' style='margin-top: -25px;'>
                 <div class='fake-cursor' :style='cursorStyle'>|</div>
                 <div class='template-text'>
                     <span v-if='config.template' v-html='highlighted'></span>
@@ -94,7 +94,7 @@
         <div class='full-width'>            
             <div class='q-mt-md q-mb-sm text-subtitle2 text-bold text-primary custom-margin'>{{ t('tools.preview') }}</div>
             <div v-for='(file, i) in preview' :key='"prev"+i'>
-                <div class='text-caption monospace text-grey-5 q-my-md'>{{file[1]}}</div>
+                <div class='text-caption monospace text-grey-5 q-my-md' dir='ltr'>{{file[1]}}</div>
                 
             </div>
         </div>

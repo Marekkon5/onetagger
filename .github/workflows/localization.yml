@@ -84,7 +84,7 @@ jobs:
           python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
           python -m pip check
           python -m playwright install --with-deps ${{ matrix.install }}
-      - name: Exercise all eight interface languages
+      - name: Exercise every interface language
         env:
           UI_BROWSERS: ${{ matrix.engines }}
         run: python ci/ui/localization_smoke.py

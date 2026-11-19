@@ -5,14 +5,14 @@
     <div class='text-weight-bold clickable path-display q-my-md' v-if='!editPath'>
         <div class='row inline'>
             <span style="direction:ltr;">
-                <span @click='browse' class='text-primary monospace q-pr-xs'>{{path}}</span>
+                <span @click='browse' dir='ltr' class='text-primary monospace q-pr-xs'>{{path}}</span>
                 <q-icon name='mdi-pencil' class='q-pb-xs' @click='editPath = true'></q-icon>
             </span>
         </div>
     </div>
     <div class='q-my-sm' v-if='editPath'>
         <form @submit.prevent='loadFiles()'>
-            <q-input outlined dense v-model='path' @blur='editPath = false'></q-input>
+            <q-input outlined dense dir='ltr' v-model='path' @blur='editPath = false'></q-input>
         </form>
     </div>
 

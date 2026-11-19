@@ -5,15 +5,26 @@ Translations therefore belong at that shared presentation boundary. The Rust
 backend continues to handle files, tagging, provider requests and stable protocol
 values independently of the language selected by a client.
 
-Supported application languages are English (`en`), Italian (`it`), French (`fr`),
-Dutch (`nl`), German (`de`), Spanish (`es`), Greek (`el`) and Russian (`ru`). Locale
-catalogs are UTF-8 JSON under `client/src/locales/<language>/`. Application text
-and Quasar's own control labels must switch together. The HTML `lang` attribute
-must reflect the selected language for assistive technology. English provides a
-fallback for unsupported locales and missing messages.
-The application owns HTML language and direction; Quasar's `noHtmlAttrs` setting
-prevents a control pack such as `en-US` from replacing the application locale
-`en`. All supported languages currently use left-to-right layout.
+OneTagger ships English (`en`), Italian (`it`), French (`fr`), Dutch (`nl`), German
+(`de`), Spanish (`es`), Greek (`el`), Russian (`ru`), Portuguese for Portugal
+(`pt-PT`) and Brazil (`pt-BR`), Czech (`cs`), Polish (`pl`), Japanese (`ja`), and
+Arabic (`ar`).
+
+Locale catalogs are UTF-8 JSON under `client/src/locales/<language>/`. The app
+switches its messages, the Quasar control pack, and the document's `lang` and
+`dir` attributes together. Arabic uses a right-to-left layout. The app
+keeps file paths, renamer templates, and the playback timeline left-to-right.
+Quasar's `noHtmlAttrs` setting lets the app own the document attributes.
+
+A saved preference takes precedence over browser detection. Brazilian Portuguese
+tags select `pt-BR`. Bare `pt` and other Portuguese regional tags select `pt-PT`.
+Unsupported or malformed saved preferences and missing messages fall back to English.
+
+| Project | Interface languages | OneTagger also offers |
+| --- | ---: | --- |
+| [Entropy Service](https://github.com/fantuz/entropy-service/blob/b969366c92aa6fb95fac7981af4069ae6321cc0d/cmd/entropy-server/web/i18n.js) | 9 | Dutch, both Portuguese variants, Japanese, Arabic |
+| [Rekordbox Migration Helper](https://github.com/fantuz/rekordbox-migration-helper/blob/09a7aa2160a821fd711e0531d821c17f9227d5e2/docs/LOCALIZATION.md) | 13 | Dutch |
+| OneTagger | 14 | |
 
 ## Rust boundary and compatibility
 
@@ -79,7 +90,7 @@ details can remain in their original language.
 
 The built-in help navigation, section headings, workflow summaries and detailed
 reference prose are localized. The `help` namespace contains 90 messages in each
-of the eight languages, covering provider/API explanations, keyboard walkthroughs,
+of the 14 languages, covering provider/API explanations, keyboard walkthroughs,
 threshold examples and the renamer reference. Named Vue component slots preserve
 links, icons, code examples and interactive elements while allowing translators
 to reorder complete sentences. Videos, screenshots and linked external pages
@@ -104,9 +115,11 @@ markup-like characters. It is neither decoded nor treated as sanitized HTML.
 - Translate complete messages, rather than joining translated sentence pieces.
   Use named arguments such as `{path}`, `{detail}` and `{count}` so translators can
   reorder them. Keep technical examples and executable tokens unchanged.
-- Use the localization framework's plural support. Russian needs its own plural
-  rule; English singular/plural rules do not apply to all requested languages.
-  Validate 0, 1, 2, 5, 11, 21, 22, 25 and 101, and fractional values where supported.
+- Use the localization framework's plural support. Russian, Czech, and Polish
+  use `one | few | many | other` in their catalogs. Arabic uses
+  `zero | one | two | few | many | other`. Japanese uses one form. European and
+  Brazilian Portuguese use their respective cardinal rules, which differ at zero.
+  Keep named placeholders in every form.
 - Render translations and substitutions as text. Do not use `v-html` or Quasar
   `html: true` with translations containing filenames, provider responses or user
   data. If markup is needed, keep trusted components in the template and use
@@ -117,9 +130,8 @@ markup-like characters. It is neither decoded nor treated as sanitized HTML.
   fallback for malformed or unsupported preferences. Language selection must not
   affect provider request parameters or library output.
 
-English is the source catalog. Automated validation can establish structural
-completeness and rendering behavior; fluent-speaker review remains valuable for
-terminology, tone and natural phrasing in the seven translations.
+English is the source catalog. Automated checks cover catalog completeness and
+rendering. Review wording and terminology whenever a catalog changes.
 
 ## Verification
 
@@ -130,14 +142,14 @@ I18n dependency tree and compiles every catalog entry in the same JIT mode as th
 runtime. Compiler errors fail the Localization workflow before the frontend build;
 this does not depend on which messages browser smoke tests happen to display.
 Backend regression tests verify additive envelopes, typed error identity, literal
-Unicode/path preservation and the presence of every emitted key in all eight
+Unicode/path preservation and the presence of every emitted key in all 14
 backend catalogs. Existing Rust serialization and file/report tests protect the
 machine-readable contracts.
 
 Browser coverage should exercise language selection/persistence/fallback and
 normal workflows in the production bundle, including Quasar controls and live
-notifications. Layout coverage should include long translated labels, narrow
-windows, scrolling and Greek/Cyrillic text. Use stable selectors so translating a
+notifications. Layout coverage should include long labels, narrow windows,
+header scrolling in both directions, and font fallback for the supported scripts. Use stable selectors so translating a
 button does not change the test's identity. Retain native desktop smoke coverage
 because browser engines and platform font fallback can differ.
 

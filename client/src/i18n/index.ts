@@ -9,6 +9,12 @@ import de from 'quasar/lang/de';
 import es from 'quasar/lang/es';
 import el from 'quasar/lang/el';
 import ru from 'quasar/lang/ru';
+import ptPT from 'quasar/lang/pt';
+import ptBR from 'quasar/lang/pt-BR';
+import cs from 'quasar/lang/cs';
+import pl from 'quasar/lang/pl';
+import ja from 'quasar/lang/ja';
+import ar from 'quasar/lang/ar';
 import { LOCALE_STORAGE_KEY, SUPPORTED_LOCALES, resolveLocale, russianPluralRule, cardinalPluralRule, type SupportedLocale } from './locale';
 
 export { LOCALE_STORAGE_KEY, SUPPORTED_LOCALES, resolveLocale, russianPluralRule };
@@ -19,7 +25,7 @@ const messages = Object.fromEntries(SUPPORTED_LOCALES.map(locale => [locale, {}]
     Record<SupportedLocale, Record<string, Catalog>>;
 const catalogs = import.meta.glob<Catalog>('../locales/*/*.json', { eager: true, import: 'default' });
 for (const [path, catalog] of Object.entries(catalogs)) {
-    const match = path.match(/\/([a-z]{2})\/([a-zA-Z0-9_-]+)\.json$/);
+    const match = path.match(/\/([a-z]{2}(?:-[A-Z]{2})?)\/([a-zA-Z0-9_-]+)\.json$/);
     if (!match || !SUPPORTED_LOCALES.includes(match[1] as SupportedLocale)) continue;
     messages[match[1] as SupportedLocale][match[2]] = catalog;
 }
@@ -30,7 +36,10 @@ function initialLocale(): SupportedLocale {
     return resolveLocale(saved, navigator.languages?.length ? navigator.languages : [navigator.language]);
 }
 
-export const quasarLanguagePacks = { en: enUS, it, fr, nl, de, es, el, ru };
+export const quasarLanguagePacks = {
+    en: enUS, it, fr, nl, de, es, el, ru,
+    'pt-PT': ptPT, 'pt-BR': ptBR, cs, pl, ja, ar,
+};
 export const i18n = createI18n({
     legacy: false,
     globalInjection: true,
@@ -47,11 +56,16 @@ export const i18n = createI18n({
     escapeParameter: false,
 });
 
-document.documentElement.lang = i18n.global.locale.value;
-document.documentElement.dir = 'ltr';
-watch(i18n.global.locale, locale => {
+function applyDocumentLocale(locale: SupportedLocale): void {
     document.documentElement.lang = locale;
-    Quasar.lang.set(quasarLanguagePacks[locale as SupportedLocale]);
+    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+}
+
+applyDocumentLocale(i18n.global.locale.value as SupportedLocale);
+watch(i18n.global.locale, value => {
+    const locale = value as SupportedLocale;
+    applyDocumentLocale(locale);
+    Quasar.lang.set(quasarLanguagePacks[locale]);
 }, { flush: 'sync' });
 
 export function setLocale(value: unknown): void {
@@ -65,6 +79,9 @@ export const localeOptions: { label: string; value: SupportedLocale }[] = [
     { label: 'Français', value: 'fr' }, { label: 'Nederlands', value: 'nl' },
     { label: 'Deutsch', value: 'de' }, { label: 'Español', value: 'es' },
     { label: 'Ελληνικά', value: 'el' }, { label: 'Русский', value: 'ru' },
+    { label: 'Português (Portugal)', value: 'pt-PT' }, { label: 'Português (Brasil)', value: 'pt-BR' },
+    { label: 'Čeština', value: 'cs' }, { label: 'Polski', value: 'pl' },
+    { label: '日本語', value: 'ja' }, { label: 'العربية', value: 'ar' },
 ];
 
 export function translate(key: string, values: Record<string, string | number> = {}): string {
