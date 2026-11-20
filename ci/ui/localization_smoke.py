@@ -99,10 +99,12 @@ class LocalizationTests(unittest.TestCase):
     @contextmanager
     def session(self, browser_locale="en-US", saved=None, expected="en", suffix="",
                 viewport=None, status=204):
+        storage = None if saved is None else {"cookies": [], "origins": [{
+            "origin": self.base_url, "localStorage": [{"name": "onetagger.locale", "value": saved}],
+        }]}
         context = self.browser.new_context(viewport=viewport or {"width": 1440, "height": 900},
-                                          locale=browser_locale, timezone_id="UTC", service_workers="block")
-        if saved is not None:
-            context.add_init_script(f"localStorage.setItem('onetagger.locale', {json.dumps(saved)});")
+                                          locale=browser_locale, timezone_id="UTC", service_workers="block",
+                                          storage_state=storage)
         context.tracing.start(screenshots=True, snapshots=True, sources=False)
         page = context.new_page()
         page.set_default_timeout(10000)

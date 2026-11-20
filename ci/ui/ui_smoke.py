@@ -37,6 +37,12 @@ TRACK = {
 }
 
 
+class FrontendServer(ThreadingHTTPServer):
+    # A cold page requests several JS and CSS chunks at once. Python 3.12's
+    # five-connection default can refuse a chunk on Windows before startup.
+    request_queue_size = 128
+
+
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, *_):
         pass
@@ -167,7 +173,7 @@ class BrowserTests(unittest.TestCase):
         if not (ROOT / "client/dist/index.html").is_file():
             raise RuntimeError("Build/download the production frontend artifact before running UI tests")
         RESULTS.mkdir(exist_ok=True)
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT / "client/dist")))
+        cls.server = FrontendServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT / "client/dist")))
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         cls.base_url = f"http://127.0.0.1:{cls.server.server_port}"
