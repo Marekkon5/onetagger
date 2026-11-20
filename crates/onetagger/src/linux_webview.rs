@@ -9,8 +9,10 @@ pub fn page_visible(view: &wry::WebView) -> bool {
     view.webview().is_visible()
 }
 
-pub fn install_recovery(view: &wry::WebView, container: &gtk::Box, launch_url: &str) {
+pub fn load(view: &wry::WebView, container: &gtk::Box, launch_url: &str, software_rendering: bool) {
     let page = view.webview();
+    info!("GTK display backend: {}", gtk::prelude::WidgetExt::display(&page).type_().name());
+    if software_rendering { use_software_rendering(&page); }
     let actions = gtk::Box::new(gtk::Orientation::Vertical, 12);
     actions.set_valign(gtk::Align::Center);
     actions.set_halign(gtk::Align::Center);
@@ -50,11 +52,17 @@ pub fn install_recovery(view: &wry::WebView, container: &gtk::Box, launch_url: &
         if last.replace(Some(now)).is_some_and(|previous| now.duration_since(previous) < Duration::from_secs(60)) {
             page.hide();
             actions.show();
+            info!("Native display recovery controls are available");
         } else {
-            if let Some(settings) = WebViewExt::settings(page) {
-                settings.set_hardware_acceleration_policy(HardwareAccelerationPolicy::Never);
-            }
+            use_software_rendering(page);
             page.load_uri(&restore);
         }
     });
+    page.load_uri(launch_url);
+}
+
+fn use_software_rendering(page: &webkit2gtk::WebView) {
+    if let Some(settings) = WebViewExt::settings(page) {
+        settings.set_hardware_acceleration_policy(HardwareAccelerationPolicy::Never);
+    }
 }

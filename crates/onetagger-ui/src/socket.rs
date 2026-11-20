@@ -264,6 +264,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
     match action {
         // Get initial info
         Action::Init => {
+            info!("UI session initialized");
             send_socket(websocket, InitData::new(context.start_context.clone())).await.ok();
         },
         Action::Exit => std::process::exit(0),
@@ -361,7 +362,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         }
         Action::TaggingState => {
             let snapshot = context.start_context.runs.lock().unwrap().as_ref().map(RunStatus::snapshot);
-            if let Some(snapshot) = snapshot { send_socket(websocket, snapshot).await?; }
+            send_socket(websocket, snapshot.unwrap_or_else(|| json!({"action": "taggingState", "runId": null}))).await?;
         }
         action @ (Action::StartTagging { .. } | Action::RetryTagging { .. }) => {
             let _lease = TaggingLease::acquire(&TAGGING_ACTIVE)?;

@@ -40,7 +40,7 @@ fn main() -> Result<(), Error> {
     std::thread::spawn(move || {
         if let Err(error) = serve() { error!("Local server stopped: {error}"); }
     });
-    start_webview(&launch_url, cli.webdriver)
+    start_webview(&launch_url, cli.webdriver, #[cfg(target_os = "linux")] cli.software_rendering)
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -61,6 +61,11 @@ struct Cli {
     /// Open in browser
     #[clap(long)]
     browser: bool,
+
+    /// Use software rendering in the Linux desktop window from startup
+    #[cfg(target_os = "linux")]
+    #[clap(long)]
+    software_rendering: bool,
 
     /// Allow local WebKitWebDriver control for native Linux regression tests.
     #[clap(long, hide = true)]
@@ -109,7 +114,7 @@ fn old_macos_warning() -> Result<(), Error> { Ok(()) }
 
 
 /// Start webview window
-pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
+pub fn start_webview(launch_url: &str, webdriver: bool, #[cfg(target_os = "linux")] software_rendering: bool) -> Result<(), Error> {
     // Setup wry
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -153,7 +158,6 @@ pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
     
     // Configure
     let mut webview = WebViewBuilder::new_with_web_context(&mut context)
-        .with_url(launch_url)
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;
@@ -164,6 +168,9 @@ pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
                 proxy.send_event(CustomWindowEvent::Exit).ok();
             }
         });
+
+    #[cfg(not(target_os = "linux"))]
+    { webview = webview.with_url(launch_url); }
 
     // Windows webview2 does NOT support custom DnD, janky workaround
     if cfg!(target_os = "windows") {
@@ -237,7 +244,7 @@ pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
         let vbox = window.default_vbox().ok_or_else(|| anyhow::anyhow!("GTK window has no content area"))?;
         let view = webview.build_gtk(vbox)?;
         #[cfg(target_os = "linux")]
-        linux_webview::install_recovery(&view, vbox, launch_url);
+        linux_webview::load(&view, vbox, launch_url, software_rendering);
         view
     };
 

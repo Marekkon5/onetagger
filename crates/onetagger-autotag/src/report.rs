@@ -200,6 +200,7 @@ pub struct Report {
 pub struct ReportBuilder {
     report: Report,
     rows: BTreeMap<PathBuf, Row>,
+    recheck: Option<BTreeSet<PathBuf>>,
     selection: Option<Selection>,
 }
 
@@ -217,7 +218,19 @@ impl ReportBuilder {
             run_id: format!("{:032x}", rand::random::<u128>()),
             application_version: onetagger_shared::VERSION.into(), application_commit: onetagger_shared::COMMIT.into(),
             created_at: Utc::now().to_rfc3339(), completed_at: String::new(), cancelled: false,
-            selection: selection.as_ref().map(|s| s.identity.clone()), tracks: vec![] }, rows, selection }
+            selection: selection.as_ref().map(|s| s.identity.clone()), tracks: vec![] }, rows, selection, recheck: None }
+    }
+
+    /// Helper imports require every original track ID, including aliases. Carry
+    /// forward completed rows and their original evidence without reopening them.
+    pub(super) fn resume(files: &[PathBuf], selection: Option<Selection>, previous: &Report) -> Self {
+        let mut next = Self::new(&[], selection);
+        next.report.created_at.clone_from(&previous.created_at);
+        for row in &previous.tracks {
+            next.rows.entry(row.local_path.clone()).or_insert_with(|| row.clone());
+        }
+        next.recheck = Some(files.iter().cloned().collect());
+        next
     }
 
     pub fn record(&mut self, provider: &str, status: &TaggingStatus) {
@@ -258,6 +271,10 @@ impl ReportBuilder {
 
     pub fn finish(mut self, cancelled: bool) -> Report {
         for row in self.rows.values_mut() {
+            if self.recheck.as_ref().is_some_and(|paths| !paths.contains(&row.local_path)) { continue; }
+            row.after = None;
+            row.after_error = None;
+            row.file_state = None;
             match read_tags(&row.final_path) {
                 Ok((tags, state)) => { row.after = Some(tags); row.file_state = Some(state); },
                 Err(_) => row.after_error = Some("Could not verify final audio tags".into()),
@@ -320,6 +337,39 @@ mod tests {
         Selection { schema: 1, results_version: 1, identity: SelectionIdentity { id: "a".repeat(32), snapshot: "snapshot".into(),
             snapshot_digest: "b".repeat(64), scope_key: "capture:fixture".into(), mapping_revision: "c".repeat(64) },
             tracks: vec![SelectionTrack { track_id: "library-1".into(), local_path: dunce::canonicalize(path).unwrap() }] }
+    }
+
+    #[test]
+    fn retry_report_keeps_the_full_manifest_and_does_not_reopen_completed_audio() {
+        let dir = tempfile::tempdir().unwrap();
+        let done = dir.path().join("done.mp3");
+        let waiting = dir.path().join("waiting.mp3");
+        audio(&done, "Finished");
+        audio(&waiting, "Original");
+        let mut manifest = selection(&done);
+        for id in ["retry-a", "retry-b"] {
+            manifest.tracks.push(SelectionTrack { track_id: id.into(), local_path: waiting.clone() });
+        }
+        let mut first = ReportBuilder::new(&manifest.files(), Some(manifest.clone()));
+        first.record("first", &status(&done, TaggingState::Ok));
+        first.record("first", &status(&waiting, TaggingState::Partial));
+        let first = first.finish(false);
+        let mut second = ReportBuilder::resume(std::slice::from_ref(&waiting), Some(manifest), &first);
+        fs::remove_file(&done).unwrap(); // Only the unfinished recording may be reopened.
+        audio(&waiting, "After retry");
+        second.record("fallback", &status(&waiting, TaggingState::Ok));
+        let second = second.finish(false);
+        assert_ne!(first.run_id, second.run_id);
+        assert_eq!(second.selection, first.selection);
+        assert_eq!(second.tracks.len(), 3);
+        assert_eq!(second.tracks[0].file_state, first.tracks[0].file_state);
+        assert!(second.tracks[0].after_error.is_none());
+        for (row, id) in second.tracks[1..].iter().zip(["retry-a", "retry-b"]) {
+            assert_eq!(row.track_id.as_deref(), Some(id));
+            assert_eq!(row.before.as_ref().unwrap().title.as_deref(), Some("Original"));
+            assert_eq!(row.after.as_ref().unwrap().title.as_deref(), Some("After retry"));
+            assert_eq!(row.attempts.len(), 2);
+        }
     }
 
     #[test]

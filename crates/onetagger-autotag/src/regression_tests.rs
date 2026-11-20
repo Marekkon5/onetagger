@@ -208,6 +208,31 @@ impl AutotaggerSource for RecoverySource {
 }
 
 #[test]
+fn a_separate_retry_only_fills_missing_tags_even_with_overwrite_enabled() {
+    for multiplatform in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        mp3(&path, Some("Fixture"));
+        let config = TaggerConfig { tags: vec![SupportedTag::Genre, SupportedTag::Label, SupportedTag::MetaTags],
+            overwrite: true, skip_tagged: true, multiplatform, ..Default::default() };
+        let run = RunTagState::new(&config);
+        let partial = Tagger::tag_track_with_cancel(&path, &mut Box::new(RecoverySource("detail-limit")),
+            &config, &run, &|| false);
+        assert_eq!(partial.status, TaggingState::Partial);
+        let mut results = TaggingResults::default();
+        results.record(&partial);
+        let plan = RetryPlan::capture(&config, RunOptions { keep_retry: true, ..Default::default() }, &results, &run).unwrap();
+        let next = plan.resume_state();
+        let complete = Tagger::tag_track_with_cancel(&path, &mut Box::new(RecoverySource("complete")),
+            &config, &next, &|| false);
+        assert_eq!(complete.status, TaggingState::Ok);
+        let mut audio = Tag::load_file(&path, false).unwrap();
+        assert_eq!(audio.tag_mut().get_field(Field::Genre).unwrap(), ["detail-limit"]);
+        assert_eq!(audio.tag_mut().get_field(Field::Label).unwrap(), ["Recovered label"]);
+    }
+}
+
+#[test]
 fn retryable_detail_failures_fill_only_outstanding_fields_and_preserve_report_compatibility() {
     use crate::scheduler::{self, Attempt, Schedule};
     use TaggingState::*;

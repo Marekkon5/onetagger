@@ -6,6 +6,7 @@ pub(super) struct RunOptions {
     pub selection: Option<report::Selection>,
     pub rotate: bool,
     pub keep_retry: bool,
+    pub previous_report: Option<Arc<report::Report>>,
 }
 
 /// In-memory continuation. Paths and outstanding fields come from the completed
@@ -20,11 +21,8 @@ pub struct RetryPlan {
 }
 
 impl RetryPlan {
-    pub(super) fn capture(config: &TaggerConfig, mut options: RunOptions, results: &TaggingResults, run: &RunTagState) -> Option<Arc<Self>> {
+    pub(super) fn capture(config: &TaggerConfig, options: RunOptions, results: &TaggingResults, run: &RunTagState) -> Option<Arc<Self>> {
         if !options.keep_retry || results.retryable.is_empty() { return None; }
-        if let Some(selection) = &mut options.selection {
-            selection.tracks.retain(|row| results.retryable.contains(&row.local_path));
-        }
         let pending = run.pending_fields.lock().unwrap();
         let missing = results.retryable.iter().filter_map(|path|
             pending.get(path).map(|fields| (path.clone(), fields.clone()))).collect();
@@ -40,9 +38,46 @@ impl RetryPlan {
 
     pub fn start(&self, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Result<Receiver<TaggingStatusWrap>, Error> {
         if !self.remaining().is_zero() { bail!("The provider cooldown is still active"); }
-        if let Some(selection) = &self.options.selection { selection.validate()?; }
-        let state = RunTagState::new(&self.config);
+        if let Some(selection) = &self.options.selection {
+            let mut subset = selection.clone();
+            subset.tracks.retain(|row| self.files.binary_search(&row.local_path).is_ok());
+            subset.validate()?;
+        }
+        Ok(Tagger::tag_files_inner(&self.config, self.files.clone(), finished, self.options.clone(), self.resume_state()))
+    }
+
+    pub(super) fn resume_state(&self) -> RunTagState {
+        let mut state = RunTagState::new(&self.config);
+        state.resumed = true;
         *state.pending_fields.lock().unwrap() = self.pending.clone();
-        Ok(Tagger::tag_files_inner(&self.config, self.files.clone(), finished, self.options.clone(), state))
+        state
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::regression_tests::status;
+
+    #[test]
+    fn cooldown_and_membership_follow_only_unresolved_files() {
+        let mut results = TaggingResults::default();
+        let done = Path::new("already complete.mp3");
+        let waiting = Path::new("waiting.mp3");
+        let mut limited = status(waiting, TaggingState::Deferred);
+        limited.set_message(TaggingMessage::ProviderRateLimited(30));
+        results.record(&limited);
+        results.record(&status(done, TaggingState::Partial));
+        results.record(&status(done, TaggingState::Ok));
+        results.record(&status(done, TaggingState::Deferred));
+        results.record(&status(Path::new("failed.mp3"), TaggingState::Error));
+        let config = TaggerConfig::default();
+        let options = RunOptions { keep_retry: true, ..Default::default() };
+        let retry = RetryPlan::capture(&config, options.clone(), &results, &RunTagState::default()).unwrap();
+        assert_eq!(retry.files, [waiting]);
+        assert!(retry.remaining() > Duration::from_secs(25));
+        assert!(retry.start(Arc::default()).is_err());
+        results.record(&status(waiting, TaggingState::Ok));
+        assert!(RetryPlan::capture(&config, options, &results, &RunTagState::default()).is_none());
     }
 }

@@ -129,6 +129,38 @@ mod tests {
     use std::time::Duration;
 
     #[test]
+    fn rotation_admits_another_provider_while_the_first_is_blocked() {
+        let gate = (Mutex::new(false), Condvar::new());
+        let mut events = Vec::new();
+        run(&[0, 1], &[1, 1], 2, false, Schedule::Rotating, || false,
+            |stage, _, item| {
+                if *item == 0 {
+                    let (open, _) = gate.1.wait_timeout_while(gate.0.lock().unwrap(), Duration::from_secs(3), |open| !*open).unwrap();
+                    assert!(*open, "the other provider should complete independently");
+                }
+                Attempt { value: stage, matched: true }
+            }, |stage, item, result, _| {
+                events.push((item, result.unwrap()));
+                if stage == 1 { *gate.0.lock().unwrap() = true; gate.1.notify_one(); }
+            });
+        assert_eq!(events, [(1, 1), (0, 0)]);
+    }
+
+    #[test]
+    fn rotation_wraps_each_file_once_and_finishes_at_the_total() {
+        let mut visits = vec![Vec::new(); 5];
+        let mut progress = Vec::new();
+        run(&[0; 5], &[1, 1, 1], 4, true, Schedule::Rotating, || false,
+            |_, _, _| Attempt { value: (), matched: true },
+            |stage, item, result, n| { result.unwrap(); visits[item].push(stage); progress.push(n); });
+        for (item, stages) in visits.iter().enumerate() {
+            assert_eq!(*stages, [item % 3, (item + 1) % 3, (item + 2) % 3]);
+        }
+        assert!(progress.is_sorted());
+        assert_eq!(progress.last(), Some(&5));
+    }
+
+    #[test]
     fn fallback_starts_before_the_first_provider_finishes() {
         let gate = (Mutex::new(false), Condvar::new());
         let mut events = vec![];

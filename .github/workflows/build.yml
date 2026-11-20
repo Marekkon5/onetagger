@@ -236,6 +236,7 @@ jobs:
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=onetagger_test
           dbus-run-session -- xvfb-run -a python3 ci/ui/native_linux.py target/release/onetagger
+          dbus-run-session -- xvfb-run -a python3 ci/ui/native_recovery.py target/release/onetagger
       - name: Upload native Linux UI evidence
         if: runner.os == 'Linux' && always() && !cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -116,7 +116,6 @@ class OneTagger {
             this.reconnectAttempts = 0;
             if (!this.settingsLoaded) this.send('loadSettings');
             if (!this.info.value.ready) this.send('init');
-            if (!this.platformsLoaded) this.loadPlatforms();
             // A new connection has its own backend context. Refresh read-only
             // state without replaying edits or starting another tagging run.
             this.send('spotifyAuthorized');
@@ -236,10 +235,15 @@ class OneTagger {
             case 'taggingState': {
                 const status = this.taggerStatus.value;
                 clearTimeout(this.stateTimer);
+                // Loading or replacing provider plugins takes the same registry
+                // lock as the tagging workers. Wait until an active run finishes.
+                if ((!json.runId || json.completion) && !this.platformsLoaded && !this.loadingPlatformsDialog) this.loadPlatforms();
+                if (!json.runId) break;
                 if (status.runId !== json.runId) {
                     status.reset();
                     status.runId = json.runId;
                     status.recovered = true;
+                    if (!json.completion) router.replace(json.type === 'autoTagger' ? '/autotagger/status' : '/audiofeatures/status');
                 }
                 status.type = json.type;
                 status.total = json.files;
@@ -622,6 +626,7 @@ class OneTagger {
 
     /// Load AT platforms
     loadPlatforms() {
+        this.platformsLoaded = false;
         this.send('loadPlatforms');
         this.loadingPlatformsDialog = Dialog.create({
             title: t('core.loadingPlatforms'),

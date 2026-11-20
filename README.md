@@ -123,6 +123,8 @@ On every platform, use the Rust toolchain pinned in `rust-toolchain.toml`, Node.
 
 ### Linux
 
+If the desktop window goes blank, try `./onetagger --software-rendering`. On desktops with X11 or XWayland, `GDK_BACKEND=x11 ./onetagger` lets you compare GTK backends. The startup log identifies the backend in use.
+
 Install dependencies: [rustup](https://rustup.rs), [node](https://nodejs.org/en/download/package-manager/), [pnpm](https://pnpm.io/installation)
 
 **Install remaining dependencies**
