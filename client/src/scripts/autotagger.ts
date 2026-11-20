@@ -109,6 +109,11 @@ interface SpotifyConfig {
 }
 
 class TaggerStatus {
+    runId?: number;
+    retryFiles = 0;
+    retryAt = 0;
+    retrySubmitting = false;
+    recovered = false;
     results = new StatusIndex<TaggingStatusWrap>();
     providerPaces = new Map<string, ProviderPace>();
     paceUpdatedAt = 0;
@@ -136,6 +141,11 @@ class TaggerStatus {
     }
 
     reset() {
+        this.runId = undefined;
+        this.retryFiles = 0;
+        this.retryAt = 0;
+        this.retrySubmitting = false;
+        this.recovered = false;
         this.results = new StatusIndex<TaggingStatusWrap>();
         this.providerPaces.clear();
         this.paceUpdatedAt = 0;

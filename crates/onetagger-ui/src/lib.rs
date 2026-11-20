@@ -41,11 +41,13 @@ pub struct StartContext {
     pub browser: bool,
     #[serde(skip)]
     pub session: session::SessionSecret,
+    #[serde(skip)]
+    pub(crate) runs: std::sync::Arc<std::sync::Mutex<Option<socket::RunStatus>>>,
 }
 
 impl StartContext {
     pub fn new(server_mode: bool, start_path: Option<String>, expose: bool, browser: bool) -> Self {
-        Self { server_mode, start_path, expose, browser, session: Default::default() }
+        Self { server_mode, start_path, expose, browser, session: Default::default(), runs: Default::default() }
     }
 }
 

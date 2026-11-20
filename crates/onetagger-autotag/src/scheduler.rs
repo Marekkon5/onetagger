@@ -8,6 +8,8 @@ use std::thread;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Schedule {
     Pipelined,
+    /// Successive files start at successive providers, then wrap in configured order.
+    Rotating,
     /// Reference provider-wide barrier, used by the comparative CI benchmark.
     #[allow(dead_code)]
     Batched,
@@ -43,7 +45,8 @@ pub fn run<T, R, F, O, C>(
     let workers = concurrency.max(1).min(items.len());
     let stages = limits.len();
     let mut pending = vec![VecDeque::new(); stages];
-    pending[0].extend(0..items.len());
+    let first_stage = |item: usize| if schedule == Schedule::Rotating { item % stages } else { 0 };
+    for item in 0..items.len() { pending[first_stage(item)].push_back(item); }
     let mut slots: Vec<Vec<usize>> = limits.iter()
         .map(|limit| (0..(*limit).max(1).min(workers)).collect()).collect();
     let mut free: Vec<usize> = (0..workers).collect();
@@ -104,11 +107,12 @@ pub fn run<T, R, F, O, C>(
             inflight -= 1;
             if let Some(result) = result {
                 let matched = result.as_ref().is_ok_and(|r| r.matched);
-                let terminal = (matched && !multiplatform) || job.stage + 1 == stages;
+                let next = (job.stage + 1) % stages;
+                let terminal = (matched && !multiplatform) || next == first_stage(job.item);
                 if terminal { completed += 1; }
                 observe(job.stage, job.item, result.map(|r| r.value), completed);
                 if !terminal && !cancelled() {
-                    pending[job.stage + 1].push_back(job.item);
+                    pending[next].push_back(job.item);
                 }
             }
         }

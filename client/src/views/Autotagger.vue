@@ -197,6 +197,7 @@ async function startTagging() {
             config: $1t.config.value,
             playlist: $1t.taggingSelection.value ? null : playlist,
             report: $1t.saveTaggingReport.value,
+            rotateProviders: $1t.settings.value.rotateProviders,
             selection: $1t.taggingSelection.value
         });
     }, 100);

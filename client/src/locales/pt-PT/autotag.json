@@ -185,5 +185,10 @@
   "providerPaceLimited": "Limitadas ou adiadas ({count})",
   "retryCount": "A pesquisar novamente · {count}",
   "partialResult": "Guardado parcialmente",
-  "deferredResult": "Pesquisa adiada"
+  "deferredResult": "Pesquisa adiada",
+  "retryLookups": "Repetir pesquisas pendentes · {count}",
+  "retryWait": "Pode repetir daqui a {seconds} s",
+  "rotateProviders": "Alternar o primeiro fornecedor entre faixas",
+  "rotateHint": "Começar cada faixa pelo fornecedor seguinte e tentar os restantes por ordem.",
+  "recoveredRun": "Ligação restabelecida. O progresso e a fila de novas tentativas incluem as pesquisas anteriores."
 }

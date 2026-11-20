@@ -185,5 +185,10 @@
   "providerPaceLimited": "制限または保留（{count} 件）",
   "retryCount": "再検索が必要 · {count} 件",
   "partialResult": "一部保存済み",
-  "deferredResult": "検索を保留"
+  "deferredResult": "検索を保留",
+  "retryLookups": "未完了の検索を再試行 · {count}",
+  "retryWait": "{seconds} 秒後に再試行できます",
+  "rotateProviders": "曲ごとに最初のプロバイダーを切り替える",
+  "rotateHint": "曲ごとに次のプロバイダーから開始し、残りを順に試します。",
+  "recoveredRun": "再接続しました。進捗バーと再試行キューには、それまでの検索も含まれます。"
 }

@@ -185,5 +185,10 @@
   "providerPaceLimited": "Limitadas o aplazadas ({count})",
   "retryCount": "Pendientes de otra búsqueda · {count}",
   "partialResult": "Guardado parcial",
-  "deferredResult": "Búsqueda aplazada"
+  "deferredResult": "Búsqueda aplazada",
+  "retryLookups": "Reintentar búsquedas pendientes · {count}",
+  "retryWait": "Reintento disponible en {seconds} s",
+  "rotateProviders": "Alternar el primer proveedor entre pistas",
+  "rotateHint": "Empezar cada pista por el proveedor siguiente y probar los demás en orden.",
+  "recoveredRun": "Conexión restablecida. El progreso y la cola de reintentos incluyen las búsquedas anteriores."
 }

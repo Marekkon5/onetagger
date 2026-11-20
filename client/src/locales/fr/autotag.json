@@ -185,5 +185,10 @@
   "providerPaceLimited": "Limitées ou différées ({count})",
   "retryCount": "Recherche à relancer · {count}",
   "partialResult": "Enregistrement partiel",
-  "deferredResult": "Recherche différée"
+  "deferredResult": "Recherche différée",
+  "retryLookups": "Relancer les recherches inachevées · {count}",
+  "retryWait": "Nouvel essai dans {seconds} s",
+  "rotateProviders": "Alterner le premier fournisseur entre les pistes",
+  "rotateHint": "Commencer chaque piste avec le fournisseur suivant, puis essayer les autres dans l’ordre.",
+  "recoveredRun": "Connexion rétablie. La progression et la file de reprise incluent les recherches précédentes."
 }

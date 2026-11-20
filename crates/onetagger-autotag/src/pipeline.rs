@@ -81,7 +81,7 @@ impl Provider<'_> {
 impl Tagger {
     pub(super) fn tag_pipeline(files: &[PathBuf], config: &TaggerConfig,
         tx: &Sender<TaggingStatusWrap>, results: &mut TaggingResults,
-        report: &mut Option<report::ReportBuilder>, run: &RunTagState) {
+        report: &mut Option<report::ReportBuilder>, run: &RunTagState, rotate: bool) {
         if files.is_empty() { return; }
         let threads = usize::from(config.threads).max(1).min(files.len());
         // Keep custom plugin libraries alive for the lifetime of their sources.
@@ -110,9 +110,10 @@ impl Tagger {
             }).collect()
         };
         let limits: Vec<usize> = providers.iter().map(|p| p.sources.len()).collect();
-        info!("Starting ordered provider pipeline: {} files, {} providers, {threads} shared workers",
+        info!("Starting provider pipeline: {} files, {} providers, {threads} shared workers",
             files.len(), providers.len());
-        scheduler::run(files, &limits, threads, config.multiplatform, Schedule::Pipelined,
+        let schedule = if rotate { Schedule::Rotating } else { Schedule::Pipelined };
+        scheduler::run(files, &limits, threads, config.multiplatform, schedule,
             || STOP_TAGGING.load(Ordering::SeqCst),
             |stage, slot, path| {
                 let status = providers[stage].tag(slot, path, config, run);

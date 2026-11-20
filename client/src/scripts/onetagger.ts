@@ -37,6 +37,12 @@ class OneTagger {
     private ws!: WebSocket;
     private wsPromiseResolve?: (_: any) => void;
     private wsPromise?;
+    private reconnectAttempts = 0;
+    private settingsLoaded = false;
+    private platformsLoaded = false;
+    private leaving = false;
+    private reconnectTimer?: number;
+    private stateTimer?: number;
 
     // Quicktag track loading
     private nextQTTrack?: QTTrack;
@@ -54,34 +60,15 @@ class OneTagger {
 
         // WS connection promise
         this.wsPromise = new Promise((res) => this.wsPromiseResolve = res);
-        // Setup WS connection
-        this.ws = new WebSocket(wsUrl());
-        this.ws.addEventListener('error', (e) => { console.error(e); this.onError(t('core.websocketError')); });
-        this.ws.addEventListener('close', (_) => {
-            this.onTagEditorEvent({action: 'tagEditorDisconnected'});
-            this.onError(t('core.websocketClosed'));
+        this.connect();
+        window.addEventListener('pagehide', () => {
+            this.leaving = true;
+            clearTimeout(this.reconnectTimer);
+            clearTimeout(this.stateTimer);
+            this.ws.close(1000);
         });
-        this.ws.addEventListener('open', (_) => {
-            // Resolve connection promise
-            if (this.wsPromiseResolve) {
-                this.wsPromiseResolve(null);
-                this.wsPromiseResolve = undefined;
-            }
-
-            // Load initial data
-            this.send('loadSettings');
-            setTimeout(() => {
-                this.send('init');
-                this.send('spotifyAuthorized');
-                // Load platforms
-                setTimeout(() => this.loadPlatforms(), 25);
-            }, 100);
-        });
-        this.ws.addEventListener('message', (event) => {
-            // Parse incoming message
-            let json = JSON.parse(event.data);
-            if (!json.action) return;
-            this.incomingEvent(json);
+        window.addEventListener('pageshow', event => {
+            if (event.persisted) { this.leaving = false; this.connect(); }
         });
 
         // Keybinds
@@ -102,6 +89,43 @@ class OneTagger {
                 e.preventDefault();
                 return false;
             }
+        });
+    }
+
+    private connect() {
+        const socket = new WebSocket(wsUrl());
+        this.ws = socket;
+        socket.addEventListener('close', () => {
+            if (socket !== this.ws || this.leaving) return;
+            clearTimeout(this.stateTimer);
+            this.taggerStatus.value.retrySubmitting = false;
+            this.loadingPlatformsDialog?.hide();
+            this.loadingPlatformsDialog = undefined;
+            this.onTagEditorEvent({action: 'tagEditorDisconnected'});
+            if (this.reconnectAttempts === 0) this.onError(t('core.websocketClosed'));
+            if (this.reconnectAttempts < 5) {
+                this.reconnectTimer = window.setTimeout(() => this.connect(), 250 * 2 ** this.reconnectAttempts++);
+            } else {
+                this.wsPromiseResolve?.(null);
+                this.wsPromiseResolve = undefined;
+            }
+        });
+        socket.addEventListener('open', () => {
+            this.wsPromiseResolve?.(null);
+            this.wsPromiseResolve = undefined;
+            this.reconnectAttempts = 0;
+            if (!this.settingsLoaded) this.send('loadSettings');
+            if (!this.info.value.ready) this.send('init');
+            if (!this.platformsLoaded) this.loadPlatforms();
+            // A new connection has its own backend context. Refresh read-only
+            // state without replaying edits or starting another tagging run.
+            this.send('spotifyAuthorized');
+            this.send('taggingState');
+        });
+        socket.addEventListener('message', event => {
+            if (socket !== this.ws) return;
+            const data = JSON.parse(event.data);
+            if (data.action) this.incomingEvent(data);
         });
     }
 
@@ -142,6 +166,7 @@ class OneTagger {
             await this.wsPromise;
             this.wsPromise = undefined;
         }
+        if (!this.isConnected) throw new Error(t('core.websocketClosed'));
         let data = { action };
         Object.assign(data, params);
         this.ws.send(JSON.stringify(data));
@@ -172,6 +197,7 @@ class OneTagger {
 
             // Settings loaded
             case 'loadSettings':
+                this.settingsLoaded = true;
                 this.loadSettings(json.settings);
                 break;
             // Load custom platform settings
@@ -202,13 +228,43 @@ class OneTagger {
                 break;
             // Error
             case 'error':
+                this.taggerStatus.value.retrySubmitting = false;
                 // Unlock, callback
                 this.lock.value.locked = false;
                 this.onError(translateBackendMessage(json));
                 break;
+            case 'taggingState': {
+                const status = this.taggerStatus.value;
+                clearTimeout(this.stateTimer);
+                if (status.runId !== json.runId) {
+                    status.reset();
+                    status.runId = json.runId;
+                    status.recovered = true;
+                }
+                status.type = json.type;
+                status.total = json.files;
+                status.progress = json.progress;
+                if (json.completion) {
+                    status.done = true;
+                    status.cancelled = json.completion.cancelled;
+                    status.data = json.completion.data;
+                    status.retryFiles = json.retryCount ?? 0;
+                    status.retryAt = Date.now() + (json.retryAfterMs ?? 0);
+                    if (!status.cancelled) status.progress = 1;
+                } else {
+                    status.recovered = true;
+                    this.stateTimer = window.setTimeout(() => {
+                        if (this.isConnected) this.send('taggingState');
+                    }, 1200);
+                }
+                this.lock.value.locked = !status.done;
+                break;
+            }
             case 'startTagging':
+                clearTimeout(this.stateTimer);
                 this.lock.value.locked = true;
                 this.taggerStatus.value.reset();
+                this.taggerStatus.value.runId = json.runId;
                 this.taggerStatus.value.total = json.files;
                 this.taggerStatus.value.type = json.type;
                 break;
@@ -219,6 +275,8 @@ class OneTagger {
                 break;
             // Tagging done
             case 'taggingDone':
+                this.taggerStatus.value.retryFiles = json.retryCount ?? 0;
+                this.taggerStatus.value.retryAt = Date.now() + (json.retryAfterMs ?? 0);
                 this.lock.value.locked = false;
                 this.taggerStatus.value.done = true;
                 this.taggerStatus.value.cancelled = json.cancelled === true;
@@ -308,9 +366,10 @@ class OneTagger {
                 break;
             // Platforms loaded
             case 'loadPlatforms':
+                this.platformsLoaded = true;
                 this.info.value.platforms = json.platforms;
                 this.send('defaultCustomPlatformSettings');
-                this.loadingPlatformsDialog!.hide();
+                this.loadingPlatformsDialog?.hide();
                 this.loadingPlatformsDialog = undefined;
                 break;
 

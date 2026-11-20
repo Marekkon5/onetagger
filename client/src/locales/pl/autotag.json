@@ -185,5 +185,10 @@
   "providerPaceLimited": "Ograniczone lub odroczone ({count})",
   "retryCount": "Do ponownego wyszukania · {count}",
   "partialResult": "Zapisano częściowo",
-  "deferredResult": "Wyszukiwanie odroczone"
+  "deferredResult": "Wyszukiwanie odroczone",
+  "retryLookups": "Ponów niedokończone wyszukiwania · {count}",
+  "retryWait": "Ponowienie za {seconds} s",
+  "rotateProviders": "Zmieniaj pierwszego dostawcę dla kolejnych utworów",
+  "rotateHint": "Dla każdego utworu zacznij od następnego dostawcy, potem sprawdź pozostałych w kolejności.",
+  "recoveredRun": "Połączenie przywrócone. Pasek postępu i kolejka ponowień uwzględniają wcześniejsze wyszukiwania."
 }

@@ -1,5 +1,14 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.5 — 2026-11-20
+
+- On Linux, OneTagger waits for its local listener before opening the desktop window. If WebKit's page process exits, it reopens the session with software rendering. A second failure within a minute presents native controls to reopen the view or continue in a browser.
+- The interface reconnects after a dropped WebSocket and can recover the current run summary. Settings, tagging and stop requests can run without opening an audio device.
+- In Auto Tag results, **Retry unfinished lookups** reruns only partial and deferred files. The queue retains outstanding fields and Library Workbench track IDs. A countdown shows when a rate-limited provider can be tried again.
+- In Auto Tag advanced settings, **Rotate first provider between tracks** lets different tracks start at different providers. Each track then follows the configured order around the list. Ordered matching remains the default. iTunes now honors HTTP 429 retry delays.
+
+[Full changes since v2.1.4](https://github.com/fantuz/onetagger/compare/v2.1.4...v2.1.5)
+
 ## 2.1.4 — 2026-11-20
 
 ### Library integrity
