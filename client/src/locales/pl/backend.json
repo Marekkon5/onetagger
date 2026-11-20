@@ -24,5 +24,6 @@
   "providerInitializationFailed": "Nie udało się zainicjować dostawcy ({detail}).",
   "providerUnavailable": "Dostawca jest niedostępny ({provider})",
   "providerPanickedTryingNext": "Dostawca uległ awarii. Trwa próba u kolejnego dostawcy.",
-  "providerRateLimited": "Osiągnięto limit żądań dostawcy. Spróbuj ponownie za {seconds} s."
+  "providerRateLimited": "Osiągnięto limit żądań dostawcy. Spróbuj ponownie za {seconds} s.",
+  "providerDetailsUnavailable": "Szczegóły od dostawcy są niedostępne. Można ponowić wyszukiwanie brakujących pól."
 }

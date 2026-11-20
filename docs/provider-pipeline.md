@@ -5,10 +5,9 @@ card to change its priority. Re-enabling a card puts it back at its displayed
 position in the search order. A track that misses on one provider can immediately
 try the next provider while other tracks are still being searched.
 
-With **Multiplatform** off, the first successful tag save ends the search for
-that file. A match can save a subset of the requested fields. Enable
-**Multiplatform** to visit every selected provider in order, with one writer at
-a time for each file.
+With **Multiplatform** off, a successful provider lookup and tag save normally ends the search for that file. A provider may supply a subset of the requested fields. When its detail request fails, the available fields can still be saved. The next providers fill the outstanding fields in order, using the original overwrite settings for those fields. A search interrupted by a rate limit also continues to the next provider. Files awaiting a retry stay in place when **Move failed files** is enabled.
+
+Enable **Multiplatform** to visit every selected provider in order, with one writer at a time for each file. Each provider uses the configured overwrite permissions.
 
 **Skip tagged** reads the AutoTagger marker when the run first reads each file.
 A marker from an earlier run makes the file ineligible. A marker written during
@@ -20,11 +19,10 @@ Later providers can update populated fields when overwrite is allowed.
 **Merge genres** unions the file's existing genres with the provider's genres
 and needs overwrite permission for Genre to save that union to a populated field.
 
-Green in the status view means a successful save. The exported report lists
-each provider outcome and the file's before and after values.
+The **Needs another lookup** filter groups partial saves and deferred lookups. A file leaves the filter when a later provider completes it. Each provider's status tooltip explains its warning. Reports record each attempt, its retry delay when supplied, and the file's before and after values. For Workbench v1/v2 compatibility, a partial save has status `written` and outcome `partial`. A deferred attempt has status `skipped` and outcome `deferred`.
 
 **Manual Tag** searches the chosen providers concurrently. It merges the results
-you select in their selection order. Scalar fields use the first present value,
+you select in their selection order. Separate editions remain distinct when their recording IDs coincide. Scalar fields use the first present value,
 and array fields combine their entries.
 
 All providers share the configured thread limit. Each provider's own `max_threads`

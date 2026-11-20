@@ -40,8 +40,8 @@ jobs:
           node-version: '24'
           cache: pnpm
           cache-dependency-path: client/pnpm-lock.yaml
-      - name: Test the provider pace estimate
-        run: node --experimental-strip-types --test ci/provider_pace.test.ts
+      - name: Test provider pace and live status counters
+        run: node --experimental-strip-types --test ci/provider_pace.test.ts ci/status_index.test.ts
       - name: Build and typecheck locked frontend
         run: |
           pnpm --dir client install --frozen-lockfile

@@ -1,3 +1,4 @@
+import { StatusIndex, type TrackOutcome } from './statusindex';
 import { translate } from '../i18n';
 import { ProviderPace } from './providerpace';
 import { FrameName, RustDuration, Separators } from "./utils";
@@ -108,8 +109,7 @@ interface SpotifyConfig {
 }
 
 class TaggerStatus {
-    statuses: TaggingStatusWrap[][] = [];
-    statusesByPath = new Map<string, TaggingStatusWrap[]>();
+    results = new StatusIndex<TaggingStatusWrap>();
     providerPaces = new Map<string, ProviderPace>();
     paceUpdatedAt = 0;
     started: number = 0;
@@ -123,15 +123,7 @@ class TaggerStatus {
 
     recordProgress(update: TaggingStatusWrap) {
         this.progress = update.progress;
-        const path = update.status.path;
-        const group = this.statusesByPath.get(path);
-        if (group) {
-            group.push(update);
-        } else {
-            const attempts = [update];
-            this.statusesByPath.set(path, attempts);
-            this.statuses.unshift(attempts);
-        }
+        this.results.record(update);
 
         const limited = update.status.messageKey === 'backend.providerRateLimited';
         if (this.type !== 'autoTagger' || (update.status.lookupMs === undefined && !limited)) return;
@@ -144,8 +136,7 @@ class TaggerStatus {
     }
 
     reset() {
-        this.statuses = [];
-        this.statusesByPath.clear();
+        this.results = new StatusIndex<TaggingStatusWrap>();
         this.providerPaces.clear();
         this.paceUpdatedAt = 0;
         this.started = Date.now();
@@ -167,7 +158,7 @@ interface TaggingStatusWrap {
 }
 
 interface TaggingStatus {
-    status: 'ok' | 'error' | 'skipped';
+    status: TrackOutcome;
     path: string;
     message?: string;
     messageKey?: string;

@@ -182,5 +182,8 @@
   "providerPace": "Tempo per provider",
   "providerPaceValue": "{rate} nummers/min",
   "providerPaceMeasuring": "Zoektempo meten",
-  "providerPaceLimited": "Beperkt of uitgesteld ({count})"
+  "providerPaceLimited": "Beperkt of uitgesteld ({count})",
+  "retryCount": "Opnieuw opzoeken · {count}",
+  "partialResult": "Gedeeltelijk opgeslagen",
+  "deferredResult": "Zoekopdracht uitgesteld"
 }

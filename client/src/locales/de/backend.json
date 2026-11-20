@@ -24,5 +24,6 @@
   "providerInitializationFailed": "Der Anbieter konnte nicht initialisiert werden: {detail}",
   "providerUnavailable": "Anbieter nicht verfügbar: {provider}",
   "providerPanickedTryingNext": "Der Anbieter ist abgestürzt. Der nächste Anbieter wird versucht.",
-  "providerRateLimited": "Anfragelimit des Anbieters erreicht. In {seconds} s erneut versuchen."
+  "providerRateLimited": "Anfragelimit des Anbieters erreicht. In {seconds} s erneut versuchen.",
+  "providerDetailsUnavailable": "Anbieterdetails sind nicht verfügbar. Die ausstehenden Felder können erneut abgefragt werden."
 }

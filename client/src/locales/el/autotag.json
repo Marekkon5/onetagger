@@ -182,5 +182,8 @@
   "providerPace": "Ρυθμός ανά πάροχο",
   "providerPaceValue": "{rate} κομμάτια/λεπτό",
   "providerPaceMeasuring": "Μέτρηση ρυθμού αναζήτησης",
-  "providerPaceLimited": "Περιορισμένες ή αναβληθείσες ({count})"
+  "providerPaceLimited": "Περιορισμένες ή αναβληθείσες ({count})",
+  "retryCount": "Χρειάζονται νέα αναζήτηση · {count}",
+  "partialResult": "Μερική αποθήκευση",
+  "deferredResult": "Η αναζήτηση αναβλήθηκε"
 }

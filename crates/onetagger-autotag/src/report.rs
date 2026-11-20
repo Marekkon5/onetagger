@@ -155,6 +155,13 @@ pub struct Attempt {
     pub track_id: Option<String>,
     pub release_id: Option<String>,
     pub status: String,
+    /// Additional evidence for consumers that understand retryable attempts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<TaggingState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub warning_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_after_seconds: Option<u64>,
     pub score: Option<f64>,
     pub reason: Option<MatchReason>,
     pub used_shazam: bool,
@@ -171,6 +178,8 @@ pub struct Row {
     pub before_error: Option<String>,
     pub after_error: Option<String>,
     pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<TaggingState>,
     pub attempts: Vec<Attempt>,
 }
 
@@ -202,7 +211,7 @@ impl ReportBuilder {
                 Err(_) => (None, Some("Could not read original audio tags".into())),
             };
             (path.clone(), Row { track_id: None, local_path: path.clone(), final_path: path.clone(), before,
-                after: None, file_state: None, before_error, after_error: None, status: "unprocessed".into(), attempts: vec![] })
+                after: None, file_state: None, before_error, after_error: None, status: "unprocessed".into(), outcome: None, attempts: vec![] })
         }).collect();
         Self { report: Report { schema: "onetagger.tagging-results".into(), version: selection.as_ref().map_or(2, |s| s.results_version),
             run_id: format!("{:032x}", rand::random::<u128>()),
@@ -213,12 +222,32 @@ impl ReportBuilder {
 
     pub fn record(&mut self, provider: &str, status: &TaggingStatus) {
         if let Some(row) = self.rows.get_mut(&status.path) {
-            let outcome = match status.status { TaggingState::Ok => "written", TaggingState::Error => "failed", TaggingState::Skipped => "skipped" };
-            if outcome == "written" || (row.status != "written" && (outcome == "failed" || row.status != "failed")) {
-                row.status = outcome.into();
-            }
+            // Keep the v1/v2 Helper vocabulary. "written" always denotes an actual save.
+            let legacy = match status.status {
+                TaggingState::Ok | TaggingState::Partial => "written",
+                TaggingState::Error => "failed",
+                TaggingState::Skipped | TaggingState::Deferred => "skipped",
+            };
+            let detail = match status.status {
+                TaggingState::Partial | TaggingState::Deferred => Some(status.status.clone()),
+                _ => None,
+            };
+            let replace = match status.status {
+                TaggingState::Ok => true,
+                TaggingState::Partial => row.status != "written" || row.outcome.is_some(),
+                TaggingState::Deferred => row.status != "written",
+                TaggingState::Error => row.status != "written" && row.outcome.is_none(),
+                TaggingState::Skipped => row.status == "unprocessed",
+            };
+            if replace { row.status = legacy.into(); row.outcome = detail.clone(); }
+            let warning = status.message_key.as_deref().filter(|key| matches!(*key,
+                "backend.providerRateLimited" | "backend.providerDetailsUnavailable"));
+            let retry_after_seconds = status.message_args.as_ref().and_then(|args| args.get("seconds"))
+                .and_then(|value| value.as_str()).and_then(|s| s.parse().ok());
             row.attempts.push(Attempt { provider: provider.into(), track_id: status.track_id.clone(),
-                release_id: status.release_id.clone(), status: outcome.into(), score: status.accuracy.filter(|s| s.is_finite() && (0.0..=1.0).contains(s)),
+                release_id: status.release_id.clone(), status: legacy.into(), outcome: detail,
+                warning_code: warning.map(str::to_owned), retry_after_seconds,
+                score: status.accuracy.filter(|s| s.is_finite() && (0.0..=1.0).contains(s)),
                 reason: status.reason, used_shazam: status.used_shazam });
         }
     }

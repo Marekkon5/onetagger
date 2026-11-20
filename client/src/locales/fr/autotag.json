@@ -182,5 +182,8 @@
   "providerPace": "Cadence des fournisseurs",
   "providerPaceValue": "{rate} titres/min",
   "providerPaceMeasuring": "Mesure de la cadence de recherche",
-  "providerPaceLimited": "Limitées ou différées ({count})"
+  "providerPaceLimited": "Limitées ou différées ({count})",
+  "retryCount": "Recherche à relancer · {count}",
+  "partialResult": "Enregistrement partiel",
+  "deferredResult": "Recherche différée"
 }

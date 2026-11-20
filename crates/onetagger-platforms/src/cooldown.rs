@@ -10,6 +10,11 @@ pub struct ProviderRateLimited {
 }
 
 impl ProviderRateLimited {
+    /// Signal a provider response with a retry delay, including from custom sources.
+    pub fn retry_after(delay: Duration) -> Self {
+        Self { delay, deferred: false }
+    }
+
     pub fn retry_after_seconds(&self) -> u64 {
         self.delay.as_secs().saturating_add(u64::from(self.delay.subsec_nanos() > 0))
     }
@@ -53,7 +58,7 @@ impl ProviderCooldown {
         // A response from another in-flight request can extend a pause.
         let delay = delay.max(Duration::from_secs(1)).max(remaining);
         *pause = Some((Instant::now(), delay));
-        ProviderRateLimited { delay, deferred: false }
+        ProviderRateLimited::retry_after(delay)
     }
 }
 

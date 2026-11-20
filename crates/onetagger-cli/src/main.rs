@@ -4,7 +4,7 @@
 use anyhow::Error;
 use onetagger_ui::StartContext;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use convert_case::{Casing, Case};
@@ -14,6 +14,20 @@ use onetagger_shared::{VERSION, COMMIT};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_autotag::{Tagger, TaggerConfigExt, AudioFileInfoImpl};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
+
+fn input_files(path: &Path, subfolders: bool) -> Result<Vec<PathBuf>, Error> {
+    if path.is_dir() { return Ok(AudioFileInfo::get_file_list(path, subfolders)); }
+    anyhow::ensure!(path.is_file(), "Input file or directory does not exist: {}", path.display());
+    if onetagger_playlist::is_audio_file(path) { return Ok(vec![path.to_owned()]); }
+    onetagger_playlist::get_files_from_playlist_file(path)
+}
+
+fn input_or_exit(path: &Path, subfolders: bool) -> Vec<PathBuf> {
+    input_files(path, subfolders).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    })
+}
 
 fn main() {
     let cli = Cli::parse();
@@ -51,10 +65,9 @@ fn main() {
                 let data = std::fs::read_to_string(path)?;
                 onetagger_autotag::report::Selection::parse(&data)
             }).transpose().expect("Invalid Helper selection manifest");
-            let files = if let Some(selection) = &selection { selection.files() } else if path.is_file() {
-                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
-            } else {
-                AudioFileInfo::get_file_list(&path, config.include_subfolders)
+            let files = match &selection {
+                Some(selection) => selection.files(),
+                None => input_or_exit(path, config.include_subfolders),
             };
 
             let finished = Arc::new(Mutex::new(None));
@@ -96,11 +109,7 @@ fn main() {
                 .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
 
             // Get files
-            let files = if path.is_file() {
-                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
-            } else {
-                AudioFileInfo::get_file_list(&path, subfolders)
-            };
+            let files = input_or_exit(path, subfolders);
 
             let rx = AudioFeatures::start_tagging(config, spotify, files);
             let start = timestamp!();
@@ -194,7 +203,7 @@ struct Cli {
 enum Actions {
     /// Start Autotagger in CLI mode
     Autotagger {
-        /// Path to music files (overrides config)
+        /// Audio file, music directory or M3U playlist (overrides config)
         #[clap(short, long)]
         path: PathBuf,
 
@@ -296,7 +305,7 @@ enum Actions {
     },
     /// Start Audio Features in CLI mode
     Audiofeatures {
-        /// Path to music files (overrides config)
+        /// Audio file, music directory or M3U playlist (overrides config)
         #[clap(short, long)]
         path: PathBuf,
 
@@ -465,4 +474,26 @@ impl Actions {
     }
 }
 
+#[cfg(test)]
+mod input_tests {
+    use super::*;
 
+    #[test]
+    fn direct_audio_playlist_and_directory_resolve_the_expected_paths() {
+        let root = tempfile::tempdir().unwrap();
+        let literal = root.path().join("Mix%20One.MP3");
+        let space = root.path().join("Mix One.mp3");
+        std::fs::write(&literal, b"fixture").unwrap();
+        std::fs::write(&space, b"other").unwrap();
+        let playlist = root.path().join("crate.M3U8");
+        std::fs::write(&playlist, "Mix%20One.MP3\n").unwrap();
+        assert_eq!(input_files(&literal, false).unwrap(), vec![literal.clone()]);
+        assert_eq!(input_files(&playlist, false).unwrap(), vec![literal.clone()]);
+        let directory = input_files(root.path(), false).unwrap();
+        assert!(directory.contains(&literal) && directory.contains(&space));
+        assert!(input_files(&root.path().join("missing.mp3"), false).is_err());
+        let unsupported = root.path().join("readme.txt");
+        std::fs::write(&unsupported, b"notes").unwrap();
+        assert!(input_files(&unsupported, false).is_err());
+    }
+}

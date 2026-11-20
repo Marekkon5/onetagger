@@ -182,5 +182,8 @@
   "providerPace": "Tempo der Anbieter",
   "providerPaceValue": "{rate} Titel/min",
   "providerPaceMeasuring": "Suchtempo wird gemessen",
-  "providerPaceLimited": "Gedrosselt oder zurückgestellt ({count})"
+  "providerPaceLimited": "Gedrosselt oder zurückgestellt ({count})",
+  "retryCount": "Erneute Suche nötig · {count}",
+  "partialResult": "Teilweise gespeichert",
+  "deferredResult": "Suche zurückgestellt"
 }

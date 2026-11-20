@@ -37,6 +37,12 @@ TRACK = {
 }
 
 
+class FrontendServer(ThreadingHTTPServer):
+    # A cold page requests several JS and CSS chunks at once. Python 3.12's
+    # five-connection default can refuse a chunk on Windows before startup.
+    request_queue_size = 128
+
+
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, *_):
         pass
@@ -167,7 +173,7 @@ class BrowserTests(unittest.TestCase):
         if not (ROOT / "client/dist/index.html").is_file():
             raise RuntimeError("Build/download the production frontend artifact before running UI tests")
         RESULTS.mkdir(exist_ok=True)
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT / "client/dist")))
+        cls.server = FrontendServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT / "client/dist")))
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         cls.base_url = f"http://127.0.0.1:{cls.server.server_port}"
@@ -360,6 +366,36 @@ class BrowserTests(unittest.TestCase):
                 'name':'bad.json','mimeType':'application/json','buffer':b'{"schema":2,"tracks":[]}'})
             expect(page.get_by_role('alert')).to_contain_text('Choose a Helper selection manifest')
             expect(page.get_by_role('button',name='Start tagging',exact=True)).to_be_disabled()
+
+    def test_partial_and_deferred_filter_updates_as_fallback_finishes(self):
+        with self.session() as (page, backend):
+            backend.hold_tagging = True
+            page.get_by_role("tab", name="Auto tag", exact=True).click()
+            page.get_by_text("Input & Tags", exact=True).click()
+            page.get_by_label("Path", exact=True).fill("/music")
+            page.get_by_role("button", name="Start tagging", exact=True).click()
+            expect(page.get_by_role("button", name="Stop tagging", exact=True)).to_be_visible()
+
+            def result(name, state):
+                backend.tagging_socket.send(json.dumps({"action": "taggingProgress", "status": {
+                    "platform": "fixture", "progress": 0.5, "status": {"status": state,
+                    "path": f"/music/{name}.mp3", "usedShazam": False}}}))
+
+            result("finished", "ok")
+            result("partial", "partial")
+            result("waiting", "deferred")
+            retry = page.get_by_role("button", name="Needs another lookup · 2")
+            retry.click()
+            expect(page.get_by_text("/music/finished.mp3", exact=True)).to_have_count(0)
+            expect(page.get_by_text("/music/partial.mp3", exact=True)).to_be_visible()
+            expect(page.get_by_text("/music/waiting.mp3", exact=True)).to_be_visible()
+            result("partial", "ok")
+            expect(page.get_by_role("button", name="Needs another lookup · 1")).to_be_visible()
+            expect(page.get_by_text("/music/partial.mp3", exact=True)).to_have_count(0)
+            result("waiting", "ok")
+            page.get_by_role("button", name="Needs another lookup · 0").click()
+            expect(page.get_by_text("/music/finished.mp3", exact=True)).to_be_visible()
+            expect(page.get_by_text("/music/partial.mp3", exact=True)).to_be_visible()
 
     def test_provider_pace_shows_deferred_lookups_during_autotag(self):
         with self.session() as (page, backend):

@@ -588,6 +588,32 @@ mod commit_tests {
     }
 
     #[test]
+    fn rating_edits_preserve_popm_owners_counters_and_clear_the_wmp_mirror() {
+        use ::id3::{Tag as DiskTag, TagLike, Version, frame::Popularimeter};
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("multi-owner.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        let mut disk = DiskTag::new();
+        for (user, rating, counter) in [("Deck A", 128, 37), ("Deck B", 192, 81), ("no@email", 51, 12)] {
+            disk.add_frame(Popularimeter { user: user.into(), rating, counter });
+        }
+        disk.write_to_path(&path, Version::Id3v24).unwrap();
+        for (stars, expected, mirror) in [(4, Some(4), Some("192")), (0, None, None), (2, Some(2), Some("64"))] {
+            let mut edit = changes(path.clone());
+            edit.changes = vec![TagChange::Rating { value: stars }];
+            edit.commit().unwrap();
+            let on_disk = Tag::load_file(&path, false).unwrap();
+            assert_eq!(on_disk.tag().get_rating(), expected);
+            assert_eq!(on_disk.tag().get_raw("RATING WMP"), mirror.map(|s| vec![s.to_owned()]));
+            let disk = DiskTag::read_from_path(&path).unwrap();
+            let mut frames: Vec<_> = disk.frames().filter_map(|f| f.content().popularimeter())
+                .map(|p| (p.user.as_str(), p.rating, p.counter)).collect();
+            frames.sort();
+            assert_eq!(frames, vec![("Deck A", 128, 37), ("Deck B", 192, 81), ("no@email", stars * 51, 12)]);
+        }
+    }
+
+    #[test]
     fn editor_can_commit_first_id3_tag_without_losing_audio_payload() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("untagged.mp3");

@@ -182,5 +182,8 @@
   "providerPace": "وتيرة البحث لدى المزوّدين",
   "providerPaceValue": "{rate} مقطع/دقيقة",
   "providerPaceMeasuring": "جارٍ قياس وتيرة البحث",
-  "providerPaceLimited": "محاولات مقيّدة أو مؤجّلة ({count})"
+  "providerPaceLimited": "محاولات مقيّدة أو مؤجّلة ({count})",
+  "retryCount": "بحاجة إلى بحث آخر · {count}",
+  "partialResult": "حُفظت بعض الحقول",
+  "deferredResult": "أُجّل البحث"
 }

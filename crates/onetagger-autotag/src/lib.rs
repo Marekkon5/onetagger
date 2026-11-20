@@ -77,9 +77,12 @@ pub trait TrackImpl {
     fn merge_styles(self, option: &StylesOptions) -> Self;
 }
 
-impl TrackImpl for Track {
-    // Write tags to file
-    fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {        
+trait TrackFieldWriter {
+    fn write_fields(&self, path: impl AsRef<Path>, config: &TaggerConfig, recovering: bool) -> Result<Vec<SupportedTag>, Error>;
+}
+
+impl TrackFieldWriter for Track {
+    fn write_fields(&self, path: impl AsRef<Path>, config: &TaggerConfig, recovering: bool) -> Result<Vec<SupportedTag>, Error> {
         // Get tag
         let mut tag_wrap = Tag::load_file(&path, true)?;
         tag_wrap.set_separators(&config.separators);
@@ -95,27 +98,33 @@ impl TrackImpl for Track {
             }
         }
         let tag = tag_wrap.tag_mut();
-        // Set tags
-        if config.tag_enabled(SupportedTag::Title) {
+        // Record supplied fields at the same point the writer accepts their values.
+        let mut supplied = Vec::new();
+        let mut select = |field| {
+            if !config.tag_enabled(field) { return false; }
+            if recovering { supplied.push(field); }
+            true
+        };
+        if !self.title.trim().is_empty() && select(SupportedTag::Title) {
             match config.short_title {
                 true => tag.set_field(Field::Title, vec![self.title.to_string()], config.overwrite_tag(SupportedTag::Title)),
                 false => tag.set_field(Field::Title, vec![self.full_title()], config.overwrite_tag(SupportedTag::Title))
             }
         }
         // Version
-        if config.tag_enabled(SupportedTag::Version) && self.version.is_some() {
+        if self.version.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::Version) {
             tag.set_field(Field::Version, vec![self.version.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::Version));
         }
-        if config.tag_enabled(SupportedTag::Artist) {
+        if self.artists.iter().any(|a| !a.trim().is_empty()) && select(SupportedTag::Artist) {
             tag.set_field(Field::Artist, self.artists.clone(), config.overwrite_tag(SupportedTag::Artist));
         }
-        if config.tag_enabled(SupportedTag::AlbumArtist) && !self.album_artists.is_empty() {
+        if !self.album_artists.is_empty() && select(SupportedTag::AlbumArtist) {
             tag.set_field(Field::AlbumArtist, self.album_artists.clone(), config.overwrite_tag(SupportedTag::AlbumArtist));
         }
-        if self.album.is_some() && config.tag_enabled(SupportedTag::Album)  {
+        if self.album.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::Album) {
             tag.set_field(Field::Album, vec![self.album.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::Album));
         }
-        if config.tag_enabled(SupportedTag::Key) && self.key.is_some() {
+        if self.key.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::Key) {
             let mut value = self.key.as_ref().unwrap().to_string();
             // Convert to camelot
             if config.camelot {
@@ -123,13 +132,13 @@ impl TrackImpl for Track {
             }
             tag.set_field(Field::Key, vec![value], config.overwrite_tag(SupportedTag::Key));
         }
-        if config.tag_enabled(SupportedTag::BPM) && self.bpm.is_some() {
+        if self.bpm.is_some() && select(SupportedTag::BPM) {
             tag.set_field(Field::BPM, vec![self.bpm.unwrap().to_string()], config.overwrite_tag(SupportedTag::BPM));
         }
-        if config.tag_enabled(SupportedTag::Label) && self.label.is_some() {
+        if self.label.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::Label) {
             tag.set_field(Field::Label, vec![self.label.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::Label));
         }
-        if config.tag_enabled(SupportedTag::Genre) && !self.genres.is_empty() {
+        if !self.genres.is_empty() && select(SupportedTag::Genre) {
             let mut genres = if config.merge_genres {
                 // Merge with existing ones
                 let mut current: Vec<String> = tag.get_field(Field::Genre).unwrap_or(vec![]).into_iter().filter(|i| !i.trim().is_empty()).collect::<Vec<_>>();
@@ -147,7 +156,7 @@ impl TrackImpl for Track {
 
             tag.set_field(Field::Genre, genres, config.overwrite_tag(SupportedTag::Genre));
         }
-        if config.tag_enabled(SupportedTag::Style) && !self.styles.is_empty() {
+        if !self.styles.is_empty() && select(SupportedTag::Style) {
             if config.styles_options == StylesOptions::CustomTag && config.styles_custom_tag.is_some() {
                 // Custom style tag
                 let ui_tag = config.styles_custom_tag.as_ref().unwrap();
@@ -166,7 +175,7 @@ impl TrackImpl for Track {
             }
         }
         // Release dates
-        if config.tag_enabled(SupportedTag::ReleaseDate) {
+        if (self.release_date.is_some() || self.release_year.is_some()) && select(SupportedTag::ReleaseDate) {
             if let Some(date) = self.release_date {
                 tag.set_date(&TagDate {
                     year: date.year() as i32,
@@ -188,7 +197,7 @@ impl TrackImpl for Track {
             }
         }
         // Publish date
-        if config.tag_enabled(SupportedTag::PublishDate) {
+        if (self.publish_date.is_some() || self.publish_year.is_some()) && select(SupportedTag::PublishDate) {
             if let Some(date) = self.publish_date {
                 tag.set_publish_date(&TagDate {
                     year: date.year() as i32,
@@ -210,64 +219,73 @@ impl TrackImpl for Track {
             }
         }
         // URL
-        if config.tag_enabled(SupportedTag::URL) {
+        if !self.url.trim().is_empty() && select(SupportedTag::URL) {
             tag.set_raw("WWWAUDIOFILE", vec![self.url.to_string()], config.overwrite_tag(SupportedTag::URL));
         }
         // Other tags
-        if config.tag_enabled(SupportedTag::OtherTags) {
+        if !self.other.is_empty() && select(SupportedTag::OtherTags) {
             for (t, value) in &self.other {
                 tag.set_raw(&t.by_format(&format), value.to_owned(), config.overwrite_tag(SupportedTag::OtherTags));
             }
         }
         // IDs
-        if config.tag_enabled(SupportedTag::TrackId) && self.track_id.is_some() {
+        if self.track_id.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::TrackId) {
             let t = format!("{}_TRACK_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.track_id.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::TrackId));
         }
-        if config.tag_enabled(SupportedTag::ReleaseId) && self.release_id.is_some() {
+        if self.release_id.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::ReleaseId) {
             let t = format!("{}_RELEASE_ID", serde_json::to_value(self.platform.clone()).unwrap().as_str().unwrap().to_uppercase());
             tag.set_raw(&t, vec![self.release_id.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::ReleaseId));
         }
         // Catalog number
-        if config.tag_enabled(SupportedTag::CatalogNumber) && self.catalog_number.is_some() {
+        if self.catalog_number.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::CatalogNumber) {
             tag.set_field(Field::CatalogNumber, vec![self.catalog_number.as_ref().unwrap().to_string()], config.overwrite_tag(SupportedTag::CatalogNumber));
         }
         // Duration
-        if config.tag_enabled(SupportedTag::Duration) && self.duration.as_secs() > 0 {
+        if self.duration.as_secs() > 0 && select(SupportedTag::Duration) {
             tag.set_field(Field::Duration, vec![self.duration.as_secs().to_string()], config.overwrite_tag(SupportedTag::Duration));
         }
         // Remixers
-        if config.tag_enabled(SupportedTag::Remixer) && !self.remixers.is_empty() {
+        if !self.remixers.is_empty() && select(SupportedTag::Remixer) {
             tag.set_field(Field::Remixer, self.remixers.clone(), config.overwrite_tag(SupportedTag::Remixer));
         }
         // ISRC
-        if config.tag_enabled(SupportedTag::ISRC) && self.isrc.is_some() {
+        if self.isrc.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::ISRC) {
             tag.set_field(Field::ISRC, vec![self.isrc.clone().unwrap()], config.overwrite_tag(SupportedTag::ISRC));
         }
         // Mood
-        if config.tag_enabled(SupportedTag::Mood) && self.mood.is_some() {
+        if self.mood.as_deref().is_some_and(|s| !s.trim().is_empty()) && select(SupportedTag::Mood) {
             tag.set_field(Field::Mood, vec![self.mood.clone().unwrap()], config.overwrite_tag(SupportedTag::Mood));
         }
         // Disc number
-        if config.tag_enabled(SupportedTag::DiscNumber) && self.disc_number.is_some() {
+        if self.disc_number.is_some() && select(SupportedTag::DiscNumber) {
             tag.set_field(Field::DiscNumber, vec![self.disc_number.clone().unwrap().to_string()], config.overwrite_tag(SupportedTag::DiscNumber));
         }
         // Track number
-        if config.tag_enabled(SupportedTag::TrackNumber) && self.track_number.is_some() {
-            match config.tag_enabled(SupportedTag::TrackTotal) {
+        if self.track_number.is_some() && select(SupportedTag::TrackNumber) {
+            match self.track_total.is_some() && select(SupportedTag::TrackTotal) {
                 true => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), self.track_total.clone(), config.overwrite_tag(SupportedTag::TrackNumber)),
                 false => tag.set_track_number(&self.track_number.as_ref().unwrap().to_string_with_zeroes(config.track_number_leading_zeroes), None, config.overwrite_tag(SupportedTag::TrackNumber)),
             }
         }
+        // On a field-only retry the earlier provider may already have supplied the track number.
+        if recovering && !config.tag_enabled(SupportedTag::TrackNumber) && self.track_total.is_some() {
+            if let Some(number) = tag.get_field(Field::TrackNumber).and_then(|v| v.into_iter().next()) {
+                if select(SupportedTag::TrackTotal) {
+                    let number = number.split('/').next().unwrap_or(&number);
+                    tag.set_track_number(number, self.track_total, config.overwrite_tag(SupportedTag::TrackTotal));
+                }
+            }
+        }
         // Lyrics
-        if config.tag_enabled(SupportedTag::SyncedLyrics) && self.lyrics.is_some() {
+        if self.lyrics.as_ref().is_some_and(|lyrics| lyrics.synced()) && select(SupportedTag::SyncedLyrics) {
             tag.set_lyrics(self.lyrics.as_ref().unwrap(), true, config.overwrite_tag(SupportedTag::SyncedLyrics));
         }
-        if config.tag_enabled(SupportedTag::UnsyncedLyrics) && self.lyrics.is_some() {
+        if self.lyrics.is_some() && select(SupportedTag::UnsyncedLyrics) {
             tag.set_lyrics(self.lyrics.as_ref().unwrap(), false, config.overwrite_tag(SupportedTag::UnsyncedLyrics));
         }
         // Explicit
-        if config.tag_enabled(SupportedTag::Explicit) && self.explicit.is_some() {
+        if self.explicit.is_some() && select(SupportedTag::Explicit) {
             tag.set_explicit(self.explicit.unwrap());
         }
 
@@ -289,16 +307,24 @@ impl TrackImpl for Track {
                         }
                     }
                     tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
+                    if recovering { supplied.push(SupportedTag::AlbumArt); }
                     cover_data = Some(data);
                 }
                 Ok(None) => warn!("Invalid album art; existing artwork preserved"),
                 Err(e) => warn!("Error downloading album art; existing artwork preserved: {e}"),
             }
         }
+        if recovering && config.tag_enabled(SupportedTag::AlbumArt) && !config.overwrite_tag(SupportedTag::AlbumArt)
+            && !supplied.contains(&SupportedTag::AlbumArt) && tag_wrap.tag().has_art() {
+            supplied.push(SupportedTag::AlbumArt);
+        }
         let tag = tag_wrap.tag_mut();
 
+        // A retryable result must not mark the audio as fully tagged for the next run.
+        let complete = !recovering || config.tags.iter().all(|t| *t == SupportedTag::MetaTags || supplied.contains(t));
+        if recovering && supplied.is_empty() && !(complete && config.tag_enabled(SupportedTag::MetaTags)) { return Ok(supplied); }
         // Meta tags (date / success)
-        if config.tag_enabled(SupportedTag::MetaTags) {
+        if config.tag_enabled(SupportedTag::MetaTags) && complete {
             let time = Local::now();
             tag.set_raw("1T_TAGGEDDATE", vec![format!("{}_AT", time.format("%Y-%m-%d %H:%M:%S"))], true);
         }
@@ -336,7 +362,13 @@ impl TrackImpl for Track {
             }
         }
 
-        Ok(())
+        Ok(supplied)
+    }
+}
+
+impl TrackImpl for Track {
+    fn write_to_file(&self, path: impl AsRef<Path>, config: &TaggerConfig) -> Result<(), Error> {
+        self.write_fields(path, config, false).map(drop)
     }
 
     // Download album art, None if invalid album art
@@ -594,7 +626,7 @@ impl AudioFileInfoImpl for AudioFileInfo {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum TaggingState {
-    Ok, Error, Skipped
+    Ok, Error, Skipped, Partial, Deferred
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -638,6 +670,7 @@ pub(crate) enum TaggingMessage {
     ProviderInitializationFailed(String),
     ProviderUnavailable(String),
     ProviderRateLimited(u64),
+    ProviderDetailsUnavailable,
     ProviderPanickedTryingNext,
 }
 
@@ -660,6 +693,7 @@ impl TaggingMessage {
             Self::ProviderInitializationPanicked => ("Provider initialization panicked".into(), "backend.providerInitializationPanicked", None),
             Self::ProviderInitializationFailed(detail) => (format!("Could not initialize provider: {detail}"), "backend.providerInitializationFailed", Some(("detail", detail))),
             Self::ProviderUnavailable(provider) => (format!("Provider unavailable: {provider}"), "backend.providerUnavailable", Some(("provider", provider))),
+            Self::ProviderDetailsUnavailable => ("Provider details are unavailable. Remaining fields can be retried.".into(), "backend.providerDetailsUnavailable", None),
             Self::ProviderRateLimited(seconds) => (format!("Provider rate limited. Retry in {seconds} s."),
                 "backend.providerRateLimited", Some(("seconds", seconds.to_string()))),
             Self::ProviderPanickedTryingNext => ("Provider panicked; trying the next provider".into(), "backend.providerPanickedTryingNext", None),
@@ -683,6 +717,7 @@ impl TaggingStatus {
 struct TaggingResults {
     successful: BTreeSet<PathBuf>,
     failed: BTreeSet<PathBuf>,
+    retryable: BTreeSet<PathBuf>,
 }
 
 impl TaggingResults {
@@ -692,7 +727,11 @@ impl TaggingResults {
                 self.failed.remove(&status.path);
                 self.successful.insert(status.path.clone());
             }
-            TaggingState::Error if !self.successful.contains(&status.path) => {
+            TaggingState::Partial | TaggingState::Deferred => {
+                self.failed.remove(&status.path);
+                self.retryable.insert(status.path.clone());
+            }
+            TaggingState::Error if !self.successful.contains(&status.path) && !self.retryable.contains(&status.path) => {
                 self.failed.insert(status.path.clone());
             }
             _ => {}
@@ -704,11 +743,46 @@ impl TaggingResults {
 #[derive(Clone, Default)]
 struct RunTagState {
     initially_tagged: Option<Arc<Mutex<HashMap<PathBuf, bool>>>>,
+    pending_fields: Arc<Mutex<HashMap<PathBuf, Vec<SupportedTag>>>>,
 }
 
 impl RunTagState {
     fn new(config: &TaggerConfig) -> Self {
-        Self { initially_tagged: config.skip_tagged.then(Default::default) }
+        Self { initially_tagged: config.skip_tagged.then(Default::default), ..Default::default() }
+    }
+
+    /// A partial detail response can still contribute tags. Later ordered fallbacks
+    /// get exactly the outstanding fields and cannot replace an accepted value.
+    fn save_match(&self, track: Track, config: &TaggerConfig, status: &mut TaggingStatus, details_failed: bool) -> Result<(), Error> {
+        let pending = self.pending_fields.lock().unwrap().get(&status.path).cloned();
+        let recovering = details_failed || pending.is_some();
+        let mut narrowed;
+        let write_config = if let Some(fields) = pending {
+            narrowed = config.clone();
+            narrowed.tags = fields;
+            if config.tag_enabled(SupportedTag::MetaTags) { narrowed.tags.push(SupportedTag::MetaTags); }
+            &narrowed
+        } else { config };
+        if details_failed && write_config.tags.iter().all(|tag| *tag == SupportedTag::MetaTags) {
+            status.status = TaggingState::Deferred;
+            return Ok(());
+        }
+        let supplied = track.merge_styles(&config.styles_options).write_fields(&status.path, write_config, recovering)?;
+        if recovering {
+            let missing: Vec<_> = write_config.tags.iter().copied()
+                .filter(|t| *t != SupportedTag::MetaTags && !supplied.contains(t)).collect();
+            if !missing.is_empty() || (details_failed && supplied.is_empty()) {
+                if !config.multiplatform {
+                    self.pending_fields.lock().unwrap().insert(status.path.clone(), missing);
+                }
+                status.status = if supplied.is_empty() { TaggingState::Deferred } else { TaggingState::Partial };
+                if status.message_key.is_none() { status.set_message(TaggingMessage::ProviderDetailsUnavailable); }
+                return Ok(());
+            }
+            self.pending_fields.lock().unwrap().remove(&status.path);
+        }
+        status.status = TaggingState::Ok;
+        Ok(())
     }
 
     fn was_tagged(&self, path: &Path, tagged: bool) -> bool {
@@ -793,7 +867,7 @@ impl Tagger {
             // Album matching depends on provider-wide folder grouping.
             for (platform_index, platform) in config.platforms.iter().enumerate() {
                 // For progress
-                let mut processed = 0;
+                let mut processed = BTreeSet::new();
                 let total = files.len();
                 // No more files
                 if files.is_empty() {
@@ -832,10 +906,11 @@ impl Tagger {
                 let mut matched = BTreeSet::new();
                 for status in rx {
                     info!("[{platform}] State: {:?}, Accuracy: {:?}, Path: {:?}", status.status, status.accuracy, status.path);
-                    processed += 1;
+                    // A track-level and an album-level attempt can describe the same file.
+                    processed.insert(status.path.clone());
                     // Send to UI
                     let mut update = TaggingStatusWrap::wrap(&platform_info.name, &status, platform_index,
-                        config.platforms.len(), processed, total);
+                        config.platforms.len(), processed.len() as i64, total);
                     update.provider_id = Some(platform.clone());
                     tx.send(update).ok();
 
@@ -1120,6 +1195,7 @@ impl Tagger {
             Err(e) => {
                 error!("Matching error: {} ({:?})", e, path.as_ref());
                 if let Some(limited) = e.downcast_ref::<ProviderRateLimited>() {
+                    out.status = TaggingState::Deferred;
                     if limited.deferred() { out.lookup_ms = None; }
                     out.set_message(TaggingMessage::ProviderRateLimited(limited.retry_after_seconds()));
                 } else {
@@ -1133,14 +1209,13 @@ impl Tagger {
         MatchingUtils::sort_tracks(&mut tracks, config);
         let mut track = tracks.remove(0);
         drop(tracks);
-        match tagger.extend_track(&mut track.track, config) {
-            Ok(_) => {},
-            Err(e) => {
-                warn!("Failed extending track: {e}");
-                if let Some(limited) = e.downcast_ref::<ProviderRateLimited>() {
-                    out.set_message(TaggingMessage::ProviderRateLimited(limited.retry_after_seconds()));
-                }
-            },
+        let details_error = tagger.extend_track(&mut track.track, config).err();
+        if let Some(error) = &details_error {
+            warn!("Failed extending track: {error}");
+            out.set_message(match error.downcast_ref::<ProviderRateLimited>() {
+                Some(limited) => TaggingMessage::ProviderRateLimited(limited.retry_after_seconds()),
+                None => TaggingMessage::ProviderDetailsUnavailable,
+            });
         }
         if Self::mark_cancelled(&mut out, cancelled) { return out; }
 
@@ -1149,15 +1224,9 @@ impl Tagger {
         out.track_id = track.track.track_id.clone();
         out.reason = Some(track.reason);
         out.accuracy = Some(track.accuracy);
-        match track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
-            Ok(_) => {
-                out.accuracy = Some(track.accuracy);
-                out.status = TaggingState::Ok;
-            },
-            Err(e) => {
-                error!("Failed writing tags to file: {e}");
-                out.set_message(TaggingMessage::TrackWriteFailed(e.to_string()));
-            }
+        if let Err(error) = run.save_match(track.track, config, &mut out, details_error.is_some()) {
+            error!("Failed writing tags to file: {error}");
+            out.set_message(TaggingMessage::TrackWriteFailed(error.to_string()));
         }
 
         out
@@ -1184,28 +1253,29 @@ impl Tagger {
         let (file_tx, file_rx): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
         let (finished_tx, finished_rx) = unbounded();
 
-        // Album tagging
-        let album_tagging = Arc::new(Mutex::new(AlbumTagContext::new()));
-        if config.album_tagging {
-            album_tagging.lock().unwrap().init(files);
+        let mut sources = Vec::new();
+        for _ in 0..threads.max(1) {
+            match tagger.get_source(config) {
+                Ok(source) => sources.push(source),
+                Err(error) => warn!("Failed creating tagging source: {error}"),
+            }
         }
+        if sources.is_empty() { return None; }
 
-        let mut ok_sources = 0;
-        for _ in 0..threads {
+        let album_source = if config.album_tagging {
+            tagger.get_source(config).map_err(|e| warn!("Album lookup unavailable: {e}")).ok()
+        } else { None };
+        let use_album = album_source.is_some();
+        let album_tagging = Arc::new(Mutex::new(AlbumTagContext::new()));
+        if use_album { album_tagging.lock().unwrap().init(files); }
+
+        for mut source in sources {
             let tx = tx.clone();
             let file_rx = file_rx.clone();
             let config = config.clone();
             let finished_tx = finished_tx.clone();
             let album_tagging = album_tagging.clone();
             let run = run.clone();
-            let mut source = match tagger.get_source(&config) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Failed creating AT source! {e}");
-                    continue;
-                }
-            };
-            ok_sources += 1;
             std::thread::spawn(move || {
                 while let Ok(f) = file_rx.recv() {
                     // Stop tagging
@@ -1214,14 +1284,14 @@ impl Tagger {
                     }
 
                     // Check if not marked for album tagging
-                    if album_tagging.lock().unwrap().is_marked(&f) {
+                    if use_album && album_tagging.lock().unwrap().is_marked(&f) {
                         continue;
                     }
 
                     // Tag
                     let res = Tagger::tag_track_with_cancel(&f, &mut source, &config, &run,
                         &|| STOP_TAGGING.load(Ordering::SeqCst));
-                    if config.album_tagging {
+                    if use_album {
                         album_tagging.lock().unwrap().process(&res, &config);
                     }
                     tx.send(res).ok();
@@ -1230,47 +1300,41 @@ impl Tagger {
             });
         }
 
-        // Spawn album tag thread
-        if config.album_tagging {
+        if let Some(mut source) = album_source {
             let config = config.clone();
             let run = run.clone();
-            match tagger.get_source(&config) {
-                Ok(mut source) => {
-                    std::thread::spawn(move || {
-                        // Wait for all threads to finish
-                        for _ in finished_rx.into_iter() {}
-
-                        // Check all album statuses
-                        let album_tagging = album_tagging.lock().unwrap();
-                        for (path, stats) in &album_tagging.folders {
-                            if STOP_TAGGING.load(Ordering::SeqCst) { break; }
-                            if !stats.marked {
-                                continue;
-                            }
-
-                            // Tag
-                            match Self::tag_album_with_cancel(&stats.files, &stats.get_album_id().unwrap(),
-                                &mut source, &config, &run, &|| STOP_TAGGING.load(Ordering::SeqCst)) {
-                                Ok(statuses) => {
-                                    for status in statuses {
-                                        tx.send(status).ok();
-                                    }
-                                },
-                                Err(e) => error!("Album tagging failed: {e}, path: {}", path.display()),
+            std::thread::spawn(move || {
+                for _ in finished_rx {}
+                let folders = &album_tagging.lock().unwrap().folders;
+                let cancelled = || STOP_TAGGING.load(Ordering::SeqCst);
+                for (path, stats) in folders {
+                    if cancelled() { break; }
+                    let Some(release) = &stats.album_id else { continue };
+                    let mut remaining: BTreeSet<_> = stats.files.iter()
+                        .filter(|file| !stats.searched.contains(*file)).cloned().collect();
+                    match Self::tag_album_with_cancel(&stats.files, release,
+                        &mut source, &config, &run, &cancelled) {
+                        Ok(statuses) => {
+                            for status in statuses {
+                                if status.message_key.as_deref() == Some("backend.noAlbumMatch")
+                                    && remaining.contains(&status.path) { continue; }
+                                remaining.remove(&status.path);
+                                tx.send(status).ok();
                             }
                         }
-
-                    });
-                },
-                Err(e) => error!("Failed to get source for album tagging, album tagging will be disabled! {e}")
-            }
+                        Err(e) => warn!("Album lookup failed for {}: {e}", path.display()),
+                    }
+                    // An ambiguous album row or an unavailable release must not consume
+                    // the only regular lookup for a file skipped by the folder shortcut.
+                    for file in remaining {
+                        if cancelled() { break; }
+                        let status = Self::tag_track_with_cancel(&file, &mut source, &config, &run, &cancelled);
+                        tx.send(status).ok();
+                    }
+                }
+            });
         }
- 
 
-        if ok_sources == 0 {
-            error!("All AT sources failed to create!");
-            return None;
-        }
         // Send files
         for f in files {
             file_tx.send(f.to_owned()).ok();
@@ -1291,11 +1355,7 @@ impl Tagger {
         if cancelled() { return Ok(vec![]); }
         info!("Album tagging release: {release_id} in {} selected files", files.len());
 
-        // Change strictness since we're working in context of album, and just care about most likely match
         let mut config = config.clone();
-        config.strictness = 0.0;
-        config.match_duration = false;
-        config.match_by_id = true;
         config.enable_shazam = false;
         config.force_shazam = false;
 
@@ -1321,9 +1381,7 @@ impl Tagger {
             };
 
             // Find closest match
-            let mut tracks = MatchingUtils::match_track(&info, &album.tracks, &config, false);
-            MatchingUtils::sort_tracks(&mut tracks, &config);
-            let Some(track) = tracks.into_iter().next() else {
+            let Some(track) = MatchingUtils::match_album_track(&info, &album.tracks, &config) else {
                 status.set_message(TaggingMessage::NoAlbumMatch);
                 statuses.push(status);
                 continue;
@@ -1336,12 +1394,10 @@ impl Tagger {
                 statuses.push(status);
                 break;
             }
-            if let Err(e) = track.track.merge_styles(&config.styles_options).write_to_file(&info.path, &config) {
+            if let Err(e) = run.save_match(track.track, &config, &mut status, false) {
                 status.status = TaggingState::Error;
                 status.set_message(TaggingMessage::AlbumWriteFailed);
                 error!("Album tag writing tags failed: {e} ({})", file.display());
-            } else {
-                status.status = TaggingState::Ok;
             }
 
             // Save status
@@ -1378,18 +1434,11 @@ impl AlbumTagContext {
 
     /// Initialize internal counters
     pub fn init(&mut self, paths: &[PathBuf]) {
+        let mut seen = std::collections::HashSet::with_capacity(paths.len());
         for file in paths {
-            if let Some(path) = file.parent() {
-                let stats = match self.folders.get_mut(path) {
-                    Some(v) => v,
-                    None => {
-                        self.folders.insert(path.to_owned(), AlbumTagFolderStats::default());
-                        self.folders.get_mut(path).unwrap()
-                    }
-                };
-                if !stats.files.contains(file) {
-                    stats.files.push(file.to_owned());
-                }
+            if !seen.insert(file) { continue; }
+            if let Some(folder) = file.parent() {
+                self.folders.entry(folder.to_owned()).or_default().files.push(file.clone());
             }
         }
     }
@@ -1397,28 +1446,19 @@ impl AlbumTagContext {
     /// Save info from tagging status data
     /// Returns (Path, Release ID)
     pub fn process(&mut self, status: &TaggingStatus, config: &TaggerConfig) -> Option<(PathBuf, String)> {
-        let release_id = status.release_id.as_ref()?;
-        // Get folder path
         let path = status.path.parent()?;
         let stats = self.folders.get_mut(path)?;
-        if stats.marked {
+        stats.searched.insert(status.path.clone());
+        if status.status != TaggingState::Ok { return None; }
+        let release_id = status.release_id.as_ref()?;
+        if stats.album_id.is_some() {
             return None;
         }
 
-        let count = match stats.albums.get_mut(release_id) {
-            Some(v) => {
-                *v = *v + 1;
-                *v
-            },
-            None => {
-                stats.albums.insert(release_id.to_string(), 1);
-                1
-            }
-        };
-
-        // Should be considered as 
-        if (count as f32 / stats.files.len() as f32) >= config.album_tagging_ratio {
-            stats.marked = true;
+        let count = stats.albums.entry(release_id.to_owned()).or_default();
+        *count += 1;
+        if (*count as f32 / stats.files.len() as f32) >= config.album_tagging_ratio {
+            stats.album_id = Some(release_id.clone());
             return Some((path.to_owned(), release_id.to_owned()));
         }
         None
@@ -1428,7 +1468,7 @@ impl AlbumTagContext {
     pub fn is_marked(&self, path: impl AsRef<Path>) -> bool {
         if let Some(parent) = path.as_ref().parent() {
             if let Some(stats) = self.folders.get(parent) {
-                return stats.marked;
+                return stats.album_id.is_some();
             }
         }
         false
@@ -1440,19 +1480,12 @@ impl AlbumTagContext {
 struct AlbumTagFolderStats {
     /// Only the files selected for this batch, including playlist subsets.
     pub files: Vec<PathBuf>,
+    searched: BTreeSet<PathBuf>,
     /// album_id: count
     pub albums: HashMap<String, usize>,
-    /// Is already marked as album
-    pub marked: bool,
+    /// The first release to reach the configured folder threshold.
+    album_id: Option<String>,
 }
-
-impl AlbumTagFolderStats {
-    /// Get album ID with highest count
-    pub fn get_album_id(&self) -> Option<String> {
-        self.albums.iter().max_by_key(|(_, c)| **c).map(|(i, _)| i.to_string())
-    }
-}
-
 
 /// When AT finishes this will contain some extra data
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1524,7 +1557,7 @@ pub fn manual_tagger(path: impl AsRef<Path>, config: &TaggerConfig) -> Result<Re
         let platform = platform.to_string();
         platforms.push(std::thread::spawn(move || {
             // Match
-            let r = s.match_track(&info, &config).map(|mut m| { m.dedup(); m });
+            let r = s.match_track(&info, &config).map(|mut m| { MatchingUtils::deduplicate_matches(&mut m); m });
             tx.send((platform, r)).ok();
         }));
     }

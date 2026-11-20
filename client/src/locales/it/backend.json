@@ -24,5 +24,6 @@
   "providerInitializationFailed": "Impossibile inizializzare il provider: {detail}",
   "providerUnavailable": "Provider non disponibile: {provider}",
   "providerPanickedTryingNext": "Il provider si è interrotto. Verrà provato il provider successivo.",
-  "providerRateLimited": "Limite di richieste del provider raggiunto. Riprova tra {seconds} s."
+  "providerRateLimited": "Limite di richieste del provider raggiunto. Riprova tra {seconds} s.",
+  "providerDetailsUnavailable": "I dettagli del servizio non sono disponibili. Puoi riprovare per i campi mancanti."
 }

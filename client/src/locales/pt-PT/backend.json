@@ -24,5 +24,6 @@
   "providerInitializationFailed": "Não foi possível inicializar o fornecedor ({detail}).",
   "providerUnavailable": "Fornecedor indisponível ({provider})",
   "providerPanickedTryingNext": "O fornecedor falhou. A tentar o seguinte.",
-  "providerRateLimited": "Limite de pedidos do fornecedor atingido. Tente novamente dentro de {seconds} s."
+  "providerRateLimited": "Limite de pedidos do fornecedor atingido. Tente novamente dentro de {seconds} s.",
+  "providerDetailsUnavailable": "Os detalhes do fornecedor estão indisponíveis. Pode voltar a pesquisar os campos em falta."
 }
