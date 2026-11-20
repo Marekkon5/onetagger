@@ -1,5 +1,21 @@
 ## Unreleased (fantuz fork)
 
+## 2.1.4 — 2026-11-20
+
+### Library integrity
+
+- Album tagging checks each selected file against the release using recording identity or an unambiguous title match, available artist evidence, and the configured duration and confidence limits. Track and album passes count each file once in progress.
+- Quick Tag preserves other players’ ID3 ratings and play counters. Clearing stars also clears the Windows Media Player compatibility rating.
+- M3U imports preserve literal filenames and decode local file URIs once. Large Quick Tag playlist exports append paths in one pass. The CLI accepts a single audio file as well as a playlist or directory.
+
+### Providers and status
+
+- AutoTagger distinguishes partial writes and deferred lookups. Ordered fallbacks can supply outstanding fields, and a rate limit alone no longer sends a file to the failed-files folder. Workbench reports retain their compatible status fields and add retry evidence.
+- MusicBrainz enriches the selected release edition. Manual Tag groups duplicate results while retaining distinct editions. Oldest and Newest prioritize dated releases.
+- The live status screen counts each track incrementally, displays the newest results without shifting the entire list, and offers a filter for partial or deferred tracks.
+
+[Full changes since v2.1.3](https://github.com/fantuz/onetagger/compare/v2.1.3...v2.1.4)
+
 ## 2.1.3 — 2026-11-19
 
 Maintenance release updating the application, CLI, Windows installer and macOS bundle versions. This repackages [v2.1.2](https://github.com/fantuz/onetagger/releases/tag/v2.1.2) without application or third-party dependency changes.

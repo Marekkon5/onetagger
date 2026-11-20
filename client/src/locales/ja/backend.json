@@ -24,5 +24,6 @@
   "providerInitializationFailed": "提供元を初期化できませんでした（{detail}）。",
   "providerUnavailable": "提供元を利用できません（{provider}）",
   "providerPanickedTryingNext": "提供元の処理で異常が発生しました。次の提供元を試します。",
-  "providerRateLimited": "プロバイダーのリクエスト上限に達しました。{seconds} 秒後に再試行してください。"
+  "providerRateLimited": "プロバイダーのリクエスト上限に達しました。{seconds} 秒後に再試行してください。",
+  "providerDetailsUnavailable": "プロバイダーの詳細情報を取得できません。残りの項目は再検索できます。"
 }

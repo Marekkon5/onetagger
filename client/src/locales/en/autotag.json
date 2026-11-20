@@ -182,5 +182,8 @@
   "providerPace": "Provider pace",
   "providerPaceValue": "{rate} tracks/min",
   "providerPaceMeasuring": "Measuring lookup rate",
-  "providerPaceLimited": "Rate-limited or deferred ({count})"
+  "providerPaceLimited": "Rate-limited or deferred ({count})",
+  "retryCount": "Needs another lookup · {count}",
+  "partialResult": "Partially saved",
+  "deferredResult": "Lookup deferred"
 }

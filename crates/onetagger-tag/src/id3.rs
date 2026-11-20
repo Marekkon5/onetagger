@@ -43,6 +43,8 @@ pub struct ID3Tag {
     pub comm_lang: String,
 }
 
+const ONETAGGER_RATING_OWNER: &str = "no@email";
+
 impl ID3Tag {
     // Read from file
     pub fn load_file(path: impl AsRef<Path>) -> Result<ID3Tag, Error> {
@@ -162,15 +164,13 @@ impl ID3Tag {
 
     // POPM
     pub fn get_popularimeter(&self) -> Option<ID3Popularimeter> {
-        let tag = self.tag.get("POPM")?;
-        if let Content::Popularimeter(popm) = tag.content() {
-            return Some(popm.clone().into());
-        }
-        None
+        self.tag.frames().filter_map(|frame| frame.content().popularimeter())
+            .min_by_key(|frame| frame.user != ONETAGGER_RATING_OWNER)
+            .cloned().map(Into::into)
     }
 
     pub fn set_popularimeter(&mut self, popm: &ID3Popularimeter) {
-        self.tag.remove("POPM");
+        // ID3 identifies a POPM frame by owner. add_frame replaces only that owner.
         let popularimeter: Popularimeter = popm.clone().into();
         self.tag.add_frame(popularimeter);
     }
@@ -295,34 +295,35 @@ impl TagImpl for ID3Tag {
 
     // Rating
     fn get_rating(&self) -> Option<u8> {
-        let tag = self.tag.get("POPM")?;
-        if let Content::Popularimeter(popm) = tag.content() {
-            let rating = (popm.rating as f32 / 51.0).ceil() as u8;
-            if rating == 0 {
-                return Some(1)
-            }
-            return Some(rating)
-        }
-        None
+        let rating = self.get_popularimeter()?.rating;
+        (rating != 0).then(|| rating.div_ceil(51))
     }
-    
+
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
-        let frame: Popularimeter = ID3Popularimeter::new("no@email", rating * 51, 0).into();
-        if overwrite || self.tag.get("POPM").is_none() {
-            self.tag.remove("POPM");
-            if rating > 0 {
-                self.tag.add_frame(frame);
+        if !overwrite && self.get_rating().is_some() { return; }
+        let rating = rating.min(5);
+        let mut counter = 0;
+        let mut has_other_owner = false;
+        for frame in self.tag.frames().filter_map(|frame| frame.content().popularimeter()) {
+            if frame.user == ONETAGGER_RATING_OWNER { counter = frame.counter; }
+            else { has_other_owner = true; }
+        }
+        // A zero rating means unrated. Keep an explicit owner frame when it carries
+        // a play count or must take precedence over another application's rating.
+        if rating > 0 || counter > 0 || has_other_owner {
+            self.tag.add_frame(Popularimeter { user: ONETAGGER_RATING_OWNER.into(), rating: rating * 51, counter });
+        } else {
+            // Only remove this owner's frame. Preserve unrecognized POPM encodings.
+            for frame in self.tag.remove("POPM") {
+                if frame.content().popularimeter().is_none_or(|p| p.user != ONETAGGER_RATING_OWNER) {
+                    self.tag.add_frame(frame);
+                }
             }
         }
-        // Rating WMP
-        if overwrite || self.tag.get("RATING WMP").is_none() {
-            self.tag.remove("RATING WMP");
-            if rating > 0 {
-                let value = match rating {
-                    1 => 1,
-                    5 => 255,
-                    i => (i - 1) * 64
-                };
+        match rating {
+            0 => self.remove_raw("RATING WMP"),
+            n => {
+                let value = match n { 1 => 1, 5 => 255, _ => (n - 1) * 64 };
                 self.set_raw("RATING WMP", vec![value.to_string()], overwrite);
             }
         }

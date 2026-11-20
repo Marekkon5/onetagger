@@ -182,5 +182,8 @@
   "providerPace": "Ritmo por provedor",
   "providerPaceValue": "{rate} faixas/min",
   "providerPaceMeasuring": "Medindo o ritmo de busca",
-  "providerPaceLimited": "Limitadas ou adiadas ({count})"
+  "providerPaceLimited": "Limitadas ou adiadas ({count})",
+  "retryCount": "Precisam de nova busca · {count}",
+  "partialResult": "Salvo parcialmente",
+  "deferredResult": "Busca adiada"
 }

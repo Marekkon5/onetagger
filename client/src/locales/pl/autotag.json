@@ -182,5 +182,8 @@
   "providerPace": "Tempo dostawców",
   "providerPaceValue": "{rate} utworów/min",
   "providerPaceMeasuring": "Pomiar tempa wyszukiwania",
-  "providerPaceLimited": "Ograniczone lub odroczone ({count})"
+  "providerPaceLimited": "Ograniczone lub odroczone ({count})",
+  "retryCount": "Do ponownego wyszukania · {count}",
+  "partialResult": "Zapisano częściowo",
+  "deferredResult": "Wyszukiwanie odroczone"
 }

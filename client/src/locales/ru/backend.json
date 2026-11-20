@@ -24,5 +24,6 @@
   "providerInitializationFailed": "Не удалось инициализировать поставщика: {detail}",
   "providerUnavailable": "Поставщик недоступен: {provider}",
   "providerPanickedTryingNext": "Поставщик аварийно завершил работу. Будет проверен следующий поставщик.",
-  "providerRateLimited": "Достигнут лимит запросов к провайдеру. Повторите попытку через {seconds} с."
+  "providerRateLimited": "Достигнут лимит запросов к провайдеру. Повторите попытку через {seconds} с.",
+  "providerDetailsUnavailable": "Подробные данные источника недоступны. Для недостающих полей можно повторить поиск."
 }

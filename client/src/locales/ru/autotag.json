@@ -182,5 +182,8 @@
   "providerPace": "Темп поиска по провайдерам",
   "providerPaceValue": "{rate} треков/мин",
   "providerPaceMeasuring": "Измерение темпа поиска",
-  "providerPaceLimited": "Ограниченные или отложенные ({count})"
+  "providerPaceLimited": "Ограниченные или отложенные ({count})",
+  "retryCount": "Нужен повторный поиск · {count}",
+  "partialResult": "Частично сохранено",
+  "deferredResult": "Поиск отложен"
 }

@@ -31,7 +31,7 @@
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>{{ t('autotag.matched') }}</div>
-                            <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("ok")}}</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{$1t.taggerStatus.value.results.counts.ok}}</div>
                         </div>
                     </div>
                 </q-card>
@@ -49,7 +49,7 @@
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>{{ t('autotag.failed') }}</div>
-                            <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("error")}}</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{$1t.taggerStatus.value.results.counts.error}}</div>
                         </div>
                     </div>
                 </q-card>
@@ -67,7 +67,7 @@
                         </div>
                         <div class='col q-my-sm text-right q-pr-md'>
                             <div class='text-subtitle2 text-grey-6'>{{ t('autotag.skipped') }}</div>
-                            <div class='text-subtitle1 monospace text-weight-bold'>{{countStatus("skipped")}}</div>
+                            <div class='text-subtitle1 monospace text-weight-bold'>{{$1t.taggerStatus.value.results.counts.skipped}}</div>
                         </div>
                     </div>
                 </q-card>
@@ -130,28 +130,34 @@
     </div>
     <!-- Statuses -->
     <q-list class='list text-left bg-dark q-py-sm'>
-        <q-virtual-scroll :items='statuses' :class='{"status-list": !$1t.taggerStatus.value.done, "status-list-done": $1t.taggerStatus.value.done}'>
-            <template v-slot="{item, index: i}: {item: TaggingStatusWrap[]; index: number}">
-                <q-item :key='i'>
+        <q-btn v-if="retryCount || filter === 'retry'" dense :flat="filter !== 'retry'" rounded color="amber" icon="mdi-timer-sand"
+            :aria-pressed="filter === 'retry'" :outline="filter === 'retry'" @click="toggleFilter('retry')">
+            {{ t('autotag.retryCount', { count: retryCount }) }}
+        </q-btn>
+        <q-virtual-scroll :items-size='statuses.length' :items-fn='visibleStatuses' :class='{"status-list": !$1t.taggerStatus.value.done, "status-list-done": $1t.taggerStatus.value.done}'>
+            <template v-slot="{item}: {item: StatusGroup<TaggingStatusWrap>}">
+                <q-item :key='item.path'>
                     <q-item-section>
                         <q-item-label overline>
-                            <span v-for='(i, index) in item'>
+                            <span v-for='(i, index) in item.attempts' :key='index'>
                                 <span v-if='$1t.taggerStatus.value.type != "audioFeatures"' class='selectable text-white'>{{platformText(i.platform)}}</span>
                                 <span v-if='$1t.taggerStatus.value.type == "audioFeatures"' class='selectable text-white'>{{ t('autotag.audioFeatures') }}</span>
                                 <img width='16' height='16' class='q-ml-sm' style='margin-bottom: -3px;' v-if='i.status.usedShazam' svg-inline src='../assets/shazam_icon.svg' />
                                 <q-icon size='xs' class='q-ml-sm q-mb-xs' :name='statusIcon(i.status.status)' :color='statusColor(i.status.status)'>
                                     <q-tooltip v-if='i.status.message'>
+                                        <span v-if="i.status.status === 'partial'">{{ t('autotag.partialResult') }} · </span>
+                                        <span v-if="i.status.status === 'deferred'">{{ t('autotag.deferredResult') }} · </span>
                                         {{ translateBackendMessage(i.status) }}
                                     </q-tooltip>
-                                    <q-tooltip v-if='i.status.status == "ok" && i.status.accuracy != null'>
+                                    <q-tooltip v-else-if='i.status.status == "ok" && i.status.accuracy != null'>
                                         {{ t('autotag.accuracy', { percent: accuracyPercent(i.status.accuracy) }) }}
                                         <span v-if='i.status.reason'> — {{ t('autotag.reason', { reason: matchReasonLabel(i.status.reason) }) }}</span>
                                     </q-tooltip>
                                 </q-icon>
-                                <span class='q-px-sm' v-if='index < item.length - 1'>|</span>
+                                <span class='q-px-sm' v-if='index < item.attempts.length - 1'>|</span>
                             </span>
                         </q-item-label>
-                        <span class='selectable text-grey-5'>{{item[0].status.path}}</span>
+                        <span class='selectable text-grey-5'>{{item.path}}</span>
                     </q-item-section>
                 </q-item>
             </template>
@@ -189,7 +195,8 @@ import { useQuasar } from 'quasar';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { get1t } from '../scripts/onetagger.js';
-import { TaggingStatusWrap } from '../scripts/autotagger';
+import type { TaggingStatusWrap } from '../scripts/autotagger';
+import { newestPage, type StatusGroup } from '../scripts/statusindex';
 
 const $q = useQuasar();
 const $1t = get1t();
@@ -235,6 +242,8 @@ function statusIcon(s: string) {
     switch (s) {
         case 'error': return 'mdi-alert-circle';
         case 'ok': return 'mdi-check';
+        case 'partial': return 'mdi-circle-half-full';
+        case 'deferred': return 'mdi-timer-sand';
         case 'skipped': return 'mdi-debug-step-over';
     }
 }
@@ -243,24 +252,15 @@ function statusColor(s: string) {
     switch (s) {
         case 'error': return 'red';
         case 'ok': return 'green';
+        case 'partial': case 'deferred': return 'amber';
         case 'skipped': return 'yellow';
     }
 }
 
-/// Get actual status from status list
-function getStatus(s: TaggingStatusWrap[]): string {
-    if (s.find((s) => s.status.status == 'ok')) {
-        return 'ok';
-    }
-    if (s.find((s) => s.status.status == 'skipped')) {
-        return 'skipped';
-    }
-    return 'error';
-}
-
-function countStatus(status: any) {
-    return $1t.taggerStatus.value.statuses.reduce((a, c) => (getStatus(c) == status) ? a + 1 : a, 0);
-}
+const retryCount = computed(() => {
+    const { partial, deferred } = $1t.taggerStatus.value.results.counts;
+    return partial + deferred;
+});
 
 // Toggle status filter
 function toggleFilter(name: string) {
@@ -290,10 +290,12 @@ function goQT(successful: boolean) {
 }
 
 const statuses = computed(() => {
-    if (!filter.value)
-        return $1t.taggerStatus.value.statuses;
-    return $1t.taggerStatus.value.statuses.filter((s) => getStatus(s) == filter.value);
+    const rows = $1t.taggerStatus.value.results.rows;
+    if (!filter.value) return rows;
+    if (filter.value === 'retry') return rows.filter(row => row.state === 'partial' || row.state === 'deferred');
+    return rows.filter(row => row.state === filter.value);
 });
+const visibleStatuses = (from: number, size: number) => newestPage(statuses.value, from, size);
 
 
 onMounted(() => {

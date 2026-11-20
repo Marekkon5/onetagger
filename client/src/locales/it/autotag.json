@@ -182,5 +182,8 @@
   "providerPace": "Ritmo dei provider",
   "providerPaceValue": "{rate} brani/min",
   "providerPaceMeasuring": "Misurazione del ritmo di ricerca",
-  "providerPaceLimited": "Limitate o rinviate ({count})"
+  "providerPaceLimited": "Limitate o rinviate ({count})",
+  "retryCount": "Da ricontrollare · {count}",
+  "partialResult": "Salvataggio parziale",
+  "deferredResult": "Ricerca rinviata"
 }

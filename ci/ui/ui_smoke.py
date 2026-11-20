@@ -361,6 +361,36 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_role('alert')).to_contain_text('Choose a Helper selection manifest')
             expect(page.get_by_role('button',name='Start tagging',exact=True)).to_be_disabled()
 
+    def test_partial_and_deferred_filter_updates_as_fallback_finishes(self):
+        with self.session() as (page, backend):
+            backend.hold_tagging = True
+            page.get_by_role("tab", name="Auto tag", exact=True).click()
+            page.get_by_text("Input & Tags", exact=True).click()
+            page.get_by_label("Path", exact=True).fill("/music")
+            page.get_by_role("button", name="Start tagging", exact=True).click()
+            expect(page.get_by_role("button", name="Stop tagging", exact=True)).to_be_visible()
+
+            def result(name, state):
+                backend.tagging_socket.send(json.dumps({"action": "taggingProgress", "status": {
+                    "platform": "fixture", "progress": 0.5, "status": {"status": state,
+                    "path": f"/music/{name}.mp3", "usedShazam": False}}}))
+
+            result("finished", "ok")
+            result("partial", "partial")
+            result("waiting", "deferred")
+            retry = page.get_by_role("button", name="Needs another lookup · 2")
+            retry.click()
+            expect(page.get_by_text("/music/finished.mp3", exact=True)).to_have_count(0)
+            expect(page.get_by_text("/music/partial.mp3", exact=True)).to_be_visible()
+            expect(page.get_by_text("/music/waiting.mp3", exact=True)).to_be_visible()
+            result("partial", "ok")
+            expect(page.get_by_role("button", name="Needs another lookup · 1")).to_be_visible()
+            expect(page.get_by_text("/music/partial.mp3", exact=True)).to_have_count(0)
+            result("waiting", "ok")
+            page.get_by_role("button", name="Needs another lookup · 0").click()
+            expect(page.get_by_text("/music/finished.mp3", exact=True)).to_be_visible()
+            expect(page.get_by_text("/music/partial.mp3", exact=True)).to_be_visible()
+
     def test_provider_pace_shows_deferred_lookups_during_autotag(self):
         with self.session() as (page, backend):
             backend.hold_tagging = True

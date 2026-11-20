@@ -182,5 +182,8 @@
   "providerPace": "Tempo poskytovatelů",
   "providerPaceValue": "{rate} skladeb/min",
   "providerPaceMeasuring": "Měření tempa vyhledávání",
-  "providerPaceLimited": "Omezené nebo odložené ({count})"
+  "providerPaceLimited": "Omezené nebo odložené ({count})",
+  "retryCount": "Vyžaduje další hledání · {count}",
+  "partialResult": "Částečně uloženo",
+  "deferredResult": "Hledání odloženo"
 }
