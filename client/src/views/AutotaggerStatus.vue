@@ -16,6 +16,8 @@
         {{ t('autotag.resultsPath', { path: $1t.taggerStatus.value.data.reportFile }) }}
     </div>
 
+    <div v-if="$1t.taggerStatus.value.recovered" class="text-caption">{{ t('autotag.recoveredRun') }}</div>
+
     <!-- Info -->
     <div class='row q-my-sm justify-center'>
         <div class='row justify-between full-width text-subtitle2 q-my-sm list'>
@@ -134,6 +136,11 @@
             :aria-pressed="filter === 'retry'" :outline="filter === 'retry'" @click="toggleFilter('retry')">
             {{ t('autotag.retryCount', { count: retryCount }) }}
         </q-btn>
+        <q-btn v-if="$1t.taggerStatus.value.done && $1t.taggerStatus.value.retryFiles" dense rounded outline color="primary"
+            class="q-ml-sm" icon="mdi-refresh" data-testid="retry-lookups"
+            :disable="retrySeconds > 0 || $1t.taggerStatus.value.retrySubmitting" @click="retryLookups">
+            {{ retrySeconds > 0 ? t('autotag.retryWait', { seconds: retrySeconds }) : t('autotag.retryLookups', { count: $1t.taggerStatus.value.retryFiles }) }}
+        </q-btn>
         <q-virtual-scroll :items-size='statuses.length' :items-fn='visibleStatuses' :class='{"status-list": !$1t.taggerStatus.value.done, "status-list-done": $1t.taggerStatus.value.done}'>
             <template v-slot="{item}: {item: StatusGroup<TaggingStatusWrap>}">
                 <q-item :key='item.path'>
@@ -203,6 +210,7 @@ const $1t = get1t();
 const $router = useRouter();
 const time = ref('0:00');
 const paceClock = ref(performance.now());
+const wallClock = ref(Date.now());
 const filter = ref<string | undefined>(undefined);
 const stopping = ref(false);
 let timeInterval: any = undefined;
@@ -262,6 +270,18 @@ const retryCount = computed(() => {
     return partial + deferred;
 });
 
+const retrySeconds = computed(() => Math.max(0, Math.ceil(($1t.taggerStatus.value.retryAt - Math.max(wallClock.value, Date.now())) / 1000)));
+
+async function retryLookups() {
+    const status = $1t.taggerStatus.value;
+    if (!status.done || !status.runId || !status.retryFiles || retrySeconds.value || status.retrySubmitting) return;
+    status.retrySubmitting = true;
+    filter.value = undefined;
+    stopping.value = false;
+    try { await $1t.send('retryTagging', {runId: status.runId}); }
+    catch (error) { status.retrySubmitting = false; $1t.onError(String(error)); }
+}
+
 // Toggle status filter
 function toggleFilter(name: string) {
     if (filter.value == name) {
@@ -304,12 +324,9 @@ onMounted(() => {
 
     // Update timestamp
     timeInterval = setInterval(() => {
-        // Already done
-        if ($1t.taggerStatus.value.done || !$1t.lock.value.locked) {
-            if (timeInterval)
-                clearInterval(timeInterval);
-            return;
-        }
+        const status = $1t.taggerStatus.value;
+        if (status.retryAt > wallClock.value) wallClock.value = Date.now();
+        if (status.done || !$1t.lock.value.locked) return;
         paceClock.value = performance.now();
         // Timestamp
         let s = (Date.now() - $1t.taggerStatus.value.started) / 1000;

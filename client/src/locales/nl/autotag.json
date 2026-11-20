@@ -185,5 +185,10 @@
   "providerPaceLimited": "Beperkt of uitgesteld ({count})",
   "retryCount": "Opnieuw opzoeken · {count}",
   "partialResult": "Gedeeltelijk opgeslagen",
-  "deferredResult": "Zoekopdracht uitgesteld"
+  "deferredResult": "Zoekopdracht uitgesteld",
+  "retryLookups": "Onvoltooide zoekopdrachten opnieuw uitvoeren · {count}",
+  "retryWait": "Opnieuw proberen over {seconds} s",
+  "rotateProviders": "Wissel de eerste aanbieder per nummer",
+  "rotateHint": "Begin elk nummer bij de volgende aanbieder en probeer de overige op volgorde.",
+  "recoveredRun": "Verbinding hersteld. De voortgang en de wachtrij bevatten ook de eerdere zoekopdrachten."
 }

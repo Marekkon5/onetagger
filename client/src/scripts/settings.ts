@@ -5,6 +5,7 @@ import { FrameName, Keybind, Separators } from "./utils";
 class Settings {
     path?: string;
     autoTaggerConfig: any = {};
+    rotateProviders: boolean = false;
     autoTaggerSinglePage: boolean = false;
     autoTaggerProfiles: AutotaggerProfile[] = [];
     autoTaggerProfile: string = 'Default';

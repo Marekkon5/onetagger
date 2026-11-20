@@ -185,5 +185,10 @@
   "providerPaceLimited": "Gedrosselt oder zurückgestellt ({count})",
   "retryCount": "Erneute Suche nötig · {count}",
   "partialResult": "Teilweise gespeichert",
-  "deferredResult": "Suche zurückgestellt"
+  "deferredResult": "Suche zurückgestellt",
+  "retryLookups": "Offene Suchen wiederholen · {count}",
+  "retryWait": "Erneut versuchen in {seconds} s",
+  "rotateProviders": "Ersten Anbieter pro Titel wechseln",
+  "rotateHint": "Jeden Titel beim nächsten Anbieter beginnen und die übrigen der Reihe nach versuchen.",
+  "recoveredRun": "Verbindung wiederhergestellt. Fortschritt und Warteschlange berücksichtigen frühere Suchvorgänge."
 }

@@ -185,5 +185,10 @@
   "providerPaceLimited": "Rate-limited or deferred ({count})",
   "retryCount": "Needs another lookup · {count}",
   "partialResult": "Partially saved",
-  "deferredResult": "Lookup deferred"
+  "deferredResult": "Lookup deferred",
+  "retryLookups": "Retry unfinished lookups · {count}",
+  "retryWait": "Retry available in {seconds} s",
+  "rotateProviders": "Rotate first provider between tracks",
+  "rotateHint": "Start each track with the next provider, then try the remaining providers in order.",
+  "recoveredRun": "Reconnected to the run. The progress bar and retry queue include earlier lookups."
 }

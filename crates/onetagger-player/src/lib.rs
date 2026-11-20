@@ -35,8 +35,11 @@ impl AudioPlayer {
             let mut volume = 0.5;
             let mut source = None;
             // Create sink
-            let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
-            let mut sink = Sink::try_new(&stream_handle).unwrap();
+            let Ok((_stream, stream_handle)) = rodio::OutputStream::try_default() else {
+                warn!("No audio output is available");
+                return;
+            };
+            let Ok(mut sink) = Sink::try_new(&stream_handle) else { warn!("Cannot open the audio sink"); return; };
             sink.set_volume(volume);
             sink.pause();
             // Wait for messages
@@ -55,7 +58,8 @@ impl AudioPlayer {
                     PlayerAction::Load(audio_source) => {
                         // Create new sink
                         sink.stop();
-                        sink = Sink::try_new(&stream_handle).unwrap();
+                        let Ok(next) = Sink::try_new(&stream_handle) else { warn!("Audio output disconnected"); break; };
+                        sink = next;
                         sink.set_volume(volume);
                         sink.pause();
                         // Append source
@@ -71,7 +75,8 @@ impl AudioPlayer {
                             // Create new sink
                             let paused = sink.is_paused();
                             sink.stop();
-                            sink = Sink::try_new(&stream_handle).unwrap();
+                            let Ok(next) = Sink::try_new(&stream_handle) else { warn!("Audio output disconnected"); break; };
+                            sink = next;
                             sink.set_volume(volume);
                             if paused {
                                 sink.pause();
@@ -90,7 +95,7 @@ impl AudioPlayer {
                             }
                             // Sync
                             tx.send(!sink.is_paused()).ok();
-                        }
+                        } else { tx.send(false).ok(); }
                     }
                 }
             }
@@ -118,7 +123,7 @@ impl AudioPlayer {
     pub fn seek(&self, pos: u64) -> bool {
         self.tx.send(PlayerAction::Seek(pos)).ok();
         // Wait for ready
-        self.rx.recv().unwrap()
+        self.rx.recv().unwrap_or(false)
     }
 
     pub fn volume(&self, volume: f32) {

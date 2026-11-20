@@ -109,6 +109,11 @@
             v-model='$1t.config.value.multiplatform'
         ></AdvancedSettingsToggle>
 
+        <AdvancedSettingsToggle v-if="!$1t.config.value.albumTagging"
+            :label="t('autotag.rotateProviders')" :tooltip="t('autotag.rotateHint')"
+            v-model="$1t.settings.value.rotateProviders"
+        ></AdvancedSettingsToggle>
+
         <AdvancedSettingsToggle 
             :label="t('autotag.removeCovers')"
             :tooltip="t('autotag.removeCoversHint')"

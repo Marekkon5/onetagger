@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import threading
+import time
 import unittest
 from urllib.parse import urlsplit
 
@@ -65,6 +66,7 @@ class Backend:
         self.hold_tagging = False
         self.tagging_socket = None
         self.reject_stop = False
+        self.run_state = {"action": "taggingState", "runId": None}
 
     def http(self, route):
         request = route.request
@@ -96,8 +98,13 @@ class Backend:
                             "expose": False, "browser": True, "startPath": "/music"}}
             elif action == "loadPlatforms":
                 response = {"action": action, "platforms": deepcopy(PLATFORMS)}
+            elif action == "taggingState":
+                response = self.run_state
+            elif action == "retryTagging":
+                self.tagging_socket = ws
+                response = {"action": "startTagging", "runId": 2, "files": 2, "type": "autoTagger"}
             elif action == "startTagging":
-                ws.send(json.dumps({"action":action,"files":len((data.get('selection') or {}).get('tracks',[])),"type":"autoTagger"}))
+                ws.send(json.dumps({"action":action,"runId":1,"files":len((data.get('selection') or {}).get('tracks',[])),"type":"autoTagger"}))
                 self.tagging_socket = ws
                 if not self.hold_tagging:
                     response = self.tagging_done()
@@ -397,6 +404,31 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_text("/music/finished.mp3", exact=True)).to_be_visible()
             expect(page.get_by_text("/music/partial.mp3", exact=True)).to_be_visible()
 
+    def test_retry_waits_for_cooldown_and_submits_the_original_run_once(self):
+        with self.session() as (page, backend):
+            backend.hold_tagging = True
+            page.get_by_role("tab", name="Auto tag", exact=True).click()
+            page.get_by_text("Input & Tags", exact=True).click()
+            page.get_by_label("Path", exact=True).fill("/music")
+            page.get_by_role("button", name="Start tagging", exact=True).click()
+            expect(page.get_by_role("button", name="Stop tagging", exact=True)).to_be_visible()
+            for name, outcome in [("complete", "ok"), ("waiting", "deferred"), ("partial", "partial")]:
+                backend.tagging_socket.send(json.dumps({"action": "taggingProgress", "status": {
+                    "platform": "fixture", "progress": 1, "status": {"status": outcome,
+                    "path": "/music/" + name + ".mp3", "usedShazam": False}}}))
+            page.get_by_role("button", name="Needs another lookup · 2").click()
+            self.assertFalse(any(c["action"] == "retryTagging" for c in backend.commands))
+            backend.tagging_socket.send(json.dumps(dict(backend.tagging_done(), runId=1, retryCount=2, retryAfterMs=2500)))
+            page.get_by_role("dialog").get_by_role("button", name="Cancel").click()
+            retry = page.get_by_test_id("retry-lookups")
+            expect(retry).to_be_disabled()
+            expect(retry).to_have_text("Retry unfinished lookups · 2")
+            retry.click()
+            expect(page.get_by_role("button", name="Stop tagging", exact=True)).to_be_visible()
+            self.assertEqual([c for c in backend.commands if c["action"] == "retryTagging"],
+                             [{"action": "retryTagging", "runId": 1}])
+            self.assertEqual(sum(c["action"] == "startTagging" for c in backend.commands), 1)
+
     def test_provider_pace_shows_deferred_lookups_during_autotag(self):
         with self.session() as (page, backend):
             backend.hold_tagging = True
@@ -632,11 +664,16 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
             expect(page.get_by_text("Tags written!", exact=True)).not_to_be_visible()
             page.get_by_role("dialog").filter(has_text="WebSocket closed!").get_by_role("button", name="OK", exact=True).click()
-            page.get_by_role("button", name="Save", exact=True).click()
-            expect(page.get_by_role("alert")).to_contain_text("the connection is closed")
-            expect(page.get_by_role("status")).to_have_count(0)
-            expect(page.get_by_label("Tag TIT2", exact=True)).to_have_value("Unsaved title")
+            # A reconnection polls run state. It must never replay an unacknowledged write.
+            deadline = time.monotonic() + 5
+            while sum(c["action"] == "taggingState" for c in backend.commands) < 2 and time.monotonic() < deadline:
+                page.wait_for_timeout(50)
+            self.assertGreaterEqual(sum(c["action"] == "taggingState" for c in backend.commands), 2)
             self.assertEqual(len(backend.saves()), 1)
+            backend.hold_saves = False
+            page.get_by_role("button", name="Save", exact=True).click()
+            expect(page.get_by_text("Tags written!", exact=True)).to_be_visible()
+            self.assertEqual(len(backend.saves()), 2)
 
     def test_unsaved_track_switch_requires_explicit_discard_without_autosave(self):
         with self.session() as (page, backend):

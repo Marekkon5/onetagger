@@ -36,6 +36,9 @@ pub mod platforms;
 pub mod audiofeatures;
 pub mod report;
 mod scheduler;
+mod retry;
+pub use retry::RetryPlan;
+use retry::RunOptions;
 mod pipeline;
 
 // Re-exports
@@ -718,6 +721,7 @@ struct TaggingResults {
     successful: BTreeSet<PathBuf>,
     failed: BTreeSet<PathBuf>,
     retryable: BTreeSet<PathBuf>,
+    retry_delays: HashMap<PathBuf, (Instant, Duration)>,
 }
 
 impl TaggingResults {
@@ -725,11 +729,22 @@ impl TaggingResults {
         match status.status {
             TaggingState::Ok => {
                 self.failed.remove(&status.path);
+                self.retryable.remove(&status.path);
+                self.retry_delays.remove(&status.path);
                 self.successful.insert(status.path.clone());
             }
-            TaggingState::Partial | TaggingState::Deferred => {
+            TaggingState::Partial | TaggingState::Deferred if !self.successful.contains(&status.path) => {
                 self.failed.remove(&status.path);
                 self.retryable.insert(status.path.clone());
+                if status.message_key.as_deref() == Some("backend.providerRateLimited") {
+                    if let Some(seconds) = status.message_args.as_ref().and_then(|args| args.get("seconds"))
+                        .and_then(|value| value.as_str()).and_then(|seconds| seconds.parse::<u64>().ok()) {
+                        let delay = Duration::from_secs(seconds);
+                        self.retry_delays.entry(status.path.clone()).and_modify(|(start, prior)| {
+                            if delay < prior.saturating_sub(start.elapsed()) { *start = Instant::now(); *prior = delay; }
+                        }).or_insert((Instant::now(), delay));
+                    }
+                }
             }
             TaggingState::Error if !self.successful.contains(&status.path) && !self.retryable.contains(&status.path) => {
                 self.failed.insert(status.path.clone());
@@ -742,6 +757,7 @@ impl TaggingResults {
 /// Remember each file's marker state before this run can write any tags.
 #[derive(Clone, Default)]
 struct RunTagState {
+    resumed: bool,
     initially_tagged: Option<Arc<Mutex<HashMap<PathBuf, bool>>>>,
     pending_fields: Arc<Mutex<HashMap<PathBuf, Vec<SupportedTag>>>>,
 }
@@ -755,11 +771,16 @@ impl RunTagState {
     /// get exactly the outstanding fields and cannot replace an accepted value.
     fn save_match(&self, track: Track, config: &TaggerConfig, status: &mut TaggingStatus, details_failed: bool) -> Result<(), Error> {
         let pending = self.pending_fields.lock().unwrap().get(&status.path).cloned();
-        let recovering = details_failed || pending.is_some();
+        let restrict = !config.multiplatform || self.resumed;
+        if self.resumed && pending.as_ref().is_some_and(Vec::is_empty) {
+            status.status = TaggingState::Ok;
+            return Ok(());
+        }
+        let recovering = details_failed || (restrict && pending.is_some());
         let mut narrowed;
-        let write_config = if let Some(fields) = pending {
+        let write_config = if let Some(fields) = pending.as_ref().filter(|_| restrict) {
             narrowed = config.clone();
-            narrowed.tags = fields;
+            narrowed.tags = fields.clone();
             if config.tag_enabled(SupportedTag::MetaTags) { narrowed.tags.push(SupportedTag::MetaTags); }
             &narrowed
         } else { config };
@@ -770,16 +791,20 @@ impl RunTagState {
         let supplied = track.merge_styles(&config.styles_options).write_fields(&status.path, write_config, recovering)?;
         if recovering {
             let missing: Vec<_> = write_config.tags.iter().copied()
-                .filter(|t| *t != SupportedTag::MetaTags && !supplied.contains(t)).collect();
+                .filter(|t| *t != SupportedTag::MetaTags && !supplied.contains(t) && pending.as_ref().is_none_or(|previous| previous.contains(t))).collect();
             if !missing.is_empty() || (details_failed && supplied.is_empty()) {
-                if !config.multiplatform {
+                if !missing.is_empty() {
                     self.pending_fields.lock().unwrap().insert(status.path.clone(), missing);
                 }
                 status.status = if supplied.is_empty() { TaggingState::Deferred } else { TaggingState::Partial };
                 if status.message_key.is_none() { status.set_message(TaggingMessage::ProviderDetailsUnavailable); }
                 return Ok(());
             }
-            self.pending_fields.lock().unwrap().remove(&status.path);
+            if self.resumed && config.multiplatform {
+                self.pending_fields.lock().unwrap().insert(status.path.clone(), vec![]);
+            } else {
+                self.pending_fields.lock().unwrap().remove(&status.path);
+            }
         }
         status.status = TaggingState::Ok;
         Ok(())
@@ -821,22 +846,33 @@ impl Tagger {
 
     // Returtns progress receiver, and file count
     pub fn tag_files(cfg: &TaggerConfig, files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>) -> Receiver<TaggingStatusWrap> {
-        Self::tag_files_inner(cfg, files, finished, false, None)
+        Self::tag_files_inner(cfg, files, finished, RunOptions::default(), RunTagState::new(cfg))
     }
 
     /// Opt-in report; a Helper manifest is the entire file-selection boundary.
-    pub fn tag_files_report(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, selection: Option<report::Selection>) -> Result<Receiver<TaggingStatusWrap>, Error> {
-        if let Some(selection) = &selection {
+    pub fn tag_files_report(cfg: &TaggerConfig, files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, selection: Option<report::Selection>) -> Result<Receiver<TaggingStatusWrap>, Error> {
+        Self::start_selected(cfg, files, finished, RunOptions { report: true, selection, ..Default::default() })
+    }
+
+    pub fn start_ui(cfg: &TaggerConfig, files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>,
+        report: bool, selection: Option<report::Selection>, rotate: bool) -> Result<Receiver<TaggingStatusWrap>, Error> {
+        Self::start_selected(cfg, files, finished, RunOptions { report: report || selection.is_some(), selection, rotate, keep_retry: true, previous_report: None })
+    }
+
+    fn start_selected(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>,
+        options: RunOptions) -> Result<Receiver<TaggingStatusWrap>, Error> {
+        if let Some(selection) = &options.selection {
             selection.validate()?;
             if cfg.move_success || cfg.move_failed {
                 return Err(anyhow!("Disable file moves for a Helper selection; keep its original locations"));
             }
             files = selection.files();
         }
-        Ok(Self::tag_files_inner(cfg, files, finished, true, selection))
+        Ok(Self::tag_files_inner(cfg, files, finished, options, RunTagState::new(cfg)))
     }
 
-    fn tag_files_inner(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>, report_enabled: bool, selection: Option<report::Selection>) -> Receiver<TaggingStatusWrap> {
+    fn tag_files_inner(cfg: &TaggerConfig, mut files: Vec<PathBuf>, finished: Arc<Mutex<Option<TaggerFinishedData>>>,
+        options: RunOptions, run: RunTagState) -> Receiver<TaggingStatusWrap> {
         STOP_TAGGING.store(false, Ordering::SeqCst);
 
         // A playlist can contain the same file more than once, including aliases.
@@ -849,8 +885,8 @@ impl Tagger {
             files.shuffle(&mut rng);
         }
         
-        // let original_files = files.clone();
         let mut results = TaggingResults::default();
+        if run.resumed { results.retryable.extend(files.iter().cloned()); }
         let total_files = files.len();
         info!("Starting tagger with: {} files!", total_files);
 
@@ -858,11 +894,14 @@ impl Tagger {
         let (tx, rx) = unbounded();
         let config = cfg.clone();
         std::thread::spawn(move || {
-            let mut report = report_enabled.then(|| report::ReportBuilder::new(&files, selection));
-            let run = RunTagState::new(&config);
+            let mut options = options;
+            let mut report = options.report.then(|| match options.previous_report.take() {
+                Some(previous) => report::ReportBuilder::resume(&files, options.selection.clone(), &previous),
+                None => report::ReportBuilder::new(&files, options.selection.clone()),
+            });
             // Tag
             if !config.album_tagging {
-                Self::tag_pipeline(&files, &config, &tx, &mut results, &mut report, &run);
+                Self::tag_pipeline(&files, &config, &tx, &mut results, &mut report, &run, options.rotate);
             } else {
             // Album matching depends on provider-wide folder grouping.
             for (platform_index, platform) in config.platforms.iter().enumerate() {
@@ -966,13 +1005,13 @@ impl Tagger {
                     failed_paths.push(PathBuf::from(file))
                 }
             }
-            std::mem::drop(results);
+
             std::mem::drop(files);
 
             // Capture final disk values before post-command can change the files.
-            let (report_file, report_error) = match report {
-                Some(report) => match Settings::get_folder().and_then(|folder| report
-                    .finish(STOP_TAGGING.load(Ordering::SeqCst)).save(&folder.join("runs"))) {
+            let completed = report.map(|builder| builder.finish(STOP_TAGGING.load(Ordering::SeqCst)));
+            let (report_file, report_error) = match &completed {
+                Some(report) => match Settings::get_folder().and_then(|folder| report.save(&folder.join("runs"))) {
                     Ok(path) => (Some(path.to_string_lossy().into_owned()), None),
                     Err(error) => {
                         warn!("Could not save tagging report: {error}");
@@ -982,19 +1021,22 @@ impl Tagger {
                 None => (None, None),
             };
 
+            if options.selection.is_some() { options.previous_report = completed.map(Arc::new); }
+            let retry = RetryPlan::capture(&config, options, &results, &run);
+
             // Tagging ended, save lists of files
             match Self::write_results(successful_paths, failed_paths, &config) {
                 Ok((failed, success)) => {
                     info!("Written failed songs to: {}, successful to: {}", failed, success);
                     *finished.lock().unwrap() = Some(TaggerFinishedData {
-                        failed_file: failed, success_file: success, move_errors, report_file, report_error
+                        failed_file: failed, success_file: success, move_errors, report_file, report_error, retry
                     });
                 },
                 Err(e) => {
                     warn!("Failed writing result playlists: {e}");
                     move_errors.push("Failed writing result playlists; check the application log".into());
                     *finished.lock().unwrap() = Some(TaggerFinishedData {
-                        failed_file: String::new(), success_file: String::new(), move_errors, report_file, report_error
+                        failed_file: String::new(), success_file: String::new(), move_errors, report_file, report_error, retry
                     });
                 }
             };
@@ -1496,6 +1538,8 @@ pub struct TaggerFinishedData {
     pub move_errors: Vec<String>,
     pub report_file: Option<String>,
     pub report_error: Option<String>,
+    #[serde(skip)]
+    pub retry: Option<Arc<RetryPlan>>,
 }
 
 

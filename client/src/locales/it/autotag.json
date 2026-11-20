@@ -185,5 +185,10 @@
   "providerPaceLimited": "Limitate o rinviate ({count})",
   "retryCount": "Da ricontrollare · {count}",
   "partialResult": "Salvataggio parziale",
-  "deferredResult": "Ricerca rinviata"
+  "deferredResult": "Ricerca rinviata",
+  "retryLookups": "Riprova le ricerche incomplete · {count}",
+  "retryWait": "Nuovo tentativo tra {seconds} s",
+  "rotateProviders": "Alterna il primo servizio tra le tracce",
+  "rotateHint": "Inizia ogni traccia dal servizio successivo, poi prova gli altri in ordine.",
+  "recoveredRun": "Connessione ripristinata. La barra di avanzamento e la coda dei tentativi includono le ricerche precedenti."
 }

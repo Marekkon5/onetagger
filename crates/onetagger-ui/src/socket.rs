@@ -12,7 +12,7 @@ use serde::{Serialize, Deserialize};
 use dunce::canonicalize;
 use onetagger_tag::{TagChanges, TagSeparators, Tag, Field};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, TrackMatch};
-use onetagger_autotag::{Tagger, AudioFileInfoImpl, TaggerConfigExt, AUTOTAGGER_PLATFORMS};
+use onetagger_autotag::{RetryPlan, TaggerFinishedData, Tagger, AudioFileInfoImpl, TaggerConfigExt, AUTOTAGGER_PLATFORMS};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
@@ -41,6 +41,29 @@ impl Drop for TaggingLease<'_> {
 }
 
 
+/// Keep only the current run's live summary and its most recent continuation.
+#[derive(Debug)]
+pub(crate) struct RunStatus {
+    id: u64,
+    kind: &'static str,
+    total: usize,
+    progress: f64,
+    completion: Option<Value>,
+    retry: Option<Arc<RetryPlan>>,
+}
+
+impl RunStatus {
+    fn snapshot(&self) -> Value {
+        let mut snapshot = json!({ "action": "taggingState", "runId": self.id, "type": self.kind,
+            "files": self.total, "progress": self.progress, "completion": self.completion });
+        if let Some(retry) = &self.retry {
+            snapshot["retryCount"] = json!(retry.file_count());
+            snapshot["retryAfterMs"] = json!(retry.remaining().as_millis().min(u64::MAX as u128) as u64);
+        }
+        snapshot
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase")]
 enum Action {
@@ -60,7 +83,11 @@ enum Action {
 
     LoadPlatforms,
     StartTagging { config: TaggerConfigs, playlist: Option<UIPlaylist>,
-        #[serde(default)] report: bool, selection: Option<onetagger_autotag::report::Selection> },
+        #[serde(default)] report: bool, selection: Option<onetagger_autotag::report::Selection>,
+        #[serde(default, rename = "rotateProviders")] rotate: bool },
+    #[serde(rename_all = "camelCase")]
+    RetryTagging { run_id: u64 },
+    TaggingState,
     StopTagging,
     ConfigCallback { config: Value, platform: String, id: String },
     RepoManifest,
@@ -127,7 +154,8 @@ impl TaggerConfigs {
 
 // Shared variables in socket
 struct SocketContext {
-    player: AudioPlayer,
+    player: Option<AudioPlayer>,
+    volume: f32,
     spotify: Option<Spotify>,
     start_context: StartContext
 } 
@@ -135,7 +163,8 @@ struct SocketContext {
 impl SocketContext {
     pub fn new(start_context: StartContext) -> SocketContext {
         SocketContext {
-            player: AudioPlayer::new(),
+            player: None,
+            volume: 0.5,
             spotify: None,
             start_context
         }
@@ -181,29 +210,16 @@ pub(crate) async fn handle_ws_connection(mut websocket: WebSocket, context: Star
     let mut context = SocketContext::new(context);
     
     while let Some(message) = websocket.recv().await {
-        match message {
-            Ok(msg) => {
-                match msg.to_text() {
-                    Ok(text) => {
-                        // Handle the WS message
-                        match handle_message(text, &mut websocket, &mut context).await {
-                            Ok(_) => {},
-                            Err(err) => {
-                                // Send error to UI
-                                error!("Websocket command failed: {:?}", err);
-                                send_socket(&mut websocket, request_error(&err)).await.ok();
-                            }
-                        }
-                    },
-                    Err(e) => warn!("WebSocket Message is not text: {e}"),
+        match message? {
+            Message::Text(text) => {
+                if let Err(error) = handle_message(&text, &mut websocket, &mut context).await {
+                    error!("WebSocket command failed: {error:#}");
+                    send_socket(&mut websocket, request_error(&error)).await?;
                 }
             }
-
-            Err(e) => {
-                warn!("WebSocket error: {e}");
-            }
+            Message::Close(_) => break,
+            _ => {}
         }
-    
     }
 
     Ok(())
@@ -248,6 +264,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
     match action {
         // Get initial info
         Action::Init => {
+            info!("UI session initialized");
             send_socket(websocket, InitData::new(context.start_context.clone())).await.ok();
         },
         Action::Exit => std::process::exit(0),
@@ -343,59 +360,62 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 })).await.ok();
             }
         }
-        Action::StartTagging { config, playlist, report, selection } => {
+        Action::TaggingState => {
+            let snapshot = context.start_context.runs.lock().unwrap().as_ref().map(RunStatus::snapshot);
+            send_socket(websocket, snapshot.unwrap_or_else(|| json!({"action": "taggingState", "runId": null}))).await?;
+        }
+        action @ (Action::StartTagging { .. } | Action::RetryTagging { .. }) => {
             let _lease = TaggingLease::acquire(&TAGGING_ACTIVE)?;
-            config.debug_print();
-
-            // Load playlist
-            let mut files = if let Some(playlist) = playlist {
-                playlist.get_files()?
-            } else { vec![] };
-            let mut file_count = files.len();
+            let runs = &context.start_context.runs;
+            let tagger_finished = Arc::new(Mutex::new(None::<TaggerFinishedData>));
             let mut folder_path = None;
-            let tagger_finished = Arc::new(Mutex::new(None));
-            // Load taggers
-            let (tagger_type, rx) = match config {
-                TaggerConfigs::AutoTagger(c) => {
-                    if let Some(selection) = &selection {
-                        selection.validate()?;
-                        files = selection.files();
-                        file_count = files.len();
+            let (tagger_type, file_count, rx) = match action {
+                Action::RetryTagging { run_id } => {
+                    let retry = runs.lock().unwrap().as_ref().filter(|run| run.id == run_id)
+                        .and_then(|run| run.retry.clone()).ok_or_else(|| anyhow!("This lookup queue is no longer available"))?;
+                    ("autoTagger", retry.file_count(), retry.start(tagger_finished.clone())?)
+                }
+                Action::StartTagging { config, playlist, report, selection, rotate } => {
+                    config.debug_print();
+                    let explicit = playlist.is_some() || selection.is_some();
+                    let mut files = match playlist { Some(playlist) => playlist.get_files()?, None => vec![] };
+                    match config {
+                        TaggerConfigs::AutoTagger(c) => {
+                            if let Some(manifest) = &selection { files = manifest.files(); }
+                            if !explicit {
+                                let path = c.path.clone().unwrap_or_default();
+                                files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
+                                folder_path = Some(path);
+                            }
+                            ("autoTagger", files.len(), Tagger::start_ui(&c, files, tagger_finished.clone(), report, selection, rotate)?)
+                        }
+                        TaggerConfigs::AudioFeatures(c) => {
+                            if report || selection.is_some() { return Err(UserError::ReportsRequireAutoTagger.into()); }
+                            if !explicit {
+                                let path = c.path.clone().unwrap_or_default();
+                                files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
+                                folder_path = Some(path);
+                            }
+                            let spotify = context.spotify.as_ref().ok_or(UserError::SpotifyUnauthorized)?.clone();
+                            ("audioFeatures", files.len(), AudioFeatures::start_tagging(c, spotify, files))
+                        }
                     }
-                    // Load file list
-                    if files.is_empty() {
-                        let path = c.path.as_ref().map(|p| p.to_owned()).unwrap_or_default();
-                        files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
-                        file_count = files.len();
-                        folder_path = Some(path);
-                    }
-                    let rx = if report || selection.is_some() {
-                        Tagger::tag_files_report(&c, files, tagger_finished.clone(), selection)?
-                    } else { Tagger::tag_files(&c, files, tagger_finished.clone()) };
-                    ("autoTagger", rx)
-                },
-                TaggerConfigs::AudioFeatures(c) => {
-                    if report || selection.is_some() { return Err(UserError::ReportsRequireAutoTagger.into()); }
-                    if files.is_empty() {
-                        let path = c.path.as_ref().map(|i| i.to_owned()).unwrap_or_default().to_owned();
-                        files = AudioFileInfo::get_file_list(&path, c.include_subfolders);
-                        folder_path = Some(path);
-                        file_count = files.len();
-                    }
-                    // Authorize spotify
-                    let spotify = context.spotify.as_ref().ok_or(UserError::SpotifyUnauthorized)?.to_owned().to_owned();
-                    let rx = AudioFeatures::start_tagging(c.clone(), spotify, files);
-                    ("audioFeatures", rx)
-                },
+                }
+                _ => unreachable!(),
             };
-
+            let run_id = {
+                let mut state = runs.lock().unwrap();
+                let id = state.as_ref().map_or(1, |prev| prev.id + 1);
+                *state = Some(RunStatus { id, kind: tagger_type, total: file_count, progress: 0.0, completion: None, retry: None });
+                id
+            };
             // Start
             let start = timestamp!();
-            send_socket(websocket, json!({
-                "action": "startTagging",
+            let mut connected = send_socket(websocket, json!({
+                "action": "startTagging", "runId": run_id,
                 "files": file_count,
                 "type": tagger_type
-            })).await.ok();
+            })).await.is_ok();
             // Receiving from crossbeam blocks. Keep it off the async runtime so
             // the separate Stop connection remains responsive on small machines.
             let (updates_tx, mut updates) = tokio::sync::mpsc::channel(64);
@@ -405,20 +425,25 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 }
             });
             while let Some(status) = updates.recv().await {
-                send_socket(websocket, json!({
-                    "action": "taggingProgress",
-                    "status": status
-                })).await.ok();
+                runs.lock().unwrap().as_mut().unwrap().progress = status.progress;
+                if connected {
+                    connected = send_socket(websocket, json!({"action": "taggingProgress", "status": status})).await.is_ok();
+                }
             }
-            info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
-            // Done
-            let data = tagger_finished.lock().unwrap().clone();
-            send_socket(websocket, json!({
-                "action": "taggingDone",
-                "path": folder_path,
-                "data": data,
-                "cancelled": onetagger_autotag::STOP_TAGGING.load(Ordering::SeqCst)
-            })).await.ok();
+            info!("Tagging finished, took {} seconds", (timestamp!() - start) / 1000);
+            let mut data = tagger_finished.lock().unwrap().take();
+            let retry = data.as_mut().and_then(|finished| finished.retry.take());
+            let completion = json!({"action": "taggingDone", "runId": run_id, "path": folder_path, "data": data,
+                "retryCount": retry.as_ref().map_or(0, |plan| plan.file_count()),
+                "retryAfterMs": retry.as_ref().map_or(0, |plan| plan.remaining().as_millis().min(u64::MAX as u128) as u64),
+                "cancelled": onetagger_autotag::STOP_TAGGING.load(Ordering::SeqCst)});
+            {
+                let mut state = runs.lock().unwrap();
+                let state = state.as_mut().unwrap();
+                state.retry = retry;
+                state.completion = Some(completion.clone());
+            }
+            if connected { send_socket(websocket, completion).await?; }
         },
         Action::StopTagging => {
             onetagger_autotag::STOP_TAGGING.store(true, Ordering::SeqCst);
@@ -458,19 +483,24 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 "duration": source.duration() as u64
             })).await.ok();
             // Load
-            context.player.load_file(source);
+            let player = context.player.get_or_insert_with(AudioPlayer::new);
+            player.volume(context.volume);
+            player.load_file(source);
         },
         //  Controls
-        Action::PlayerPlay => context.player.play(),
-        Action::PlayerPause => context.player.pause(),
+        Action::PlayerPlay => if let Some(player) = &context.player { player.play(); },
+        Action::PlayerPause => if let Some(player) = &context.player { player.pause(); },
         Action::PlayerSeek { pos } => {
             send_socket(websocket, json!({
                 "action": "playerSync",
-                "playing": context.player.seek(pos)
+                "playing": context.player.as_ref().is_some_and(|player| player.seek(pos))
             })).await.ok();
         },
-        Action::PlayerVolume { volume } => context.player.volume(volume),
-        Action::PlayerStop => context.player.stop(),
+        Action::PlayerVolume { volume } => {
+            context.volume = volume;
+            if let Some(player) = &context.player { player.volume(volume); }
+        }
+        Action::PlayerStop => if let Some(player) = &context.player { player.stop(); },
         // Load quicktag files or playlist
         Action::QuickTagLoad { path, playlist, recursive, separators, limit } => {
             let mut data = QuickTagData::default();

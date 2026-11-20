@@ -4,7 +4,7 @@
 #[macro_use] extern crate onetagger_shared;
 
 use std::net::SocketAddr;
-use std::time::Duration;
+use std::net::TcpListener as StdListener;
 use anyhow::Error;
 use axum::body::Body;
 use axum::extract::{Query, WebSocketUpgrade, State, Request};
@@ -41,31 +41,35 @@ pub struct StartContext {
     pub browser: bool,
     #[serde(skip)]
     pub session: session::SessionSecret,
+    #[serde(skip)]
+    pub(crate) runs: std::sync::Arc<std::sync::Mutex<Option<socket::RunStatus>>>,
 }
 
 impl StartContext {
     pub fn new(server_mode: bool, start_path: Option<String>, expose: bool, browser: bool) -> Self {
-        Self { server_mode, start_path, expose, browser, session: Default::default() }
+        Self { server_mode, start_path, expose, browser, session: Default::default(), runs: Default::default() }
     }
 }
 
-fn start_async_runtime(context: StartContext) -> Result<(), Error> {
-    let expose = context.expose;
-    Builder::new_multi_thread().enable_all().build()?.block_on(async move {
-        let app = router(context);
-
-        // Start http server
-        let host = match expose {
-            true => format!("0.0.0.0:{PORT}"),
-            false => format!("127.0.0.1:{PORT}")
-        };
-        info!("Starting web server on: http://{host}");
-        let listener = TcpListener::bind(host).await?;
-        axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
-
-        Ok::<(), Error>(())
-    })?;
-    Ok(())
+/// Bind in the caller before handing the launch capability to any UI.
+pub fn prepare_server(context: StartContext) -> Result<impl FnOnce() -> Result<(), Error>, Error> {
+    let host = if context.expose { "0.0.0.0" } else { "127.0.0.1" };
+    let listener = StdListener::bind((host, PORT as u16))
+        .map_err(|error| anyhow!("Cannot start OneTagger on {host}:{PORT}: {error}"))?;
+    listener.set_nonblocking(true)?;
+    let runtime = Builder::new_multi_thread().enable_all().build()?;
+    if context.expose { warn!("Server is exposed to public!"); }
+    let launch_url = context.session.launch_url();
+    println!("Open OneTagger: {launch_url}");
+    Ok(move || runtime.block_on(async move {
+        let listener = TcpListener::from_std(listener)?;
+        if context.browser {
+            std::thread::spawn(move || { webbrowser::open(&launch_url).ok(); });
+        }
+        info!("Listening on http://{host}:{PORT}");
+        axum::serve(listener, router(context).into_make_service_with_connect_info::<SocketAddr>()).await?;
+        Ok(())
+    }))
 }
 
 // Keep the production route boundary directly testable without binding a port or audio device.
@@ -161,26 +165,6 @@ async fn get_spotify_callback(request: Request<Body>) -> impl IntoResponse {
     (StatusCode::OK, [(CONTENT_TYPE, "text/html")], include_str!("../../../assets/spotify_callback.html"))
 }
 
-// Start everything
 pub fn start_all(context: StartContext) -> Result<(), Error> {
-    if context.expose {
-        warn!("Server is exposed to public!");
-    }
-
-    // Print to the console only; never include the capability in the downloadable log.
-    println!("Open OneTagger: {}", context.session.launch_url());
-    let launch_url = context.session.launch_url();
-
-    // Open in browser with 1s delay to allow the srever to load
-    if context.browser {
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_secs(1));
-            webbrowser::open(&launch_url).ok();
-        });
-    }
-
-    start_async_runtime(context.clone())?;
-    Ok(())
+    prepare_server(context)?()
 }
-
-

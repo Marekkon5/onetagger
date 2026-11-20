@@ -185,5 +185,10 @@
   "providerPaceLimited": "Omezené nebo odložené ({count})",
   "retryCount": "Vyžaduje další hledání · {count}",
   "partialResult": "Částečně uloženo",
-  "deferredResult": "Hledání odloženo"
+  "deferredResult": "Hledání odloženo",
+  "retryLookups": "Opakovat nedokončená hledání · {count}",
+  "retryWait": "Další pokus za {seconds} s",
+  "rotateProviders": "Střídat prvního poskytovatele mezi skladbami",
+  "rotateHint": "Každou skladbu začít u dalšího poskytovatele a ostatní vyzkoušet v pořadí.",
+  "recoveredRun": "Spojení obnoveno. Průběh a fronta opakování zahrnují předchozí hledání."
 }
