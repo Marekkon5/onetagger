@@ -3572,6 +3572,7 @@ version = "2.1.4"
 dependencies = [
  "anyhow",
  "clap",
+ "gtk",
  "log",
  "muda",
  "native-dialog",
@@ -3587,6 +3588,8 @@ dependencies = [
  "serde",
  "tao",
  "urlencoding",
+ "webbrowser",
+ "webkit2gtk",
  "winres",
  "wry",
 ]

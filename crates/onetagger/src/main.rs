@@ -15,7 +15,10 @@ use tao::window::{WindowBuilder, Icon, Theme};
 use onetagger_shared::{VERSION, COMMIT};
 use onetagger_ui::StartContext;
 
-fn main() {
+#[cfg(target_os = "linux")]
+mod linux_webview;
+
+fn main() -> Result<(), Error> {
     // Setup 1T
     onetagger_shared::setup();
     let cli = Cli::parse();
@@ -31,18 +34,13 @@ fn main() {
     let context = StartContext::new(cli.server, cli.path, cli.expose, cli.browser);
     let launch_url = context.session.launch_url();
 
-    // Server mode
-    if cli.server {
-        onetagger_ui::start_all(context).expect("Failed to start servers!");
-        return;
-    }
+    let serve = onetagger_ui::prepare_server(context)?;
+    if cli.server { return serve(); }
 
-    // GUI Mode
     std::thread::spawn(move || {
-        onetagger_ui::start_all(context).expect("Failed to start servers!");
+        if let Err(error) = serve() { error!("Local server stopped: {error}"); }
     });
-    start_webview(&launch_url, cli.webdriver).expect("Failed to start webview!");
-    debug!("Exitting gracefully...");
+    start_webview(&launch_url, cli.webdriver)
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -236,8 +234,11 @@ pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
     let webview = {
         use tao::platform::unix::WindowExtUnix;
         use wry::WebViewBuilderExtUnix;
-        let vbox = window.default_vbox().unwrap();
-        webview.build_gtk(vbox).unwrap()
+        let vbox = window.default_vbox().ok_or_else(|| anyhow::anyhow!("GTK window has no content area"))?;
+        let view = webview.build_gtk(vbox)?;
+        #[cfg(target_os = "linux")]
+        linux_webview::install_recovery(&view, vbox, launch_url);
+        view
     };
 
     // Event loop
@@ -250,7 +251,12 @@ pub fn start_webview(launch_url: &str, webdriver: bool) -> Result<(), Error> {
             },
             // Check for unsaved progress
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                match webview.evaluate_script("window.onWebviewEvent({\"action\": \"exit\"})") {
+                #[cfg(target_os = "linux")]
+                if !linux_webview::page_visible(&webview) {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+                match webview.evaluate_script("window.onWebviewEvent ? window.onWebviewEvent({action:'exit'}) : window.ipc.postMessage('exit')") {
                     Ok(_) => {},
                     Err(e) => {
                         warn!("Failed to ask for exit: {e}");
