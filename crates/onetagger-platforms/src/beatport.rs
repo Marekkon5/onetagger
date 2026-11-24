@@ -10,13 +10,15 @@ use serde::{Serialize, Deserialize};
 use onetagger_tag::FrameName;
 use onetagger_tagger::{supported_tags, Album, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, SupportedTag, TaggerConfig, Track, TrackMatch, TrackNumber};
 use serde_json::{json, Value};
+use crate::request_cache::RequestCache;
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
 
 pub struct Beatport {
     client: Client,
-    access_token: Arc<Mutex<Option<BeatportOAuth>>>
+    access_token: Arc<Mutex<Option<BeatportOAuth>>>,
+    release_cache: RequestCache<i64, BeatportRelease>,
 }
 
 impl Beatport {
@@ -28,7 +30,7 @@ impl Beatport {
             .build()
             .unwrap();
         Beatport {
-            client, access_token
+            client, access_token, release_cache: RequestCache::default(),
         }
     }
 
@@ -130,11 +132,21 @@ impl Beatport {
 
     /// Fetch release using API
     pub fn release(&self, id: i64) -> Result<BeatportRelease, Error> {
-        let token = self.update_token()?;
-        let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
-            .bearer_auth(token)
-            .send()?.json()?;
-        Ok(response)
+        self.release_with(id, || {
+            let token = self.update_token()?;
+            let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
+                .bearer_auth(token)
+                .send()?.error_for_status()?.json()?;
+            Ok(response)
+        })
+    }
+
+    fn release_with(&self, id: i64, fetch: impl FnOnce() -> Result<BeatportRelease, Error>) -> Result<BeatportRelease, Error> {
+        self.release_cache.get_or_try_init(id, || {
+            let release = fetch()?;
+            anyhow::ensure!(release.id == id, "Beatport returned a different release");
+            Ok(release)
+        })
     }
 
     /// Get tracks from release
@@ -484,18 +496,28 @@ impl AutotaggerSource for Beatport {
 /// For creating Beatport instances
 #[derive(Debug, Clone)]
 pub struct BeatportBuilder {
-    access_token: Arc<Mutex<Option<BeatportOAuth>>>
+    access_token: Arc<Mutex<Option<BeatportOAuth>>>,
+    release_cache: RequestCache<i64, BeatportRelease>,
+}
+
+impl BeatportBuilder {
+    fn source(&self) -> Beatport {
+        let mut source = Beatport::new(self.access_token.clone());
+        source.release_cache = self.release_cache.clone();
+        source
+    }
 }
 
 impl AutotaggerSourceBuilder for BeatportBuilder {
     fn new() -> BeatportBuilder {
         BeatportBuilder {
-            access_token: Arc::new(Mutex::new(None))
+            access_token: Arc::new(Mutex::new(None)),
+            release_cache: RequestCache::default(),
         }
     }
 
     fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(Beatport::new(self.access_token.clone())))
+        Ok(Box::new(self.source()))
     }
 
     fn info(&self) -> PlatformInfo {
@@ -680,7 +702,7 @@ mod token_tests {
         let cache = Arc::new(Mutex::new(None));
         let bp = Beatport::new(cache.clone());
         assert_eq!(bp.update_token_with(|| Ok(token(60)), || NOW).unwrap(), SECRET);
-        debug!("{:?}", BeatportBuilder { access_token: cache.clone() });
+        debug!("{:?}", BeatportBuilder { access_token: cache.clone(), release_cache: RequestCache::default() });
         let messages = MESSAGES.with(|messages| messages.borrow_mut().take().unwrap().join("\n"));
         assert!(messages.contains("Beatport OAuth token refreshed"));
         assert!(messages.contains("[redacted]"));
@@ -688,5 +710,34 @@ mod token_tests {
         // Redaction only affects diagnostics, not the token used by requests.
         let serialized = serde_json::to_value(cache.lock().unwrap().as_ref().unwrap()).unwrap();
         assert_eq!(serialized["access_token"], SECRET);
+    }
+
+    #[test]
+    fn worker_sources_share_only_validated_successful_release_details() {
+        use crate::ProviderRateLimited;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let builder = BeatportBuilder::new();
+        let sources: Vec<_> = (0..16).map(|_| builder.source()).collect();
+        let calls = AtomicUsize::new(0);
+        let fixture = |id| BeatportRelease { id, name: "Edition A".into(),
+            label: BeatportGeneric { id: 1, name: "Label".into() },
+            image: BeatportImage { id: 2, dynamic_uri: "https://fixture/{w}/{h}".into() },
+            upc: None, track_count: Some(10), artists: None };
+        std::thread::scope(|scope| {
+            for source in &sources {
+                let fixture = &fixture; let calls = &calls;
+                scope.spawn(move || {
+                    let release = source.release_with(42, || {
+                        calls.fetch_add(1, Ordering::SeqCst); Ok(fixture(42))
+                    }).unwrap();
+                    assert_eq!(release.id, 42); assert_eq!(release.track_count, Some(10));
+                });
+            }
+        });
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert!(sources[0].release_with(7, || Ok(fixture(42))).is_err());
+        let error = sources[0].release_with(7, || Err(ProviderRateLimited::retry_after(Duration::from_secs(9)).into())).unwrap_err();
+        assert!(error.is::<ProviderRateLimited>());
+        assert_eq!(sources[1].release_with(7, || Ok(fixture(7))).unwrap().id, 7);
     }
 }

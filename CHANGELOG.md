@@ -1,5 +1,16 @@
 ## Unreleased (fantuz fork)
 
+## 2.2.1 — 2026-11-24
+
+- Fix Windows tag saves while an audio decoder has the original file open, including tracks selected before playback starts. Close the staging writer and use the pinned Rust toolchain's Windows rename fallback for atomic replacement; retain the original on genuine access/sharing failures and retry short sharing locks within a bounded interval.
+- Show and log the complete Quick Tag save error, including the Windows error and file path. Keep failed edits pending and confirm success only after the saved tags are available.
+- Share successful release-detail requests across Beatport, MusicBrainz, Deezer and Traxsource workers, and reuse Spotify album/artist details within the authenticated source. Concurrent requests for the same data share one fetch; different releases can progress independently. Each response cache is bounded to 256 entries with a ten-minute lifetime. Failed or incorrectly identified responses are not reused.
+- Keep Discogs master IDs separate from release IDs and bound its existing release cache. Pace Discogs and iTunes from request starts, allowing network time to count toward the interval. Share MusicBrainz's one-request-per-second budget across workers and sessions, including retry cooldowns.
+- Preserve provider order, candidate selection, matching thresholds and per-file write ordering. Document all twelve built-in providers' bulk-lookup support and limitations, including Spotify app eligibility and the difference between multiple results and multiple independent requests.
+- Validate request coalescing, unchanged metadata and actual HTTP request counts with a loopback fixture on GitHub. Benchmark figures describe synthetic release enrichment and do not predict live whole-library speed or change match accuracy.
+
+[Full changes since v2.2.0](https://github.com/fantuz/onetagger/compare/v2.2.0...v2.2.1)
+
 ## 2.2.0 — 2026-11-24
 
 - Cache Quick Tag metadata in an incremental, local SQLite index. Re-read changed files, retain existing separator behavior, and fall back to direct reads if the disposable cache is unavailable.

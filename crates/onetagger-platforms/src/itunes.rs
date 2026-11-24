@@ -1,10 +1,11 @@
 use anyhow::Error;
 use crate::cooldown::{ProviderCooldown, retry_delay};
+use crate::request_pacer::RequestPacer;
 use reqwest::{header::RETRY_AFTER, StatusCode};
 
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
 use std::time::Duration;
-use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
@@ -14,7 +15,6 @@ pub struct ITunes {
     client: Client,
     // Requests per minute
     pub rate_limit: i16,
-    last_request: u128,
 }
 
 impl ITunes {
@@ -26,7 +26,6 @@ impl ITunes {
                 .build()
                 .unwrap(),
             rate_limit: 20,
-            last_request: 0
         }
     }
 
@@ -34,22 +33,13 @@ impl ITunes {
     fn get(&mut self, path: &str, query: &[(&str, &str)]) -> Result<Response, Error> {
         debug!("iTunes GET: {} {:?}", path, query);
         COOLDOWN.check()?;
-        // Rate limit
-        if self.last_request > 0 && self.rate_limit != -1 {
-            let diff = timestamp!() - self.last_request;
-            let req_ms = 1000_f64 / (self.rate_limit as f64 / 60_f64);
-            let wait = diff as f64 - req_ms;
-            if wait < 0_f64 {
-                info!("iTunes rate limit delay: {}", -wait);
-                sleep(Duration::from_millis(-wait as u64));
-            }
-        }
+        PACER.wait_per_minute(self.rate_limit);
+        COOLDOWN.check()?;
 
         // Do request
         let res = self.client.get(&format!("https://itunes.apple.com{}", path))
             .query(query)
             .send()?;
-        self.last_request = timestamp!();
         if res.status() == StatusCode::TOO_MANY_REQUESTS {
             let delay = retry_delay(res.headers().get(RETRY_AFTER).and_then(|v| v.to_str().ok()), Duration::from_secs(60));
             return Err(COOLDOWN.pause(delay).into());

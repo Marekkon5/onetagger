@@ -1,6 +1,6 @@
 [package]
 name = "onetagger"
-version = "2.2.0"
+version = "2.2.1"
 edition = "2021"
 description = "App to tag your music library."
 keywords = ["gui", "audio"]
@@ -45,7 +45,7 @@ name = "OneTagger"
 identifier = "com.marekkon5.onetagger"
 icon = ["../../assets/32x32.png", "../../assets/128x128.png", "../../assets/128x128@2x.png", 
     "../../assets/icon.icns", "../../assets/icon.ico"]
-version = "2.2.0"
+version = "2.2.1"
 resources = []
 copyright = "Copyright (c) Marekkon5 2022. All rights reserved."
 category = "Music"

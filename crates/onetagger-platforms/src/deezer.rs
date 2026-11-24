@@ -1,4 +1,5 @@
 use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_cache::RequestCache;
 use anyhow::Error;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::Duration;
@@ -16,6 +17,7 @@ const RATE_LIMIT_CODE: i32 = 4;
 struct Deezer {
     client: Client,
     config: DeezerConfig,
+    album_cache: RequestCache<(String, i64), DeezerAlbumFull>,
 }
 
 impl Deezer {
@@ -30,7 +32,8 @@ impl Deezer {
                 .default_headers(headers)
                 .build()
                 .unwrap(),
-            config
+            config,
+            album_cache: RequestCache::default(),
         }
     }
 
@@ -62,7 +65,15 @@ impl Deezer {
 
     /// Get full album info
     pub fn album(&self, id: i64) -> Result<DeezerAlbumFull, Error> {
-        Ok(self.get(&format!("/album/{id}"), &[])?)
+        self.album_with(id, || self.get(&format!("/album/{id}"), &[]))
+    }
+
+    fn album_with(&self, id: i64, fetch: impl FnOnce() -> Result<DeezerAlbumFull, Error>) -> Result<DeezerAlbumFull, Error> {
+        self.album_cache.get_or_try_init((self.config.content_language.clone(), id), || {
+            let album = fetch()?;
+            anyhow::ensure!(album.id == id, "Deezer returned a different album");
+            Ok(album)
+        })
     }
 
     /// Generate Deezer image url
@@ -277,16 +288,20 @@ pub struct DeezerGenres {
 }
 
 #[derive(Debug, Clone)]
-pub struct DeezerBuilder;
+pub struct DeezerBuilder {
+    album_cache: RequestCache<(String, i64), DeezerAlbumFull>,
+}
 
 impl AutotaggerSourceBuilder for DeezerBuilder {
     fn new() -> Self {
-        DeezerBuilder
+        DeezerBuilder { album_cache: RequestCache::default() }
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let deezer_config: DeezerConfig = config.get_custom("deezer")?;
-        Ok(Box::new(Deezer::new(deezer_config)))
+        let mut source = Deezer::new(deezer_config);
+        source.album_cache = self.album_cache.clone();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

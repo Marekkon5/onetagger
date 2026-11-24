@@ -1,7 +1,7 @@
 use crate::cooldown::{retry_delay, ProviderCooldown, ProviderRateLimited};
+use crate::request_cache::RequestCache;
+use crate::request_pacer::RequestPacer;
 use anyhow::Error;
-use std::collections::HashMap;
-use std::thread::sleep;
 use std::time::Duration;
 use regex::Regex;
 use chrono::NaiveDate;
@@ -14,15 +14,15 @@ use onetagger_tagger::{Track, AutotaggerSource, TaggerConfig, AudioFileInfo, Mat
     AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, SupportedTag, TrackMatch};
 
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
 
 pub struct Discogs {
     client: Client,
     token: Option<String>,
     // Requests per minute
     pub rate_limit: i16,
-    last_request: u128,
-    // Cache of ID:Value
-    release_cache: HashMap<i64, ReleaseMaster>
+    // Masters and releases have independent numeric ID namespaces.
+    release_cache: RequestCache<(ReleaseType, i64), ReleaseMaster>,
 }
 
 impl Discogs {
@@ -36,8 +36,7 @@ impl Discogs {
             client,
             token: None,
             rate_limit: 25, 
-            last_request: 0,
-            release_cache: HashMap::new()
+            release_cache: RequestCache::default(),
         }
     }
 
@@ -72,16 +71,7 @@ impl Discogs {
     fn get(&mut self, url: &str, query: Vec<(&str, &str)>) -> Result<Response, Error> {
         COOLDOWN.check()?;
         debug!("Discogs GET {}", url);
-        // Rate limit
-        if self.last_request > 0 && self.rate_limit != -1 {
-            let diff = timestamp!() - self.last_request;
-            let req_ms = 1000_f64 / (self.rate_limit as f64 / 60_f64);
-            let wait = diff as f64 - req_ms;
-            if wait < 0_f64 {
-                debug!("Discogs rate limit delay: {}", -wait);
-                sleep(Duration::from_millis(-wait as u64));
-            }
-        }
+        PACER.wait_per_minute(self.rate_limit);
         // Create request
         let mut request = self.client.get(url).query(&query);
         if self.token.is_some() {
@@ -89,7 +79,6 @@ impl Discogs {
         }
         COOLDOWN.check()?;
         let response = request.send()?;
-        self.last_request = timestamp!();
         let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
             .and_then(|header| header.to_str().ok()), Duration::from_secs(10));
         if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
@@ -137,10 +126,8 @@ impl Discogs {
 
     // Get full release info
     pub fn full_release(&mut self, release_type: ReleaseType, id: i64) -> Result<ReleaseMaster, Error> {
-        // Check if cached
-        if self.release_cache.contains_key(&id) {
-            return Ok(self.release_cache.get(&id).unwrap().to_owned());
-        }
+        let cache = self.release_cache.clone();
+        cache.get_or_try_init((release_type.clone(), id), || {
         // Get 
         let rtype = match release_type {
             ReleaseType::Master => "masters",
@@ -148,9 +135,9 @@ impl Discogs {
         };
         let response = self.get(&format!("https://api.discogs.com/{}/{}", rtype, id), vec![])?.error_for_status()?.json()?;
         let release: ReleaseMaster = serde_json::from_value(response)?;
-        // Cache
-        self.release_cache.insert(id, release.clone());
+        anyhow::ensure!(release.id == id, "Discogs returned a different release/master");
         Ok(release)
+        })
     }
 }
 
@@ -259,7 +246,7 @@ impl AutotaggerSource for Discogs {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum ReleaseType {
     Release,

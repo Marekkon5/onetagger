@@ -1,11 +1,13 @@
 use anyhow::Error;
+use crate::request_cache::RequestCache;
 use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch, SupportedTag};
 
 pub struct Traxsource {
-    client: Client
+    client: Client,
+    release_cache: RequestCache<String, String>,
 }
 
 impl Traxsource {
@@ -16,7 +18,7 @@ impl Traxsource {
             .build()
             .unwrap();
         Traxsource {
-            client
+            client, release_cache: RequestCache::default(),
         }
     }
 
@@ -145,11 +147,18 @@ impl Traxsource {
         if !album_meta { 
             return Ok(());
         }
-        let data = self.client.get(format!("https://www.traxsource.com{}", album_url))
-            .send()?
-            .text()?;
-        // Minify and parse
-        let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::new()))?;
+        let data = self.release_cache.get_or_try_init(album_url.to_owned(), || -> Result<_, Error> {
+            let data = self.client.get(format!("https://www.traxsource.com{}", album_url))
+                .send()?.error_for_status()?.text()?;
+            let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::new()))?;
+            // Reject incomplete/error pages before putting them in the cache.
+            let document = Html::parse_document(&data);
+            for selector in ["div.cat-rdate", "h1.artists", "div.t-image img", "div.trk-row"] {
+                anyhow::ensure!(document.select(&Selector::parse(selector).unwrap()).next().is_some(),
+                    "Incomplete Traxsource release page");
+            }
+            Ok(data)
+        })?;
         let document = Html::parse_document(&data);
 
         // Select catalog number
@@ -221,15 +230,19 @@ impl AutotaggerSource for Traxsource {
 }
 
 #[derive(Debug, Clone)]
-pub struct TraxsourceBuilder;
+pub struct TraxsourceBuilder {
+    release_cache: RequestCache<String, String>,
+}
 
 impl AutotaggerSourceBuilder for TraxsourceBuilder {
     fn new() -> TraxsourceBuilder {
-        TraxsourceBuilder
+        TraxsourceBuilder { release_cache: RequestCache::default() }
     }
 
     fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(Traxsource::new()))
+        let mut source = Traxsource::new();
+        source.release_cache = self.release_cache.clone();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

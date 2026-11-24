@@ -282,9 +282,13 @@ fn quick_tag_save_response(changes: &TagChanges, request_id: Option<String>) -> 
     match result {
         Ok(file) => json!({"action": "quickTagSaved", "status": "ok", "requestId": request_id,
             "path": changes.path, "file": file}),
-        Err(error) => localized(json!({"action": if request_id.is_some() { "quickTagSaved" } else { "error" },
-            "status": "error", "requestId": request_id, "path": changes.path, "message": error.to_string()}),
-            UiMessage::RequestFailed { detail: error.to_string() }),
+        Err(error) => {
+            let detail = format!("{error:#}");
+            warn!("QuickTag save failed for {}: {detail}", changes.path.display());
+            localized(json!({"action": if request_id.is_some() { "quickTagSaved" } else { "error" },
+                "status": "error", "requestId": request_id, "path": changes.path, "message": detail}),
+                UiMessage::RequestFailed { detail })
+        },
     }
 }
 
@@ -885,6 +889,54 @@ mod save_tests {
         assert_eq!(reply["action"], "quickTagSaved"); assert_eq!(reply["status"], "error");
         assert_eq!(reply["requestId"], "quick-1"); assert_eq!(reply["path"], json!(changes.path));
         assert!(reply["message"].as_str().is_some_and(|message| !message.is_empty()));
+    }
+
+    #[test]
+    fn quicktag_can_save_repeatedly_while_a_native_decoder_has_the_audio_open() {
+        // Selection loads a decoder even before Play is pressed. Exercise the
+        // real backend and tag writer, without requiring an audio output device.
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("track.mp3");
+        std::fs::copy(Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../onetagger-player/test-fixtures/tone.mp3"), &path).unwrap();
+        let source = onetagger_player::AudioSources::from_path(&path).unwrap();
+        let mut decoder = source.get_source().unwrap();
+        for title in ["First edit", "Second edit"] {
+            let value = json!({"action": "quickTagSave", "requestId": title, "changes": {
+                "path": path, "changes": [{"type": "raw", "tag": "TIT2", "value": [title]},
+                    {"type": "raw", "tag": "TPE1", "value": ["Fixture artist"]}],
+                "separators": {"id3": ", ", "vorbis": null, "mp4": ", "}, "id3v24": true}});
+            let Action::QuickTagSave { changes, request_id } = serde_json::from_value(value).unwrap() else { panic!() };
+            let reply = quick_tag_save_response(&changes, request_id);
+            assert_eq!(reply["status"], "ok", "{reply}");
+            assert_eq!(reply["file"]["title"], title);
+            assert_eq!(Tag::load_file(&path, false).unwrap().tag().get_field(Field::Title).unwrap(), vec![title]);
+            assert!(decoder.next().is_some());
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn quicktag_reports_the_windows_replacement_error_and_retains_the_original() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("locked.mp3");
+        std::fs::write(&path, [0u8; 64]).unwrap();
+        let Action::QuickTagSave { changes, .. } = serde_json::from_value(json!({"action":"quickTagSave", "changes": {
+            "path":path, "changes":[{"type":"raw","tag":"TIT2","value":["Title"]},
+                {"type":"raw","tag":"TPE1","value":["Artist"]}],
+            "separators":{"id3":", ","vorbis":null,"mp4":", "},"id3v24":true}})).unwrap() else { panic!() };
+        let original = std::fs::read(&path).unwrap();
+        // Permit reading/copying, but simulate an external program denying deletion.
+        let lock = std::fs::OpenOptions::new().read(true).share_mode(3).open(&path).unwrap();
+        let reply = quick_tag_save_response(&changes, Some("locked-save".into()));
+        assert_eq!(reply["status"], "error");
+        assert_eq!(reply["requestId"], "locked-save");
+        assert!(reply["message"].as_str().unwrap().contains("os error"), "{reply}");
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+        drop(lock);
+        assert_eq!(quick_tag_save_response(&changes, Some("unlocked-save".into()))["status"], "ok");
     }
 
 }

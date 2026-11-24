@@ -1,4 +1,6 @@
 use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_cache::RequestCache;
+use crate::request_pacer::RequestPacer;
 use anyhow::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
@@ -8,18 +10,22 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
 
 pub struct MusicBrainz {
-    client: Client
+    client: Client,
+    release_cache: RequestCache<String, Release>,
 }
 
 impl MusicBrainz {
     pub fn new() -> MusicBrainz {
         MusicBrainz {
             client: Client::builder()
-                .user_agent("OneTagger/1.0")
+                .user_agent("OneTagger (+https://github.com/fantuz/onetagger)")
+                .timeout(Duration::from_secs(30))
                 .build()
-                .unwrap()
+                .unwrap(),
+            release_cache: RequestCache::default(),
         }
     }
 
@@ -29,7 +35,8 @@ impl MusicBrainz {
         let mut new_query = query.to_owned();
         new_query.push(("fmt", "json"));
         debug!("MusicBrainz GET: {} {:?}", path, new_query);
-
+        PACER.wait(Duration::from_secs(1));
+        COOLDOWN.check()?;
         let response = self.client.get(&format!("https://musicbrainz.org/ws/2{}", path))
             .query(&new_query)
             .send()?;
@@ -39,6 +46,20 @@ impl MusicBrainz {
             return Err(COOLDOWN.pause(delay).into());
         }
         Ok(response.error_for_status()?.json()?)
+    }
+
+    fn release(&self, id: &str) -> Result<Release, Error> {
+        self.release_with(id, || self.get(&format!("/release/{id}"), &[
+            ("inc", "artist-credits labels recordings genres"),
+        ]))
+    }
+
+    fn release_with(&self, id: &str, fetch: impl FnOnce() -> Result<Release, Error>) -> Result<Release, Error> {
+        self.release_cache.get_or_try_init(id.to_owned(), || {
+            let release = fetch()?;
+            anyhow::ensure!(release.id == id, "MusicBrainz returned a different release");
+            Ok(release)
+        })
     }
 
     /// Search tracks (recordings)
@@ -122,10 +143,7 @@ impl AutotaggerSource for MusicBrainz {
 
     fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
         if let Some(id) = &track.release_id {
-            let release: Release = self.get(&format!("/release/{id}"), &[
-                ("inc", "artist-credits labels recordings genres"),
-            ])?;
-            anyhow::ensure!(release.id == *id, "MusicBrainz returned a different release");
+            let release = self.release(id)?;
             Self::apply_release(track, &release);
         } else {
             let id = track.track_id.as_deref().ok_or_else(|| anyhow!("Missing recording ID"))?;
@@ -292,15 +310,19 @@ pub struct BrowseReleases {
 }
 
 #[derive(Debug, Clone)]
-pub struct MusicBrainzBuilder;
+pub struct MusicBrainzBuilder {
+    release_cache: RequestCache<String, Release>,
+}
 
 impl AutotaggerSourceBuilder for MusicBrainzBuilder {
     fn new() -> MusicBrainzBuilder {
-        MusicBrainzBuilder
+        MusicBrainzBuilder { release_cache: RequestCache::default() }
     }
 
     fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(MusicBrainz::new()))
+        let mut source = MusicBrainz::new();
+        source.release_cache = self.release_cache.clone();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {
@@ -321,6 +343,29 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
 
 /// Test if API works properly
 mod tests {
+    #[test]
+    fn selected_release_reuse_keeps_per_track_numbers_and_rejects_wrong_editions() {
+        use super::*;
+        use serde_json::json;
+        let source = MusicBrainz::new();
+        let release = |id: &str| serde_json::from_value(json!({"id":id, "title":id,
+            "artist-credit":[{"name":"Album artist","artist":{"id":"artist","name":"Album artist"}}],
+            "label-info":[], "genres":[], "media":[{"tracks":[
+                {"id":"medium-one","position":1,"recording":{"id":"song-one","title":"One"}},
+                {"id":"medium-two","position":2,"recording":{"id":"song-two","title":"Two"}}
+            ]}], "cover-art-archive":{"back":false,"front":true,"artwork":true,"count":1}})).unwrap();
+        assert!(source.release_with("edition-a", || Ok(release("edition-b"))).is_err());
+        let selected = source.release_with("edition-a", || Ok(release("edition-a"))).unwrap();
+        let reused = source.release_with("edition-a", || -> Result<Release, Error> { panic!("duplicate HTTP fetch") }).unwrap();
+        for (recording, number, details) in [("song-one", 1, &selected), ("song-two", 2, &reused)] {
+            let mut track = Track { track_id: Some(recording.into()), ..Default::default() };
+            MusicBrainz::apply_release(&mut track, details);
+            assert_eq!(track.release_id.as_deref(), Some("edition-a"));
+            assert_eq!(track.track_number, Some(TrackNumber::Number(number)));
+            assert_eq!(track.album_artists, vec!["Album artist"]);
+        }
+    }
+
     #[test]
     fn enrichment_keeps_the_selected_edition_across_browse_order_and_missing_pages() {
         use super::*;

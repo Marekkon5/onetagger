@@ -17,8 +17,36 @@ pub fn atomic_update(path: &Path, update: impl FnOnce(&Path) -> Result<(), Error
     fs::copy(&path, staged.path())?;
     update(staged.path()).context("Tag update failed; the original file was preserved")?;
     fs::OpenOptions::new().write(true).open(staged.path())?.sync_all()?;
-    staged.persist(&path).map_err(|e| e.error).context("Could not replace the original audio file")?;
+    persist_update(staged, &path).with_context(|| format!("Could not replace the original audio file: {}", path.display()))?;
     Ok(())
+}
+
+fn persist_update(staged: tempfile::NamedTempFile, path: &Path) -> Result<(), std::io::Error> {
+    // Close our own staging handle before publication.
+    let staged = staged.into_temp_path();
+    #[cfg(not(windows))]
+    { staged.persist(path).map_err(|error| error.error) }
+    #[cfg(windows)]
+    {
+        // tempfile uses MoveFileExW alone. Rust's rename additionally supports
+        // FileRenameInfoEx/POSIX replacement on current Windows, which permits
+        // replacing a target that our streaming decoder still has open.
+        // Clear the temporary attribute, then re-arm cleanup before renaming.
+        let staged = tempfile::TempPath::try_from_path(staged.keep().map_err(|error| error.error)?)?;
+        // Keep the completed sibling copy across short Windows sharing/AV
+        // locks. Never delete the destination or fall back to a partial overwrite.
+        for delay in [20, 40, 80, 160, 320, 500, 0] {
+            match fs::rename(&staged, path) {
+                Ok(()) => return Ok(()),
+                Err(error) => {
+                    let retry = matches!(error.raw_os_error(), Some(5 | 32 | 33));
+                    if !retry || delay == 0 { return Err(error); }
+                    std::thread::sleep(std::time::Duration::from_millis(delay));
+                }
+            }
+        }
+        unreachable!()
+    }
 }
 
 /// Copy or move a file. Returns false for an unchanged source/destination pair.
@@ -97,6 +125,27 @@ mod tests {
         fs::write(&path, b"old").unwrap();
         atomic_update(&path, |staged| Ok(fs::write(staged, b"complete")?)).unwrap();
         assert_eq!(fs::read(path).unwrap(), b"complete");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_short_windows_replacement_lock_is_retried_without_rewriting_the_audio() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, b"original").unwrap();
+        let lock = fs::OpenOptions::new().read(true).share_mode(3).open(&path).unwrap();
+        let writes = std::sync::atomic::AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            scope.spawn(move || { std::thread::sleep(std::time::Duration::from_millis(80)); drop(lock); });
+            atomic_update(&path, |staged| {
+                writes.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(fs::write(staged, b"complete")?)
+            }).unwrap();
+        });
+        assert_eq!(writes.load(std::sync::atomic::Ordering::SeqCst), 1);
+        assert_eq!(fs::read(&path).unwrap(), b"complete");
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 1);
     }
 
     #[test]

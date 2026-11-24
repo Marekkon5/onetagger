@@ -9,6 +9,8 @@ import subprocess
 
 
 def main():
+    from provider_requests import main as request_benchmarks
+    request_benchmarks()
     output = Path("provider-benchmark-results")
     output.mkdir(exist_ok=True)
     suffix = ".exe" if os.name == "nt" else ""

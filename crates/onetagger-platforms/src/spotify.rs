@@ -1,4 +1,5 @@
 use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_cache::RequestCache;
 use anyhow::Error;
 use chrono::NaiveDate;
 use std::time::Duration;
@@ -24,10 +25,15 @@ static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", 
 
 #[derive(Clone)]
 pub struct Spotify {
-    pub spotify: AuthCodeSpotify
+    pub spotify: AuthCodeSpotify,
+    album_cache: RequestCache<String, FullAlbum>,
+    artist_cache: RequestCache<String, FullArtist>,
 }
 
 impl Spotify {
+    fn with_client(spotify: AuthCodeSpotify) -> Self {
+        Self { spotify, album_cache: RequestCache::default(), artist_cache: RequestCache::default() }
+    }
     /// Create AuthCodeSpotify with parameters
     pub fn create_client(client_id: &str, client_secret: &str) -> AuthCodeSpotify {
         let credentials = Credentials::new(client_id, client_secret);
@@ -55,7 +61,7 @@ impl Spotify {
         *client.token.lock().unwrap() = Some(token);
         client.refresh_token().ok()?;
         client.auto_reauth().ok()?;
-        Some(Spotify { spotify: client })
+        Some(Spotify::with_client(client))
     }
 
      /// Authentication server for callback from spotify
@@ -74,9 +80,7 @@ impl Spotify {
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
-        Ok(Spotify {
-            spotify
-        })
+        Ok(Spotify::with_client(spotify))
     }
 
     /// Authorize from URL
@@ -85,9 +89,7 @@ impl Spotify {
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
-        Ok(Spotify {
-            spotify
-        })
+        Ok(Spotify::with_client(spotify))
     }
 
     /// Wrapper for rate limit 
@@ -140,12 +142,20 @@ impl Spotify {
 
     /// Fetch full album
     pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Error> {
-        self.rate_limit_wrap(|s| s.spotify.album(id.to_owned(), None))
+        self.album_cache.get_or_try_init(id.id().to_owned(), || {
+            let album = self.rate_limit_wrap(|s| s.spotify.album(id.to_owned(), None))?;
+            anyhow::ensure!(album.id.id() == id.id(), "Spotify returned a different album");
+            Ok(album)
+        })
     }
 
     /// Fetch full artist
     pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Error> {
-        self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))
+        self.artist_cache.get_or_try_init(id.id().to_owned(), || {
+            let artist = self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))?;
+            anyhow::ensure!(artist.id.id() == id.id(), "Spotify returned a different artist");
+            Ok(artist)
+        })
     }
 
 

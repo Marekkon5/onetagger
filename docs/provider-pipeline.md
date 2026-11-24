@@ -1,5 +1,8 @@
 # Auto-tag provider scheduling
 
+For the complete API inventory and the distinction between bulk IDs, release
+tracklists and ordinary searches, see [provider request capabilities](provider-api-capabilities.md).
+
 AutoTagger searches enabled providers in the order shown by their cards. Drag a
 card to change its priority. Re-enabling a card puts it back at its displayed
 position in the search order. A track that misses on one provider can immediately
@@ -54,6 +57,21 @@ when the pause expires, including the delay supplied by the provider when
 available. A track that exhausts its providers during a cooldown can be retried
 after the pause.
 
+Release enrichment reuses validated successful detail responses for Beatport,
+MusicBrainz, Deezer, Traxsource and Spotify; Discogs retains its existing release
+reuse with separate master/release keys. Each cache holds at most 256 responses
+for ten minutes. Beatport, MusicBrainz, Deezer and Traxsource builders share their
+caches across sources. Spotify caches belong to its authenticated source and its
+clones; Deezer's key includes the content language. No tokens are written to a
+response cache. Errors, rate limits and responses identifying another release
+are not cached. Search requests and their candidate ordering remain unchanged.
+
+Discogs and iTunes count their proactive interval from the start of the preceding
+request, allowing the response time to count toward that interval. MusicBrainz
+shares one request per second across all its workers. These budgets also cover
+manual lookups. A cache hit consumes no network request. Provider cooldowns still
+take precedence after a quota response.
+
 Try the same track selection and tag options when comparing two provider orders.
 A first provider with a high match rate receives most of the work. Put a provider
 with a higher measured pace first if its results suit your collection. With
@@ -93,6 +111,16 @@ latency; it does not promise fewer bytes or a speedup when the first provider
 already saturates all workers. The provider tests cover shared cooldowns and
 following the provider's delay. The frontend tests cover the pace estimate
 and distinguish deferred attempts from completed lookups.
+
+The same GitHub command also compiles the production response cache and request
+pacer directly and checks concurrent duplicate fetches, independent release
+progress, expiry, bounded storage, failed-fetch recovery and shared admission.
+Its separate request-reuse benchmark makes real HTTP requests to a loopback
+fixture: 1,000 synthetic songs, 16 workers, five alternating samples per mode and
+a 2 ms fixture response delay. Each cached result must equal its uncached
+counterpart, including the selected release identity. The summary records detail
+HTTP requests and timings for unique releases, ten songs per release and one
+shared release. It does not call live services or measure search accuracy.
 
 The normal **Build** workflow also runs the full Rust regression suite, including
 real audio-tag write/read-back, report parity and skip-marker tests on all
