@@ -11,6 +11,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install the fixture encoder
+        run: |
+          python3 ci/ubuntu_apt_mirrors.py
+          sudo apt-get -o APT::Update::Error-Mode=any update
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Generate synthetic audio in each supported decoder format
         run: |
           python3 ci/audio_fixtures.py
