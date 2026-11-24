@@ -187,7 +187,7 @@ class Player {
             const audio = markRaw(new Audio(`${httpUrl()}/audio?path=${encodeURIComponent(path)}`));
             this.audio = audio; audio.preload = 'none'; audio.volume = this.volume;
             const update = () => {
-                if (generation !== this._generation || request !== this._playRequest) return;
+                if (generation !== this._generation) return;
                 this.position = Math.round(audio.currentTime * 1000);
                 this.playing = !audio.paused && !audio.ended;
             };

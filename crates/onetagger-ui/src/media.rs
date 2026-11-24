@@ -6,13 +6,13 @@ use std::sync::{Arc, LazyLock, Mutex};
 use anyhow::Error;
 use axum::{body::Body, extract::Query, http::{header, HeaderMap, Method, StatusCode}, response::{IntoResponse, Response}};
 use serde::Deserialize;
-use tempfile::NamedTempFile;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use onetagger_player::AudioSources;
 
 static STREAMS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(16);
 static CONVERSIONS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
-type Preview = (String, Arc<NamedTempFile>, u64);
+struct PreviewFile { file: Mutex<std::fs::File>, bytes: u64, key: String }
+type Preview = (String, Arc<PreviewFile>, u64);
 static PREVIEWS: LazyLock<Mutex<VecDeque<Preview>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
 
 #[derive(Deserialize)]
@@ -44,7 +44,7 @@ fn range(value: Option<&str>, size: u64) -> Result<Option<(u64, u64)>, ()> {
     Ok(Some((start, end)))
 }
 
-async fn preview(path: PathBuf) -> Result<Arc<NamedTempFile>, Error> {
+async fn preview(path: PathBuf) -> Result<Arc<PreviewFile>, Error> {
     // Serialize conversion and recheck after admission: simultaneous browser
     // range requests for one unsupported codec must share a single preview.
     let permit = CONVERSIONS.acquire().await?;
@@ -59,11 +59,13 @@ async fn preview(path: PathBuf) -> Result<Arc<NamedTempFile>, Error> {
                 let file = entry.1.clone(); cache.push_back(entry); return Ok(file);
             }
         }
-        let mut file = tempfile::Builder::new().prefix("onetagger-preview-").suffix(".wav").tempfile()?;
-        AudioSources::from_path(&path)?.write_wav(file.as_file_mut())?;
+        // Anonymous temporary files are removed by the OS even when the app
+        // exits without running Rust destructors (including its Exit command).
+        let mut file = tempfile::tempfile()?;
+        AudioSources::from_path(&path)?.write_wav(&mut file)?;
         if crate::library::fingerprint(&path)? != fingerprint { return Err(anyhow!("Audio file changed while preparing its preview")); }
-        let bytes = file.as_file().metadata()?.len();
-        let file = Arc::new(file);
+        let bytes = file.metadata()?.len();
+        let file = Arc::new(PreviewFile { file: Mutex::new(file), bytes, key: key.clone() });
         let mut cache = PREVIEWS.lock().unwrap();
         cache.push_back((key, file.clone(), bytes));
         while cache.len() > 2 || cache.iter().map(|entry| entry.2).sum::<u64>() > 1024 * 1024 * 1024 {
@@ -72,6 +74,41 @@ async fn preview(path: PathBuf) -> Result<Arc<NamedTempFile>, Error> {
         // An active response keeps its file alive even when evicted from the LRU.
         Ok(file)
     }).await?
+}
+
+enum MediaReader {
+    Original(tokio::fs::File),
+    Preview { file: Arc<PreviewFile>, offset: u64 },
+}
+impl MediaReader {
+    async fn position(&mut self, position: u64) -> Result<(), std::io::Error> {
+        match self {
+            Self::Original(file) => { file.seek(std::io::SeekFrom::Start(position)).await?; },
+            Self::Preview { offset, .. } => { *offset = position; },
+        }
+        Ok(())
+    }
+    async fn chunk(&mut self, bytes: usize) -> Result<Vec<u8>, std::io::Error> {
+        match self {
+            Self::Original(file) => {
+                let mut buffer = vec![0; bytes];
+                let count = file.read(&mut buffer).await?; buffer.truncate(count); Ok(buffer)
+            },
+            Self::Preview { file, offset } => {
+                let file = file.clone(); let position = *offset;
+                let buffer = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, std::io::Error> {
+                    // Independent logical cursors allow concurrent Range requests
+                    // to share an anonymous file on Windows, macOS and Linux.
+                    let mut file = file.file.lock().map_err(|_| std::io::Error::other("Preview lock poisoned"))?;
+                    std::io::Seek::seek(&mut *file, std::io::SeekFrom::Start(position))?;
+                    let mut buffer = vec![0; bytes];
+                    let count = std::io::Read::read(&mut *file, &mut buffer)?;
+                    buffer.truncate(count); Ok(buffer)
+                }).await.map_err(std::io::Error::other)??;
+                *offset += buffer.len() as u64; Ok(buffer)
+            },
+        }
+    }
 }
 
 pub(crate) async fn audio(Query(query): Query<AudioQuery>, headers: HeaderMap, method: Method) -> Response {
@@ -83,13 +120,18 @@ pub(crate) async fn audio(Query(query): Query<AudioQuery>, headers: HeaderMap, m
 
 async fn response(query: AudioQuery, headers: HeaderMap, method: Method) -> Result<Response, Error> {
     let Some(content_type) = mime(&query.path) else { return Ok(StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response()); };
-    let preview = if query.transcode { Some(preview(query.path.clone()).await?) } else { None };
-    let path = preview.as_ref().map_or(query.path.as_path(), |file| file.path());
-    let mut file = tokio::fs::File::open(path).await?;
-    let metadata = file.metadata().await?;
-    let size = metadata.len();
+    let (mut reader, size, identity) = if query.transcode {
+        let preview = preview(query.path.clone()).await?;
+        let size = preview.bytes; let identity = preview.key.clone();
+        (MediaReader::Preview { file: preview, offset: 0 }, size, identity)
+    } else {
+        let file = tokio::fs::File::open(&query.path).await?;
+        let metadata = file.metadata().await?;
+        let identity = format!("{:?}:{:?}", query.path, metadata.modified()?);
+        (MediaReader::Original(file), metadata.len(), identity)
+    };
     let mut hasher = DefaultHasher::new();
-    (path, size, metadata.modified()?).hash(&mut hasher);
+    (identity, size).hash(&mut hasher);
     let etag = format!("\"{:016x}\"", hasher.finish());
     let requested = headers.get(header::RANGE).and_then(|value| value.to_str().ok());
     let requested = if headers.get(header::IF_RANGE).is_some_and(|value| value.as_bytes() != etag.as_bytes()) { None } else { requested };
@@ -104,16 +146,15 @@ async fn response(query: AudioQuery, headers: HeaderMap, method: Method) -> Resu
         .header(header::CONTENT_LENGTH, length).header(header::ACCEPT_RANGES, "bytes").header(header::ETAG, etag);
     if let Some((start, end)) = bounds { builder = builder.header(header::CONTENT_RANGE, format!("bytes {start}-{end}/{size}")); }
     if method == Method::HEAD { return Ok(builder.body(Body::empty())?); }
-    file.seek(std::io::SeekFrom::Start(start)).await?;
+    reader.position(start).await?;
     let permit = STREAMS.acquire().await?;
-    let stream = futures_util::stream::try_unfold((file, length, preview, permit),
-        |(mut file, remaining, preview, permit)| async move {
+    let stream = futures_util::stream::try_unfold((reader, length, permit),
+        |(mut reader, remaining, permit)| async move {
             if remaining == 0 { return Ok::<_, std::io::Error>(None); }
-            let mut buffer = vec![0; remaining.min(64 * 1024) as usize];
-            let read = file.read(&mut buffer).await?;
-            if read == 0 { return Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof)); }
-            buffer.truncate(read);
-            Ok(Some((buffer, (file, remaining - read as u64, preview, permit))))
+            let buffer = reader.chunk(remaining.min(64 * 1024) as usize).await?;
+            if buffer.is_empty() { return Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof)); }
+            let remaining = remaining - buffer.len() as u64;
+            Ok(Some((buffer, (reader, remaining, permit))))
         });
     Ok(builder.body(Body::from_stream(stream))?)
 }
@@ -148,4 +189,20 @@ mod tests {
         assert_eq!(reply.headers()[header::CONTENT_LENGTH], "100");
         assert!(axum::body::to_bytes(reply.into_body(), 100).await.unwrap().is_empty());
     }
+    #[tokio::test]
+    async fn converted_previews_share_a_file_but_keep_range_cursors_independent() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../onetagger-player/test-fixtures/tone.aiff");
+        let first = preview(path.clone()).await.unwrap();
+        let second = preview(path.clone()).await.unwrap();
+        assert!(Arc::ptr_eq(&first, &second));
+        let request = |range: &'static str| {
+            let mut headers = HeaderMap::new(); headers.insert(header::RANGE, range.parse().unwrap());
+            response(AudioQuery { path: path.clone(), transcode: true }, headers, Method::GET)
+        };
+        let (first, second) = tokio::join!(request("bytes=0-3"), request("bytes=8-11"));
+        let first = axum::body::to_bytes(first.unwrap().into_body(), 4).await.unwrap();
+        let second = axum::body::to_bytes(second.unwrap().into_body(), 4).await.unwrap();
+        assert_eq!(first.as_ref(), b"RIFF"); assert_eq!(second.as_ref(), b"WAVE");
+    }
+
 }
