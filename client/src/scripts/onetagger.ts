@@ -47,6 +47,7 @@ class OneTagger {
 
     // Quicktag track loading
     private nextQTTrack?: QTTrack;
+    private nextQTPlay = false;
     private quickTagSaves = new Requests<void>();
     private quickTagSaveSequence = 0;
     private quickTagSave?: Promise<boolean>;
@@ -605,11 +606,12 @@ class OneTagger {
     }
 
     // Load quicktag track
-    loadQTTrack(track?: QTTrack, force = false) {
+    loadQTTrack(track?: QTTrack, force = false, play = false) {
         // Check for unsaved changes
         if (force || !this.quickTag.value.track.isChanged()) {
             if (!track && !this.nextQTTrack)
                 return;
+            const autoPlay = track ? play : this.nextQTPlay;
             if (!track)
                 track = this.quickTag.value.tracks.find(t => t.path == this.nextQTTrack!.path);
 
@@ -618,14 +620,16 @@ class OneTagger {
                 this.player.value.wasPlaying = true;
 
             this.quickTag.value.track.loadSingle(new QTTrack(JSON.parse(JSON.stringify(track)), this.settings.value.quickTag));
-            this.player.value.loadTrack(track!.path);
-            this.nextQTTrack = undefined;
+            this.player.value.loadTrack(track!.path, autoPlay);
+            this.nextQTTrack = undefined; this.nextQTPlay = false;
             return;
         }
         // Prompt for unsaved changes
-        this.nextQTTrack = track;
+        this.nextQTTrack = track; this.nextQTPlay = play;
         this.onQuickTagEvent('onUnsavedChanges');
     }
+
+    cancelPendingQTTrack() { this.nextQTTrack = undefined; this.nextQTPlay = false; }
 
     /// Load AT platforms
     loadPlatforms() {

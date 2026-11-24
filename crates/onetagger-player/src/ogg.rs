@@ -1,39 +1,17 @@
-use std::time::Duration;
+use std::path::{Path, PathBuf};
 use anyhow::Error;
 use lofty::file::AudioFile;
-use std::path::{PathBuf, Path};
-use std::io::BufReader;
-use std::fs::File;
-use rodio::{Source, Decoder};
-
+use rodio::Source;
 use crate::AudioSource;
 
-pub struct OGGSource {
-    path: PathBuf,
-    duration: Duration,
-}
-
+pub struct OGGSource { path: PathBuf, duration: u128 }
 impl OGGSource {
-    pub fn new(path: impl AsRef<Path>) -> Result<OGGSource, Error> {
-        // Get duration
-        let file = lofty::read_from_path(&path)?;
-        let duration = file.properties().duration();
-
-        Ok(OGGSource {
-            duration,
-            path: path.as_ref().into()
-        })
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, Error> {
+        let duration = lofty::read_from_path(&path)?.properties().duration().as_millis();
+        Ok(Self { path: path.as_ref().into(), duration })
     }
 }
-
 impl AudioSource for OGGSource {
-    fn duration(&self) -> u128 {
-        self.duration.as_millis()
-    }
-
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
-        // Use rodio vorbis
-        Ok(crate::with_duration(Decoder::new_vorbis(BufReader::new(File::open(&self.path)?))?, self.duration.as_millis()))
-    }
+    fn duration(&self) -> u128 { self.duration }
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> { crate::file_source(&self.path, self.duration) }
 }
-

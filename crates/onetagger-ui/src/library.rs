@@ -318,8 +318,11 @@ mod tests {
         }).collect();
         let mut index = LibraryIndex::open_at(&directory.path().join("benchmark.sqlite")).unwrap();
         let separators = TagSeparators::default();
-        let mut cold = Vec::new(); let mut warm = Vec::new();
+        let mut cold = Vec::new(); let mut warm = Vec::new(); let mut direct = Vec::new();
         for _ in 0..5 {
+            let start = Instant::now();
+            for path in &files { QuickTagFile::from_path(path, &separators).unwrap(); }
+            direct.push(start.elapsed().as_micros());
             index.connection.execute("DELETE FROM metadata", []).unwrap();
             let start = Instant::now();
             for path in &files { assert!(!index.load(path, &separators).unwrap().1); }
@@ -332,7 +335,7 @@ mod tests {
         let parsed = files.iter().filter(|path| !index.load(path, &separators).unwrap().1).count();
         assert_eq!(parsed, 1);
         let report = serde_json::json!({"files": files.len(), "samples": 5,
-            "coldUs": cold, "warmUs": warm, "parsedAfterOneChange": parsed,
+            "directUs": direct, "coldUs": cold, "warmUs": warm, "parsedAfterOneChange": parsed,
             "scope": "SQLite metadata reads with real synthetic ID3 tags, warm OS filesystem cache; not provider or rendering throughput"});
         println!("LIBRARY_BENCHMARK={report}");
         if let Ok(path) = std::env::var("LIBRARY_BENCHMARK_OUTPUT") { fs::write(path, format!("{report}\n")).unwrap(); }

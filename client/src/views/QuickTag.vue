@@ -167,7 +167,7 @@
             
     
     <!-- Save dialog -->
-    <q-dialog v-model='saveDialog'>
+    <q-dialog v-model='saveDialog' @hide='$1t.cancelPendingQTTrack()'>
         <q-card>
             <q-card-section>
                 <div class='text-h6 text-grey-3'>{{t('quicktag.unsavedChanges')}}</div>
@@ -544,7 +544,7 @@ onMounted(() => {
                 var i = findIndex(offset > 0);
                 // Load next track
                 if (i != -1 && (i + offset) != tracks.value.length && (i + offset) >= 0) {
-                    $1t.loadQTTrack(tracks.value[i + offset], data.force??false);
+                    $1t.loadQTTrack(tracks.value[i + offset], data.force??false, data.autoPlay === true);
                 }
                 break;
 

@@ -1,0 +1,29 @@
+name: Resolve file decoder dependencies
+on:
+  push:
+    branches: [codex/onetagger-2.2.0]
+    paths: [.github/workflows/resolve-220-dependencies.yml]
+permissions:
+  contents: write
+jobs:
+  lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Resolve the direct file-backed decoder dependency
+        run: |
+          cargo metadata --format-version 1 > /dev/null
+          git diff -- Cargo.lock
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.lock
+          git diff --cached --quiet || git commit -m 'Lock file-backed Symphonia and Ogg demuxing'
+          git push
+      - name: Install audio test dependencies
+        run: |
+          python3 ci/ubuntu_apt_mirrors.py
+          sudo apt-get -o APT::Update::Error-Mode=any update
+          sudo apt-get install -y --no-install-recommends lld libasound2-dev pkg-config
+      - name: Validate all seven real codec fixtures
+        run: cargo test -p onetagger-player --locked -- --nocapture

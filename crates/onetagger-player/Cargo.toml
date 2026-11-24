@@ -10,7 +10,7 @@ log = "0.4"
 hound = "3.5"
 lofty = "0.22"
 anyhow = "1.0"
-mp4parse = "0.17"
 
-rodio = { version = "0.20", features = ["symphonia-all", "symphonia-alac", "symphonia-aiff"], default-features = false }
+rodio = { version = "0.20", default-features = false }
+symphonia = { version = "0.5.4", default-features = false, features = ["aac", "flac", "isomp4", "mp3", "vorbis", "ogg", "wav", "pcm", "adpcm", "alac", "aiff"] }
 

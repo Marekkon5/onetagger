@@ -112,7 +112,7 @@ class Player {
         if (this._ended) return;
         this._ended = true; this._wantedPlay = false; this.playing = false;
         this.position = this.duration;
-        if (get1t().settings.value.autoPlayNext) get1t().onQuickTagEvent('changeTrack', {offset: 1});
+        if (get1t().settings.value.autoPlayNext) get1t().onQuickTagEvent('changeTrack', {offset: 1, autoPlay: true});
     }
 
     async play() {
@@ -174,9 +174,9 @@ class Player {
         if (get1t().isConnected) get1t().send('playerVolume', {volume: this.volume}).catch(() => {});
     }
 
-    loadTrack(path: string) {
+    loadTrack(path: string, autoPlay = false) {
         const $1t = get1t();
-        const resume = $1t.settings.value.continuePlayback && this.wasPlaying;
+        const resume = autoPlay || ($1t.settings.value.continuePlayback && this.wasPlaying);
         const generation = ++this._generation; ++this._playRequest;
         this._requests.disconnect(new Error('Track changed'));
         this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();

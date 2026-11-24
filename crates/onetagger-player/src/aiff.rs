@@ -1,8 +1,8 @@
-use std::{fs::File, io::BufReader, path::{Path, PathBuf}};
+use std::path::{Path, PathBuf};
 use anyhow::Error;
-use rodio::{Decoder, Source};
-use crate::AudioSource;
 use lofty::file::AudioFile;
+use rodio::Source;
+use crate::AudioSource;
 
 pub struct AIFFSource { path: PathBuf, duration: u128 }
 impl AIFFSource {
@@ -13,7 +13,5 @@ impl AIFFSource {
 }
 impl AudioSource for AIFFSource {
     fn duration(&self) -> u128 { self.duration }
-    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
-        Ok(crate::with_duration(Decoder::new(BufReader::new(File::open(&self.path)?))?, self.duration))
-    }
+    fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> { crate::file_source(&self.path, self.duration) }
 }

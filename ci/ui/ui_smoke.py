@@ -57,10 +57,13 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 class Backend:
     """Fixture protocol only. Outgoing commands are recorded for assertions."""
-    def __init__(self, base_url, session_status=204, autosave=False):
+    def __init__(self, base_url, session_status=204, autosave=False, autoplay=False):
         self.base_url = base_url
         self.session_status = session_status
         self.autosave = autosave
+        self.autoplay = autoplay
+        self.playing = False
+        self.end_playback = False
         self.save_failures = 0
         self.hold_saves = False
         self.pending_saves = []
@@ -146,8 +149,15 @@ class Backend:
                             "duration": 2000, "title": "Fixture track", "artists": ["Fixture artist"]}
             elif action == "waveform":
                 response = {"action": "waveformDone", "requestId": data.get("requestId"), "path": data["path"], "waves": [0.25] * 180}
+            elif action == "playerPlay": self.playing = True
+            elif action == "playerPause": self.playing = False
             elif action == "playerState":
-                response = {"action": "playerSync", "position": 0, "playing": False, "ended": False}
+                response = {"action": "playerSync", "position": 2000 if self.end_playback else 0,
+                            "playing": self.playing and not self.end_playback, "ended": self.end_playback}
+                if self.end_playback: self.playing = False
+                self.end_playback = False
+            elif action == "playerSeek":
+                response = {"action": "playerSync", "position": data["pos"], "playing": self.playing, "seek": True}
             elif action in {"tagEditorSave", "quickTagSave"}:
                 if self.hold_saves:
                     self.pending_saves.append((ws, data))
@@ -155,11 +165,11 @@ class Backend:
                     ok = self.save_failures == 0
                     self.save_failures = max(0, self.save_failures - 1)
                     response = self.save_response(data, ok)
-            elif action == "loadSettings" and self.autosave:
+            elif action == "loadSettings" and (self.autosave or self.autoplay):
                 # These nested fields are required by the saved-settings decoder.
                 # An empty quickTag object throws before autosave can be restored.
                 response = {"action": action, "settings": {
-                    "path": "/music", "tagEditorAutosave": True, "autoTaggerConfig": {},
+                    "path": "/music", "tagEditorAutosave": self.autosave, "autoPlayNext": self.autoplay, "continuePlayback": False, "autoTaggerConfig": {},
                     "audioFeatures": {}, "renamer": {}, "quickTag": {
                         "noteTag": {"tag": {"id3": "COMM", "vorbis": "COMMENT", "mp4": "©cmt"}},
                         "moodTag": {"id3": "TMOO", "vorbis": "MOOD", "mp4": "iTunes:MOOD"},
@@ -238,14 +248,14 @@ class BrowserTests(unittest.TestCase):
         cls.thread.join(timeout=5)
 
     @contextmanager
-    def session(self, status=204, fragment=None, autosave=False, init_script=None):
+    def session(self, status=204, fragment=None, autosave=False, init_script=None, autoplay=False):
         context = self.browser.new_context(viewport={"width": 1440, "height": 900},
                                            locale="en-US", timezone_id="UTC", service_workers="block")
         context.tracing.start(screenshots=True, snapshots=True, sources=False)
         page = context.new_page()
         page.set_default_timeout(10000)
         if init_script: page.add_init_script(init_script)
-        backend = Backend(self.base_url, status, autosave)
+        backend = Backend(self.base_url, status, autosave, autoplay)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.route("**/*", backend.http)
@@ -319,6 +329,18 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(len(saves), 2)
             self.assertEqual(first['changes'], saves[1]['changes'])
             self.assertNotEqual(first['requestId'], saves[1]['requestId'])
+
+    def test_auto_next_starts_the_next_track_with_continue_playback_disabled(self):
+        with self.session(autoplay=True) as (page, backend):
+            backend.quick_tracks = [quick_file(0), quick_file(1)]
+            page.get_by_test_id('nav-quicktag').click()
+            page.get_by_test_id('quicktag-row').filter(has_text='Track 00000').get_by_text('Track 00000',exact=True).click()
+            page.get_by_role('button', name='Play', exact=True).click()
+            expect(page.get_by_role('button', name='Pause', exact=True)).to_be_visible()
+            backend.end_playback = True
+            expect(page.get_by_test_id('quicktag-row').filter(has_text='Track 00001').locator('.selected-bar')).to_be_visible()
+            expect(page.get_by_role('button', name='Pause', exact=True)).to_be_visible()
+            self.assertEqual(len([command for command in backend.commands if command['action']=='playerPlay']), 2)
 
     def test_only_active_language_catalogs_are_requested(self):
         import re
