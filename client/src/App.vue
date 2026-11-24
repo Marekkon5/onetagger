@@ -1,6 +1,6 @@
 <template>
     <div>
-        <q-layout view="hHh lpR fFf" class="bg-background">
+        <q-layout view="hHh lpR fFf" class="bg-background" :inert="$1t.quickTag.value.saving > 0" :aria-busy="$1t.quickTag.value.saving > 0">
             <!-- Header -->
             <q-header class="bg-darker text-white" height-hint="98">
                 <q-toolbar class="row no-wrap">
@@ -72,6 +72,8 @@
                 
             </q-footer>
         </q-layout>
+
+        <div v-if='$1t.quickTag.value.saving > 0' role='status' class='fixed-top bg-darker text-primary text-center q-pa-sm' style='z-index: 7000'>{{t('tools.savingChanges')}}</div>
 
         <!-- Settings -->
         <Settings v-model="settings" @close="settingsClosed"></Settings>

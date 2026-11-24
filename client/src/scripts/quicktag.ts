@@ -8,6 +8,8 @@ class QuickTag {
     track: QTMultiTrack = new QTMultiTrack();
     failed: QuickTagFailed[] = [];
     wasLimited = false;
+    loading = false;
+    stats?: {scanned: number; cached: number; parsed: number; failed: number; limited: boolean; elapsedMs: number};
 
     /// Number of tracks to save
     saving: number = 0;
@@ -17,16 +19,9 @@ class QuickTag {
 
     constructor() {}
 
-    /// Wait for saving to finish
-    async waitForSave() {
-        while (this.saving > 0) {
-            await new Promise((r, _) => setTimeout(() => r(null), 10));
-        }
-    }
-
     /// Check if the loading was limited
     isLimited() {
-        return (this.wasLimited && (this.tracks.length + this.failed.length) == 500);
+        return this.wasLimited;
     }
 }
 

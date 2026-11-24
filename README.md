@@ -177,6 +177,14 @@ pnpm --dir client run build
 cargo build --workspace --release --locked
 ```
 
+### Library responsiveness and playback
+
+OneTagger 2.2.0 adds a local SQLite metadata index, progressive Quick Tag loading,
+recycled track rows and acknowledged saves. Browser playback streams original
+files with byte-range seeking; native playback uses seekable decoders. Language
+catalogs load on demand. See [library loading and playback](docs/library-performance.md)
+for cache behavior, codec support and GitHub performance evidence.
+
 ### Browser and server mode
 
 The desktop window and `--browser` establish their session automatically. For a headless server:

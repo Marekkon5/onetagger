@@ -2,7 +2,7 @@ import { createApp } from 'vue';
 import { Quasar, Dialog, Notify } from 'quasar';
 import { establishSession } from './scripts/session';
 import iconSet from 'quasar/icon-set/mdi-v7';
-import { i18n, quasarLanguagePacks, type SupportedLocale } from './i18n';
+import { i18n, initializeI18n } from './i18n';
 
 // Style
 import '@quasar/extras/mdi-v7/mdi-v7.css';
@@ -13,6 +13,7 @@ import './style/app.scss';
 
 
 async function start() {
+    const language = await initializeI18n();
     await establishSession();
     const [{ default: App }, { default: router }, { get1t }] = await Promise.all([
         import('./App.vue'), import('./scripts/router'), import('./scripts/onetagger'),
@@ -24,7 +25,7 @@ async function start() {
         // The application locale owns HTML language/direction. Quasar's
         // English control pack uses en-US while our catalog locale is en.
         config: { lang: { noHtmlAttrs: true } },
-        lang: quasarLanguagePacks[i18n.global.locale.value as SupportedLocale],
+        lang: language,
     }).mount('#app');
 }
 

@@ -277,6 +277,39 @@ def main():
                 refresh_language('en')
                 wait("return document.body.innerText.includes('The ultimate cross-platform music tagger for DJs')")
                 capture_errors()
+                # Exercise the real audio device and decoder through the authenticated
+                # native application's backend, using the committed synthetic MP3.
+                tone = Path(__file__).resolve().parents[2] / 'crates/onetagger-player/test-fixtures/tone.mp3'
+                script("""window.nativeAudioResult=null;
+                    const socket=new WebSocket(location.origin.replace(/^http/,'ws')+'/ws');
+                    const started=performance.now();
+                    socket.onopen=()=>socket.send(JSON.stringify({action:'playerLoad',path:arguments[0],requestId:'native-audio'}));
+                    socket.onmessage=event=>{
+                        const response=JSON.parse(event.data);
+                        if(response.action==='error' || response.status==='error') {
+                            window.nativeAudioResult={error:response.message};socket.close();return;
+                        }
+                        if(response.action==='playerLoad') {
+                            socket.send(JSON.stringify({action:'playerPlay'}));
+                            setTimeout(()=>socket.send(JSON.stringify({action:'playerSeek',pos:1200})),100);
+                        } else if(response.action==='playerSync' && response.seek) {
+                            window.nativeAudioSeek={position:response.position,playing:response.playing,elapsedMs:performance.now()-started};
+                            socket.send(JSON.stringify({action:'playerVolume',volume:0}));
+                            socket.send(JSON.stringify({action:'playerPause'}));
+                            socket.send(JSON.stringify({action:'playerState'}));
+                        } else if(response.action==='playerSync') {
+                            window.nativeAudioResult={seek:window.nativeAudioSeek,paused:!response.playing,position:response.position};
+                            socket.send(JSON.stringify({action:'playerStop'}));socket.close();
+                        }
+                    };
+                    socket.onerror=()=>{window.nativeAudioResult={error:'Audio test socket failed'};};
+                    """, str(tone))
+                wait('return window.nativeAudioResult !== null')
+                audio = script('return window.nativeAudioResult')
+                if audio.get('error') or not audio.get('paused') or audio.get('seek',{}).get('position') != 1200 or not audio.get('seek',{}).get('playing'):
+                    raise AssertionError('Native audio load/seek/pause failed: '+repr(audio))
+                args.output.joinpath('native-audio.json').write_text(json.dumps(audio,indent=2))
+                print('Native Linux synthetic audio load, decoder seek, zero volume and pause passed',flush=True)
                 args.output.joinpath('result.json').write_text(json.dumps({
                     'status':'passed','cycles':3,'provider_checkbox_clicks':30,'tag_checkbox_clicks':18,
                     'engine':'system WebKitGTK via real OneTagger executable','provider_requests':0,

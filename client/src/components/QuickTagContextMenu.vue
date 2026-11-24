@@ -1,6 +1,6 @@
 <template>
     <q-menu touch-position context-menu class='no-menu-shadow'>
-        <q-list>
+        <q-list :inert='$1t.quickTag.value.saving > 0'>
 
             <!-- Manual tag -->
             <q-item dense clickable @click='emit("manual-tag")' v-close-popup>

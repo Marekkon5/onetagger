@@ -1,6 +1,6 @@
 <template>
-<q-dialog ref='dialogRef'>
-    <q-card class='q-dialog-plugin'>
+<q-dialog ref='dialogRef' :persistent='$1t.quickTag.value.saving > 0'>
+    <q-card class='q-dialog-plugin' :inert='$1t.quickTag.value.saving > 0'>
 
         <q-card-section>
             <div class='text-h6' v-if='isQt'>{{ t('common.unsavedChanges') }}</div>
@@ -59,8 +59,7 @@ function exit() {
 
 // Save QT and exit
 async function saveExit() {
-    $1t.saveQTTrack();
-    await $1t.quickTag.value.waitForSave();
+    if (!await $1t.saveQTTrack()) return;
     $1t.send('exit');
 }
 

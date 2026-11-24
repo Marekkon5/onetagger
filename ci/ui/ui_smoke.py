@@ -14,7 +14,7 @@ from pathlib import Path
 import threading
 import time
 import unittest
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -38,6 +38,12 @@ TRACK = {
 }
 
 
+def quick_file(index=0):
+    return {"path": f"/music/Track {index:05d}.mp3", "format": "mp3", "title": f"Track {index:05d}",
+            "artists": ["Fixture artist"], "genres": ["House"], "bpm": 120, "rating": 0,
+            "tags": {"TIT2": [f"Track {index:05d}"], "TPE1": ["Fixture artist"]}, "year": 2026, "key": "8A"}
+
+
 class FrontendServer(ThreadingHTTPServer):
     # A cold page requests several JS and CSS chunks at once. Python 3.12's
     # five-connection default can refuse a chunk on Windows before startup.
@@ -51,10 +57,15 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 class Backend:
     """Fixture protocol only. Outgoing commands are recorded for assertions."""
-    def __init__(self, base_url, session_status=204, autosave=False):
+    def __init__(self, base_url, session_status=204, autosave=False, autoplay=False, client_audio=False):
         self.base_url = base_url
         self.session_status = session_status
         self.autosave = autosave
+        self.autoplay = autoplay
+        self.client_audio = client_audio
+        self.audio_requests = []
+        self.playing = False
+        self.end_playback = False
         self.save_failures = 0
         self.hold_saves = False
         self.pending_saves = []
@@ -67,6 +78,10 @@ class Backend:
         self.tagging_socket = None
         self.reject_stop = False
         self.run_state = {"action": "taggingState", "runId": None}
+        self.quick_tracks = []
+        self.hold_library = False
+        self.library_socket = None
+        self.library_request = None
 
     def http(self, route):
         request = route.request
@@ -76,6 +91,12 @@ class Backend:
         elif request.url == "https://api.github.com/repos/fantuz/onetagger/releases/latest":
             route.fulfill(json={"tag_name": "v" + (ROOT / "VERSION").read_text().strip(),
                                 "body": "Synthetic release", "html_url": "https://example.invalid/release"})
+        elif request.url.startswith(self.base_url + "/audio?"):
+            self.audio_requests.append(request.url)
+            query = parse_qs(urlsplit(request.url).query)
+            if query == {"id": ["fixture-media"]}:
+                route.fulfill(content_type="audio/wav", body=(ROOT / "crates/onetagger-player/test-fixtures/tone.wav").read_bytes())
+            else: route.fulfill(status=404, body="Invalid synthetic media ID")
         elif request.url.startswith(self.base_url + "/"):
             route.continue_()
         else:
@@ -124,18 +145,39 @@ class Backend:
                 track["path"] = data["path"]
                 track["filename"] = data["path"].rsplit("/", 1)[-1]
                 response = {"action": action, "data": track}
-            elif action == "tagEditorSave":
+            elif action == "quickTagFolder":
+                response = {"action": action, "path": "/music", "files": []}
+            elif action == "quickTagLoad":
+                self.library_socket, self.library_request = ws, data
+                if not self.hold_library:
+                    self.library_batch(self.quick_tracks)
+                    self.library_done()
+            elif action == "playerLoad":
+                response = {"action": action, "requestId": data.get("requestId"), "path": data["path"],
+                            "duration": 2000, "title": "Fixture track", "artists": ["Fixture artist"], "mediaId": "fixture-media"}
+            elif action == "waveform":
+                response = {"action": "waveformDone", "requestId": data.get("requestId"), "path": data["path"], "waves": [0.25] * 180}
+            elif action == "playerPlay": self.playing = True
+            elif action == "playerPause": self.playing = False
+            elif action == "playerState":
+                response = {"action": "playerSync", "position": 2000 if self.end_playback else 0,
+                            "playing": self.playing and not self.end_playback, "ended": self.end_playback}
+                if self.end_playback: self.playing = False
+                self.end_playback = False
+            elif action == "playerSeek":
+                response = {"action": "playerSync", "position": data["pos"], "playing": self.playing, "seek": True}
+            elif action in {"tagEditorSave", "quickTagSave"}:
                 if self.hold_saves:
                     self.pending_saves.append((ws, data))
                 else:
                     ok = self.save_failures == 0
                     self.save_failures = max(0, self.save_failures - 1)
                     response = self.save_response(data, ok)
-            elif action == "loadSettings" and self.autosave:
+            elif action == "loadSettings" and (self.autosave or self.autoplay or self.client_audio):
                 # These nested fields are required by the saved-settings decoder.
                 # An empty quickTag object throws before autosave can be restored.
                 response = {"action": action, "settings": {
-                    "path": "/music", "tagEditorAutosave": True, "autoTaggerConfig": {},
+                    "path": "/music", "tagEditorAutosave": self.autosave, "autoPlayNext": self.autoplay, "continuePlayback": False, "clientSidePlayer": self.client_audio, "autoTaggerConfig": {},
                     "audioFeatures": {}, "renamer": {}, "quickTag": {
                         "noteTag": {"tag": {"id3": "COMM", "vorbis": "COMMENT", "mp4": "©cmt"}},
                         "moodTag": {"id3": "TMOO", "vorbis": "MOOD", "mp4": "iTunes:MOOD"},
@@ -149,8 +191,26 @@ class Backend:
 
         ws.on_message(message)
 
-    @staticmethod
-    def save_response(data, ok=True):
+    def library_batch(self, files):
+        self.library_socket.send(json.dumps({"action": "quickTagLoadBatch", "requestId": self.library_request["requestId"],
+                                             "data": {"files": files, "failed": []}}))
+
+    def library_done(self):
+        self.library_socket.send(json.dumps({"action": "quickTagLoadDone", "requestId": self.library_request["requestId"],
+                                             "stats": {"scanned": len(self.quick_tracks), "cached": 0, "parsed": len(self.quick_tracks),
+                                                       "failed": 0, "limited": False, "elapsedMs": 1}}))
+
+    def save_response(self, data, ok=True):
+        if data["action"] == "quickTagSave":
+            path = data["changes"]["path"]
+            file = deepcopy(next(track for track in self.quick_tracks if track["path"] == path))
+            for change in data["changes"]["changes"]:
+                if change["type"] == "raw": file["tags"][change["tag"]] = change["value"]
+                elif change["type"] == "genre": file["genres"] = change["value"]
+                elif change["type"] == "rating": file["rating"] = change["value"]
+            return {"action": "quickTagSaved", "requestId": data["requestId"], "path": path,
+                    "status": "ok" if ok else "error", "file": file,
+                    "message": None if ok else "Simulated write permission failure"}
         return {"action": "tagEditorSave", "requestId": data["requestId"],
                 "path": data["changes"]["path"], "status": "ok" if ok else "error",
                 "message": None if ok else "Simulated write permission failure"}
@@ -196,13 +256,14 @@ class BrowserTests(unittest.TestCase):
         cls.thread.join(timeout=5)
 
     @contextmanager
-    def session(self, status=204, fragment=None, autosave=False):
+    def session(self, status=204, fragment=None, autosave=False, init_script=None, autoplay=False, client_audio=False):
         context = self.browser.new_context(viewport={"width": 1440, "height": 900},
                                            locale="en-US", timezone_id="UTC", service_workers="block")
         context.tracing.start(screenshots=True, snapshots=True, sources=False)
         page = context.new_page()
         page.set_default_timeout(10000)
-        backend = Backend(self.base_url, status, autosave)
+        if init_script: page.add_init_script(init_script)
+        backend = Backend(self.base_url, status, autosave, autoplay, client_audio)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.route("**/*", backend.http)
@@ -226,6 +287,121 @@ class BrowserTests(unittest.TestCase):
             context.tracing.stop()
         finally:
             context.close()
+
+    def test_progressive_quicktag_keeps_rows_and_singleton_timers_bounded(self):
+        script = """window.createdIntervals=0; const original=window.setInterval;
+            window.setInterval=function(...args){ window.createdIntervals++; return original.apply(this,args); };"""
+        with self.session(init_script=script) as (page, backend):
+            backend.hold_library = True
+            backend.quick_tracks = [quick_file(index) for index in range(5000)]
+            baseline = page.evaluate('window.createdIntervals')
+            page.get_by_test_id('nav-quicktag').click()
+            deadline = time.monotonic() + 5
+            while backend.library_request is None and time.monotonic() < deadline: page.wait_for_timeout(25)
+            self.assertIsNotNone(backend.library_request)
+            # The first batch is usable before enumeration finishes.
+            backend.library_batch(backend.quick_tracks[:64])
+            expect(page.get_by_test_id('quicktag-row').filter(has_text='Track 00000')).to_be_visible()
+            for offset in range(64, 5000, 64): backend.library_batch(backend.quick_tracks[offset:offset+64])
+            backend.library_done()
+            expect(page.get_by_text('Loaded files: 5000', exact=True)).to_be_visible()
+            self.assertLess(page.get_by_test_id('quicktag-row').count(), 200)
+            page.get_by_test_id('quicktag-list').evaluate('(element) => { element.scrollTop=element.scrollHeight; }')
+            expect(page.get_by_test_id('quicktag-row').filter(has_text='Track 04999')).to_be_visible()
+            self.assertLess(page.get_by_test_id('quicktag-row').count(), 200)
+            # Creating recycled rows and calling get1t repeatedly must not create players/timers.
+            self.assertLessEqual(page.evaluate('window.createdIntervals') - baseline, 3)
+            search = page.get_by_role('textbox', name='Search tracks', exact=True)
+            search.fill('[')
+            expect(page.get_by_test_id('quicktag-row')).to_have_count(0)
+            search.fill('Track 04999')
+            expect(page.get_by_test_id('quicktag-row')).to_have_count(1)
+
+    def test_quicktag_failed_save_retains_changes_and_can_retry(self):
+        with self.session() as (page, backend):
+            backend.quick_tracks = [quick_file()]
+            page.get_by_test_id('nav-quicktag').click()
+            row = page.get_by_test_id('quicktag-row')
+            expect(row).to_have_count(1)
+            row.get_by_text('Track 00000', exact=True).click()
+            page.locator('.moods .q-chip').filter(has_text='Happy').click()
+            backend.save_failures = 1
+            page.keyboard.press('Control+s')
+            dialog = page.get_by_role('dialog').filter(has_text='Your edits are retained')
+            expect(dialog).to_be_visible()
+            dialog.get_by_role('button', name='OK', exact=True).click()
+            first = next(command for command in backend.commands if command['action'] == 'quickTagSave')
+            page.keyboard.press('Control+s')
+            expect(page.get_by_text('Track saved!', exact=True)).to_be_visible()
+            saves = [command for command in backend.commands if command['action'] == 'quickTagSave']
+            self.assertEqual(len(saves), 2)
+            self.assertEqual(first['changes'], saves[1]['changes'])
+            self.assertNotEqual(first['requestId'], saves[1]['requestId'])
+
+    def test_quicktag_popup_cannot_change_genres_during_a_pending_save(self):
+        with self.session() as (page, backend):
+            backend.quick_tracks = [quick_file()]
+            page.get_by_test_id('nav-quicktag').click()
+            page.get_by_test_id('quicktag-row').get_by_text('Track 00000', exact=True).click()
+            page.locator('.moods .q-chip').filter(has_text='Happy').click()
+            page.locator('.genre-bar').get_by_text('Electro', exact=True).hover()
+            choice = page.locator('.q-menu .q-item').filter(has_text='Dubstep')
+            expect(choice).to_be_visible()
+            bounds = choice.bounding_box()
+            backend.hold_saves = True
+            page.keyboard.press('Control+s')
+            expect(page.get_by_role('status')).to_have_text('Saving changes…')
+            # Real pointer input must not edit a popup rendered outside q-layout.
+            page.mouse.click(bounds['x'] + bounds['width']/2, bounds['y'] + bounds['height']/2)
+            expect(choice.locator('.mdi-check')).to_have_count(0)
+            self.assertEqual(len(backend.pending_saves), 1)
+            backend.acknowledge_next_save()
+            expect(page.get_by_role('status')).to_have_count(0)
+            expect(page.get_by_text('Track saved!', exact=True)).to_be_visible()
+
+    def test_browser_audio_uses_a_validated_media_id_and_does_not_start_native_playback(self):
+        probe = """window.playedAudio = []; const original = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function(...args) {
+                const result = original.apply(this, args);
+                result.then(() => window.playedAudio.push(this.currentSrc), () => {});
+                return result;
+            };"""
+        with self.session(client_audio=True, init_script=probe) as (page, backend):
+            backend.quick_tracks = [quick_file()]
+            page.get_by_test_id('nav-quicktag').click()
+            page.get_by_test_id('quicktag-row').get_by_text('Track 00000', exact=True).click()
+            page.get_by_role('button', name='Play', exact=True).click()
+            # The real two-second tone can finish before a slow browser exposes Pause.
+            page.wait_for_function('window.playedAudio.length > 0')
+            self.assertTrue(backend.audio_requests)
+            self.assertTrue(all(parse_qs(urlsplit(url).query) == {'id': ['fixture-media']} for url in backend.audio_requests))
+            self.assertTrue(any(command['action']=='playerLoad' and command.get('clientSide') for command in backend.commands))
+            self.assertFalse(any(command['action']=='playerPlay' for command in backend.commands))
+
+    def test_auto_next_starts_the_next_track_with_continue_playback_disabled(self):
+        with self.session(autoplay=True) as (page, backend):
+            backend.quick_tracks = [quick_file(0), quick_file(1)]
+            page.get_by_test_id('nav-quicktag').click()
+            page.get_by_test_id('quicktag-row').filter(has_text='Track 00000').get_by_text('Track 00000',exact=True).click()
+            page.get_by_role('button', name='Play', exact=True).click()
+            expect(page.get_by_role('button', name='Pause', exact=True)).to_be_visible()
+            backend.end_playback = True
+            expect(page.get_by_test_id('quicktag-row').filter(has_text='Track 00001').locator('.selected-bar')).to_be_visible()
+            expect(page.get_by_role('button', name='Pause', exact=True)).to_be_visible()
+            self.assertEqual(len([command for command in backend.commands if command['action']=='playerPlay']), 2)
+
+    def test_only_active_language_catalogs_are_requested(self):
+        import re
+        with self.session() as (page, _):
+            def language_requests():
+                return page.evaluate("performance.getEntriesByType('resource').map(entry=>new URL(entry.name).pathname)")
+            unused = re.compile(r'/(?:ar|cs|de|el|es|fr|it|ja|nl|pl|pt-PT|pt-BR|ru)-[^/]+[.]js$')
+            self.assertFalse([path for path in language_requests() if unused.search(path)])
+            page.get_by_test_id('language-selector').click()
+            page.get_by_role('option', name='Français', exact=True).click()
+            expect(page.locator('html')).to_have_attribute('lang', 'fr')
+            self.assertTrue([path for path in language_requests() if re.search(r'/fr-[^/]+[.]js$', path)])
+            self.assertFalse([path for path in language_requests() if re.search(r'/(?:ar|ja|ru)-[^/]+[.]js$', path)])
 
     def test_autotagger_short_panels_collapse_after_scrolling_and_resize(self):
         with self.session() as (page, _):

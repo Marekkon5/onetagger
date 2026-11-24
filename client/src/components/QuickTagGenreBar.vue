@@ -13,7 +13,7 @@
 
                 <!-- Subgenres -->
                 <q-menu v-if='genre.subgenres' :model-value='mouseOver == i' class='no-shadow'>
-                    <q-list @mouseleave="mouseOver = -1" class='bg-darker'>
+                    <q-list @mouseleave="mouseOver = -1" class='bg-darker' :inert='$1t.quickTag.value.saving > 0'>
                         <div v-for='(subgenre, j) in genre.subgenres' :key='"sg"+j'>
                             <q-item clickable @click='setGenre(subgenre)'>
                                 <q-item-section>
