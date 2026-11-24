@@ -360,12 +360,19 @@ class BrowserTests(unittest.TestCase):
             expect(page.get_by_text('Track saved!', exact=True)).to_be_visible()
 
     def test_browser_audio_uses_a_validated_media_id_and_does_not_start_native_playback(self):
-        with self.session(client_audio=True) as (page, backend):
+        probe = """window.playedAudio = []; const original = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function(...args) {
+                const result = original.apply(this, args);
+                result.then(() => window.playedAudio.push(this.currentSrc), () => {});
+                return result;
+            };"""
+        with self.session(client_audio=True, init_script=probe) as (page, backend):
             backend.quick_tracks = [quick_file()]
             page.get_by_test_id('nav-quicktag').click()
             page.get_by_test_id('quicktag-row').get_by_text('Track 00000', exact=True).click()
             page.get_by_role('button', name='Play', exact=True).click()
-            expect(page.get_by_role('button', name='Pause', exact=True)).to_be_visible()
+            # The real two-second tone can finish before a slow browser exposes Pause.
+            page.wait_for_function('window.playedAudio.length > 0')
             self.assertTrue(backend.audio_requests)
             self.assertTrue(all(parse_qs(urlsplit(url).query) == {'id': ['fixture-media']} for url in backend.audio_requests))
             self.assertTrue(any(command['action']=='playerLoad' and command.get('clientSide') for command in backend.commands))
