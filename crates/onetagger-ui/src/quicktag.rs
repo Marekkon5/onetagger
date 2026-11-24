@@ -104,7 +104,7 @@ impl QuickTagFailed {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QuickTagFile {
-    path: PathBuf,
+    pub(crate) path: PathBuf,
     format: AudioFileFormat,
     title: String,
     artists: Vec<String>,

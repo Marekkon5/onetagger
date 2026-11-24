@@ -95,15 +95,20 @@ enum Action {
     InstallPlatform { id: String, version: String, is_native: bool },
 
     Waveform { path: PathBuf },
-    PlayerLoad { path: PathBuf },
+    #[serde(rename_all = "camelCase")]
+    PlayerLoad { path: PathBuf, request_id: Option<String>, #[serde(default)] client_side: bool },
+    PlayerState,
     PlayerPlay, 
     PlayerPause,
     PlayerSeek { pos: u64 },
     PlayerVolume { volume: f32 },
     PlayerStop,
 
-    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>, separators: TagSeparators, limit: Option<bool> },
-    QuickTagSave { changes: TagChanges },
+    #[serde(rename_all = "camelCase")]
+    QuickTagLoad { path: Option<String>, playlist: Option<UIPlaylist>, recursive: Option<bool>,
+        separators: TagSeparators, limit: Option<bool>, request_id: Option<String>, #[serde(default)] progressive: bool },
+    #[serde(rename_all = "camelCase")]
+    QuickTagSave { changes: TagChanges, request_id: Option<String> },
     QuickTagFolder { path: Option<String>, subdir: Option<String> },
 
     #[serde(rename_all = "camelCase")]
@@ -245,7 +250,9 @@ async fn send_socket_inner<D: Serialize>(ws: &mut WebSocket, json: D) -> Result<
 // Keep save acknowledgements correlated with the file and request, including
 // failures. A legacy client still receives the generic error event it understands.
 fn tag_editor_save_response(changes: &TagChanges, request_id: Option<String>) -> Value {
-    match changes.commit() {
+    let result = changes.commit();
+    crate::library::invalidate(&changes.path);
+    match result {
         Ok(_) => json!({ "action": "tagEditorSave", "status": "ok",
             "requestId": request_id, "path": changes.path }),
         Err(error) => {
@@ -255,6 +262,28 @@ fn tag_editor_save_response(changes: &TagChanges, request_id: Option<String>) ->
                 "message": format!("{error:#}") }),
                 UiMessage::TagEditorSaveFailed { detail: format!("{error:#}") })
         }
+    }
+}
+
+// Disk/decoder work must not occupy Tokio's network workers. The permit also
+// bounds simultaneous work submitted by multiple browser tabs and job sockets.
+static DISK_JOBS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(4);
+pub(crate) async fn blocking<T, F>(work: F) -> Result<T, Error>
+where T: Send + 'static, F: FnOnce() -> Result<T, Error> + Send + 'static {
+    let permit = DISK_JOBS.acquire().await?;
+    tokio::task::spawn_blocking(move || { let _permit = permit; work() }).await?
+}
+
+fn quick_tag_save_response(changes: &TagChanges, request_id: Option<String>) -> Value {
+    let result = changes.commit().and_then(|tag| QuickTagFile::from_tag(&changes.path, &tag));
+    // Invalidate even after a partial failure: a write may have reached disk.
+    crate::library::invalidate(&changes.path);
+    match result {
+        Ok(file) => json!({"action": "quickTagSaved", "status": "ok", "requestId": request_id,
+            "path": changes.path, "file": file}),
+        Err(error) => localized(json!({"action": if request_id.is_some() { "quickTagSaved" } else { "error" },
+            "status": "error", "requestId": request_id, "path": changes.path, "message": error.to_string()}),
+            UiMessage::RequestFailed { detail: error.to_string() }),
     }
 }
 
@@ -469,32 +498,40 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             })).await.ok();
         },
         // Load player file
-        Action::PlayerLoad { path } => {
-            let source = AudioSources::from_path(&path)?;
-            // Meta
-            let tag = Tag::load_file(&path, false)?;
-            let title = tag.tag().get_field(Field::Title).map(|i| i.first().map(String::from)).flatten();
-            let artists = tag.tag().get_field(Field::Artist).unwrap_or(vec![]);
-            // Send to UI
-            send_socket(websocket, json!({
-                "action": "playerLoad",
-                "title": title,
-                "artists": artists,
-                "duration": source.duration() as u64
-            })).await.ok();
-            // Load
-            let player = context.player.get_or_insert_with(AudioPlayer::new);
-            player.volume(context.volume);
-            player.load_file(source);
+        Action::PlayerLoad { path, request_id, client_side } => {
+            let player = if client_side { None } else { Some(context.player.get_or_insert_with(AudioPlayer::new).clone()) };
+            let volume = context.volume;
+            let result = blocking(move || {
+                let source = AudioSources::from_path(&path)?;
+                let duration = source.duration() as u64;
+                let tag = Tag::load_file(&path, false)?;
+                let title = tag.tag().get_field(Field::Title).and_then(|values| values.first().cloned());
+                let artists = tag.tag().get_field(Field::Artist).unwrap_or_default();
+                if let Some(player) = player { player.volume(volume); player.load_file(source)?; }
+                Ok(json!({"action": "playerLoad", "requestId": request_id, "path": path,
+                    "title": title, "artists": artists, "duration": duration}))
+            }).await;
+            match result {
+                Ok(response) => send_socket(websocket, response).await?,
+                Err(error) => send_socket(websocket, localized(json!({"action": "playerLoad", "status": "error",
+                    "message": error.to_string()}), UiMessage::RequestFailed { detail: error.to_string() })).await?,
+            }
         },
         //  Controls
         Action::PlayerPlay => if let Some(player) = &context.player { player.play(); },
         Action::PlayerPause => if let Some(player) = &context.player { player.pause(); },
         Action::PlayerSeek { pos } => {
-            send_socket(websocket, json!({
-                "action": "playerSync",
-                "playing": context.player.as_ref().is_some_and(|player| player.seek(pos))
-            })).await.ok();
+            let player = context.player.clone().ok_or(anyhow!("No player is loaded"))?;
+            let state = blocking(move || player.seek(pos)).await?;
+            send_socket(websocket, json!({"action": "playerSync", "position": state.position,
+                "playing": state.playing, "ended": state.ended, "seek": true})).await?;
+        },
+        Action::PlayerState => {
+            if let Some(player) = context.player.clone() {
+                let state = blocking(move || player.state()).await?;
+                send_socket(websocket, json!({"action": "playerSync", "position": state.position,
+                    "playing": state.playing, "ended": state.ended})).await?;
+            }
         },
         Action::PlayerVolume { volume } => {
             context.volume = volume;
@@ -502,39 +539,59 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         }
         Action::PlayerStop => if let Some(player) = &context.player { player.stop(); },
         // Load quicktag files or playlist
-        Action::QuickTagLoad { path, playlist, recursive, separators, limit } => {
-            let mut data = QuickTagData::default();
-            // Playlist
-            if let Some(playlist) = playlist {
-                data = QuickTag::load_files_playlist(&playlist, &separators)?;
-            }
-            // Path
-            if let Some(path) = path {
-                if PLAYLIST_EXTENSIONS.iter().any(|e| path.to_lowercase().ends_with(e)) {
-                    data = QuickTag::load_files(get_files_from_playlist_file(&path)?, &separators)?;
-                } else {
-                    data = QuickTag::load_files_path(
-                        &path, 
-                        recursive.unwrap_or(false), 
-                        &separators, 
-                        0, 
-                        limit.map(|l| l.then_some(500)).flatten().unwrap_or(usize::MAX)
-                    )?;
+        Action::QuickTagLoad { path, playlist, recursive, separators, limit, request_id, progressive } => {
+            let limit = if limit.unwrap_or(false) { 500 } else { usize::MAX };
+            if progressive {
+                let cancelled = Arc::new(AtomicBool::new(false));
+                let worker_cancelled = cancelled.clone();
+                let (sender, mut batches) = tokio::sync::mpsc::channel(2);
+                let job = tokio::spawn(async move {
+                    blocking(move || {
+                        let files = crate::library::inputs(path, playlist, recursive.unwrap_or(false))?;
+                        crate::library::scan(files, &separators, limit, &worker_cancelled,
+                            |batch| sender.blocking_send(batch).map_err(|_| anyhow!("Library load cancelled")))
+                    }).await
+                });
+                loop {
+                    tokio::select! {
+                        batch = batches.recv() => match batch {
+                            Some(data) => if send_socket(websocket, json!({"action": "quickTagLoadBatch",
+                                "requestId": request_id, "data": data})).await.is_err() {
+                                cancelled.store(true, Ordering::Relaxed); break;
+                            },
+                            None => {
+                                match job.await? {
+                                    Ok(stats) => { send_socket(websocket, json!({"action": "quickTagLoadDone",
+                                        "requestId": request_id, "stats": stats})).await?; },
+                                    Err(error) => { send_socket(websocket, localized(json!({"action": "quickTagLoadDone",
+                                        "requestId": request_id, "status": "error", "message": error.to_string()}),
+                                        UiMessage::RequestFailed { detail: error.to_string() })).await?; },
+                                }
+                                break;
+                            },
+                        },
+                        message = websocket.recv() => if !matches!(message, Some(Ok(Message::Ping(_) | Message::Pong(_)))) {
+                            cancelled.store(true, Ordering::Relaxed); break;
+                        },
+                    }
                 }
+                cancelled.store(true, Ordering::Relaxed);
+            } else {
+                let data = blocking(move || {
+                    let files = crate::library::inputs(path, playlist, recursive.unwrap_or(false))?;
+                    let mut data = QuickTagData::default();
+                    crate::library::scan(files, &separators, limit, &AtomicBool::new(false), |batch| {
+                        data.files.extend(batch.files); data.failed.extend(batch.failed); Ok(())
+                    })?;
+                    Ok(data)
+                }).await?;
+                send_socket(websocket, json!({"action": "quickTagLoad", "data": data})).await?;
             }
-            send_socket(websocket, json!({
-                "action": "quickTagLoad",
-                "data": data
-            })).await.ok();
         },
         // Save quicktag changes
-        Action::QuickTagSave { changes } => {
-            let tag = changes.commit()?;
-            send_socket(websocket, json!({
-                "action": "quickTagSaved",
-                "path": &changes.path,
-                "file": QuickTagFile::from_tag(&changes.path, &tag)?
-            })).await.ok();
+        Action::QuickTagSave { changes, request_id } => {
+            let response = blocking(move || Ok(quick_tag_save_response(&changes, request_id))).await?;
+            send_socket(websocket, response).await?;
         },
         // List dir
         Action::QuickTagFolder { path, subdir } => {
@@ -592,7 +649,8 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         // Save changes
         Action::TagEditorSave { changes, request_id } => {
-            send_socket(websocket, tag_editor_save_response(&changes, request_id)).await?;
+            let response = blocking(move || Ok(tag_editor_save_response(&changes, request_id))).await?;
+            send_socket(websocket, response).await?;
         },
         // Syntax highlight for renamer
         Action::RenamerSyntaxHighlight { template } => {

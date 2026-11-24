@@ -1,3 +1,4 @@
+import { Requests } from './requests';
 import { Dialog, DialogChainObject, Notify, setCssVar } from 'quasar';
 import { ref, Ref } from 'vue';
 import { AutotaggerConfig, AutotaggerPlatform, ConfigCallbackResponse, TaggerStatus } from './autotagger';
@@ -46,6 +47,11 @@ class OneTagger {
 
     // Quicktag track loading
     private nextQTTrack?: QTTrack;
+    private quickTagSaves = new Requests<void>();
+    private quickTagSaveSequence = 0;
+    private quickTagSave?: Promise<boolean>;
+    private librarySocket?: WebSocket;
+    private librarySequence = 0;
 
     // Dialog when loading platforms
     loadingPlatformsDialog?: DialogChainObject;
@@ -66,6 +72,7 @@ class OneTagger {
             clearTimeout(this.reconnectTimer);
             clearTimeout(this.stateTimer);
             this.ws.close(1000);
+            this.cancelQuickTagLoad();
         });
         window.addEventListener('pageshow', event => {
             if (event.persisted) { this.leaving = false; this.connect(); }
@@ -102,6 +109,7 @@ class OneTagger {
             this.loadingPlatformsDialog?.hide();
             this.loadingPlatformsDialog = undefined;
             this.onTagEditorEvent({action: 'tagEditorDisconnected'});
+            this.quickTagSaves.disconnect(new Error(t('tools.connectionClosed')));
             if (this.reconnectAttempts === 0) this.onError(t('core.websocketClosed'));
             if (this.reconnectAttempts < 5) {
                 this.reconnectTimer = window.setTimeout(() => this.connect(), 250 * 2 ** this.reconnectAttempts++);
@@ -322,17 +330,21 @@ class OneTagger {
                 this.onQuickTagEvent('quickTagLoad');
                 break;
             /*eslint-disable no-case-declarations*/
-            case 'quickTagSaved':
-                var i = this.quickTag.value.tracks.findIndex((t) => t.path == json.path);
-                if (i != -1) {
-                    this.quickTag.value.tracks[i] = new QTTrack(json.file, this.settings.value.quickTag);
-                } else {
-                    // this.onError('quickTagSaved: Invalid track');
+            case 'quickTagSaved': {
+                if (!this.quickTagSaves.has(json.requestId, json.path)) break;
+                if (json.status !== 'ok') {
+                    this.quickTagSaves.finish(json.requestId, json.path, undefined, new Error(translateBackendMessage(json)));
+                    break;
                 }
-                this.quickTag.value.saving -= 1;
+                const track = new QTTrack(json.file, this.settings.value.quickTag);
+                const i = this.quickTag.value.tracks.findIndex(t => t.path === json.path);
+                if (i !== -1) this.quickTag.value.tracks[i] = track;
+                const selected = this.quickTag.value.track.tracks.findIndex(t => t.path === json.path);
+                if (selected !== -1) this.quickTag.value.track.tracks[selected] = new QTTrack(json.file, this.settings.value.quickTag);
+                this.quickTagSaves.finish(json.requestId, json.path);
                 this.onQuickTagEvent('quickTagSaved');
-
                 break;
+            }
             // Browser folder
             case 'quickTagFolder':
                 this.onQuickTagBrowserEvent(json);
@@ -653,44 +665,97 @@ class OneTagger {
     }
 
     // Save quickTagTrack
-    async saveQTTrack() {
-        let changes = this.quickTag.value.track.getOutputs();
-        for (const change of changes) {
-            this.quickTag.value.saving += 1;
-            this.send('quickTagSave', { changes: change });
-        }
-        await this.quickTag.value.waitForSave();
+    saveQTTrack(): Promise<boolean> {
+        if (this.quickTagSave) return this.quickTagSave;
+        this.quickTagSave = this.saveQuickTagChanges().finally(() => { this.quickTagSave = undefined; });
+        return this.quickTagSave;
+    }
+
+    private async saveQuickTagChanges(): Promise<boolean> {
+        const changes = this.quickTag.value.track.getOutputs() as {path: string}[];
+        this.quickTag.value.saving = changes.length;
+        try {
+            // Limit in-flight writes and retain every edit without a confirmed save.
+            for (let offset = 0; offset < changes.length; offset += 4) {
+                const results = await Promise.all(changes.slice(offset, offset + 4).map(async change => {
+                    const requestId = `quick-tag-${++this.quickTagSaveSequence}`;
+                    try {
+                        await this.quickTagSaves.run(requestId, change.path,
+                            () => this.send('quickTagSave', {requestId, changes: change}));
+                        return null;
+                    } catch (error) { return String(error); }
+                }));
+                const error = results.find(result => result !== null);
+                if (error) { this.onError(t('tools.saveUnconfirmed', {detail: error})); return false; }
+            }
+            return true;
+        } finally { this.quickTag.value.saving = 0; }
     }
 
 
     // Quicktag
-    loadQuickTag(playlist?: Playlist, limit = true) { 
-        // Loading
-        if (playlist || this.settings.value.path) {
-            this.lock.value.locked = true;
-            this.quickTag.value.tracks = [];
-        }
+    cancelQuickTagLoad() {
+        const socket = this.librarySocket;
+        this.librarySocket = undefined;
+        socket?.close();
+        this.quickTag.value.loading = false;
+        if (!this.taggerStatus.value.runId || this.taggerStatus.value.done) this.lock.value.locked = false;
+    }
 
-        // Load playlist
-        if (playlist) {
-            this.send('quickTagLoad', { playlist, separators: this.settings.value.quickTag.separators });
-            this.quickTag.value.wasLimited = false;
-            return;
-        }
-
-        // Load by path
-        if (this.settings.value.path) {
-            this.lock.value.locked = true;
-            this.send('quickTagLoad', {
-                path: this.settings.value.path,
-                recursive: this.settings.value.quickTag.recursive,
-                separators: this.settings.value.quickTag.separators,
-                limit: limit
-            });
-            this.saveSettings(false);
-            // Save limit info
-            this.quickTag.value.wasLimited = limit;
-        }
+    loadQuickTag(playlist?: Playlist, limit = true) {
+        this.cancelQuickTagLoad();
+        if (!playlist && !this.settings.value.path) return;
+        const requestId = `library-${++this.librarySequence}`;
+        const socket = new WebSocket(wsUrl());
+        this.librarySocket = socket;
+        this.quickTag.value.loading = true;
+        this.quickTag.value.stats = undefined;
+        this.quickTag.value.wasLimited = false;
+        this.quickTag.value.tracks = [];
+        this.quickTag.value.failed = [];
+        this.quickTag.value.track.removeAll();
+        this.lock.value.locked = true;
+        let finished = false;
+        const finish = (error?: string) => {
+            if (socket !== this.librarySocket) return;
+            finished = true;
+            this.librarySocket = undefined;
+            this.quickTag.value.loading = false;
+            this.lock.value.locked = false;
+            socket.close();
+            this.onQuickTagEvent('quickTagLoad');
+            if (error) this.onError(error);
+        };
+        socket.onopen = () => socket.send(JSON.stringify({action: 'quickTagLoad', requestId, progressive: true,
+            ...(playlist ? {playlist} : {path: this.settings.value.path}),
+            recursive: this.settings.value.quickTag.recursive,
+            separators: this.settings.value.quickTag.separators, limit}));
+        socket.onmessage = event => {
+            if (socket !== this.librarySocket) return;
+            try {
+                const response = JSON.parse(event.data);
+                // Accept the original single-response protocol from older servers.
+                if (response.action === 'quickTagLoad') {
+                    this.incomingEvent(response);
+                    this.quickTag.value.wasLimited = limit && this.quickTag.value.tracks.length + this.quickTag.value.failed.length === 500;
+                    finish(); return;
+                }
+                if (response.action === 'error') { finish(translateBackendMessage(response)); return; }
+                if (response.requestId !== requestId) return;
+                if (response.action === 'quickTagLoadBatch') {
+                    this.quickTag.value.tracks.push(...response.data.files.map((file: QuickTagFile) => new QTTrack(file, this.settings.value.quickTag)));
+                    this.quickTag.value.failed.push(...response.data.failed);
+                    if (this.quickTag.value.tracks.length) this.lock.value.locked = false;
+                } else if (response.action === 'quickTagLoadDone') {
+                    this.quickTag.value.stats = response.stats;
+                    this.quickTag.value.wasLimited = response.stats?.limited === true;
+                    finish(response.status === 'error' ? translateBackendMessage(response) : undefined);
+                }
+            } catch (error) { finish(String(error)); }
+        };
+        socket.onerror = () => finish(t('core.websocketClosed'));
+        socket.onclose = () => { if (!finished) finish(t('core.websocketClosed')); };
+        this.saveSettings(false);
     }
 
     /// Stop the tagging process
@@ -719,6 +784,7 @@ class OneTagger {
 
     // Handle keydown event for keyboard bindings
     handleKeyDown(event: KeyboardEvent) {
+        if (this.quickTag.value.saving > 0) return false;
         // QT Keybinds
         if (this.quickTag.value.track.hasTracks()) {
             // Arrow keys
@@ -761,7 +827,8 @@ class OneTagger {
 
             // Save
             if (event.code == "KeyS" && (event.ctrlKey || event.metaKey)) {
-                this.saveQTTrack().then(() => {
+                this.saveQTTrack().then(ok => {
+                    if (!ok) return;
                     Notify.create({
                         message: t('core.trackSaved'),
                         timeout: 3000,

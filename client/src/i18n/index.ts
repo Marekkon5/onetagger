@@ -1,34 +1,31 @@
 import { createI18n } from 'vue-i18n';
-import { watch } from 'vue';
-import { Quasar } from 'quasar';
-import enUS from 'quasar/lang/en-US';
-import it from 'quasar/lang/it';
-import fr from 'quasar/lang/fr';
-import nl from 'quasar/lang/nl';
-import de from 'quasar/lang/de';
-import es from 'quasar/lang/es';
-import el from 'quasar/lang/el';
-import ru from 'quasar/lang/ru';
-import ptPT from 'quasar/lang/pt';
-import ptBR from 'quasar/lang/pt-BR';
-import cs from 'quasar/lang/cs';
-import pl from 'quasar/lang/pl';
-import ja from 'quasar/lang/ja';
-import ar from 'quasar/lang/ar';
+import { Quasar, type QuasarLanguage } from 'quasar';
 import { LOCALE_STORAGE_KEY, SUPPORTED_LOCALES, resolveLocale, russianPluralRule, cardinalPluralRule, type SupportedLocale } from './locale';
 
 export { LOCALE_STORAGE_KEY, SUPPORTED_LOCALES, resolveLocale, russianPluralRule };
 export type { SupportedLocale };
 
 type Catalog = Record<string, string>;
-const messages = Object.fromEntries(SUPPORTED_LOCALES.map(locale => [locale, {}])) as
-    Record<SupportedLocale, Record<string, Catalog>>;
-const catalogs = import.meta.glob<Catalog>('../locales/*/*.json', { eager: true, import: 'default' });
-for (const [path, catalog] of Object.entries(catalogs)) {
-    const match = path.match(/\/([a-z]{2}(?:-[A-Z]{2})?)\/([a-zA-Z0-9_-]+)\.json$/);
-    if (!match || !SUPPORTED_LOCALES.includes(match[1] as SupportedLocale)) continue;
-    messages[match[1] as SupportedLocale][match[2]] = catalog;
-}
+type Catalogs = Record<string, Catalog>;
+const messages = Object.fromEntries(SUPPORTED_LOCALES.map(locale => [locale, {}])) as Record<SupportedLocale, Catalogs>;
+// One chunk per language; neither application catalogs nor Quasar packs are eager.
+const catalogs = import.meta.glob<Catalogs>('./catalogs/*.ts', { import: 'default' });
+const packs: Record<SupportedLocale, () => Promise<{ default: QuasarLanguage }>> = {
+    'en': () => import('quasar/lang/en-US'),
+    'it': () => import('quasar/lang/it'),
+    'fr': () => import('quasar/lang/fr'),
+    'nl': () => import('quasar/lang/nl'),
+    'de': () => import('quasar/lang/de'),
+    'es': () => import('quasar/lang/es'),
+    'el': () => import('quasar/lang/el'),
+    'ru': () => import('quasar/lang/ru'),
+    'pt-PT': () => import('quasar/lang/pt'),
+    'pt-BR': () => import('quasar/lang/pt-BR'),
+    'cs': () => import('quasar/lang/cs'),
+    'pl': () => import('quasar/lang/pl'),
+    'ja': () => import('quasar/lang/ja'),
+    'ar': () => import('quasar/lang/ar'),
+};
 
 function initialLocale(): SupportedLocale {
     let saved: string | null = null;
@@ -36,10 +33,6 @@ function initialLocale(): SupportedLocale {
     return resolveLocale(saved, navigator.languages?.length ? navigator.languages : [navigator.language]);
 }
 
-export const quasarLanguagePacks = {
-    en: enUS, it, fr, nl, de, es, el, ru,
-    'pt-PT': ptPT, 'pt-BR': ptBR, cs, pl, ja, ar,
-};
 export const i18n = createI18n({
     legacy: false,
     globalInjection: true,
@@ -61,17 +54,40 @@ function applyDocumentLocale(locale: SupportedLocale): void {
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
 }
 
-applyDocumentLocale(i18n.global.locale.value as SupportedLocale);
-watch(i18n.global.locale, value => {
-    const locale = value as SupportedLocale;
-    applyDocumentLocale(locale);
-    Quasar.lang.set(quasarLanguagePacks[locale]);
-}, { flush: 'sync' });
+const loading = new Map<SupportedLocale, Promise<QuasarLanguage>>();
+let selection = 0;
 
-export function setLocale(value: unknown): void {
-    const locale = resolveLocale(value);
+function loadLocale(locale: SupportedLocale): Promise<QuasarLanguage> {
+    const existing = loading.get(locale);
+    if (existing) return existing;
+    const promise = Promise.all([catalogs[`./catalogs/${locale}.ts`](), packs[locale]()])
+        .then(([catalog, pack]) => {
+            messages[locale] = catalog;
+            i18n.global.setLocaleMessage(locale, catalog);
+            return pack.default;
+        }).catch(error => { loading.delete(locale); throw error; });
+    loading.set(locale, promise);
+    return promise;
+}
+
+export async function initializeI18n(): Promise<QuasarLanguage> {
+    const locale = initialLocale();
+    const [, pack] = await Promise.all([loadLocale('en'), loadLocale(locale)]);
     i18n.global.locale.value = locale;
-    try { window.localStorage.setItem(LOCALE_STORAGE_KEY, locale); } catch { /* Keep the session usable without storage. */ }
+    applyDocumentLocale(locale);
+    return pack;
+}
+
+export async function setLocale(value: unknown): Promise<void> {
+    const locale = resolveLocale(value);
+    const request = ++selection;
+    const pack = await loadLocale(locale);
+    // A slow response cannot undo a later language choice.
+    if (request !== selection) return;
+    i18n.global.locale.value = locale;
+    Quasar.lang.set(pack);
+    applyDocumentLocale(locale);
+    try { window.localStorage.setItem(LOCALE_STORAGE_KEY, locale); } catch { /* Storage may be disabled. */ }
 }
 
 export const localeOptions: { label: string; value: SupportedLocale }[] = [

@@ -1,58 +1,22 @@
+use std::{fs::File, io::BufReader, path::Path, time::Duration};
 use anyhow::Error;
-use std::path::Path;
-use std::fs::File;
-use std::io::BufReader;
-use std::time::Duration;
-use rodio::Source;
-use alac::{Reader, Samples, StreamInfo};
+use rodio::{Decoder, Source, source::SeekError};
 
-pub struct ALACSource {
-    samples: Samples<BufReader<File>, i32>,
-    stream_info: StreamInfo
-}
-
+/// Streaming, seekable ALAC compatibility wrapper.
+pub struct ALACSource { decoder: Decoder<BufReader<File>> }
 impl ALACSource {
-    // Read alac from file
-    pub fn new(path: impl AsRef<Path>) -> Result<ALACSource, Error> {
-        let file = File::open(path)?;
-        let r = BufReader::new(file);
-        let reader = Reader::new(r)?;
-        let stream_info = reader.stream_info().to_owned();
-        Ok(ALACSource {
-            samples: reader.into_samples(),
-            stream_info
-        })
+    pub fn new(path: impl AsRef<Path>) -> Result<Self, Error> {
+        Ok(Self { decoder: Decoder::new(BufReader::new(File::open(path)?))? })
     }
 }
-
-impl Source for ALACSource {
-    fn current_frame_len(&self) -> Option<usize> {
-        None
-    }
-
-    fn channels(&self) -> u16 {
-        self.stream_info.channels() as u16
-    }
-
-    fn sample_rate(&self) -> u32 {
-        self.stream_info.sample_rate()
-    }
-
-    fn total_duration(&self) -> Option<Duration> {
-        None
-    }
-}
-
 impl Iterator for ALACSource {
     type Item = i16;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // Wrapper against samples
-        if let Some(r) = self.samples.next() {
-            if let Ok(s) = r {
-                return Some((s >> 16) as i16);
-            }
-        }
-        None
-    }
+    fn next(&mut self) -> Option<i16> { self.decoder.next() }
+}
+impl Source for ALACSource {
+    fn current_frame_len(&self) -> Option<usize> { self.decoder.current_frame_len() }
+    fn channels(&self) -> u16 { self.decoder.channels() }
+    fn sample_rate(&self) -> u32 { self.decoder.sample_rate() }
+    fn total_duration(&self) -> Option<Duration> { self.decoder.total_duration() }
+    fn try_seek(&mut self, position: Duration) -> Result<(), SeekError> { self.decoder.try_seek(position) }
 }

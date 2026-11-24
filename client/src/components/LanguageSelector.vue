@@ -1,6 +1,7 @@
 <template>
     <q-select
         v-model="locale"
+        :loading="loading"
         data-testid="language-selector"
         :options="localeOptions"
         :label="t('core.language')"
@@ -14,13 +15,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { Notify } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { i18n, localeOptions, setLocale } from '../i18n';
 
 defineProps<{ compact?: boolean }>();
 const { t } = useI18n({ useScope: 'global' });
-const locale = computed({ get: () => i18n.global.locale.value, set: value => setLocale(value) });
+const loading = ref(false);
+let request = 0;
+const locale = computed({ get: () => i18n.global.locale.value, set: async value => {
+    const id = ++request;
+    loading.value = true;
+    try { await setLocale(value); }
+    catch { if (id === request) Notify.create({ type: 'negative', message: t('core.unexpectedError') }); }
+    finally { if (id === request) loading.value = false; }
+} });
 </script>
 
 <style scoped>

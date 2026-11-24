@@ -7,7 +7,7 @@ use std::path::{PathBuf, Path};
 use rodio::{Source, Decoder};
 
 use crate::AudioSource;
-use crate::alac::ALACSource;
+
 
 pub struct MP4Source {
     path: PathBuf,
@@ -43,12 +43,6 @@ impl AudioSource for MP4Source {
     }
 
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
-        // ALAC MP4
-        if self.alac {
-            let alac = ALACSource::new(&self.path)?;
-            return Ok(Box::new(alac));
-        }
-        
         // Symphonia 
         let decoder = Decoder::new_mp4(BufReader::new(File::open(&self.path)?), Mp4Type::M4a)?;
         return Ok(Box::new(decoder));

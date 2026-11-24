@@ -59,8 +59,7 @@ function exit() {
 
 // Save QT and exit
 async function saveExit() {
-    $1t.saveQTTrack();
-    await $1t.quickTag.value.waitForSave();
+    if (!await $1t.saveQTTrack()) return;
     $1t.send('exit');
 }
 
