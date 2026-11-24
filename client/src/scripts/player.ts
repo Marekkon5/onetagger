@@ -1,209 +1,202 @@
-import { get1t, OneTagger } from "./onetagger";
-import { httpUrl, wsUrl } from "./utils";
+import { markRaw } from 'vue';
+import { get1t, type OneTagger } from './onetagger';
+import { httpUrl, wsUrl } from './utils';
+import { Requests } from './requests';
 
 const WAVES = 180;
+interface LoadedTrack { duration: number; title?: string; artists: string[] }
 
 class Player {
-    waveform: number[] = [];
-    playing: boolean = false;
-    position: number = 0;
-    duration: number = 1;
-    volume: number = 0.5;
-    wasPlaying: boolean = false;
+    waveform: number[] = Array(WAVES).fill(0);
+    playing = false;
+    position = 0;
+    duration = 1;
+    volume = 0.5;
+    wasPlaying = false;
     title?: string;
     artists: string[] = [];
-    audio: HTMLAudioElement = new Audio();
+    audio: HTMLAudioElement = markRaw(new Audio());
     path?: string;
-
-    // Using _ instead of private because of reactivity proxy
-    _waveformLock: boolean[] = [];
-    _waveformPath?: string;
-    _playerLoadPromise?: Promise<any>;
-    _playerLoadResolve?: any;
+    _playerLoadPromise?: Promise<boolean>;
+    _requests = markRaw(new Requests<LoadedTrack>());
+    _waveformSocket?: WebSocket;
+    _generation = 0;
+    _wantedPlay = false;
+    _ended = false;
+    _syncRequested = 0;
+    _fallback = false;
+    _starting = false;
 
     constructor($1t: OneTagger) {
-        // Setup
-        this.generateDefaultWaveform();
+        // Read actual playback state. A delayed/background timer must never
+        // advance the track, stop it early, or accumulate an invented position.
         setInterval(() => {
-            if (this.position > this.duration) {
-                // Auto play next track
-                if ($1t.settings.value.autoPlayNext) {
-                    $1t.onQuickTagEvent('changeTrack', { offset: 1 });
-                } else {
-                    this.pause();
-                }
+            if (!this.path) return;
+            if ($1t.settings.value.clientSidePlayer) {
+                this.position = Math.round(this.audio.currentTime * 1000);
+            } else if (this._wantedPlay && $1t.isConnected && performance.now() - this._syncRequested >= 500) {
+                this._syncRequested = performance.now();
+                $1t.send('playerState').catch(() => {});
             }
-
-            if (this.playing)
-                this.position += 150;
-        }, 150);
+        }, 500);
     }
 
-    // Stop & reset player
+    generateDefaultWaveform() { this.waveform = Array(WAVES).fill(0); }
+
     stop() {
-        this.pause();
-        const $1t = get1t();
-        $1t.send('playerStop');
-        this.position = 0;
-        this.duration = 1;
-        this.title = undefined;
-        this.artists = [];
-        this.generateDefaultWaveform();
+        ++this._generation;
+        this._requests.disconnect(new Error('Track changed'));
+        this._waveformSocket?.close(); this._waveformSocket = undefined;
+        this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
+        this._wantedPlay = false; this.wasPlaying = false; this.playing = false;
+        this.path = undefined; this.position = 0; this.duration = 1;
+        this.title = undefined; this.artists = []; this.generateDefaultWaveform();
+        if (get1t().isConnected) get1t().send('playerStop').catch(() => {});
     }
 
-    // Fill waveform array with empty data
-    generateDefaultWaveform() {
-        for (let i=0; i < WAVES; i++) {
-            this.waveform[i] = 0;
+    disconnected() {
+        this._requests.disconnect(new Error('Connection closed'));
+        this._waveformSocket?.close(); this._waveformSocket = undefined;
+        this.audio.pause(); this._wantedPlay = false; this.playing = false;
+    }
+
+    generateWaveform(path: string, generation = this._generation) {
+        this._waveformSocket?.close();
+        const socket = markRaw(new WebSocket(wsUrl()));
+        this._waveformSocket = socket;
+        const requestId = `waveform-${generation}`;
+        socket.onopen = () => {
+            if (generation !== this._generation) { socket.close(); return; }
+            socket.send(JSON.stringify({action: 'waveform', path, requestId}));
+        };
+        socket.onmessage = event => {
+            if (generation !== this._generation) return;
+            try {
+                const message = JSON.parse(event.data);
+                if (message.action === 'waveformDone' && message.requestId === requestId && message.path === path) {
+                    this.waveform = message.waves;
+                    socket.close();
+                } else if (message.action === 'error') socket.close();
+            } catch { socket.close(); }
+        };
+        // A failed waveform never blocks audio or later track selections.
+        socket.onerror = () => socket.close();
+        socket.onclose = () => { if (this._waveformSocket === socket) this._waveformSocket = undefined; };
+    }
+
+    loaded(message: any) {
+        if (message.requestId !== `player-${this._generation}` || message.path !== this.path) return;
+        if (message.status === 'error') {
+            this._requests.finish(message.requestId, message.path, undefined, new Error(message.message));
+            return;
         }
+        this.duration = Math.max(1, message.duration);
+        this.title = message.title; this.artists = message.artists;
+        this._requests.finish(message.requestId, message.path, message);
     }
 
-    // Start generating waveform in background
-    async generateWaveform(path: string) {
-        this._waveformPath = path;
-        // Resolve locks
-        this._waveformLock.push(true);
-        while (this._waveformLock.length > 1) {
-            await new Promise((res) => setTimeout(() => res(null), 50));
-            if (path != this._waveformPath) {
-                this._waveformLock.pop();
-                return;
-            }
-        }
-        await this._generateWaveformInner(path);
+    synced(message: any) {
+        if (get1t().settings.value.clientSidePlayer || !this.path) return;
+        if (Number.isFinite(message.position)) this.position = message.position;
+        this.playing = message.playing === true;
+        if (message.seek && get1t().settings.value.playOnSeek && !this.playing && !message.ended) this.play();
+        if (message.ended && this._wantedPlay && !message.seek) this.ended();
     }
 
-    // Actually generate the waveform
-    async _generateWaveformInner(path: string) {
-        const $1t = get1t();
-        this.generateDefaultWaveform();
-        let waveformIndex = 0;
-        // Separate socket = separate thread
-        let ws = new WebSocket(wsUrl());
-        ws.addEventListener('message', (event) => {
-            // Lock
-            if (this._waveformLock.length > 1) {
-                ws.close();
-                this._waveformLock.pop();
-                return;
-            }
-
-            let json = JSON.parse(event.data);
-            // New wave
-            if (json.action == 'waveformWave') {
-                this.waveform[waveformIndex] = json.wave;
-                waveformIndex++;
-            }
-            // Finish
-            if (json.action == 'waveformDone' || json.action == 'error') {
-                ws.close();
-                this._waveformLock.pop();
-
-                // Autoplay, delay just in case for windows
-                setTimeout(() => {
-                    if ($1t.settings.value.continuePlayback && this.wasPlaying) {
-                        this.play();
-                        this.wasPlaying = false;
-                    }
-                }, 100);
-            }
-            // Will be ignored, just for updating
-            ws.send(JSON.stringify({action: '_waveformRead'}));
-        });
-        // Start loading on connection
-        ws.addEventListener('open', (_) => {
-            ws.send(JSON.stringify({
-                action: 'waveform',
-                path
-            }));
-        });
-
-        // Auto play on unix systems (on Windows it causes errors, because file is read twice)
-        if ($1t.info.value.os != 'windows' && $1t.settings.value.continuePlayback && this.wasPlaying) {
-            this.play();
-            this.wasPlaying = false;
-        }
+    ended() {
+        if (this._ended) return;
+        this._ended = true; this._wantedPlay = false; this.playing = false;
+        this.position = this.duration;
+        if (get1t().settings.value.autoPlayNext) get1t().onQuickTagEvent('changeTrack', {offset: 1});
     }
 
-    // Start playback
     async play() {
         const $1t = get1t();
-
-        // External
         if ($1t.settings.value.externalAudioPlayer) {
-            $1t.send('openFile', { path: this.path });
-            return;
+            await $1t.send('openFile', {path: this.path}); return;
         }
-            
-        // Client side player
+        if (this._playerLoadPromise && !await this._playerLoadPromise) return;
+        this._wantedPlay = true; this._ended = false;
+        const generation = this._generation;
         if ($1t.settings.value.clientSidePlayer) {
-            this.playing = false;
-            this.audio.play();
-            return;
-        }
-
-        // Wait for load
-        if (this._playerLoadPromise) {
-            await this._playerLoadPromise;
-            this._playerLoadPromise = undefined;
-        }
-        // Start playing
-        $1t.send("playerPlay");
-        this.playing = true;
-    }
-
-    // Pause playback
-    pause() {
-        const $1t = get1t();
-        $1t.settings.value.clientSidePlayer ? this.audio.pause() : $1t.send("playerPause");
-        this.playing = false;
-        this.wasPlaying = false;
-    }
-
-    // Seek to position (ms)
-    seek(pos: number) {
-        const $1t = get1t();
-        this.playing = false;
-
-        if ($1t.settings.value.clientSidePlayer) {
-            this.audio.currentTime = pos / 1000.0;
+            if (this._starting) return;
+            this._starting = true;
+            try { await this.audio.play(); }
+            catch (error) {
+                if (generation !== this._generation) return;
+                // Browsers differ in codec support. Unsupported originals get a
+                // bounded, seekable disk preview rather than a full WAV in RAM.
+                if (!this._fallback && this.audio.error) {
+                    this._fallback = true;
+                    this.audio.src = `${httpUrl()}/audio?path=${encodeURIComponent(this.path!)}&transcode=true`;
+                    this.audio.load();
+                    try { await this.audio.play(); return; } catch (failure) { error = failure; }
+                }
+                this._wantedPlay = false; this.playing = false;
+                $1t.onError(String(error));
+            } finally { this._starting = false; }
         } else {
-            $1t.send("playerSeek", { pos })
+            try { await $1t.send('playerPlay'); this.playing = true; }
+            catch (error) { this._wantedPlay = false; $1t.onError(String(error)); }
         }
+    }
+
+    pause() {
+        this._wantedPlay = false; this.wasPlaying = false; this.playing = false;
+        if (get1t().settings.value.clientSidePlayer) this.audio.pause();
+        else if (get1t().isConnected) get1t().send('playerPause').catch(() => {});
+    }
+
+    seek(position: number) {
+        const pos = Math.max(0, Math.min(this.duration, Math.round(position)));
+        this._ended = false;
+        if (get1t().settings.value.clientSidePlayer) {
+            this.audio.currentTime = pos / 1000;
+            if (get1t().settings.value.playOnSeek && this.audio.paused) this.play();
+        } else get1t().send('playerSeek', {pos}).catch(error => get1t().onError(String(error)));
         this.position = pos;
     }
 
-    // Set volume
     setVolume(volume: number | undefined | null) {
-        if (!volume) return;
-        this.audio.volume = volume;
-        get1t().send("playerVolume", {volume});
+        if (volume === undefined || volume === null || !Number.isFinite(volume)) return;
+        this.volume = Math.max(0, Math.min(1, volume));
+        this.audio.volume = this.volume;
+        if (get1t().isConnected) get1t().send('playerVolume', {volume: this.volume}).catch(() => {});
     }
 
-    // Load track to play
     loadTrack(path: string) {
         const $1t = get1t();
-
-        // Setup client-side audio player
+        const resume = $1t.settings.value.continuePlayback && this.wasPlaying;
+        const generation = ++this._generation;
+        this._requests.disconnect(new Error('Track changed'));
+        this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
+        this.playing = false; this._wantedPlay = false; this._ended = false; this._fallback = false; this._starting = false;
+        this.path = path; this.position = 0; this.duration = 1;
+        this.generateDefaultWaveform();
         if ($1t.settings.value.clientSidePlayer) {
-            this.audio.pause();
-            this.playing = false;
-            this.audio = new Audio(`${httpUrl()}/audio?path=${encodeURIComponent(path)}`);
-            this.audio.volume = this.volume;
-            const cb = () => {
-                this.playing = !this.audio.paused;
-                this.position = Math.round(this.audio.currentTime * 1000);
-            }
-            this.audio.addEventListener('playing', cb);
+            const audio = markRaw(new Audio(`${httpUrl()}/audio?path=${encodeURIComponent(path)}`));
+            this.audio = audio; audio.preload = 'none'; audio.volume = this.volume;
+            const update = () => {
+                if (generation !== this._generation) return;
+                this.position = Math.round(audio.currentTime * 1000);
+                this.playing = !audio.paused && !audio.ended;
+            };
+            for (const event of ['playing', 'pause', 'timeupdate', 'seeked']) audio.addEventListener(event, update);
+            audio.addEventListener('ended', () => { if (generation === this._generation) this.ended(); });
+            audio.addEventListener('error', () => {
+                if (generation === this._generation && this._wantedPlay && !this._fallback && !this._starting) this.play();
+            });
+            // Release a previously selected native player without opening an audio device.
+            $1t.send('playerStop').catch(() => {});
         }
-
-        // Server side
-        this._playerLoadPromise = new Promise((res) => this._playerLoadResolve = res);
-        $1t.send("playerLoad", { path });
-        this.generateWaveform(path);
-
-        this.path = path;
+        const requestId = `player-${generation}`;
+        this._playerLoadPromise = this._requests.run(requestId, path,
+            () => $1t.send('playerLoad', {path, requestId, clientSide: $1t.settings.value.clientSidePlayer}), 15000)
+            .then(() => generation === this._generation)
+            .catch(error => { if (generation === this._generation) $1t.onError(String(error)); return false; });
+        this.generateWaveform(path, generation);
+        if (resume) this.play();
+        this.wasPlaying = false;
     }
 }
-
 export { Player, WAVES };

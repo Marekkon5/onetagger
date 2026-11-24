@@ -21,13 +21,13 @@ pub(crate) struct LibraryIndex { connection: Connection, enabled: bool }
 
 fn now() -> i64 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64 }
 
-fn key(path: &Path) -> Result<String, Error> {
+pub(crate) fn key(path: &Path) -> Result<String, Error> {
     // Cache aliases once, but restore the caller's exact path in each response.
     let canonical = dunce::canonicalize(path)?;
     Ok(serde_json::to_string(&canonical)?)
 }
 
-fn fingerprint(path: &Path) -> Result<String, Error> {
+pub(crate) fn fingerprint(path: &Path) -> Result<String, Error> {
     let metadata = fs::metadata(path)?;
     let modified = metadata.modified()?.duration_since(UNIX_EPOCH)?.as_nanos();
     #[cfg(unix)]
@@ -51,6 +51,7 @@ impl LibraryIndex {
                 payload TEXT NOT NULL, accessed INTEGER NOT NULL,
                 PRIMARY KEY(path, separators));
             CREATE INDEX IF NOT EXISTS metadata_accessed ON metadata(accessed);
+            CREATE TABLE IF NOT EXISTS waveforms (path TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, peaks TEXT NOT NULL);
             PRAGMA user_version=1;")?;
         Ok(Self { connection, enabled: true })
     }
@@ -128,10 +129,41 @@ pub(crate) fn invalidate(path: &Path) {
         if !database.exists() { return Ok(()); }
         let Some(key) = key(path).ok() else { return Ok(()); };
         let index = LibraryIndex::open_at(&database)?;
-        index.connection.execute("DELETE FROM metadata WHERE path=?1", [key])?;
+        index.connection.execute("DELETE FROM metadata WHERE path=?1", [&key])?;
+        index.connection.execute("DELETE FROM waveforms WHERE path=?1", [&key])?;
         Ok(())
     })();
     if let Err(error) = result { warn!("Cannot invalidate library index entry: {error}"); }
+}
+
+pub(crate) fn waveform(path: &Path, cancelled: &AtomicBool) -> Result<Vec<f32>, Error> {
+    if cancelled.load(Ordering::Relaxed) { return Err(anyhow!("Waveform cancelled")); }
+    let fingerprint = fingerprint(path)?;
+    let key = key(path)?;
+    let index = LibraryIndex::open().ok();
+    if let Some(index) = &index {
+        let cached: Option<String> = index.connection.query_row(
+            "SELECT peaks FROM waveforms WHERE path=?1 AND fingerprint=?2", params![key, fingerprint],
+            |row| row.get(0)).optional().ok().flatten();
+        if let Some(peaks) = cached.and_then(|value| serde_json::from_str::<Vec<f32>>(&value).ok())
+            .filter(|peaks| peaks.len() == 180 && peaks.iter().all(|value| value.is_finite() && (0.0..=1.0).contains(value))) {
+            return Ok(peaks);
+        }
+    }
+    let peaks = onetagger_player::AudioSources::from_path(path)?.waveform(180, &|| cancelled.load(Ordering::Relaxed))?;
+    if cancelled.load(Ordering::Relaxed) { return Err(anyhow!("Waveform cancelled")); }
+    if crate::library::fingerprint(path)? == fingerprint {
+        if let Some(index) = index {
+            let store = index.connection.execute(
+                "INSERT INTO waveforms(path,fingerprint,peaks) VALUES(?1,?2,?3)
+                 ON CONFLICT(path) DO UPDATE SET fingerprint=excluded.fingerprint,peaks=excluded.peaks",
+                params![key, fingerprint, serde_json::to_string(&peaks)?]);
+            if let Err(error) = store { warn!("Cannot cache waveform: {error}"); }
+            index.connection.execute("DELETE FROM waveforms WHERE rowid IN
+                (SELECT rowid FROM waveforms ORDER BY rowid DESC LIMIT -1 OFFSET 10000)", []).ok();
+        }
+    }
+    Ok(peaks)
 }
 
 fn audio(path: &Path) -> bool {

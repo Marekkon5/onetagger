@@ -13,7 +13,8 @@ import './style/app.scss';
 
 
 async function start() {
-    const [, language] = await Promise.all([establishSession(), initializeI18n()]);
+    const language = await initializeI18n();
+    await establishSession();
     const [{ default: App }, { default: router }, { get1t }] = await Promise.all([
         import('./App.vue'), import('./scripts/router'), import('./scripts/onetagger'),
     ]);

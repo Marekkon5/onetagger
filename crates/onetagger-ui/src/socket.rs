@@ -17,10 +17,10 @@ use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_platforms::spotify::Spotify;
 use onetagger_player::{AudioSources, AudioPlayer};
 use onetagger_shared::{Settings, COMMIT};
-use onetagger_playlist::{UIPlaylist, PLAYLIST_EXTENSIONS, get_files_from_playlist_file};
+use onetagger_playlist::UIPlaylist;
 
 use crate::StartContext;
-use crate::quicktag::{QuickTag, QuickTagFile, QuickTagData};
+use crate::quicktag::{QuickTagFile, QuickTagData};
 use crate::tageditor::TagEditor;
 use crate::browser::{FileBrowser, FolderBrowser};
 use crate::messages::{localized, request_error, UiMessage, UserError};
@@ -94,7 +94,8 @@ enum Action {
     #[serde(rename_all = "camelCase")]
     InstallPlatform { id: String, version: String, is_native: bool },
 
-    Waveform { path: PathBuf },
+    #[serde(rename_all = "camelCase")]
+    Waveform { path: PathBuf, request_id: Option<String> },
     #[serde(rename_all = "camelCase")]
     PlayerLoad { path: PathBuf, request_id: Option<String>, #[serde(default)] client_side: bool },
     PlayerState,
@@ -297,8 +298,8 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             send_socket(websocket, InitData::new(context.start_context.clone())).await.ok();
         },
         Action::Exit => std::process::exit(0),
-        Action::SaveSettings { settings } => Settings::from_ui(&settings).save()?,
-        Action::LoadSettings => match Settings::load() {
+        Action::SaveSettings { settings } => blocking(move || Settings::from_ui(&settings).save()).await?,
+        Action::LoadSettings => match blocking(Settings::load).await {
             Ok(settings) => {
                 send_socket(websocket, json!({
                     "action": "loadSettings",
@@ -332,7 +333,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         // Get 1t Log
         Action::GetLog => {
             log::logger().flush();
-            let log = std::fs::read_to_string(&Settings::get_folder()?.join("onetagger.log"))?;
+            let log = blocking(|| Ok(std::fs::read_to_string(Settings::get_folder()?.join("onetagger.log"))?)).await?;
             send_socket(websocket, json!({
                 "action": "log",
                 "log": log
@@ -478,29 +479,39 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             onetagger_autotag::STOP_TAGGING.store(true, Ordering::SeqCst);
             send_socket(websocket, json!({"action": "stopTagging", "accepted": true})).await?;
         },
-        Action::Waveform { path } => {
-            let source = AudioSources::from_path(&path)?;
-            let (waveform_rx, cancel_tx) = source.generate_waveform(180)?;
-            // Streamed
-            for wave in waveform_rx {
-                send_socket(websocket, json!({
-                    "action": "waveformWave",
-                    "wave": wave
-                })).await.ok();
-                // Check reply
-                if websocket.recv().await.is_none() {
-                    cancel_tx.send(true).ok();
+        Action::Waveform { path, request_id } => {
+            let cancelled = Arc::new(AtomicBool::new(false));
+            let worker_cancelled = cancelled.clone();
+            let reply_path = path.clone();
+            let mut job = tokio::spawn(async move {
+                blocking(move || crate::library::waveform(&path, &worker_cancelled)).await
+            });
+            let waves = loop {
+                tokio::select! {
+                    result = &mut job => break result??,
+                    message = websocket.recv() => if !matches!(message, Some(Ok(Message::Ping(_) | Message::Pong(_)))) {
+                        cancelled.store(true, Ordering::Relaxed); return Ok(());
+                    },
                 }
+            };
+            if request_id.is_some() {
+                send_socket(websocket, json!({"action": "waveformDone", "requestId": request_id,
+                    "path": reply_path, "waves": waves})).await?;
+            } else {
+                // Preserve the old per-bar acknowledgement protocol for older clients.
+                for wave in waves {
+                    send_socket(websocket, json!({"action": "waveformWave", "wave": wave})).await?;
+                    if !matches!(websocket.recv().await, Some(Ok(Message::Text(_)))) { break; }
+                }
+                send_socket(websocket, json!({"action": "waveformDone"})).await?;
             }
-            // Done
-            send_socket(websocket, json!({
-                "action": "waveformDone",
-            })).await.ok();
         },
         // Load player file
         Action::PlayerLoad { path, request_id, client_side } => {
             let player = if client_side { None } else { Some(context.player.get_or_insert_with(AudioPlayer::new).clone()) };
             let volume = context.volume;
+            let reply_id = request_id.clone();
+            let reply_path = path.clone();
             let result = blocking(move || {
                 let source = AudioSources::from_path(&path)?;
                 let duration = source.duration() as u64;
@@ -514,7 +525,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             match result {
                 Ok(response) => send_socket(websocket, response).await?,
                 Err(error) => send_socket(websocket, localized(json!({"action": "playerLoad", "status": "error",
-                    "message": error.to_string()}), UiMessage::RequestFailed { detail: error.to_string() })).await?,
+                    "requestId": reply_id, "path": reply_path, "message": error.to_string()}), UiMessage::RequestFailed { detail: error.to_string() })).await?,
             }
         },
         //  Controls
@@ -595,7 +606,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         // List dir
         Action::QuickTagFolder { path, subdir } => {
-            let (new_path, files) = FileBrowser::list_dir_or_default(path.clone().map(|p| PathBuf::from(p)), subdir, true, false, false)?;
+            let (new_path, files) = blocking(move || FileBrowser::list_dir_or_default(path.map(PathBuf::from), subdir, true, false, false)).await?;
             send_socket(websocket, json!({
                 "action": "quickTagFolder",
                 "files": files,
@@ -630,7 +641,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         Action::TagEditorFolder { path, subdir, recursive } => {
             let recursive = recursive.unwrap_or(false);
-            let (new_path, files) = FileBrowser::list_dir_or_default(path.clone().map(|p| PathBuf::from(p)), subdir, true, true, recursive)?;
+            let (new_path, files) = blocking(move || FileBrowser::list_dir_or_default(path.map(PathBuf::from), subdir, true, true, recursive)).await?;
             send_socket(websocket, json!({
                 "action": "tagEditorFolder",
                 "files": files,
@@ -641,7 +652,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         // Load tags of file
         Action::TagEditorLoad { path } => {
-            let data = TagEditor::load_file(&path)?;
+            let data = blocking(move || TagEditor::load_file(&path)).await?;
             send_socket(websocket, json!({
                 "action": "tagEditorLoad",
                 "data": data
@@ -673,24 +684,22 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         // Generate new names but don't rename
         Action::RenamerPreview { config } => {
-            let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
-            let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
-            let files = renamer.generate(files.take(3), &config).unwrap_or(vec![]);
-            send_socket(websocket, json!({
-                "action": "renamerPreview",
-                "files": files,
-            })).await.ok();
+            let files = blocking(move || {
+                let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
+                let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
+                Ok(renamer.generate(files.take(3), &config).unwrap_or_default())
+            }).await?;
+            send_socket(websocket, json!({"action": "renamerPreview", "files": files})).await?;
         },
         // Start renamer
         Action::RenamerStart { config } => {
-            let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
-            let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
-            let files = renamer.generate(files, &config)?;
-            let report = renamer.rename(&files, &config)?;
-            send_socket(websocket, json!({
-                "action": "renamerDone",
-                "report": report,
-            })).await.ok();
+            let report = blocking(move || {
+                let mut renamer = Renamer::new(TemplateParser::parse(&config.template));
+                let files = AudioFileInfo::load_files_iter(&config.path, config.subfolders, None, None);
+                let files = renamer.generate(files, &config)?;
+                renamer.rename(&files, &config)
+            }).await?;
+            send_socket(websocket, json!({"action": "renamerDone", "report": report})).await?;
         },
         // File browser list dir
         Action::FolderBrowser { path, child , base } => {
@@ -728,7 +737,11 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 onetagger_autotag::manual_tagger(path, &config)
             }).await.unwrap()?;
 
-            for (platform, r) in rx {
+            let (sender, mut results) = tokio::sync::mpsc::channel(8);
+            tokio::task::spawn_blocking(move || {
+                for result in rx { if sender.blocking_send(result).is_err() { break; } }
+            });
+            while let Some((platform, r)) = results.recv().await {
                 match r {
                     Ok(matches) => {
                         send_socket(websocket, json!({
@@ -756,7 +769,12 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         },
         // Apply the tags from manual tagger
         Action::ManualTagApply { matches, path, config } => {
-            match onetagger_autotag::manual_tagger_apply(matches, path, &config) {
+            let result = blocking(move || {
+                let result = onetagger_autotag::manual_tagger_apply(matches, &path, &config);
+                crate::library::invalidate(&path);
+                result
+            }).await;
+            match result {
                 Ok(_) => {
                     send_socket(websocket, json!({
                         "action": "manualTagApplied",
@@ -782,13 +800,14 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             })).await.ok();
         },
         Action::InstallPlatform { id, version, is_native } => {
-            match onetagger_autotag::repo::install_platform(&id, &version, is_native) {
+            let result = blocking(move || onetagger_autotag::repo::install_platform(&id, &version, is_native)).await;
+            match result {
                 Ok(_) => send_socket(websocket, json!({
                     "action": "installPlatform",
                     "status": "ok"
                 })).await.ok(),
                 Err(e) => {
-                    error!("Failed installing platform {id}@{version}: {e}");
+                    error!("Failed installing platform: {e}");
                     send_socket(websocket, localized(json!({
                         "action": "installPlatform",
                         "status": "error",

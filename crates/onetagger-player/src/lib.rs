@@ -35,6 +35,7 @@ impl AudioPlayer {
             };
             let Ok(mut sink) = Sink::try_new(&stream_handle) else { warn!("Cannot open the audio sink"); return; };
             let mut volume = 0.5;
+            let mut position_base = 0;
             let mut source: Option<Box<dyn AudioSource + Send>> = None;
             sink.pause();
             for action in rx {
@@ -49,7 +50,7 @@ impl AudioPlayer {
                             sink.stop();
                             sink = Sink::try_new(&stream_handle)?;
                             sink.set_volume(volume); sink.pause(); sink.append(decoder);
-                            source = Some(next);
+                            source = Some(next); position_base = 0;
                             Ok(())
                         })();
                         reply.send(result.map_err(|error| error.to_string())).ok();
@@ -62,14 +63,16 @@ impl AudioPlayer {
                                 // An exhausted sink no longer owns a decoder. Reopen and
                                 // seek that decoder directly, without decoding the prefix.
                                 let mut decoder = source.get_source()?;
-                                decoder.try_seek(std::time::Duration::from_millis(position))?;
+                                decoder.try_seek(std::time::Duration::from_millis(position)).map_err(|error| anyhow!(error.to_string()))?;
                                 let paused = sink.is_paused();
                                 sink = Sink::try_new(&stream_handle)?;
                                 sink.set_volume(volume);
                                 if paused { sink.pause(); }
                                 sink.append(decoder);
+                                position_base = position;
                             } else {
-                                sink.try_seek(std::time::Duration::from_millis(position))?;
+                                sink.try_seek(std::time::Duration::from_millis(position)).map_err(|error| anyhow!(error.to_string()))?;
+                                position_base = 0;
                             }
                             Ok(PlayerState { position, playing: !sink.is_paused() && !sink.empty(), ended: sink.empty() })
                         })();
@@ -79,7 +82,7 @@ impl AudioPlayer {
                         let ended = source.is_some() && sink.empty();
                         reply.send(PlayerState {
                             position: if ended { source.as_ref().unwrap().duration() as u64 }
-                                else { sink.get_pos().as_millis() as u64 },
+                                else { position_base + sink.get_pos().as_millis() as u64 },
                             playing: !sink.is_paused() && !sink.empty(), ended,
                         }).ok();
                     },
@@ -91,7 +94,7 @@ impl AudioPlayer {
 
     pub fn load_file(&self, source: Box<dyn AudioSource + Send + 'static>) -> Result<(), Error> {
         let (reply, receiver) = channel();
-        self.tx.send(PlayerAction::Load(source, reply))?;
+        self.tx.send(PlayerAction::Load(source, reply)).map_err(|_| anyhow!("Audio output is unavailable"))?;
         receiver.recv_timeout(std::time::Duration::from_secs(10))?.map_err(Error::msg)
     }
     pub fn play(&self) { self.tx.send(PlayerAction::Play).ok(); }
@@ -100,12 +103,12 @@ impl AudioPlayer {
     pub fn stop(&self) { self.tx.send(PlayerAction::Stop).ok(); }
     pub fn seek(&self, position: u64) -> Result<PlayerState, Error> {
         let (reply, receiver) = channel();
-        self.tx.send(PlayerAction::Seek(position, reply))?;
+        self.tx.send(PlayerAction::Seek(position, reply)).map_err(|_| anyhow!("Audio output is unavailable"))?;
         receiver.recv_timeout(std::time::Duration::from_secs(10))?.map_err(Error::msg)
     }
     pub fn state(&self) -> Result<PlayerState, Error> {
         let (reply, receiver) = channel();
-        self.tx.send(PlayerAction::State(reply))?;
+        self.tx.send(PlayerAction::State(reply)).map_err(|_| anyhow!("Audio output is unavailable"))?;
         Ok(receiver.recv_timeout(std::time::Duration::from_secs(2))?)
     }
 }
@@ -201,7 +204,10 @@ pub trait AudioSource {
             .saturating_mul(spec.channels as u128).saturating_mul(2) / 1000;
         if estimated > 1024 * 1024 * 1024 { return Err(anyhow!("Audio preview exceeds the 1 GiB conversion limit")); }
         let mut writer = WavWriter::new(output, spec)?;
-        for sample in source { writer.write_sample(sample)?; }
+        for (index, sample) in source.enumerate() {
+            if index >= 512 * 1024 * 1024 { return Err(anyhow!("Audio preview exceeds the 1 GiB conversion limit")); }
+            writer.write_sample(sample)?;
+        }
         writer.finalize()?;
         Ok(())
     }

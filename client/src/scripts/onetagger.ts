@@ -56,7 +56,9 @@ class OneTagger {
     // Dialog when loading platforms
     loadingPlatformsDialog?: DialogChainObject;
 
-    constructor() {
+    static getInstance(): OneTagger { return OneTagger.instance ?? new OneTagger(); }
+
+    private constructor() {
         // Singleton
         if (OneTagger.instance) {
             return OneTagger.instance;
@@ -110,6 +112,7 @@ class OneTagger {
             this.loadingPlatformsDialog = undefined;
             this.onTagEditorEvent({action: 'tagEditorDisconnected'});
             this.quickTagSaves.disconnect(new Error(t('tools.connectionClosed')));
+            this.player.value.disconnected();
             if (this.reconnectAttempts === 0) this.onError(t('core.websocketClosed'));
             if (this.reconnectAttempts < 5) {
                 this.reconnectTimer = window.setTimeout(() => this.connect(), 250 * 2 ** this.reconnectAttempts++);
@@ -305,22 +308,10 @@ class OneTagger {
                 break;
             // Player load track
             case 'playerLoad':
-                this.player.value.duration = json.duration;
-                this.player.value.position = 0;
-                this.player.value.playing = false;
-                this.player.value.title = json.title;
-                this.player.value.artists = json.artists;
-                // Resolve promise
-                if (this.player.value._playerLoadResolve) {
-                    this.player.value._playerLoadResolve();
-                    this.player.value._playerLoadResolve = undefined;
-                }
+                this.player.value.loaded(json);
                 break;
             case 'playerSync':
-                this.player.value.playing = json.playing;
-                // Play after seeking
-                if (this.settings.value.playOnSeek && !json.playing)
-                    this.player.value.play();
+                this.player.value.synced(json);
                 break;
             // Quicktag
             case 'quickTagLoad':
@@ -922,7 +913,7 @@ interface BrowseEvent {
 
 /// Get OneTagger instance
 function get1t(): OneTagger {
-    return new OneTagger();
+    return OneTagger.getInstance();
 }
 
 export { OneTagger, get1t };

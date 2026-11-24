@@ -15,7 +15,6 @@ use axum::Router;
 use axum::routing::{get, post};
 use axum::middleware;
 use include_dir::Dir;
-use onetagger_player::AudioSources;
 use serde::{Serialize, Deserialize};
 use quicktag::QuickTagFile;
 use tokio::runtime::Builder;
@@ -28,6 +27,7 @@ pub mod quicktag;
 pub mod tageditor;
 pub mod session;
 mod library;
+mod media;
 mod messages;
 
 static CLIENT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../client/dist");
@@ -77,7 +77,7 @@ pub fn prepare_server(context: StartContext) -> Result<impl FnOnce() -> Result<(
 pub(crate) fn router(context: StartContext) -> Router {
     Router::new()
         .route("/thumb", get(get_thumb))
-        .route("/audio", get(get_audio))
+        .route("/audio", get(media::audio))
         .route("/ws", get(get_ws))
         .route("/session", get(|| async { StatusCode::NO_CONTENT }))
         .route_layer(middleware::from_fn_with_state(context.clone(), session::require_session))
@@ -113,36 +113,13 @@ struct GetQueryPath {
 
 /// Serve thumbnail
 async fn get_thumb(Query(GetQueryPath { path }): Query<GetQueryPath>) -> impl IntoResponse {
-    match QuickTagFile::get_art(&path) {
+    match socket::blocking(move || QuickTagFile::get_art(&path)).await {
         Ok(art) => (StatusCode::OK, [(CONTENT_TYPE, "image/jpeg".to_string())], art),
         Err(e) => {
-            warn!("Error loading album art: {} File: {}", e, path);
-            (StatusCode::NOT_FOUND, [(CONTENT_TYPE, "text/plain".to_string())], format!("Error loading album art: {} File: {}", e, path).into_bytes())
+            warn!("Error loading album art: {}", e);
+            (StatusCode::NOT_FOUND, [(CONTENT_TYPE, "text/plain".to_string())], format!("Error loading album art: {}", e).into_bytes())
         }
     }
-}
-
-/// Serve audio
-async fn get_audio(Query(GetQueryPath { path }): Query<GetQueryPath>) -> impl IntoResponse {
-    let data = tokio::task::spawn_blocking(move || {
-        match AudioSources::from_path(&path).map(|s| s.generate_wav()) {
-            Ok(Ok(wav)) => wav,
-            Ok(Err(e)) => {
-                warn!("Failed generating wav: {e}");
-                vec![]
-            },
-            Err(e) => {
-                warn!("Failed opening audio file {path}: {e}");
-                vec![]
-            }
-        }
-    }).await.unwrap_or(vec![]);
-
-    // Empty 404 on error
-    if data.is_empty() {
-        return (StatusCode::NOT_FOUND, [(CONTENT_TYPE, "text/plain")], vec![]);
-    }
-    (StatusCode::OK, [(CONTENT_TYPE, "audio/wav")], data)
 }
 
 /// WS connection
