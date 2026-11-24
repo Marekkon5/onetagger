@@ -1,0 +1,22 @@
+name: Resolve 2.2.0 dependencies
+on:
+  push:
+    branches: [codex/onetagger-2.2.0]
+    paths: [.github/workflows/resolve-220-dependencies.yml]
+permissions:
+  contents: write
+jobs:
+  lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Resolve the intentional SQLite and seekable decoder changes
+        run: |
+          cargo metadata --format-version 1 > /dev/null
+          git diff -- Cargo.lock
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.lock
+          git diff --cached --quiet || git commit -m 'Lock SQLite and seekable audio dependencies for 2.2.0'
+          git push
