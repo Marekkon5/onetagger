@@ -4,6 +4,7 @@ use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
 use crate::AudioSource;
+use lofty::file::AudioFile;
 
 pub struct FLACSource {
     path: PathBuf,
@@ -17,7 +18,7 @@ impl FLACSource {
             duration: 0
         };
         // Get duration from decoder
-        flac.duration = flac.get_source()?.total_duration().ok_or(anyhow!("Missing duration"))?.as_millis();
+        flac.duration = lofty::read_from_path(&path)?.properties().duration().as_millis();
 
         Ok(flac)
     }
@@ -31,6 +32,6 @@ impl AudioSource for FLACSource {
 
     // Get rodio decoder
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
-        Ok(Box::new(Decoder::new_flac(BufReader::new(File::open(&self.path)?))?))
+        Ok(crate::with_duration(Decoder::new_flac(BufReader::new(File::open(&self.path)?))?, self.duration))
     }
 }

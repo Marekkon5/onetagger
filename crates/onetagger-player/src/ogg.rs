@@ -33,7 +33,7 @@ impl AudioSource for OGGSource {
 
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
         // Use rodio vorbis
-        Ok(Box::new(Decoder::new_vorbis(BufReader::new(File::open(&self.path)?))?))
+        Ok(crate::with_duration(Decoder::new_vorbis(BufReader::new(File::open(&self.path)?))?, self.duration.as_millis()))
     }
 }
 

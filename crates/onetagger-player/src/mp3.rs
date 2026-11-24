@@ -31,6 +31,6 @@ impl AudioSource for MP3Source {
 
     // Get rodio decoder
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
-        Ok(Box::new(Decoder::new_mp3(BufReader::new(File::open(&self.path)?))?))
+        Ok(crate::with_duration(Decoder::new_mp3(BufReader::new(File::open(&self.path)?))?, self.duration))
     }
 }

@@ -1,12 +1,14 @@
 use std::{fs::File, io::BufReader, path::Path, time::Duration};
 use anyhow::Error;
 use rodio::{Decoder, Source, source::SeekError};
+use lofty::file::AudioFile;
 
 /// Streaming, seekable ALAC compatibility wrapper.
-pub struct ALACSource { decoder: Decoder<BufReader<File>> }
+pub struct ALACSource { decoder: Box<dyn Source<Item = i16> + Send> }
 impl ALACSource {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, Error> {
-        Ok(Self { decoder: Decoder::new(BufReader::new(File::open(path)?))? })
+        let duration = lofty::read_from_path(&path)?.properties().duration().as_millis();
+        Ok(Self { decoder: crate::with_duration(Decoder::new(BufReader::new(File::open(path)?))?, duration) })
     }
 }
 impl Iterator for ALACSource {

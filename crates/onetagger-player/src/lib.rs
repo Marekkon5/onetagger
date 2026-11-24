@@ -121,6 +121,32 @@ enum PlayerAction {
 }
 
 /// Wrapper for getting audio sources
+// Rodio 0.20.1's Symphonia adapter mis-converts fractional durations (including
+// integer seconds). Keep the existing dependency API, report container metadata,
+// and handle an explicit end seek without using its incorrect duration.
+struct TimedSource<S> { source: S, duration: std::time::Duration, ended: bool }
+impl<S: Source<Item = i16>> Iterator for TimedSource<S> {
+    type Item = i16;
+    fn next(&mut self) -> Option<i16> { if self.ended { None } else { self.source.next() } }
+    fn size_hint(&self) -> (usize, Option<usize>) { if self.ended { (0, Some(0)) } else { self.source.size_hint() } }
+}
+impl<S: Source<Item = i16>> Source for TimedSource<S> {
+    fn current_frame_len(&self) -> Option<usize> { if self.ended { Some(0) } else { self.source.current_frame_len() } }
+    fn channels(&self) -> u16 { self.source.channels() }
+    fn sample_rate(&self) -> u32 { self.source.sample_rate() }
+    fn total_duration(&self) -> Option<std::time::Duration> { Some(self.duration) }
+    fn try_seek(&mut self, position: std::time::Duration) -> Result<(), rodio::source::SeekError> {
+        if position >= self.duration { self.ended = true; return Ok(()); }
+        self.source.try_seek(position)?;
+        self.ended = false;
+        Ok(())
+    }
+}
+pub(crate) fn with_duration<S: Source<Item = i16> + Send + 'static>(source: S, milliseconds: u128)
+    -> Box<dyn Source<Item = i16> + Send> {
+    Box::new(TimedSource { source, duration: std::time::Duration::from_millis(milliseconds.min(u64::MAX as u128) as u64), ended: false })
+}
+
 pub struct AudioSources {}
 impl AudioSources {
     pub fn from_path(path: impl AsRef<Path>) -> Result<Box<dyn AudioSource + Send + 'static>, Error> {
@@ -235,12 +261,18 @@ mod tests {
             let source = AudioSources::from_path(&path).unwrap_or_else(|error| panic!("{name}: {error}"));
             assert!((1900..=2300).contains(&source.duration()), "{name}: unexpected duration {}", source.duration());
             let mut decoder = source.get_source().unwrap_or_else(|error| panic!("{name}: {error}"));
+            assert_eq!(decoder.total_duration().unwrap().as_millis(), source.duration(), "{name}");
             assert_eq!(decoder.channels(), 2, "{name}");
             assert_eq!(decoder.sample_rate(), 44100, "{name}");
             assert!(decoder.by_ref().take(1000).any(|sample| sample != 0), "{name}: silent decoder");
             decoder.try_seek(Duration::from_millis(1800)).unwrap_or_else(|error| panic!("{name}: {error}"));
             let remaining = decoder.count();
             assert!(remaining > 1000 && remaining < 44100, "{name}: seek left {remaining} samples");
+            let mut decoder = source.get_source().unwrap();
+            decoder.try_seek(Duration::from_millis(source.duration() as u64)).unwrap();
+            assert_eq!(decoder.next(), None, "{name}: seeking to the end must exhaust playback");
+            decoder.try_seek(Duration::from_millis(500)).unwrap();
+            assert!(decoder.next().is_some(), "{name}: seeking back must restore playback");
         }
     }
 

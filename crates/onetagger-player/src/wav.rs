@@ -4,6 +4,7 @@ use std::io::BufReader;
 use std::fs::File;
 use rodio::{Source, Decoder};
 use crate::AudioSource;
+use lofty::file::AudioFile;
 
 pub struct WAVSource {
     path: PathBuf,
@@ -17,7 +18,7 @@ impl WAVSource {
             duration: 0
         };
         // Get duration from decoder
-        wav.duration = wav.get_source()?.total_duration().ok_or(anyhow!("Missing duration"))?.as_millis();
+        wav.duration = lofty::read_from_path(&path)?.properties().duration().as_millis();
 
         Ok(wav)
     }
@@ -31,6 +32,6 @@ impl AudioSource for WAVSource {
 
     // Get rodio decoder
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
-        Ok(Box::new(Decoder::new_wav(BufReader::new(File::open(&self.path)?))?))
+        Ok(crate::with_duration(Decoder::new_wav(BufReader::new(File::open(&self.path)?))?, self.duration))
     }
 }

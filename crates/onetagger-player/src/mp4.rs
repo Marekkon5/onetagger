@@ -45,7 +45,7 @@ impl AudioSource for MP4Source {
     fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
         // Symphonia 
         let decoder = Decoder::new_mp4(BufReader::new(File::open(&self.path)?), Mp4Type::M4a)?;
-        return Ok(Box::new(decoder));
+        return Ok(crate::with_duration(decoder, self.duration));
         
     }
 }

@@ -27,6 +27,7 @@ class Player {
     _syncPending = false;
     _fallback = false;
     _starting = false;
+    _playRequest = 0;
 
     constructor($1t: OneTagger) {
         // Read actual playback state. A delayed/background timer must never
@@ -46,7 +47,7 @@ class Player {
     generateDefaultWaveform() { this.waveform = Array(WAVES).fill(0); }
 
     stop() {
-        ++this._generation;
+        ++this._generation; ++this._playRequest;
         this._requests.disconnect(new Error('Track changed'));
         this._waveformSocket?.close(); this._waveformSocket = undefined;
         this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
@@ -57,6 +58,7 @@ class Player {
     }
 
     disconnected() {
+        ++this._playRequest;
         this._requests.disconnect(new Error('Connection closed'));
         this._waveformSocket?.close(); this._waveformSocket = undefined;
         this.audio.pause(); this._wantedPlay = false; this.playing = false; this._syncPending = false;
@@ -115,18 +117,20 @@ class Player {
 
     async play() {
         const $1t = get1t();
+        const request = ++this._playRequest;
+        const generation = this._generation;
         if ($1t.settings.value.externalAudioPlayer) {
             await $1t.send('openFile', {path: this.path}); return;
         }
         if (this._playerLoadPromise && !await this._playerLoadPromise) return;
+        if (request !== this._playRequest || generation !== this._generation) return;
         this._wantedPlay = true; this._ended = false;
-        const generation = this._generation;
         if ($1t.settings.value.clientSidePlayer) {
             if (this._starting) return;
             this._starting = true;
             try { await this.audio.play(); }
             catch (error) {
-                if (generation !== this._generation) return;
+                if (generation !== this._generation || request !== this._playRequest) return;
                 // Browsers differ in codec support. Unsupported originals get a
                 // bounded, seekable disk preview rather than a full WAV in RAM.
                 if (!this._fallback && this.audio.error) {
@@ -135,9 +139,10 @@ class Player {
                     this.audio.load();
                     try { await this.audio.play(); return; } catch (failure) { error = failure; }
                 }
+                if (generation !== this._generation || request !== this._playRequest) return;
                 this._wantedPlay = false; this.playing = false;
                 $1t.onError(String(error));
-            } finally { this._starting = false; }
+            } finally { if (generation === this._generation) this._starting = false; }
         } else {
             if (this.position >= this.duration) this.seek(0);
             try { await $1t.send('playerPlay'); this.playing = true; }
@@ -146,6 +151,7 @@ class Player {
     }
 
     pause() {
+        ++this._playRequest;
         this._wantedPlay = false; this.wasPlaying = false; this.playing = false;
         if (get1t().settings.value.clientSidePlayer) this.audio.pause();
         else if (get1t().isConnected) get1t().send('playerPause').catch(() => {});
@@ -171,7 +177,7 @@ class Player {
     loadTrack(path: string) {
         const $1t = get1t();
         const resume = $1t.settings.value.continuePlayback && this.wasPlaying;
-        const generation = ++this._generation;
+        const generation = ++this._generation; ++this._playRequest;
         this._requests.disconnect(new Error('Track changed'));
         this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
         this.playing = false; this._wantedPlay = false; this._ended = false; this._fallback = false; this._starting = false;
@@ -181,7 +187,7 @@ class Player {
             const audio = markRaw(new Audio(`${httpUrl()}/audio?path=${encodeURIComponent(path)}`));
             this.audio = audio; audio.preload = 'none'; audio.volume = this.volume;
             const update = () => {
-                if (generation !== this._generation) return;
+                if (generation !== this._generation || request !== this._playRequest) return;
                 this.position = Math.round(audio.currentTime * 1000);
                 this.playing = !audio.paused && !audio.ended;
             };
