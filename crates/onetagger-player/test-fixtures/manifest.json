@@ -1,0 +1,34 @@
+{
+  "generator": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "source": "Synthetic 440 Hz sine, 44100 Hz, stereo, two seconds",
+  "files": {
+    "tone.wav": {
+      "bytes": 352878,
+      "sha256": "6d46de8bc0706f450603a243f3578708893dd794bd5baf578785fb5760626762"
+    },
+    "tone.aiff": {
+      "bytes": 352854,
+      "sha256": "d0501be69e9e74b6ab9f85a1cdeb34abc717541b4f85ea35fc67907db3f65fff"
+    },
+    "tone.flac": {
+      "bytes": 33185,
+      "sha256": "ece54cee75d2a1650c4bd42d124470e0918f4aa85054221c7f2bdcde09343034"
+    },
+    "tone.mp3": {
+      "bytes": 33062,
+      "sha256": "060174ff3e3dadbe2a126cb5381f4aaf2fc8061bf8eb151639527f33377bb9b5"
+    },
+    "tone.ogg": {
+      "bytes": 9366,
+      "sha256": "3373b779192653b9d1b850ad4f399799c00c5cee067c0f6f89ba51150d5e2b15"
+    },
+    "tone-aac.m4a": {
+      "bytes": 25491,
+      "sha256": "1748aa87d2c2fe68e462004cf8695d4f3e95f524b8adad53773a26fcdba8476b"
+    },
+    "tone-alac.m4a": {
+      "bytes": 34974,
+      "sha256": "accfb137884fbe86be4a28195d952c75d9457b86ab9eea40fd3798124070be48"
+    }
+  }
+}
