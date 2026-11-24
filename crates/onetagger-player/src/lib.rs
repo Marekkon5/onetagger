@@ -222,3 +222,43 @@ pub trait AudioSource {
 
 pub trait WriteSeek: std::io::Write + std::io::Seek {}
 impl<T: std::io::Write + std::io::Seek> WriteSeek for T {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn each_shipped_decoder_streams_and_seeks_to_the_end_of_a_real_fixture() {
+        for name in ["tone.wav", "tone.aiff", "tone.flac", "tone.mp3", "tone.ogg", "tone-aac.m4a", "tone-alac.m4a"] {
+            let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-fixtures").join(name);
+            let source = AudioSources::from_path(&path).unwrap_or_else(|error| panic!("{name}: {error}"));
+            assert!((1900..=2300).contains(&source.duration()), "{name}: unexpected duration {}", source.duration());
+            let mut decoder = source.get_source().unwrap_or_else(|error| panic!("{name}: {error}"));
+            assert_eq!(decoder.channels(), 2, "{name}");
+            assert_eq!(decoder.sample_rate(), 44100, "{name}");
+            assert!(decoder.by_ref().take(1000).any(|sample| sample != 0), "{name}: silent decoder");
+            decoder.try_seek(Duration::from_millis(1800)).unwrap_or_else(|error| panic!("{name}: {error}"));
+            let remaining = decoder.count();
+            assert!(remaining > 1000 && remaining < 44100, "{name}: seek left {remaining} samples");
+        }
+    }
+
+    struct Alternating;
+    impl AudioSource for Alternating {
+        fn duration(&self) -> u128 { 1000 }
+        fn get_source(&self) -> Result<Box<dyn Source<Item = i16> + Send>, Error> {
+            Ok(Box::new(rodio::buffer::SamplesBuffer::new(1, 8000,
+                (0..8000).map(|index| if index % 2 == 0 { 8192i16 } else { -8192i16 }).collect::<Vec<_>>())))
+        }
+    }
+
+    #[test]
+    fn waveform_uses_energy_without_phase_cancellation_and_obeys_cancellation() {
+        let peaks = Alternating.waveform(4, &|| false).unwrap();
+        assert_eq!(peaks.len(), 4);
+        assert!(peaks.iter().all(|value| (*value - 0.25).abs() < 0.0001));
+        assert!(Alternating.waveform(180, &|| true).is_err());
+        assert!(Alternating.waveform(0, &|| false).is_err());
+    }
+}

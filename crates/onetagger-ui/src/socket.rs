@@ -318,17 +318,12 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         }
         // Browse for folder
         Action::Browse { path, context } => {
-            let mut initial = path.unwrap_or(".".to_string());
-            if initial.is_empty() || !Path::new(&initial).exists() {
-                initial = ".".to_string()
-            }
-            if let Some(path) = tinyfiledialogs::select_folder_dialog("Select path", &initial) {
-                send_socket(websocket, json!({
-                    "action": "browse",
-                    "path": path,
-                    "context": context
-                })).await.ok();
-            }
+            let selected = blocking(move || {
+                let mut initial = path.unwrap_or_else(|| ".".into());
+                if initial.is_empty() || !Path::new(&initial).exists() { initial = ".".into(); }
+                Ok(tinyfiledialogs::select_folder_dialog("Select path", &initial))
+            }).await?;
+            if let Some(path) = selected { send_socket(websocket, json!({"action": "browse", "path": path, "context": context})).await?; }
         },
         // Get 1t Log
         Action::GetLog => {
@@ -344,7 +339,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         Action::OpenSettingsFolder => opener::open(Settings::get_folder()?.to_str().unwrap())?,
         Action::OpenFolder { path } => { opener::open(&path).ok(); },
         Action::OpenFile { path } => { opener::open(&path).ok(); },
-        Action::DeleteFiles { paths } => { trash::delete_all(&paths)?; },
+        Action::DeleteFiles { paths } => { blocking(move || Ok(trash::delete_all(&paths)?)).await?; },
 
         Action::GeneratePlaylist { paths } => {
             let playlist = onetagger_playlist::create_m3u_playlist(&paths.into_iter().map(|i| i.into()).collect::<Vec<_>>());
@@ -558,6 +553,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 let (sender, mut batches) = tokio::sync::mpsc::channel(2);
                 let job = tokio::spawn(async move {
                     blocking(move || {
+                        let limit = if playlist.is_some() || path.as_ref().is_some_and(|path| !Path::new(path).is_dir()) { usize::MAX } else { limit };
                         let files = crate::library::inputs(path, playlist, recursive.unwrap_or(false))?;
                         crate::library::scan(files, &separators, limit, &worker_cancelled,
                             |batch| sender.blocking_send(batch).map_err(|_| anyhow!("Library load cancelled")))
@@ -589,6 +585,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 cancelled.store(true, Ordering::Relaxed);
             } else {
                 let data = blocking(move || {
+                    let limit = if playlist.is_some() || path.as_ref().is_some_and(|path| !Path::new(path).is_dir()) { usize::MAX } else { limit };
                     let files = crate::library::inputs(path, playlist, recursive.unwrap_or(false))?;
                     let mut data = QuickTagData::default();
                     crate::library::scan(files, &separators, limit, &AtomicBool::new(false), |batch| {
@@ -702,29 +699,15 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
             send_socket(websocket, json!({"action": "renamerDone", "report": report})).await?;
         },
         // File browser list dir
-        Action::FolderBrowser { path, child , base } => {
-            // Windows root dir override
-            let path = if cfg!(windows) && path.to_string_lossy() == "/" {
-                if child.is_empty() {
-                    PathBuf::from("/".to_string())
-                } else {
-                    PathBuf::from(format!("{}\\", child))
-                }
-            } else {
-                canonicalize(PathBuf::from(path).join(child))?
-            };
-
-            let e = match base {
-                true => FolderBrowser::generate_base(&path)?,
-                false => FolderBrowser::list_dir(&path)?
-            };
-
-            send_socket(websocket, json!({
-                "action": "folderBrowser",
-                "entry": e,
-                "base": base,
-                "path": path
-            })).await.ok();
+        Action::FolderBrowser { path, child, base } => {
+            let (path, entry) = blocking(move || {
+                let path = if cfg!(windows) && path.to_string_lossy() == "/" {
+                    if child.is_empty() { PathBuf::from("/") } else { PathBuf::from(format!("{child}\\")) }
+                } else { canonicalize(path.join(child))? };
+                let entry = if base { FolderBrowser::generate_base(&path)? } else { FolderBrowser::list_dir(&path)? };
+                Ok((path, entry))
+            }).await?;
+            send_socket(websocket, json!({"action": "folderBrowser", "entry": entry, "base": base, "path": path})).await?;
         },
 
         // Manually tag a file
@@ -881,4 +864,25 @@ mod save_tests {
             assert_eq!(std::fs::read(&path).unwrap(), original);
         }
     }
+    #[test]
+    fn quicktag_save_replies_settle_success_and_failure_with_the_request_and_path() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("track.mp3");
+        std::fs::write(&path, [0u8; 64]).unwrap();
+        let mut value = json!({"action": "quickTagSave", "requestId": "quick-1", "changes": {
+            "path": path, "changes": [{"type": "raw", "tag": "TIT2", "value": ["Title"]},
+            {"type": "raw", "tag": "TPE1", "value": ["Artist"]}],
+            "separators": {"id3": ", ", "vorbis": null, "mp4": ", "}, "id3v24": true}});
+        let Action::QuickTagSave { changes, request_id } = serde_json::from_value(value.clone()).unwrap() else { panic!() };
+        let reply = quick_tag_save_response(&changes, request_id);
+        assert_eq!(reply["status"], "ok"); assert_eq!(reply["requestId"], "quick-1");
+        assert_eq!(reply["path"], json!(path)); assert_eq!(reply["file"]["title"], "Title");
+        value["changes"]["path"] = json!(directory.path().join("missing").join("track.mp3"));
+        let Action::QuickTagSave { changes, request_id } = serde_json::from_value(value).unwrap() else { panic!() };
+        let reply = quick_tag_save_response(&changes, request_id);
+        assert_eq!(reply["action"], "quickTagSaved"); assert_eq!(reply["status"], "error");
+        assert_eq!(reply["requestId"], "quick-1"); assert_eq!(reply["path"], json!(changes.path));
+        assert!(reply["message"].as_str().is_some_and(|message| !message.is_empty()));
+    }
+
 }

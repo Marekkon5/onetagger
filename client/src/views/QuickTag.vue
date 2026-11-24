@@ -68,12 +68,12 @@
         <q-btn flat dense size='sm' @click='$1t.cancelQuickTagLoad()'>{{t('common.cancel')}}</q-btn>
     </div>
     <!-- Rows outside the viewport are recycled in both display modes. -->
-    <q-virtual-scroll v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist'
+    <q-virtual-scroll data-testid='quicktag-list' v-if='$1t.quickTag.value.tracks.length > 0' ref='tracklist'
         :key='$1t.settings.value.quickTag.thinTracks ? "thin" : "full"'
         :items='tracks' :virtual-scroll-item-size='$1t.settings.value.quickTag.thinTracks ? 32 : 116'
         class='tracklist qt-full-height' :class='{"qt-height": $1t.quickTag.value.track}' @scroll='onScroll'>
         <template #default='{ item, index }'>
-            <div :key='item.path' :style='`min-height: ${$1t.settings.value.quickTag.thinTracks ? 32 : 116}px; width: ${tracklistWidth}`'
+            <div data-testid='quicktag-row' :key='item.path' :style='`min-height: ${$1t.settings.value.quickTag.thinTracks ? 32 : 116}px; width: ${tracklistWidth}`'
                 @click='(event: MouseEvent) => trackClick(item, event)'>
                 <QuickTagTileThin v-if='$1t.settings.value.quickTag.thinTracks' :track='item' :odd='index % 2 === 1' />
                 <QuickTagTile v-else :track='item' :no-art-cache='noArtCacheList.includes(item.path)' />
@@ -408,7 +408,7 @@ function filterTracks() {
     })();
 
     // Unselect
-    if ($1t.quickTag.value.track.tracks.some(selected => !t.some(track => track.path === selected.path))) {
+    if (!$1t.quickTag.value.track.isChanged() && $1t.quickTag.value.track.tracks.some(selected => !t.some(track => track.path === selected.path))) {
         $1t.quickTag.value.track.removeAll();
     }
     tracks.value = t;
@@ -502,7 +502,12 @@ window.addEventListener('resize', resizeListener);
 
 // Update track list
 let tracks: Ref<QTTrack[]> = ref([]);
-watch(() => [$1t.quickTag.value.tracks, $1t.quickTag.value.tracks.length], () => filterTracks());
+let filterTimer: ReturnType<typeof setTimeout> | undefined;
+watch(() => [$1t.quickTag.value.tracks, $1t.quickTag.value.tracks.length], () => {
+    // Coalesce fast network batches without postponing the first visible rows.
+    if (filterTimer !== undefined) return;
+    filterTimer = setTimeout(() => { filterTimer = undefined; filterTracks(); }, 50);
+});
 
 /// Index of track for selection cursor
 let selectionCursor = -1;
@@ -636,6 +641,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     $1t.cancelQuickTagLoad();
+    clearTimeout(filterTimer);
     // Save track index if single
     if ($1t.quickTag.value.track.tracks.length == 1) {
         $1t.settings.value.quickTag.trackIndex = $1t.quickTag.value.tracks.findIndex((t) => $1t.quickTag.value.track.tracks[0].path == t.path);

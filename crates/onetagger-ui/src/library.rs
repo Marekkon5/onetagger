@@ -29,7 +29,10 @@ pub(crate) fn key(path: &Path) -> Result<String, Error> {
 
 pub(crate) fn fingerprint(path: &Path) -> Result<String, Error> {
     let metadata = fs::metadata(path)?;
-    let modified = metadata.modified()?.duration_since(UNIX_EPOCH)?.as_nanos();
+    let modified = match metadata.modified()?.duration_since(UNIX_EPOCH) {
+        Ok(duration) => format!("+{}", duration.as_nanos()),
+        Err(error) => format!("-{}", error.duration().as_nanos()),
+    };
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
@@ -196,13 +199,18 @@ pub(crate) struct ScanStats {
     pub limited: bool, pub cancelled: bool, pub elapsed_ms: u128,
 }
 
+struct ScanIndex(Option<LibraryIndex>);
+impl Drop for ScanIndex {
+    fn drop(&mut self) { if let Some(index) = &mut self.0 { index.trim(); } }
+}
+
 pub(crate) fn scan(files: impl Iterator<Item = PathBuf>, separators: &TagSeparators,
     limit: usize, cancelled: &AtomicBool, mut emit: impl FnMut(QuickTagData) -> Result<(), Error>) -> Result<ScanStats, Error> {
     let started = Instant::now();
-    let mut index = match LibraryIndex::open() {
+    let mut index = ScanIndex(match LibraryIndex::open() {
         Ok(index) => Some(index),
         Err(error) => { warn!("Library index unavailable; scanning without cache: {error}"); None },
-    };
+    });
     let mut stats = ScanStats::default();
     let mut batch = QuickTagData::default();
     let mut bytes = 0;
@@ -211,7 +219,7 @@ pub(crate) fn scan(files: impl Iterator<Item = PathBuf>, separators: &TagSeparat
         if cancelled.load(Ordering::Relaxed) { stats.cancelled = true; break; }
         if stats.scanned >= limit { stats.limited = true; break; }
         stats.scanned += 1;
-        let result = match &mut index {
+        let result = match &mut index.0 {
             Some(index) => index.load(&path, separators),
             None => QuickTagFile::from_path(&path, separators).map(|file| (file, false)),
         };
@@ -229,7 +237,6 @@ pub(crate) fn scan(files: impl Iterator<Item = PathBuf>, separators: &TagSeparat
         }
     }
     if !batch.files.is_empty() || !batch.failed.is_empty() { emit(batch)?; }
-    if let Some(index) = &mut index { index.trim(); }
     stats.elapsed_ms = started.elapsed().as_millis();
     Ok(stats)
 }
@@ -256,10 +263,10 @@ mod tests {
         let separators = TagSeparators::default();
         assert!(!index.load(&path, &separators).unwrap().1);
         assert!(index.load(&path, &separators).unwrap().1);
-        track(&path, "A changed, longer title");
+        track(&path, "A changed and longer title");
         let (file, cached) = index.load(&path, &separators).unwrap();
         assert!(!cached);
-        assert_eq!(serde_json::to_value(file).unwrap()["title"], "A changed, longer title");
+        assert_eq!(serde_json::to_value(file).unwrap()["title"], "A changed and longer title");
         assert!(index.load(&path, &separators).unwrap().1);
         fs::remove_file(path.clone()).unwrap();
         assert!(index.load(&path, &separators).is_err());
@@ -297,4 +304,38 @@ mod tests {
         assert!(stats.cancelled);
         assert_eq!(stats.scanned, 0);
     }
+    #[test]
+    #[ignore = "Performance evidence; invoked explicitly on the GitHub Linux runner"]
+    fn library_benchmark() {
+        let directory = tempfile::tempdir().unwrap();
+        let files: Vec<_> = (0..1000).map(|index| {
+            let path = directory.path().join(format!("track-{index}.mp3"));
+            track(&path, &format!("Fixture {index}"));
+            let mut tag = Tag::load_file(&path, false).unwrap();
+            for field in 0..32 { tag.tag_mut().set_raw(&format!("FIXTURE_{field}"), vec![format!("Metadata value {index} {field}")], true); }
+            tag.tag_mut().save_file(&path).unwrap();
+            path
+        }).collect();
+        let mut index = LibraryIndex::open_at(&directory.path().join("benchmark.sqlite")).unwrap();
+        let separators = TagSeparators::default();
+        let mut cold = Vec::new(); let mut warm = Vec::new();
+        for _ in 0..5 {
+            index.connection.execute("DELETE FROM metadata", []).unwrap();
+            let start = Instant::now();
+            for path in &files { assert!(!index.load(path, &separators).unwrap().1); }
+            cold.push(start.elapsed().as_micros());
+            let start = Instant::now();
+            for path in &files { assert!(index.load(path, &separators).unwrap().1); }
+            warm.push(start.elapsed().as_micros());
+        }
+        track(&files[17], "Changed benchmark title");
+        let parsed = files.iter().filter(|path| !index.load(path, &separators).unwrap().1).count();
+        assert_eq!(parsed, 1);
+        let report = serde_json::json!({"files": files.len(), "samples": 5,
+            "coldUs": cold, "warmUs": warm, "parsedAfterOneChange": parsed,
+            "scope": "SQLite metadata reads with real synthetic ID3 tags, warm OS filesystem cache; not provider or rendering throughput"});
+        println!("LIBRARY_BENCHMARK={report}");
+        if let Ok(path) = std::env::var("LIBRARY_BENCHMARK_OUTPUT") { fs::write(path, format!("{report}\n")).unwrap(); }
+    }
+
 }

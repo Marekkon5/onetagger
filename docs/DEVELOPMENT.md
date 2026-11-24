@@ -47,6 +47,14 @@ Only native CI jobs set `CARGO_PROFILE_DEV_DEBUG` and `CARGO_PROFILE_TEST_DEBUG`
 
 Compare cold and warm runs using **Restore Rust dependency cache**, its post-job cleanup/save log (including compressed archive size), and the native job's step durations. The job summary identifies exact hits; a false result can also mean a partial restore, so check the restore log. Test and release compilation HTML reports are available in `cargo-timings-<platform>` artifacts for seven days. They are diagnostic artifacts, not release packages. Runner queue time is separate from compilation time and is not improved by caching. Validate warm-cache gains on GitHub before quoting a speedup.
 
+## Library and audio validation
+
+See [library loading and playback](library-performance.md) for the incremental
+index, loading/save protocol, codec fixtures and the `library-performance`
+artifact. The full native matrix tests real decoding and seeking from the same
+committed synthetic fixtures. Fixture generation and intentional dependency
+resolution run on GitHub; normal validation remains locked and read-only.
+
 ## Frontend development
 
 Start the backend, then run `pnpm --dir client dev`. Vite proxies `/session`, `/ws`, `/audio`, `/thumb`, and `/spotify` to the loopback backend. Open the printed session link with its port changed to 8080, preserving the fragment. The frontend authenticates before mounting. Production and desktop builds use the same session flow.

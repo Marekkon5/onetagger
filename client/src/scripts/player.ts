@@ -24,6 +24,7 @@ class Player {
     _wantedPlay = false;
     _ended = false;
     _syncRequested = 0;
+    _syncPending = false;
     _fallback = false;
     _starting = false;
 
@@ -34,9 +35,10 @@ class Player {
             if (!this.path) return;
             if ($1t.settings.value.clientSidePlayer) {
                 this.position = Math.round(this.audio.currentTime * 1000);
-            } else if (this._wantedPlay && $1t.isConnected && performance.now() - this._syncRequested >= 500) {
-                this._syncRequested = performance.now();
-                $1t.send('playerState').catch(() => {});
+            } else if (this._wantedPlay && !$1t.lock.value.locked && $1t.isConnected &&
+                (!this._syncPending || performance.now() - this._syncRequested >= 5000)) {
+                this._syncRequested = performance.now(); this._syncPending = true;
+                $1t.send('playerState').catch(() => { this._syncPending = false; });
             }
         }, 500);
     }
@@ -57,7 +59,7 @@ class Player {
     disconnected() {
         this._requests.disconnect(new Error('Connection closed'));
         this._waveformSocket?.close(); this._waveformSocket = undefined;
-        this.audio.pause(); this._wantedPlay = false; this.playing = false;
+        this.audio.pause(); this._wantedPlay = false; this.playing = false; this._syncPending = false;
     }
 
     generateWaveform(path: string, generation = this._generation) {
@@ -96,6 +98,7 @@ class Player {
     }
 
     synced(message: any) {
+        this._syncPending = false;
         if (get1t().settings.value.clientSidePlayer || !this.path) return;
         if (Number.isFinite(message.position)) this.position = message.position;
         this.playing = message.playing === true;
@@ -136,6 +139,7 @@ class Player {
                 $1t.onError(String(error));
             } finally { this._starting = false; }
         } else {
+            if (this.position >= this.duration) this.seek(0);
             try { await $1t.send('playerPlay'); this.playing = true; }
             catch (error) { this._wantedPlay = false; $1t.onError(String(error)); }
         }

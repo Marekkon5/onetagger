@@ -41,7 +41,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: client/pnpm-lock.yaml
       - name: Test provider pace and live status counters
-        run: node --experimental-strip-types --test ci/provider_pace.test.ts ci/status_index.test.ts
+        run: node --experimental-strip-types --test ci/provider_pace.test.ts ci/status_index.test.ts ci/requests.test.ts
       - name: Build and typecheck locked frontend
         run: |
           pnpm --dir client install --frozen-lockfile
@@ -196,6 +196,19 @@ jobs:
           retention-days: 30
       - name: Regression tests
         run: cargo test --workspace --all-targets --locked --timings
+      - name: Measure cold and incremental library reads
+        if: runner.os == 'Linux'
+        env:
+          LIBRARY_BENCHMARK_OUTPUT: ${{ runner.temp }}/library-benchmark.json
+        run: cargo test -p onetagger-ui --locked library::tests::library_benchmark -- --ignored --nocapture
+      - name: Retain library performance evidence
+        if: runner.os == 'Linux' && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: library-performance
+          path: ${{ runner.temp }}/library-benchmark.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Check out the pinned Helper importer
         if: runner.os == 'Linux'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
