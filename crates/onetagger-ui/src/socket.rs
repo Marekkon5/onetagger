@@ -505,6 +505,7 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
         Action::PlayerLoad { path, request_id, client_side } => {
             let player = if client_side { None } else { Some(context.player.get_or_insert_with(AudioPlayer::new).clone()) };
             let volume = context.volume;
+            let media = context.start_context.media.clone();
             let reply_id = request_id.clone();
             let reply_path = path.clone();
             let result = blocking(move || {
@@ -514,8 +515,9 @@ async fn handle_message(text: &str, websocket: &mut WebSocket, context: &mut Soc
                 let title = tag.tag().get_field(Field::Title).and_then(|values| values.first().cloned());
                 let artists = tag.tag().get_field(Field::Artist).unwrap_or_default();
                 if let Some(player) = player { player.volume(volume); player.load_file(source)?; }
+                let media_id = client_side.then(|| media.grant(path.clone()));
                 Ok(json!({"action": "playerLoad", "requestId": request_id, "path": path,
-                    "title": title, "artists": artists, "duration": duration}))
+                    "title": title, "artists": artists, "duration": duration, "mediaId": media_id}))
             }).await;
             match result {
                 Ok(response) => send_socket(websocket, response).await?,

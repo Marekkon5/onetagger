@@ -60,7 +60,10 @@ after reconnection: an unconfirmed write may already have reached the file.
 
 ## Audio playback and seeking
 
-With **Client side player** enabled, the browser requests original audio with
+With **Client side player** enabled, a validated track load grants an opaque
+media ID. The authenticated audio endpoint resolves that ID on the server and
+accepts no filesystem path. IDs are local to the running server and retain at
+most 256 recently used selections. The browser requests original audio with
 HTTP byte-range support. Supported codecs can start without a whole-file WAV
 conversion. Browser codec support varies; if the browser cannot decode the
 original, OneTagger prepares a 16-bit WAV preview on disk using bounded-memory

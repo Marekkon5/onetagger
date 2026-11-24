@@ -5,7 +5,7 @@
 - Cache Quick Tag metadata in an incremental, local SQLite index. Re-read changed files, retain existing separator behavior, and fall back to direct reads if the disposable cache is unavailable.
 - Show Quick Tag results progressively with cancellable loading and recycled rows in detailed and compact views. Stop traversal at the normal 500-file cap. Treat search text literally and avoid repeated sorting for each fast batch.
 - Acknowledge Quick Tag writes by request and file. Retain unconfirmed edits after errors or disconnections, and wait for confirmed saves before autosave navigation or exit.
-- Stream original audio to the browser with HTTP byte-range support. Use a bounded disk WAV preview when its codec is unsupported, and avoid opening the server's audio device for browser playback.
+- Stream original audio to the browser with HTTP byte-range support, using server-issued IDs for validated tracks. Use a bounded disk WAV preview when its codec is unsupported, and avoid opening the server's audio device for browser playback.
 - Use streaming, seekable native decoders, including AIFF and ALAC. Cache RMS waveform summaries, cancel obsolete waveform work, follow actual playback position and accept zero volume.
 - Load the selected language and English fallback at startup; fetch other catalogs and Quasar language packs on selection. Keep all 14 interface languages in packaged builds.
 - Stop repeated singleton access from creating extra player instances and timers. Move filesystem, decoder, renaming and manual-result work off network workers with bounded admission.

@@ -4,7 +4,7 @@ import { httpUrl, wsUrl } from './utils';
 import { Requests } from './requests';
 
 const WAVES = 180;
-interface LoadedTrack { duration: number; title?: string; artists: string[] }
+interface LoadedTrack { duration: number; title?: string; artists: string[]; mediaId?: string }
 
 class Player {
     waveform: number[] = Array(WAVES).fill(0);
@@ -25,6 +25,7 @@ class Player {
     _ended = false;
     _syncRequested = 0;
     _syncPending = false;
+    _mediaId?: string;
     _fallback = false;
     _starting = false;
     _playRequest = 0;
@@ -52,7 +53,7 @@ class Player {
         this._waveformSocket?.close(); this._waveformSocket = undefined;
         this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
         this._wantedPlay = false; this.wasPlaying = false; this.playing = false;
-        this.path = undefined; this.position = 0; this.duration = 1;
+        this.path = undefined; this._mediaId = undefined; this.position = 0; this.duration = 1;
         this.title = undefined; this.artists = []; this.generateDefaultWaveform();
         if (get1t().isConnected) get1t().send('playerStop').catch(() => {});
     }
@@ -93,6 +94,14 @@ class Player {
         if (message.status === 'error') {
             this._requests.finish(message.requestId, message.path, undefined, new Error(message.message));
             return;
+        }
+        if (get1t().settings.value.clientSidePlayer) {
+            if (typeof message.mediaId !== 'string' || !message.mediaId) {
+                this._requests.finish(message.requestId, message.path, undefined, new Error('Audio preview is unavailable'));
+                return;
+            }
+            this._mediaId = message.mediaId;
+            this.audio.src = `${httpUrl()}/audio?id=${encodeURIComponent(message.mediaId)}`;
         }
         this.duration = Math.max(1, message.duration);
         this.title = message.title; this.artists = message.artists;
@@ -135,7 +144,7 @@ class Player {
                 // bounded, seekable disk preview rather than a full WAV in RAM.
                 if (!this._fallback && this.audio.error) {
                     this._fallback = true;
-                    this.audio.src = `${httpUrl()}/audio?path=${encodeURIComponent(this.path!)}&transcode=true`;
+                    this.audio.src = `${httpUrl()}/audio?id=${encodeURIComponent(this._mediaId!)}&transcode=true`;
                     this.audio.load();
                     try { await this.audio.play(); return; } catch (failure) { error = failure; }
                 }
@@ -181,10 +190,10 @@ class Player {
         this._requests.disconnect(new Error('Track changed'));
         this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
         this.playing = false; this._wantedPlay = false; this._ended = false; this._fallback = false; this._starting = false;
-        this.path = path; this.position = 0; this.duration = 1;
+        this.path = path; this._mediaId = undefined; this.position = 0; this.duration = 1;
         this.generateDefaultWaveform();
         if ($1t.settings.value.clientSidePlayer) {
-            const audio = markRaw(new Audio(`${httpUrl()}/audio?path=${encodeURIComponent(path)}`));
+            const audio = markRaw(new Audio());
             this.audio = audio; audio.preload = 'none'; audio.volume = this.volume;
             const update = () => {
                 if (generation !== this._generation) return;

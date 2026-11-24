@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::{Arc, LazyLock, Mutex};
 use anyhow::Error;
-use axum::{body::Body, extract::Query, http::{header, HeaderMap, Method, StatusCode}, response::{IntoResponse, Response}};
+use axum::{body::Body, extract::{Query, State}, http::{header, HeaderMap, Method, StatusCode}, response::{IntoResponse, Response}};
 use serde::Deserialize;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use onetagger_player::AudioSources;
@@ -15,8 +15,33 @@ struct PreviewFile { file: Mutex<std::fs::File>, bytes: u64, key: String }
 type Preview = (String, Arc<PreviewFile>, u64);
 static PREVIEWS: LazyLock<Mutex<VecDeque<Preview>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
 
+/// Per-server handles granted only after PlayerLoad validates an audio file.
+/// HTTP parameters never become filesystem paths; old handles are bounded.
+#[derive(Clone, Default)]
+pub(crate) struct MediaFiles(Arc<Mutex<VecDeque<(String, PathBuf)>>>);
+impl std::fmt::Debug for MediaFiles {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { formatter.write_str("MediaFiles([private])") }
+}
+impl MediaFiles {
+    pub(crate) fn grant(&self, path: PathBuf) -> String {
+        let mut files = self.0.lock().unwrap();
+        if let Some(index) = files.iter().position(|entry| entry.1 == path) {
+            let entry = files.remove(index).unwrap(); let id = entry.0.clone(); files.push_back(entry); return id;
+        }
+        let id: String = rand::random::<[u8; 32]>().iter().map(|byte| format!("{byte:02x}")).collect();
+        files.push_back((id.clone(), path));
+        if files.len() > 256 { files.pop_front(); }
+        id
+    }
+    fn resolve(&self, id: &str) -> Option<PathBuf> {
+        let mut files = self.0.lock().unwrap();
+        let index = files.iter().position(|entry| entry.0 == id)?;
+        let entry = files.remove(index).unwrap(); let path = entry.1.clone(); files.push_back(entry); Some(path)
+    }
+}
+
 #[derive(Deserialize)]
-pub(crate) struct AudioQuery { path: PathBuf, #[serde(default)] transcode: bool }
+pub(crate) struct AudioQuery { id: String, #[serde(default)] transcode: bool }
 
 fn mime(path: &std::path::Path) -> Option<&'static str> {
     match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
@@ -111,23 +136,24 @@ impl MediaReader {
     }
 }
 
-pub(crate) async fn audio(Query(query): Query<AudioQuery>, headers: HeaderMap, method: Method) -> Response {
-    match response(query, headers, method).await {
+pub(crate) async fn audio(State(context): State<crate::StartContext>, Query(query): Query<AudioQuery>, headers: HeaderMap, method: Method) -> Response {
+    let Some(path) = context.media.resolve(&query.id) else { return StatusCode::NOT_FOUND.into_response(); };
+    match response(path, query.transcode, headers, method).await {
         Ok(response) => response,
         Err(error) => { warn!("Audio response failed: {error}"); (StatusCode::NOT_FOUND, "Audio unavailable").into_response() },
     }
 }
 
-async fn response(query: AudioQuery, headers: HeaderMap, method: Method) -> Result<Response, Error> {
-    let Some(content_type) = mime(&query.path) else { return Ok(StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response()); };
-    let (mut reader, size, identity) = if query.transcode {
-        let preview = preview(query.path.clone()).await?;
+async fn response(path: PathBuf, transcode: bool, headers: HeaderMap, method: Method) -> Result<Response, Error> {
+    let Some(content_type) = mime(&path) else { return Ok(StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response()); };
+    let (mut reader, size, identity) = if transcode {
+        let preview = preview(path.clone()).await?;
         let size = preview.bytes; let identity = preview.key.clone();
         (MediaReader::Preview { file: preview, offset: 0 }, size, identity)
     } else {
-        let file = tokio::fs::File::open(&query.path).await?;
+        let file = tokio::fs::File::open(&path).await?;
         let metadata = file.metadata().await?;
-        let identity = format!("{:?}:{:?}", query.path, metadata.modified()?);
+        let identity = format!("{:?}:{:?}", path, metadata.modified()?);
         (MediaReader::Original(file), metadata.len(), identity)
     };
     let mut hasher = DefaultHasher::new();
@@ -142,7 +168,7 @@ async fn response(query: AudioQuery, headers: HeaderMap, method: Method) -> Resu
     };
     let (start, length) = bounds.map_or((0, size), |(start, end)| (start, end - start + 1));
     let mut builder = Response::builder().status(if bounds.is_some() { StatusCode::PARTIAL_CONTENT } else { StatusCode::OK })
-        .header(header::CONTENT_TYPE, if query.transcode { "audio/wav" } else { content_type })
+        .header(header::CONTENT_TYPE, if transcode { "audio/wav" } else { content_type })
         .header(header::CONTENT_LENGTH, length).header(header::ACCEPT_RANGES, "bytes").header(header::ETAG, etag);
     if let Some((start, end)) = bounds { builder = builder.header(header::CONTENT_RANGE, format!("bytes {start}-{end}/{size}")); }
     if method == Method::HEAD { return Ok(builder.body(Body::empty())?); }
@@ -181,14 +207,38 @@ mod tests {
         let path = directory.path().join("track.wav");
         std::fs::write(&path, (0u8..100).collect::<Vec<_>>()).unwrap();
         let mut headers = HeaderMap::new(); headers.insert(header::RANGE, "bytes=20-29".parse().unwrap());
-        let reply = response(AudioQuery {path: path.clone(), transcode: false}, headers, Method::GET).await.unwrap();
+        let reply = response(path.clone(), false, headers, Method::GET).await.unwrap();
         assert_eq!(reply.status(), StatusCode::PARTIAL_CONTENT);
         assert_eq!(reply.headers()[header::CONTENT_RANGE], "bytes 20-29/100");
         assert_eq!(axum::body::to_bytes(reply.into_body(), 100).await.unwrap().as_ref(), &(20u8..30).collect::<Vec<_>>());
-        let reply = response(AudioQuery {path, transcode: false}, HeaderMap::new(), Method::HEAD).await.unwrap();
+        let reply = response(path, false, HeaderMap::new(), Method::HEAD).await.unwrap();
         assert_eq!(reply.headers()[header::CONTENT_LENGTH], "100");
         assert!(axum::body::to_bytes(reply.into_body(), 100).await.unwrap().is_empty());
     }
+    #[tokio::test]
+    async fn media_requests_need_a_registered_handle_from_this_server() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("private.wav");
+        std::fs::write(&path, (0u8..100).collect::<Vec<_>>()).unwrap();
+        let context = crate::StartContext::new(false, None, false, false);
+        let id = context.media.grant(path.clone());
+        for (server, candidate) in [
+            (context.clone(), path.to_string_lossy().into_owned()),
+            (crate::StartContext::new(false, None, false, false), id.clone()),
+        ] {
+            let reply = audio(State(server), Query(AudioQuery { id: candidate, transcode: false }), HeaderMap::new(), Method::GET).await;
+            assert_eq!(reply.status(), StatusCode::NOT_FOUND);
+        }
+        let mut headers = HeaderMap::new(); headers.insert(header::RANGE, "bytes=20-29".parse().unwrap());
+        let reply = audio(State(context.clone()), Query(AudioQuery { id: id.clone(), transcode: false }), headers, Method::GET).await;
+        assert_eq!(reply.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(axum::body::to_bytes(reply.into_body(), 100).await.unwrap().as_ref(), &(20u8..30).collect::<Vec<_>>());
+        assert_eq!(context.media.grant(path.clone()), id);
+        for number in 0..256 { context.media.grant(directory.path().join(format!("{number}.wav"))); }
+        assert!(context.media.resolve(&id).is_none(), "Old handles must be evicted");
+        assert_eq!(context.media.0.lock().unwrap().len(), 256);
+    }
+
     #[tokio::test]
     async fn converted_previews_share_a_file_but_keep_range_cursors_independent() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../onetagger-player/test-fixtures/tone.aiff");
@@ -197,7 +247,7 @@ mod tests {
         assert!(Arc::ptr_eq(&first, &second));
         let request = |range: &'static str| {
             let mut headers = HeaderMap::new(); headers.insert(header::RANGE, range.parse().unwrap());
-            response(AudioQuery { path: path.clone(), transcode: true }, headers, Method::GET)
+            response(path.clone(), true, headers, Method::GET)
         };
         let (first, second) = tokio::join!(request("bytes=0-3"), request("bytes=8-11"));
         let first = axum::body::to_bytes(first.unwrap().into_body(), 4).await.unwrap();

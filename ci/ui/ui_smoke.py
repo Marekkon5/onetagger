@@ -14,7 +14,7 @@ from pathlib import Path
 import threading
 import time
 import unittest
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -57,11 +57,13 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 class Backend:
     """Fixture protocol only. Outgoing commands are recorded for assertions."""
-    def __init__(self, base_url, session_status=204, autosave=False, autoplay=False):
+    def __init__(self, base_url, session_status=204, autosave=False, autoplay=False, client_audio=False):
         self.base_url = base_url
         self.session_status = session_status
         self.autosave = autosave
         self.autoplay = autoplay
+        self.client_audio = client_audio
+        self.audio_requests = []
         self.playing = False
         self.end_playback = False
         self.save_failures = 0
@@ -89,6 +91,12 @@ class Backend:
         elif request.url == "https://api.github.com/repos/fantuz/onetagger/releases/latest":
             route.fulfill(json={"tag_name": "v" + (ROOT / "VERSION").read_text().strip(),
                                 "body": "Synthetic release", "html_url": "https://example.invalid/release"})
+        elif request.url.startswith(self.base_url + "/audio?"):
+            self.audio_requests.append(request.url)
+            query = parse_qs(urlsplit(request.url).query)
+            if query == {"id": ["fixture-media"]}:
+                route.fulfill(content_type="audio/wav", body=(ROOT / "crates/onetagger-player/test-fixtures/tone.wav").read_bytes())
+            else: route.fulfill(status=404, body="Invalid synthetic media ID")
         elif request.url.startswith(self.base_url + "/"):
             route.continue_()
         else:
@@ -146,7 +154,7 @@ class Backend:
                     self.library_done()
             elif action == "playerLoad":
                 response = {"action": action, "requestId": data.get("requestId"), "path": data["path"],
-                            "duration": 2000, "title": "Fixture track", "artists": ["Fixture artist"]}
+                            "duration": 2000, "title": "Fixture track", "artists": ["Fixture artist"], "mediaId": "fixture-media"}
             elif action == "waveform":
                 response = {"action": "waveformDone", "requestId": data.get("requestId"), "path": data["path"], "waves": [0.25] * 180}
             elif action == "playerPlay": self.playing = True
@@ -165,11 +173,11 @@ class Backend:
                     ok = self.save_failures == 0
                     self.save_failures = max(0, self.save_failures - 1)
                     response = self.save_response(data, ok)
-            elif action == "loadSettings" and (self.autosave or self.autoplay):
+            elif action == "loadSettings" and (self.autosave or self.autoplay or self.client_audio):
                 # These nested fields are required by the saved-settings decoder.
                 # An empty quickTag object throws before autosave can be restored.
                 response = {"action": action, "settings": {
-                    "path": "/music", "tagEditorAutosave": self.autosave, "autoPlayNext": self.autoplay, "continuePlayback": False, "autoTaggerConfig": {},
+                    "path": "/music", "tagEditorAutosave": self.autosave, "autoPlayNext": self.autoplay, "continuePlayback": False, "clientSidePlayer": self.client_audio, "autoTaggerConfig": {},
                     "audioFeatures": {}, "renamer": {}, "quickTag": {
                         "noteTag": {"tag": {"id3": "COMM", "vorbis": "COMMENT", "mp4": "©cmt"}},
                         "moodTag": {"id3": "TMOO", "vorbis": "MOOD", "mp4": "iTunes:MOOD"},
@@ -248,14 +256,14 @@ class BrowserTests(unittest.TestCase):
         cls.thread.join(timeout=5)
 
     @contextmanager
-    def session(self, status=204, fragment=None, autosave=False, init_script=None, autoplay=False):
+    def session(self, status=204, fragment=None, autosave=False, init_script=None, autoplay=False, client_audio=False):
         context = self.browser.new_context(viewport={"width": 1440, "height": 900},
                                            locale="en-US", timezone_id="UTC", service_workers="block")
         context.tracing.start(screenshots=True, snapshots=True, sources=False)
         page = context.new_page()
         page.set_default_timeout(10000)
         if init_script: page.add_init_script(init_script)
-        backend = Backend(self.base_url, status, autosave, autoplay)
+        backend = Backend(self.base_url, status, autosave, autoplay, client_audio)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.route("**/*", backend.http)
@@ -350,6 +358,18 @@ class BrowserTests(unittest.TestCase):
             backend.acknowledge_next_save()
             expect(page.get_by_role('status')).to_have_count(0)
             expect(page.get_by_text('Track saved!', exact=True)).to_be_visible()
+
+    def test_browser_audio_uses_a_validated_media_id_and_does_not_start_native_playback(self):
+        with self.session(client_audio=True) as (page, backend):
+            backend.quick_tracks = [quick_file()]
+            page.get_by_test_id('nav-quicktag').click()
+            page.get_by_test_id('quicktag-row').get_by_text('Track 00000', exact=True).click()
+            page.get_by_role('button', name='Play', exact=True).click()
+            expect(page.get_by_role('button', name='Pause', exact=True)).to_be_visible()
+            self.assertTrue(backend.audio_requests)
+            self.assertTrue(all(parse_qs(urlsplit(url).query) == {'id': ['fixture-media']} for url in backend.audio_requests))
+            self.assertTrue(any(command['action']=='playerLoad' and command.get('clientSide') for command in backend.commands))
+            self.assertFalse(any(command['action']=='playerPlay' for command in backend.commands))
 
     def test_auto_next_starts_the_next_track_with_continue_playback_disabled(self):
         with self.session(autoplay=True) as (page, backend):
