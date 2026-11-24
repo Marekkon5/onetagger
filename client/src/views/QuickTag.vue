@@ -167,7 +167,7 @@
             
     
     <!-- Save dialog -->
-    <q-dialog v-model='saveDialog' @hide='$1t.cancelPendingQTTrack()'>
+    <q-dialog v-model='saveDialog' :persistent='$1t.quickTag.value.saving > 0' @hide='$1t.cancelPendingQTTrack()'>
         <q-card>
             <q-card-section>
                 <div class='text-h6 text-grey-3'>{{t('quicktag.unsavedChanges')}}</div>
@@ -176,15 +176,15 @@
                 <div class='text-grey-3'>{{t('quicktag.saveChangesQuestion')}}</div>
             </q-card-section>
             <q-card-actions align='right'>
-                <q-btn color='red' flat text @click='saveDialogCallback(false)'>{{t('quicktag.discard')}}</q-btn>
-                <q-btn color='primary' flat text @click='saveDialogCallback(true)' ref='saveButton'>{{t('quicktag.save')}}</q-btn>
+                <q-btn color='red' flat text :disable='$1t.quickTag.value.saving > 0' @click='saveDialogCallback(false)'>{{t('quicktag.discard')}}</q-btn>
+                <q-btn color='primary' flat text :disable='$1t.quickTag.value.saving > 0' @click='saveDialogCallback(true)' ref='saveButton'>{{t('quicktag.save')}}</q-btn>
             </q-card-actions>
         </q-card>
     </q-dialog>
 
     <!-- Note tag dialog -->
     <q-dialog v-model='noteDialog' @show='onNoteDialogShow'>
-        <q-card v-if='$1t.quickTag.value.track'>
+        <q-card v-if='$1t.quickTag.value.track' :inert='$1t.quickTag.value.saving > 0'>
             <q-card-section>
                 <div class='text-h6'>{{t('quicktag.customNote')}}</div>
             </q-card-section>

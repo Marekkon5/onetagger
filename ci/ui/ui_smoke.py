@@ -330,6 +330,27 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(first['changes'], saves[1]['changes'])
             self.assertNotEqual(first['requestId'], saves[1]['requestId'])
 
+    def test_quicktag_popup_cannot_change_genres_during_a_pending_save(self):
+        with self.session() as (page, backend):
+            backend.quick_tracks = [quick_file()]
+            page.get_by_test_id('nav-quicktag').click()
+            page.get_by_test_id('quicktag-row').get_by_text('Track 00000', exact=True).click()
+            page.locator('.moods .q-chip').filter(has_text='Happy').click()
+            page.locator('.genre-bar').get_by_text('Electro', exact=True).hover()
+            choice = page.locator('.q-menu .q-item').filter(has_text='Dubstep')
+            expect(choice).to_be_visible()
+            bounds = choice.bounding_box()
+            backend.hold_saves = True
+            page.keyboard.press('Control+s')
+            expect(page.get_by_role('status')).to_have_text('Saving changes…')
+            # Real pointer input must not edit a popup rendered outside q-layout.
+            page.mouse.click(bounds['x'] + bounds['width']/2, bounds['y'] + bounds['height']/2)
+            expect(choice.locator('.mdi-check')).to_have_count(0)
+            self.assertEqual(len(backend.pending_saves), 1)
+            backend.acknowledge_next_save()
+            expect(page.get_by_role('status')).to_have_count(0)
+            expect(page.get_by_text('Track saved!', exact=True)).to_be_visible()
+
     def test_auto_next_starts_the_next_track_with_continue_playback_disabled(self):
         with self.session(autoplay=True) as (page, backend):
             backend.quick_tracks = [quick_file(0), quick_file(1)]

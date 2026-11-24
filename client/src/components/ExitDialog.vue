@@ -1,6 +1,6 @@
 <template>
-<q-dialog ref='dialogRef'>
-    <q-card class='q-dialog-plugin'>
+<q-dialog ref='dialogRef' :persistent='$1t.quickTag.value.saving > 0'>
+    <q-card class='q-dialog-plugin' :inert='$1t.quickTag.value.saving > 0'>
 
         <q-card-section>
             <div class='text-h6' v-if='isQt'>{{ t('common.unsavedChanges') }}</div>
