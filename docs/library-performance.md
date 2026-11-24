@@ -99,7 +99,7 @@ and language chunk requests. Linux additionally exercises native audio load,
 seek, zero volume and pause through the packaged Wry/WebKitGTK application.
 
 The Linux job runs `library::tests::library_benchmark` separately and retains
-`library-performance`. It compares five cold-index and warm-index passes over
+`library-performance`. It compares five direct-read, cold-index and warm-index passes over
 1,000 synthetic files, then checks that one changed file causes exactly one
 reparse. The operating-system file cache is warm; this is metadata-index evidence,
 not a claim about complete-library, provider or playback throughput. Timings are
