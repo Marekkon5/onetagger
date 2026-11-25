@@ -949,7 +949,10 @@ mod save_tests {
                 assert_eq!(saved.tag().get_rating(), Some(stars), "{name} {editor}");
                 assert_eq!(saved.tag().get_field(Field::Genre).unwrap(), vec![genre], "{name} {editor}");
                 let audio = onetagger_player::AudioSources::from_path(&path).unwrap();
-                assert_eq!(audio.get_source().unwrap().collect::<Vec<_>>(), original_audio, "{name} {editor}: audio changed");
+                let decoded: Vec<_> = audio.get_source().unwrap().collect();
+                assert!(decoded == original_audio,
+                    "{name} {editor}: decoded audio changed ({} vs {} samples, first mismatch {:?})",
+                    decoded.len(), original_audio.len(), decoded.iter().zip(&original_audio).position(|(a, b)| a != b));
                 assert!(held_decoder.next().is_some(), "{name}: old decoder stopped");
                 assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1, "{name}: staging file leaked");
             }

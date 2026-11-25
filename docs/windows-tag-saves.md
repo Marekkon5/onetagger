@@ -38,6 +38,17 @@ compares the complete decoded audio before and after each save, and checks that 
 staging file remains. Unix uses atomic rename; the Windows-specific workaround is
 compiled only on Windows.
 
+The expanded test caught a separate AIFF decoder boundary error in Symphonia
+0.5.5: the SSND parser counts its eight offset/block-size bytes as audio after
+already consuming them. A trailing tag header can consequently be decoded as
+four additional 16-bit samples. Without trailing bytes, the oversized last read
+can discard the final packet. OneTagger presents a corrected SSND length in a
+seekable read-only input view for this pinned decoder. Disk bytes remain unchanged.
+Tests compare the complete AIFF output with the lossless WAV fixture and exercise
+tag growth through both editors.
+
+Reference: [Symphonia 0.5.5 SSND parser](https://github.com/pdeljanov/Symphonia/blob/v0.5.5/symphonia-format-riff/src/aiff/chunks.rs).
+
 If access still fails, try saving a copy in a writable folder and check which
 program or folder policy denies modifying/deleting the original file. The full
 Windows error is required to distinguish that case from decoding or tag parsing.

@@ -40,11 +40,12 @@ jobs:
           node-version: '24'
           cache: pnpm
           cache-dependency-path: client/pnpm-lock.yaml
-      - name: Test provider pace and live status counters
-        run: node --experimental-strip-types --test ci/provider_pace.test.ts ci/status_index.test.ts ci/requests.test.ts
+      - name: Test provider pace, status counters and locale negotiation
+        run: node --experimental-strip-types --test ci/provider_pace.test.ts ci/status_index.test.ts ci/requests.test.ts ci/i18n_runtime.test.ts
       - name: Build and typecheck locked frontend
         run: |
           pnpm --dir client install --frozen-lockfile
+          node ci/i18n_compile.mjs
           pnpm --dir client run build
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -53,6 +54,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           overwrite: true
+
+  localization:
+    name: Localization
+    needs: frontend
+    uses: ./.github/workflows/localization.yml
 
   ui:
     name: Browser UI tests (${{ matrix.os }})
@@ -169,9 +175,10 @@ jobs:
           shared-key: ${{ matrix.os }}-${{ matrix.artifact }}-${{ hashFiles('Cargo.toml', '.cargo/config.toml', 'rust-toolchain.toml') }}
           cache-bin: 'false'
           cache-workspace-crates: 'false'
-          cache-on-failure: 'false'
-          # Save successful PR runs for retries, and master runs for future PRs.
-          # Cleanup/save happens after packaging and artifact uploads.
+          cache-on-failure: 'true'
+          # Retain compiled third-party dependencies even when a later test or
+          # packaging step fails. Workspace crates remain excluded, and the
+          # existing rustc/manifest/environment keys still guard cache reuse.
       # Share the ARM runner allocation with packaging; the other scheduler
       # platforms remain in provider-pipeline.yml.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -361,13 +368,14 @@ jobs:
   checks:
     name: Required checks
     if: always()
-    needs: [frontend, ui, build, release-assets]
+    needs: [frontend, ui, localization, build, release-assets]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every platform to pass
         env:
           FRONTEND: ${{ needs.frontend.result }}
           UI: ${{ needs.ui.result }}
+          LOCALIZATION: ${{ needs.localization.result }}
           BUILD: ${{ needs.build.result }}
           RELEASE_ASSETS: ${{ needs.release-assets.result }}
-        run: test "$FRONTEND" = success && test "$UI" = success && test "$BUILD" = success && test "$RELEASE_ASSETS" = success
+        run: test "$FRONTEND" = success && test "$UI" = success && test "$LOCALIZATION" = success && test "$BUILD" = success && test "$RELEASE_ASSETS" = success

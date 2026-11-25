@@ -10,6 +10,7 @@ use hound::{WavSpec, SampleFormat, WavWriter};
 use rodio::{Sink, Source};
 
 mod decoder;
+mod aiff_input;
 pub mod mp3;
 pub mod mp4;
 pub mod wav;
@@ -253,6 +254,17 @@ mod tests {
             decoder.try_seek(Duration::from_millis(500)).unwrap();
             assert!(decoder.next().is_some(), "{name}: seeking back must restore playback");
         }
+    }
+
+    #[test]
+    fn aiff_preserves_every_pcm_frame_including_the_final_packet() {
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("test-fixtures");
+        let aiff = AudioSources::from_path(fixtures.join("tone.aiff")).unwrap();
+        let wav = AudioSources::from_path(fixtures.join("tone.wav")).unwrap();
+        let expected: Vec<_> = wav.get_source().unwrap().collect();
+        let actual: Vec<_> = aiff.get_source().unwrap().collect();
+        assert_eq!(actual.len(), 44_100 * 2 * 2);
+        assert!(actual == expected, "AIFF PCM differs from the lossless WAV fixture");
     }
 
     struct Alternating;

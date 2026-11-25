@@ -6,6 +6,8 @@
 - Require custom provider compatibility 46 after extending the Rust configuration layout; reject older plugin binaries before passing configuration to them. Custom providers need rebuilding against this source.
 - Address audit findings with cookie 0.18.3, crossbeam-epoch 0.9.20, quinn-udp 0.5.16, rkyv 0.7.46, url 2.5.9, webpki-roots 1.0.10 and rusqlite 0.41.0 / bundled SQLite 3.54.1. The unsupported rkyv 0.7 archive-validation advisory remains transitive through the HTML minifier; see the dependency security assessment.
 - Test repeated QuickTag and Edit Tags saves with open decoders on Linux, Windows and both macOS architectures for MP3, WAV, AIFF, FLAC, Ogg Vorbis, AAC and ALAC. Verify persisted ratings/genres, unchanged decoded audio, Unicode paths and cleanup of staging files.
+- Fix the AIFF decoder reading eight bytes beyond its sound payload, which could play tag headers as four extra samples or lose the final packet without a trailing tag. Correct the pinned demuxer's input length in a read-only view; leave the file and tag writer unchanged.
+- Build the frontend once for packaging, browser and localization checks. Keep localized workflows parallel with native jobs and include them in the Build success gate used for releases. Retain compiled Rust dependencies after failed tests or packaging; keep workspace outputs outside that cache.
 
 ## 2.2.1 — 2026-11-24
 
