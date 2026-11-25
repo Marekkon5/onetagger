@@ -77,7 +77,7 @@ Download the [latest release](https://github.com/fantuz/onetagger/releases/lates
 | macOS Intel (x86-64) | [Application ZIP](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-macos-intel.zip) | [CLI ZIP](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-macos-intel-cli.zip) | [Checksums](https://github.com/fantuz/onetagger/releases/latest/download/SHA256SUMS-macos-intel.txt) |
 | Linux x64 (x86-64) | [Application tar.gz](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-linux-x64.tar.gz) | [CLI tar.gz](https://github.com/fantuz/onetagger/releases/latest/download/OneTagger-linux-x64-cli.tar.gz) | [Checksums](https://github.com/fantuz/onetagger/releases/latest/download/SHA256SUMS-linux-x64.txt) |
 
-Extract ZIP/tar.gz packages before use. Each release includes a `SHA256SUMS-*.txt` file for each platform. Checksums detect download corruption; they are not a publisher signature. Windows packages are not Authenticode signed. macOS packages are not Developer ID signed or notarized; choose the archive matching your processor. Linux packages are built on Ubuntu 24.04 and require compatible glibc, ALSA and WebKitGTK 4.1 runtimes.
+Extract ZIP/tar.gz packages before use. Each release includes a `SHA256SUMS-*.txt` file for each platform. Checksums detect download corruption; they are not a publisher signature. Windows packages are not Authenticode signed. For macOS, choose the archive matching your processor, extract it, and move OneTagger.app to Applications. The release app bundles use ad-hoc signing. macOS may show a Gatekeeper warning when opening a browser-downloaded ZIP's app. Linux packages are built on Ubuntu 24.04 and require compatible glibc, ALSA and WebKitGTK 4.1 runtimes.
 
 The Windows installer checks for the Microsoft Edge WebView2 Runtime and runs
 the bootstrapper when it is missing. The portable Windows desktop executable
@@ -167,6 +167,20 @@ Output will be inside `target\release` folder.
 
 
 ### macOS (Intel or Apple Silicon)
+
+With [Homebrew](https://brew.sh/) and the Xcode Command Line Tools, install the
+macOS desktop app and CLI from source. The first build downloads dependencies
+and compiles OneTagger on your Mac.
+
+```sh
+brew tap fantuz/onetagger https://github.com/fantuz/onetagger
+brew install fantuz/onetagger/onetagger
+onetagger
+```
+
+The formula tracks the tagged release. Launch `onetagger` from Terminal to open
+the desktop window. Use `onetagger-cli --help` for the command-line interface.
+
 
 Install Rust with rustup, Node.js 24, pnpm 10.11.0, and Xcode Command Line Tools.
 Build on the architecture you intend to run; liblzma is compiled from its locked crate source:

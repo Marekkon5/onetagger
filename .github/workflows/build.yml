@@ -299,7 +299,7 @@ jobs:
                       raise SystemExit(f'{binary} depends on an unbundled library: {dependency}')
           PYTHON
           mkdir -p dist
-          ditto -c -k --sequesterRsrc --keepParent target/release/bundle/osx/OneTagger.app dist/OneTagger-${{ matrix.artifact }}.zip
+          bash ci/sign_macos_app.sh target/release/bundle/osx/OneTagger.app dist/OneTagger-${{ matrix.artifact }}.zip
           zip -j dist/OneTagger-${{ matrix.artifact }}-cli.zip target/release/onetagger-cli
       - name: Generate checksums
         run: |

@@ -114,3 +114,10 @@ Artifact downloads require a GitHub login and expire after 14 days. Published re
 ## Repository references
 
 Downloads, build badges, update checks, and support links point to `fantuz/onetagger`. The original project website is labeled as upstream documentation. Original author credits and donation destinations remain intact. SongRec dependencies and the custom-platform catalog still point to their upstream repositories intentionally.
+
+### Homebrew packaging
+
+The project repository is also a Homebrew tap. When preparing a release, update
+the stable tag in `Formula/onetagger.rb` to match `VERSION`. The formula builds
+the frontend and native desktop and CLI executables from that tag. GitHub's
+Homebrew workflow tests the same formula against a source archive of the PR.

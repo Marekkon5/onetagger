@@ -1,5 +1,7 @@
 ## Unreleased (fantuz fork)
 
+## 2.2.2 — 2026-11-25
+
 - Consolidate the eight open Dependabot updates: Wry 0.55.1, webbrowser 1.2.7, clap 4.6.9, minify-html 0.16.5, id3 1.17.4, regex 1.13.2, Vite 8.3.8, Vue 3.5.46, Quasar 2.35.5, vue-i18n 11.4.23 and setup-python 7.1.0. Regenerate both lockfiles on GitHub and retain the existing browser target when upgrading Vite. Compare RustSec and npm advisory reports against the base commit in CI.
 - Add an adjustable provider slowdown (1–10×, default 2×) to Advanced settings and `--provider-slowdown` to the CLI. Apply it to shared request budgets for all twelve built-in providers and to worker limits, including existing profiles and album tagging. Default MusicBrainz requests start at least two seconds apart. Discogs custom rates can lower, but cannot disable, the authenticated/anonymous ceilings.
 - Back off further after repeated 429/503 responses, respect longer Retry-After delays, and stop recursive Musixmatch token requests after a challenge. Refresh status clocks once per second and explain that matching pace includes cache hits and is not an HTTP request counter.
@@ -8,6 +10,10 @@
 - Test repeated QuickTag and Edit Tags saves with open decoders on Linux, Windows and both macOS architectures for MP3, WAV, AIFF, FLAC, Ogg Vorbis, AAC and ALAC. Verify persisted ratings/genres, unchanged decoded audio, Unicode paths and cleanup of staging files.
 - Fix the AIFF decoder reading eight bytes beyond its sound payload, which could play tag headers as four extra samples or lose the final packet without a trailing tag. Correct the pinned demuxer's input length in a read-only view; leave the file and tag writer unchanged.
 - Build the frontend once for packaging, browser and localization checks. Keep localized workflows parallel with native jobs and include them in the Build success gate used for releases. Retain compiled Rust dependencies after failed tests or packaging; keep workspace outputs outside that cache.
+
+- Ad-hoc sign macOS app bundles and verify each final ZIP after extraction. Install the desktop and CLI executables directly from source using the OneTagger Homebrew formula.
+
+[Full changes since v2.2.1](https://github.com/fantuz/onetagger/compare/v2.2.1...v2.2.2)
 
 ## 2.2.1 — 2026-11-24
 
