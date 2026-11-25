@@ -69,8 +69,9 @@ Adding optional serialized fields still changes Rust struct construction: caller
 using a `TaggingStatus` literal must initialize `message_key` and `message_args`
 to `None` when no descriptor is available. Review new constructors when integrating
 other branches. `TaggingStatus` is not part of the custom provider FFI contract.
-`TaggerConfig`, `Track`, provider ABI types and the custom platform compatibility
-version remain unchanged.
+Provider-facing types have a separate compatibility contract. The provider
+slowdown setting extends `TaggerConfig` and requires custom provider ABI 46;
+locale presentation metadata does not control that setting.
 
 Keep these values independent of locale:
 

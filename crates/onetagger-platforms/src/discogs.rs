@@ -5,7 +5,6 @@ use anyhow::Error;
 use std::time::Duration;
 use regex::Regex;
 use chrono::NaiveDate;
-use reqwest::StatusCode;
 use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};
@@ -18,11 +17,28 @@ static PACER: RequestPacer = RequestPacer::new();
 
 pub struct Discogs {
     client: Client,
+    slowdown: u16,
     token: Option<String>,
     // Requests per minute
     pub rate_limit: i16,
     // Masters and releases have independent numeric ID namespaces.
     release_cache: RequestCache<(ReleaseType, i64), ReleaseMaster>,
+}
+
+#[test]
+fn custom_rates_cannot_bypass_the_authenticated_or_anonymous_request_ceiling() {
+    let mut source = Discogs::new();
+    for limit in [-1, 0, 1000] {
+        source.set_rate_limit(limit);
+        assert_eq!(source.rate_limit, 25);
+    }
+    source.set_auth_token("test-token");
+    source.set_rate_limit(-1);
+    assert_eq!(source.rate_limit, 60);
+    source.set_rate_limit(10);
+    assert_eq!(source.rate_limit, 10);
+    source.set_auth_token("");
+    assert_eq!(source.rate_limit, 25);
 }
 
 impl Discogs {
@@ -35,20 +51,24 @@ impl Discogs {
         Discogs {
             client,
             token: None,
+            slowdown: 2,
             rate_limit: 25, 
             release_cache: RequestCache::default(),
         }
     }
 
-    /// Set rate limit, -1 for no rate limit
+    fn rate_ceiling(&self) -> i16 { if self.token.is_some() { 60 } else { 25 } }
+
+    /// Custom limits can lower the published budget, never disable it.
     pub fn set_rate_limit(&mut self, rate_limit: i16) {
-        self.rate_limit = rate_limit;
+        self.rate_limit = if rate_limit <= 0 { self.rate_ceiling() }
+            else { rate_limit.min(self.rate_ceiling()) };
     }
 
     // Set authorization token and update rate limit
     pub fn set_auth_token(&mut self, token: &str) {
-        self.token = Some(token.to_string());
-        self.rate_limit = 60;
+        self.token = if token.trim().is_empty() { None } else { Some(token.to_string()) };
+        self.rate_limit = self.rate_ceiling();
     }
 
     // Check if token is valid
@@ -71,7 +91,7 @@ impl Discogs {
     fn get(&mut self, url: &str, query: Vec<(&str, &str)>) -> Result<Response, Error> {
         COOLDOWN.check()?;
         debug!("Discogs GET {}", url);
-        PACER.wait_per_minute(self.rate_limit);
+        PACER.wait_per_minute(self.rate_limit.clamp(1, self.rate_ceiling()) as u16, self.slowdown);
         // Create request
         let mut request = self.client.get(url).query(&query);
         if self.token.is_some() {
@@ -79,11 +99,9 @@ impl Discogs {
         }
         COOLDOWN.check()?;
         let response = request.send()?;
+        COOLDOWN.check_response(&response, Duration::from_secs(30))?;
         let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
-            .and_then(|header| header.to_str().ok()), Duration::from_secs(10));
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            return Err(COOLDOWN.pause(delay).into());
-        }
+            .and_then(|header| header.to_str().ok()), Duration::from_secs(60));
         let remaining = response.headers().get("X-Discogs-Ratelimit-Remaining")
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.parse::<u32>().ok());
@@ -445,8 +463,10 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let slowdown = config.provider_slowdown();
         let config: DiscogsConfig = config.get_custom("discogs")?;
         let mut discogs = Discogs::new();
+        discogs.slowdown = slowdown;
         discogs.set_auth_token(&config.token);
         match discogs.check_token() {
             Ok(()) => {}
@@ -455,7 +475,7 @@ impl AutotaggerSourceBuilder for DiscogsBuilder {
             Err(error) => return Err(error.context("Discogs token validation failed")),
         }
         if let Some(rl) = config.rate_limit {
-            discogs.set_rate_limit(rl as i16);
+            discogs.set_rate_limit(i16::try_from(rl).unwrap_or(i16::MAX));
         }
         Ok(Box::new(discogs))
     }

@@ -1,6 +1,6 @@
-use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_policy::{PacedRequest, ProviderRequests};
+use crate::cooldown::ProviderCooldown;
 use anyhow::Error;
-use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
 use onetagger_tagger::{supported_tags, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, TaggerConfig, Track, TrackMatch};
 use reqwest::blocking::Client;
@@ -8,10 +8,13 @@ use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use serde::{Serialize, Deserialize};
 
+
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct Bandcamp {
-    client: Client
+    client: Client,
+    slowdown: u16,
 }
 
 impl Bandcamp {
@@ -22,7 +25,7 @@ impl Bandcamp {
             .build()
             .unwrap();
         Bandcamp {
-            client
+            client, slowdown: 2,
         }
     }
 
@@ -36,12 +39,7 @@ impl Bandcamp {
                 "search_filter": "t",
                 "search_text": query
             }))
-            .send()?;
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
-                .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
-            return Err(COOLDOWN.pause(delay).into());
-        }
+            .send_paced(&REQUESTS, self.slowdown)?;
         let result: Value = response.error_for_status()?.json()?;
         Ok(serde_json::from_value(result["auto"]["results"].to_owned())?)
     }
@@ -49,12 +47,7 @@ impl Bandcamp {
     /// Get data from track page
     fn track_page(&self, url: &str) -> Result<BandcampTrack, Error> {
         COOLDOWN.check()?;
-        let response = self.client.get(url).send()?;
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
-                .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
-            return Err(COOLDOWN.pause(delay).into());
-        }
+        let response = self.client.get(url).send_paced(&REQUESTS, self.slowdown)?;
         let response = response.error_for_status()?.text()?;
         // Get <script> tag
         let document = Html::parse_document(&response);
@@ -100,8 +93,10 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
         BandcampBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(Bandcamp::new()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = Bandcamp::new();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

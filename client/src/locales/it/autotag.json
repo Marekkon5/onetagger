@@ -190,5 +190,8 @@
   "retryWait": "Nuovo tentativo tra {seconds} s",
   "rotateProviders": "Alterna il primo servizio tra le tracce",
   "rotateHint": "Inizia ogni traccia dal servizio successivo, poi prova gli altri in ordine.",
-  "recoveredRun": "Connessione ripristinata. La barra di avanzamento e la coda dei tentativi includono le ricerche precedenti."
+  "recoveredRun": "Connessione ripristinata. La barra di avanzamento e la coda dei tentativi includono le ricerche precedenti.",
+  "providerSlowdownValue": "Rallentamento dei provider: {factor}×",
+  "providerSlowdownHint": "Valori maggiori distanziano le richieste e riducono le ricerche simultanee. Predefinito: 2×. Limiti e pause dei provider restano attivi.",
+  "providerPaceHint": "Tentativi di ricerca completati, inclusi i risultati in cache; non richieste HTTP."
 }

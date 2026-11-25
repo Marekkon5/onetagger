@@ -1,3 +1,5 @@
+use crate::cooldown::ProviderCooldown;
+use crate::request_policy::{PacedRequest, ProviderRequests};
 use std::sync::{Arc, Mutex};
 use anyhow::Error;
 use std::time::Duration;
@@ -15,8 +17,12 @@ use crate::request_cache::RequestCache;
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
 
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+
 pub struct Beatport {
     client: Client,
+    slowdown: u16,
     access_token: Arc<Mutex<Option<BeatportOAuth>>>,
     release_cache: RequestCache<i64, BeatportRelease>,
 }
@@ -30,7 +36,7 @@ impl Beatport {
             .build()
             .unwrap();
         Beatport {
-            client, access_token, release_cache: RequestCache::default(),
+            client, access_token, slowdown: 2, release_cache: RequestCache::default(),
         }
     }
 
@@ -43,7 +49,7 @@ impl Beatport {
                 ("page", &page.to_string()),
                 ("per-page", &results_per_page.to_string())
             ])
-            .send()?
+            .send_paced(&REQUESTS, self.slowdown)?
             .text()?;
         
         // Parse JSON
@@ -73,7 +79,7 @@ impl Beatport {
                 "client_secret": "RDUJyAk4zFEGtQ8rsTmylDSfxmALRNBn3D1BsRr7MKi3oa1TL9Mq9QxqUPK7loiumXolEWbJcWa4IGAhtwnTz1cSXClGJ1tkkNCNWwRwjxIKTZJKOJxbwaNt0Rm3WG0v",
                 "grant_type": "client_credentials"
             }))
-            .send()?
+            .send_paced(&REQUESTS, self.slowdown)?
             .error_for_status()?
             .json()?;
         Ok(response)
@@ -120,7 +126,7 @@ impl Beatport {
         let token = self.update_token()?;
         let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/tracks/{}", id))
             .bearer_auth(token)
-            .send()?;
+            .send_paced(&REQUESTS, self.slowdown)?;
 
         // Restricted / deleted track
         if response.status() == StatusCode::FORBIDDEN {
@@ -136,7 +142,7 @@ impl Beatport {
             let token = self.update_token()?;
             let response = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}", id))
                 .bearer_auth(token)
-                .send()?.error_for_status()?.json()?;
+                .send_paced(&REQUESTS, self.slowdown)?.error_for_status()?.json()?;
             Ok(response)
         })
     }
@@ -154,7 +160,7 @@ impl Beatport {
         let token = self.update_token()?;
         let response: BeatportPagination<BeatportTrack> = self.client.get(&format!("https://api.beatport.com/v4/catalog/releases/{}/tracks?per_page=200", id))
             .bearer_auth(token)
-            .send()?.json()?;
+            .send_paced(&REQUESTS, self.slowdown)?.json()?;
         Ok(response.results)
     }
 
@@ -516,8 +522,10 @@ impl AutotaggerSourceBuilder for BeatportBuilder {
         }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(self.source()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = self.source();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

@@ -4,7 +4,7 @@ use anyhow::Error;
 use rodio::{Source, source::SeekError};
 use symphonia::core::{audio::SampleBuffer, codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL},
     errors::Error as DecodeError, formats::{FormatOptions, FormatReader, SeekMode, SeekTo},
-    io::MediaSourceStream, meta::MetadataOptions, probe::Hint, units::{Time, TimeBase}};
+    io::{MediaSource, MediaSourceStream}, meta::MetadataOptions, probe::Hint, units::{Time, TimeBase}};
 
 pub(crate) struct FileDecoder {
     format: Box<dyn FormatReader>, decoder: Box<dyn Decoder>, track: u32,
@@ -16,7 +16,12 @@ impl FileDecoder {
     pub(crate) fn open(path: &Path, milliseconds: u128) -> Result<Self, Error> {
         // File implements MediaSource with its real length. Wrapping a generic
         // Read+Seek in Rodio 0.20 loses that length and disables FLAC seeking.
-        let input = MediaSourceStream::new(Box::new(File::open(path)?), Default::default());
+        let file = File::open(path)?;
+        let aiff = path.extension().and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("aif") || extension.eq_ignore_ascii_case("aiff"));
+        let file: Box<dyn MediaSource> = if aiff { Box::new(crate::aiff_input::AiffInput::new(file)?) }
+            else { Box::new(file) };
+        let input = MediaSourceStream::new(file, Default::default());
         let mut hint = Hint::new();
         if let Some(extension) = path.extension().and_then(|extension| extension.to_str()) { hint.with_extension(extension); }
         let options = FormatOptions { enable_gapless: true, ..Default::default() };

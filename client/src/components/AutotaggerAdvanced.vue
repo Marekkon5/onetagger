@@ -295,6 +295,21 @@
         </q-icon>
     </div>
 
+    <div class='row justify-center' style='max-width: 550px;'>
+        <q-slider
+            v-model='$1t.config.value.providerSlowdown'
+            :min='1' :max='10' :step='1'
+            label label-always
+            class='slider q-mt-xl q-my-sm q-pb-lg col-10'
+            label-text-color='black'
+            :label-value="t('autotag.providerSlowdownValue', { factor: $1t.config.value.providerSlowdown })"
+            data-testid='provider-slowdown'
+        ></q-slider>
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-pt-md q-mx-sm slider-tooltip'>
+            <q-tooltip>{{ t('autotag.providerSlowdownHint') }}</q-tooltip>
+        </q-icon>
+    </div>
+
     <!-- Title cleanup regex -->
     <q-input
         v-model='$1t.config.value.titleRegex'

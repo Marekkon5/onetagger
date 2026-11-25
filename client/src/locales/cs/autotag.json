@@ -190,5 +190,8 @@
   "retryWait": "Další pokus za {seconds} s",
   "rotateProviders": "Střídat prvního poskytovatele mezi skladbami",
   "rotateHint": "Každou skladbu začít u dalšího poskytovatele a ostatní vyzkoušet v pořadí.",
-  "recoveredRun": "Spojení obnoveno. Průběh a fronta opakování zahrnují předchozí hledání."
+  "recoveredRun": "Spojení obnoveno. Průběh a fronta opakování zahrnují předchozí hledání.",
+  "providerSlowdownValue": "Zpomalení poskytovatelů: {factor}×",
+  "providerSlowdownHint": "Vyšší hodnoty prodlužují rozestupy mezi požadavky a snižují počet souběžných úloh. Výchozí: 2×. Limity a čekací doby poskytovatelů vždy platí.",
+  "providerPaceHint": "Dokončené pokusy o vyhledání včetně výsledků z mezipaměti; nikoli požadavky HTTP."
 }

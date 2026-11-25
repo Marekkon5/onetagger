@@ -1,56 +1,12 @@
 name: Localization
 on:
-  pull_request:
-  push:
-    branches: [master]
-  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
-concurrency:
-  group: localization-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
-  catalogs:
-    name: Catalog contracts and localized frontend
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: '3.12'
-      - name: Validate every catalog and named placeholder
-        run: python -m unittest discover -s ci -p test_localization.py -v
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        with:
-          version: '10.11.0'
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-          cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
-      - name: Test locale negotiation and plural rules
-        run: node --experimental-strip-types --test ci/i18n_runtime.test.ts
-      - name: Install locked frontend dependencies
-        run: pnpm --dir client install --frozen-lockfile
-      - name: Compile every message with the locked Vue I18n compiler
-        run: node ci/i18n_compile.mjs
-      - name: Build the shared desktop and browser frontend
-        run: pnpm --dir client run build
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: localized-frontend
-          path: client/dist/
-          if-no-files-found: error
-          retention-days: 7
-          overwrite: true
-
   browsers:
     name: Localized workflows (${{ matrix.os }})
-    needs: catalogs
     strategy:
       fail-fast: false
       matrix:
@@ -69,9 +25,9 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: localized-frontend
+          name: frontend
           path: client/dist
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
           cache: pip

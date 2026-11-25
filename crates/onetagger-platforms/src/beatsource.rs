@@ -1,3 +1,5 @@
+use crate::cooldown::ProviderCooldown;
+use crate::request_policy::{PacedRequest, ProviderRequests};
 use anyhow::Error;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -9,8 +11,12 @@ use serde::{Serialize, Deserialize};
 
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, TrackMatch};
 
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+
 pub struct Beatsource {
     client: Client,
+    slowdown: u16,
     token_manager: BeatsourceTokenManager
 }
 
@@ -22,7 +28,7 @@ impl Beatsource {
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0")
                 .build()
                 .unwrap(),
-            token_manager
+            token_manager, slowdown: 2,
         }
     }
 
@@ -36,7 +42,7 @@ impl Beatsource {
                 ("q", query)
             ])
             .bearer_auth(self.token_manager.token()?)
-            .send()?
+            .send_paced(&REQUESTS, self.slowdown)?
             .json()?;
         Ok(res)
     }
@@ -256,8 +262,10 @@ impl AutotaggerSourceBuilder for BeatsourceBuilder {
         }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(Beatsource::new(self.token_manager.clone())))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = Beatsource::new(self.token_manager.clone());
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

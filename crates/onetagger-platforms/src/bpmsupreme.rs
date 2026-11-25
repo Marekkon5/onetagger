@@ -1,20 +1,22 @@
-use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_policy::{PacedRequest, ProviderRequests};
+use crate::cooldown::ProviderCooldown;
 use anyhow::Error;
-use std::time::Duration;
 use chrono::{DateTime, Utc};
 use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags, TrackMatch};
 use regex::Regex;
-use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 
+
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 struct BPMSupreme {
     client: Client,
+    slowdown: u16,
     library: BPMMusicLibrary
 }
 
@@ -26,7 +28,7 @@ impl BPMSupreme {
         cookie.set_sensitive(true);
         header_map.append("Cookie", cookie);
         BPMSupreme {
-            library,
+            library, slowdown: 2,
             client: Client::builder()
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36.")
                 .default_headers(header_map)
@@ -69,14 +71,9 @@ impl BPMSupreme {
         COOLDOWN.check()?;
         let res = self.client.get(url)
             .query(query)
-            .send()?;
+            .send_paced(&REQUESTS, self.slowdown)?;
 
         // Rate limit
-        if res.status() == StatusCode::TOO_MANY_REQUESTS {
-            let delay = retry_delay(res.headers().get(reqwest::header::RETRY_AFTER)
-                .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
-            return Err(COOLDOWN.pause(delay).into());
-        }
 
         Ok(res.error_for_status()?.json()?)
     }
@@ -228,7 +225,9 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
         let token = BPMSupreme::login(&custom.email, &custom.password)?;
         self.library = custom.library;
         
-        Ok(Box::new(BPMSupreme::new(&token, self.library)))
+        let mut source = BPMSupreme::new(&token, self.library);
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

@@ -51,6 +51,7 @@ class AutotaggerConfig {
     id3v24: boolean = true;
     overwrite: boolean = true;
     threads: number = 16;
+    providerSlowdown: number = 2;
     strictness: number = 0.7;
     mergeGenres: boolean = false;
     albumArtFile: boolean = false;
@@ -98,6 +99,8 @@ class AutotaggerConfig {
     /// Load settings from JSON
     loadSettings(data: any) {
         Object.assign(this, data);
+        const slowdown = Number(data.providerSlowdown ?? 2);
+        this.providerSlowdown = Number.isFinite(slowdown) ? Math.min(10, Math.max(1, Math.round(slowdown))) : 2;
         this.stylesCustomTag = Object.assign(FrameName.same('STYLE'), data.stylesCustomTag);
         this.separators = Object.assign(new Separators(), data.separators);
     }

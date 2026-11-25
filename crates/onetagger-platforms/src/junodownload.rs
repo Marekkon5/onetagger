@@ -1,6 +1,6 @@
-use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_policy::{PacedRequest, ProviderRequests};
+use crate::cooldown::ProviderCooldown;
 use reqwest::blocking::Client;
-use reqwest::StatusCode;
 use scraper::{Html, Selector, ElementRef};
 use chrono::NaiveDate;
 use regex::Regex;
@@ -8,10 +8,13 @@ use std::time::Duration;
 use anyhow::Error;
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
+
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct JunoDownload {
-    client: Client
+    client: Client,
+    slowdown: u16,
 }
 
 impl JunoDownload {
@@ -23,7 +26,7 @@ impl JunoDownload {
             .unwrap();
 
         JunoDownload {
-            client
+            client, slowdown: 2,
         }
     }
 
@@ -34,14 +37,9 @@ impl JunoDownload {
             .get("https://www.junodownload.com/search/")
             .query(&[("q[all][]", query), ("solrorder", "relevancy"), ("items_per_page", "50")])
             .header("Referer", "https://www.junodownload.com/")
-            .send()?;
+            .send_paced(&REQUESTS, self.slowdown)?;
 
         // Rate limitting
-        if response.status() == StatusCode::TOO_MANY_REQUESTS {
-            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
-                .and_then(|header| header.to_str().ok()), Duration::from_secs(2));
-            return Err(COOLDOWN.pause(delay).into());
-        }
 
         let response = response.error_for_status()?;
 
@@ -202,8 +200,10 @@ impl AutotaggerSourceBuilder for JunoDownloadBuilder {
         JunoDownloadBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(JunoDownload::new()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = JunoDownload::new();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

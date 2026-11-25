@@ -1,4 +1,4 @@
-"""Catalog contract checks; the Build and Localization workflows run these on GitHub."""
+"""Catalog contract checks run in the shared Build frontend job on GitHub."""
 import json
 from pathlib import Path
 import re

@@ -190,5 +190,8 @@
   "retryWait": "Nouvel essai dans {seconds} s",
   "rotateProviders": "Alterner le premier fournisseur entre les pistes",
   "rotateHint": "Commencer chaque piste avec le fournisseur suivant, puis essayer les autres dans l’ordre.",
-  "recoveredRun": "Connexion rétablie. La progression et la file de reprise incluent les recherches précédentes."
+  "recoveredRun": "Connexion rétablie. La progression et la file de reprise incluent les recherches précédentes.",
+  "providerSlowdownValue": "Ralentissement des fournisseurs : {factor}×",
+  "providerSlowdownHint": "Une valeur plus élevée espace les requêtes et réduit les tâches simultanées. Par défaut : 2×. Les limites et pauses des fournisseurs restent actives.",
+  "providerPaceHint": "Tentatives de recherche terminées, résultats en cache inclus ; pas des requêtes HTTP."
 }

@@ -23,6 +23,9 @@ export default defineConfig({
         }]))
     },
     build: {
+        // Keep the Vite 6 browser floor when upgrading the build tool. Native
+        // WebKit/WebView2 support must not silently follow Vite's newer default.
+        target: ['chrome87', 'edge88', 'firefox78', 'safari14'],
         assetsInlineLimit: 16 * 1024
     }
 });

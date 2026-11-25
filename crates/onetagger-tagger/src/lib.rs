@@ -44,6 +44,10 @@ pub struct TaggerConfig {
     pub overwrite_tags: Vec<SupportedTag>,
 
     pub threads: u16,
+    /// Multiply provider request intervals and divide worker limits by this factor.
+    /// Old profiles inherit the conservative default instead of bypassing pacing.
+    #[serde(default = "default_provider_slowdown")]
+    pub provider_slowdown: u16,
     /// From 0 to 1
     pub strictness: f64,
     pub merge_genres: bool,
@@ -93,7 +97,35 @@ pub struct TaggerConfig {
     pub spotify: Option<SpotifyConfig>,
 }
 
+fn default_provider_slowdown() -> u16 { 2 }
+
+#[test]
+fn old_profiles_inherit_gentler_pacing_without_allowing_zero_or_unbounded_factors() {
+    let mut value = serde_json::to_value(TaggerConfig::default()).unwrap();
+    value.as_object_mut().unwrap().remove("providerSlowdown");
+    let mut config: TaggerConfig = serde_json::from_value(value).unwrap();
+    assert_eq!(config.provider_slowdown(), 2);
+    assert_eq!(config.worker_limit(0), 8);
+    assert_eq!(config.worker_limit(4), 2);
+    assert_eq!(config.worker_limit(1), 1);
+    config.provider_slowdown = 0;
+    assert_eq!(config.worker_limit(0), 16);
+    config.provider_slowdown = u16::MAX;
+    assert_eq!(config.provider_slowdown(), 10);
+    config.threads = 0;
+    assert_eq!(config.worker_limit(0), 1);
+}
+
 impl TaggerConfig {
+    pub fn provider_slowdown(&self) -> u16 { self.provider_slowdown.clamp(1, 10) }
+
+    /// Keep at least one worker, including for providers that allow only one.
+    pub fn worker_limit(&self, provider_max: u16) -> u16 {
+        let threads = self.threads.max(1);
+        let limit = if provider_max == 0 { threads } else { threads.min(provider_max) };
+        limit.div_ceil(self.provider_slowdown())
+    }
+
     /// Get platform's custom config
     pub fn get_custom<T: DeserializeOwned>(&self, platform_id: &str) -> Result<T, Error> {
         let config = self.custom.get(platform_id).ok_or(anyhow!("Missing {platform_id} custom config!"))?;
@@ -125,6 +157,7 @@ impl Default for TaggerConfig {
         Self {
             platforms: vec!["beatport".to_string()], 
             threads: 16, 
+            provider_slowdown: default_provider_slowdown(),
             strictness: 0.7, 
             path: None, 
             tags: vec![

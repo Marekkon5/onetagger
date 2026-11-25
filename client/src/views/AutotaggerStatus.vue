@@ -101,6 +101,9 @@
                                 :aria-label="t('autotag.providerPace')" data-testid='provider-pace'>
                                 <q-tooltip>{{ t('autotag.providerPace') }}</q-tooltip>
                                 <q-menu max-height='50vh'>
+                                    <div class='q-pa-sm text-caption' style='max-width: 300px;'>
+                                        {{ t('autotag.providerPaceHint') }}
+                                    </div>
                                     <q-list data-testid='provider-pace-list' dense style='min-width: 220px'>
                                         <q-item v-for='pace in providerPaces' :key='pace.id'>
                                             <q-item-section>
@@ -331,7 +334,7 @@ onMounted(() => {
         // Timestamp
         let s = (Date.now() - $1t.taggerStatus.value.started) / 1000;
         time.value = `${Math.floor((s/60))}:${Math.round(s%60).toString().padStart(2, '0')}`;
-    }, 400);
+    }, 1000);
     // Done callback
     $1t.onTaggingDone = (path) => {
         $q.dialog({

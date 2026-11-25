@@ -1,0 +1,99 @@
+//! Admission and response handling for providers without a published lower quota.
+use crate::cooldown::ProviderCooldown;
+use crate::request_pacer::RequestPacer;
+use anyhow::Error;
+use reqwest::blocking::{RequestBuilder, Response};
+use std::time::Duration;
+
+pub(crate) struct ProviderRequests {
+    pacer: RequestPacer,
+    cooldown: &'static ProviderCooldown,
+}
+
+impl ProviderRequests {
+    pub(crate) const fn new(cooldown: &'static ProviderCooldown) -> Self {
+        Self { pacer: RequestPacer::new(), cooldown }
+    }
+}
+
+pub(crate) trait PacedRequest {
+    fn send_paced(self, budget: &ProviderRequests, slowdown: u16) -> Result<Response, Error>;
+}
+
+impl PacedRequest for RequestBuilder {
+    fn send_paced(self, budget: &ProviderRequests, slowdown: u16) -> Result<Response, Error> {
+        budget.cooldown.check()?;
+        // A local safety budget, not a claim about an unpublished service quota.
+        budget.pacer.wait_scaled(Duration::from_millis(250), slowdown);
+        budget.cooldown.check()?;
+        let response = self.send()?;
+        budget.cooldown.check_response(&response, Duration::from_secs(15))?;
+        Ok(response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cooldown::ProviderRateLimited;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    #[test]
+    fn a_retry_after_response_prevents_the_next_http_request() {
+        static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+        let budget = ProviderRequests::new(&COOLDOWN);
+        let server = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/", server.local_addr().unwrap());
+        let client = reqwest::blocking::Client::builder().no_proxy().timeout(Duration::from_secs(10)).build().unwrap();
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                let (mut socket, _) = server.accept().unwrap();
+                let mut bytes = [0; 2048];
+                assert!(socket.read(&mut bytes).unwrap() > 0);
+                socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 120\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+            });
+            let error = client.get(&url).send_paced(&budget, 2).unwrap_err();
+            let limited = error.downcast_ref::<ProviderRateLimited>().unwrap();
+            assert!(!limited.deferred());
+            assert_eq!(limited.retry_after_seconds(), 120);
+        });
+        let error = client.get(&url).send_paced(&budget, 2).unwrap_err();
+        assert!(error.downcast_ref::<ProviderRateLimited>().unwrap().deferred());
+        server.set_nonblocking(true).unwrap();
+        assert_eq!(server.accept().unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+    }
+
+    #[test]
+    fn separate_clients_share_the_scaled_http_request_budget() {
+        static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+        let budget = ProviderRequests::new(&COOLDOWN);
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/", listener.local_addr().unwrap());
+        let before = std::time::Instant::now();
+        let starts = std::thread::scope(|scope| {
+            let server = scope.spawn(|| {
+                let mut starts = vec![];
+                for _ in 0..3 {
+                    let (mut socket, _) = listener.accept().unwrap();
+                    let mut bytes = [0; 2048];
+                    assert!(socket.read(&mut bytes).unwrap() > 0);
+                    starts.push(std::time::Instant::now());
+                    socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+                }
+                starts
+            });
+            let workers: Vec<_> = (0..3).map(|_| scope.spawn(|| {
+                let client = reqwest::blocking::Client::builder().no_proxy().timeout(Duration::from_secs(10)).build().unwrap();
+                client.get(&url).send_paced(&budget, 2).unwrap().error_for_status().unwrap();
+            })).collect();
+            for worker in workers { worker.join().unwrap(); }
+            server.join().unwrap()
+        });
+        // Network arrival timing can be delayed by runner scheduling; the total
+        // must still include two shared 500 ms intervals. Pacer unit tests check
+        // the exact admission intervals independently of TCP scheduling.
+        assert_eq!(starts.len(), 3);
+        assert!(before.elapsed() >= Duration::from_secs(1));
+    }
+}

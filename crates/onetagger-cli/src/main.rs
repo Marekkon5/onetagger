@@ -239,6 +239,10 @@ enum Actions {
         #[clap(long)]
         threads: Option<u16>,
 
+        /// Provider slowdown factor: longer request intervals and fewer workers (default: 2)
+        #[clap(long, value_parser = clap::value_parser!(u16).range(1..=10))]
+        provider_slowdown: Option<u16>,
+
         /// How strict should the matching be? Use: 0 - 100, Default: 80 (%).
         #[clap(long)]
         strictness: Option<u8>,
@@ -411,7 +415,7 @@ impl Actions {
     pub fn get_at_config(&self) -> Result<TaggerConfig, Error> {
         match self {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
-                overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
+                overwrite, threads, provider_slowdown, strictness, album_art_file, merge_genres, camelot, 
                 short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
                 skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform, .. } => {
 
@@ -450,6 +454,9 @@ impl Actions {
                 // Remaining options
                 if let Some(threads) = threads {
                     config.threads = *threads;
+                }
+                if let Some(factor) = provider_slowdown {
+                    config.provider_slowdown = *factor;
                 }
                 if let Some(strictness) = strictness {
                     if *strictness > 100 {

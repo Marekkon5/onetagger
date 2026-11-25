@@ -83,7 +83,7 @@ impl Tagger {
         tx: &Sender<TaggingStatusWrap>, results: &mut TaggingResults,
         report: &mut Option<report::ReportBuilder>, run: &RunTagState, rotate: bool) {
         if files.is_empty() { return; }
-        let threads = usize::from(config.threads).max(1).min(files.len());
+        let threads = usize::from(config.worker_limit(0)).min(files.len());
         // Keep custom plugin libraries alive for the lifetime of their sources.
         let mut platforms = AUTOTAGGER_PLATFORMS.lock().unwrap();
         let mut builders = HashMap::new();
@@ -102,8 +102,7 @@ impl Tagger {
                     }
                 };
                 let info = builder.info();
-                let limit = if info.max_threads == 0 { threads }
-                    else { usize::from(info.max_threads).min(threads) };
+                let limit = usize::from(config.worker_limit(info.max_threads)).min(threads);
                 Some(Provider { id: id.clone(), name: info.name,
                     sources: (0..limit).map(|_| Mutex::new(None)).collect(),
                     builder: Mutex::new(builder) })

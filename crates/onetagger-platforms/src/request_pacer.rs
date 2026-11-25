@@ -8,10 +8,12 @@ impl RequestPacer {
     pub(crate) const fn new() -> Self { Self(Mutex::new(None)) }
 
     /// Pace starts, allowing network time to consume part of the interval.
-    /// A negative custom per-minute limit disables proactive pacing only.
-    pub(crate) fn wait_per_minute(&self, requests: i16) {
-        if requests == -1 { return; }
-        self.wait(Duration::from_secs_f64(60.0 / f64::from(requests.max(1))));
+    pub(crate) fn wait_per_minute(&self, requests: u16, factor: u16) {
+        self.wait_scaled(Duration::from_secs_f64(60.0 / f64::from(requests.max(1))), factor);
+    }
+
+    pub(crate) fn wait_scaled(&self, interval: Duration, factor: u16) {
+        self.wait(interval * u32::from(factor.clamp(1, 10)));
     }
 
     pub(crate) fn wait(&self, interval: Duration) -> Instant {
@@ -45,9 +47,11 @@ mod tests {
         *pacer.0.lock().unwrap() = Some(Instant::now() - Duration::from_secs(5));
         pacer.wait(interval);
         assert!(pacer.0.lock().unwrap().unwrap().elapsed() < Duration::from_secs(2));
-        let before = *pacer.0.lock().unwrap();
-        pacer.wait_per_minute(-1);
-        assert_eq!(*pacer.0.lock().unwrap(), before);
+        // A caller cannot use zero as a way to disable the request floor.
+        let before = pacer.wait(Duration::ZERO);
+        pacer.wait_scaled(interval, 0);
+        assert!(pacer.0.lock().unwrap().unwrap().duration_since(before) >= interval);
+        pacer.wait_per_minute(u16::MAX, 1);
     }
 
     #[test]
