@@ -1,8 +1,6 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use crate::cooldown::ProviderCooldown;
 use anyhow::Error;
-use std::time::Duration;
 use chrono::{DateTime, Utc};
 use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags, TrackMatch};
 use regex::Regex;
@@ -12,7 +10,9 @@ use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 
+
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 struct BPMSupreme {
     client: Client,
@@ -74,7 +74,6 @@ impl BPMSupreme {
             .send_paced(&REQUESTS, self.slowdown)?;
 
         // Rate limit
-        COOLDOWN.check_response(&res, Duration::from_secs(15))?;
 
         Ok(res.error_for_status()?.json()?)
     }

@@ -1,5 +1,3 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
-static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 use crate::cooldown::ProviderCooldown;
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use std::collections::HashMap;
@@ -12,6 +10,9 @@ use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Lyrics, LyricsLine, LyricsLinePart, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, supported_tags, TrackMatch};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 #[derive(Clone)]
 pub struct Musixmatch {

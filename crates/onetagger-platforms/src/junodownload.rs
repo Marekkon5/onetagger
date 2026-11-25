@@ -1,4 +1,3 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use crate::cooldown::ProviderCooldown;
 use reqwest::blocking::Client;
@@ -9,7 +8,9 @@ use std::time::Duration;
 use anyhow::Error;
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
+
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct JunoDownload {
     client: Client,
@@ -39,7 +40,6 @@ impl JunoDownload {
             .send_paced(&REQUESTS, self.slowdown)?;
 
         // Rate limitting
-        COOLDOWN.check_response(&response, Duration::from_secs(15))?;
 
         let response = response.error_for_status()?;
 

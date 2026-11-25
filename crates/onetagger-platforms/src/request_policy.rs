@@ -50,7 +50,7 @@ mod tests {
             scope.spawn(|| {
                 let (mut socket, _) = server.accept().unwrap();
                 let mut bytes = [0; 2048];
-                socket.read(&mut bytes).unwrap();
+                assert!(socket.read(&mut bytes).unwrap() > 0);
                 socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 120\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
             });
             let error = client.get(&url).send_paced(&budget, 2).unwrap_err();
@@ -62,5 +62,34 @@ mod tests {
         assert!(error.downcast_ref::<ProviderRateLimited>().unwrap().deferred());
         server.set_nonblocking(true).unwrap();
         assert_eq!(server.accept().unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+    }
+
+    #[test]
+    fn separate_clients_share_the_scaled_http_request_budget() {
+        static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+        let budget = ProviderRequests::new(&COOLDOWN);
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/", listener.local_addr().unwrap());
+        let starts = std::thread::scope(|scope| {
+            let server = scope.spawn(|| {
+                let mut starts = vec![];
+                for _ in 0..3 {
+                    let (mut socket, _) = listener.accept().unwrap();
+                    let mut bytes = [0; 2048];
+                    assert!(socket.read(&mut bytes).unwrap() > 0);
+                    starts.push(std::time::Instant::now());
+                    socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+                }
+                starts
+            });
+            let workers: Vec<_> = (0..3).map(|_| scope.spawn(|| {
+                let client = reqwest::blocking::Client::builder().no_proxy().build().unwrap();
+                client.get(&url).send_paced(&budget, 2).unwrap().error_for_status().unwrap();
+            })).collect();
+            for worker in workers { worker.join().unwrap(); }
+            server.join().unwrap()
+        });
+        // Allow a small difference between admission and loopback arrival time.
+        assert!(starts.windows(2).all(|pair| pair[1].duration_since(pair[0]) >= Duration::from_millis(450)));
     }
 }

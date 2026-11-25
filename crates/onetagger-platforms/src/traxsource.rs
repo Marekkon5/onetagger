@@ -1,5 +1,3 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
-static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 use crate::cooldown::ProviderCooldown;
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use anyhow::Error;
@@ -8,6 +6,9 @@ use reqwest::blocking::Client;
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch, SupportedTag};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct Traxsource {
     client: Client,

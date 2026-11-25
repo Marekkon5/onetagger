@@ -4,7 +4,9 @@ use log::{Record, Level, RecordBuilder};
 use crate::TrackMatch;
 
 /// Version of supported custom platform
-pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 45;
+// TaggerConfig now includes provider_slowdown. Older Rust-layout plugins must
+// be rejected before any config reference crosses the dynamic-library boundary.
+pub const CUSTOM_PLATFORM_COMPATIBILITY: i32 = 46;
 
 /// Logging from plugins. A null record is ignored.
 ///

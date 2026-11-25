@@ -1,8 +1,6 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use crate::cooldown::ProviderCooldown;
 use anyhow::Error;
-use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
 use onetagger_tagger::{supported_tags, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, TaggerConfig, Track, TrackMatch};
 use reqwest::blocking::Client;
@@ -10,7 +8,9 @@ use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use serde::{Serialize, Deserialize};
 
+
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct Bandcamp {
     client: Client,
@@ -40,7 +40,6 @@ impl Bandcamp {
                 "search_text": query
             }))
             .send_paced(&REQUESTS, self.slowdown)?;
-        COOLDOWN.check_response(&response, Duration::from_secs(15))?;
         let result: Value = response.error_for_status()?.json()?;
         Ok(serde_json::from_value(result["auto"]["results"].to_owned())?)
     }
@@ -49,7 +48,6 @@ impl Bandcamp {
     fn track_page(&self, url: &str) -> Result<BandcampTrack, Error> {
         COOLDOWN.check()?;
         let response = self.client.get(url).send_paced(&REQUESTS, self.slowdown)?;
-        COOLDOWN.check_response(&response, Duration::from_secs(15))?;
         let response = response.error_for_status()?.text()?;
         // Get <script> tag
         let document = Html::parse_document(&response);

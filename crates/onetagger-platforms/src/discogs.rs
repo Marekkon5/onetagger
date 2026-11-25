@@ -5,7 +5,6 @@ use anyhow::Error;
 use std::time::Duration;
 use regex::Regex;
 use chrono::NaiveDate;
-use reqwest::StatusCode;
 use reqwest::blocking::{Client, Response};
 use serde_json::Value;
 use serde::{Serialize, Deserialize};

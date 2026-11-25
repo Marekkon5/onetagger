@@ -1,4 +1,3 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use crate::cooldown::{retry_delay, ProviderCooldown};
 use crate::request_cache::RequestCache;
@@ -11,10 +10,12 @@ use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 
-static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 
 /// Rate limit error code
 const RATE_LIMIT_CODE: i32 = 4;
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 struct Deezer {
     client: Client,

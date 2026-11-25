@@ -25,6 +25,11 @@ previously existing advisories remain visible in the uploaded full JSON reports
 and summary. A green comparison does not assert that existing advisories are absent.
 Registry or scanner failures fail the check instead of being treated as clean.
 
+The new configuration field changes the Rust plugin ABI. Custom provider
+compatibility is incremented from 45 to 46 so old binaries are rejected before a
+configuration reference crosses that boundary. Rebuild custom providers against
+this source; the built-in providers are included in every application build.
+
 Published limits and application identification:
 [MusicBrainz rate limiting](https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting),
 [Discogs rate limiting](https://www.discogs.com/developers/#page:home,header:home-rate-limiting).

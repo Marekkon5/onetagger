@@ -1,5 +1,3 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
-static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 use crate::cooldown::ProviderCooldown;
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use anyhow::Error;
@@ -12,6 +10,9 @@ use serde_json::Value;
 use serde::{Serialize, Deserialize};
 
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, AutotaggerSourceBuilder, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, supported_tags, TrackMatch};
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct Beatsource {
     client: Client,

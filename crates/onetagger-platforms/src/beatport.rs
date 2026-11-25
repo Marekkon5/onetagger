@@ -1,5 +1,3 @@
-static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
-static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 use crate::cooldown::ProviderCooldown;
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use std::sync::{Arc, Mutex};
@@ -18,6 +16,9 @@ use crate::request_cache::RequestCache;
 
 const INVALID_ART: &'static str = "ab2d1d04-233d-4b08-8234-9782b34dcab8";
 
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
 
 pub struct Beatport {
     client: Client,
