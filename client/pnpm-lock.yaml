@@ -18,8 +18,8 @@ importers:
         specifier: 6.1.1
         version: 6.1.1
       quasar:
-        specifier: 2.35.5
-        version: 2.35.5
+        specifier: 2.35.6
+        version: 2.35.6
       vue:
         specifier: 3.5.46
         version: 3.5.46(typescript@6.0.3)
@@ -35,7 +35,7 @@ importers:
     devDependencies:
       '@quasar/vite-plugin':
         specifier: 1.12.0
-        version: 1.12.0(@vitejs/plugin-vue@6.0.11(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3)))(quasar@2.35.5)(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3))
+        version: 1.12.0(@vitejs/plugin-vue@6.0.11(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3)))(quasar@2.35.6)(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3))
       '@vitejs/plugin-vue':
         specifier: 6.0.11
         version: 6.0.11(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3))
@@ -656,8 +656,8 @@ packages:
     resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
     engines: {node: '>=10'}
 
-  quasar@2.35.5:
-    resolution: {integrity: sha512-SHI5EoLxEkcXYFm8qWcTwjgPku4SZgQXxfqCK8XocHKA89/TuhgEmbDPKaLhN6CsWD0wnU/ca3qMDxhstw+NHA==}
+  quasar@2.35.6:
+    resolution: {integrity: sha512-BxQLJNzV5gK+DqgEqv2dl/PJWAcNRnedV5ozwjLpJ2OWf1LTrDXdR8BH09TY/HyXR8xgYiyHH35NxRieDlo5og==}
     engines: {node: '>= 22.0.0'}
 
   readdirp@5.1.1:
@@ -917,10 +917,10 @@ snapshots:
 
   '@quasar/extras@2.1.0': {}
 
-  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@6.0.11(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3)))(quasar@2.35.5)(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3))':
+  '@quasar/vite-plugin@1.12.0(@vitejs/plugin-vue@6.0.11(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3)))(quasar@2.35.6)(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3))':
     dependencies:
       '@vitejs/plugin-vue': 6.0.11(vite@8.3.8(sass@1.108.2))(vue@3.5.46(typescript@6.0.3))
-      quasar: 2.35.5
+      quasar: 2.35.6
       vite: 8.3.8(sass@1.108.2)
       vue: 3.5.46(typescript@6.0.3)
 
@@ -1330,7 +1330,7 @@ snapshots:
 
   proxy-from-env@2.1.0: {}
 
-  quasar@2.35.5: {}
+  quasar@2.35.6: {}
 
   readdirp@5.1.1: {}
 

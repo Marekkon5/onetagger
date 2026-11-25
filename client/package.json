@@ -12,7 +12,7 @@
     "@quasar/extras": "2.1.0",
     "axios": "1.21.1",
     "compare-versions": "6.1.1",
-    "quasar": "2.35.5",
+    "quasar": "2.35.6",
     "vue": "3.5.46",
     "vue-i18n": "11.4.23",
     "vue-router": "4.6.5",
