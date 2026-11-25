@@ -28,8 +28,10 @@ The **Needs another lookup** filter groups partial saves and deferred lookups. A
 you select in their selection order. Separate editions remain distinct when their recording IDs coincide. Scalar fields use the first present value,
 and array fields combine their entries.
 
-All providers share the configured thread limit. Each provider's own `max_threads`
-limit also applies. Reusable provider sources are initialized only when needed.
+All providers share the configured thread limit divided by the **Provider slowdown**
+factor (rounded up, with at least one worker). The default 2× factor gives eight
+workers with the usual 16-thread setting. Each provider's own `max_threads` limit
+is divided by the same factor. Reusable provider sources are initialized only when needed.
 Each provider initializes its own sources independently. The scheduler submits
 one provider lookup at a time for each track. Exact duplicate
 paths and canonical aliases are collapsed before scheduling. Album tagging keeps
@@ -68,7 +70,7 @@ are not cached. Search requests and their candidate ordering remain unchanged.
 
 Discogs and iTunes count their proactive interval from the start of the preceding
 request, allowing the response time to count toward that interval. MusicBrainz
-shares one request per second across all its workers. These budgets also cover
+shares a request budget across all its workers and sessions. These budgets also cover
 manual lookups. A cache hit consumes no network request. Provider cooldowns still
 take precedence after a quota response.
 
@@ -78,7 +80,36 @@ with a higher measured pace first if its results suit your collection. With
 Multiplatform enabled, the run asks each provider for each eligible track, so the
 slowest provider can determine overall throughput.
 
+## Request pacing settings
+
+Set **Advanced → Provider slowdown** between 1× and 10×, or pass
+`--provider-slowdown 3` to the CLI. Saved JSON uses `providerSlowdown`; profiles
+without it inherit 2×. The factor multiplies request intervals as well as reducing
+worker counts. A smaller factor never bypasses a provider request floor or cooldown.
+
+| Provider | Minimum interval at 1× | Default interval at 2× |
+| --- | ---: | ---: |
+| MusicBrainz | 1 second | 2 seconds |
+| Discogs, authenticated | 1 second | 2 seconds |
+| Discogs, anonymous | 2.4 seconds | 4.8 seconds |
+| iTunes | 3 seconds | 6 seconds |
+| Other built-in metadata providers | 250 ms | 500 ms |
+
+The 250 ms budget is a local precaution, not an advertised service quota.
+Authentication refreshes inside third-party SDKs and generic cover downloads have
+separate lifecycles. Discogs custom rates may reduce its rate, but `-1`, zero and
+higher values cannot bypass the published ceiling. Separate application processes
+and other applications on the same IP do not share the in-process budget.
+
+Repeated throttling doubles the pause up to a ten-minute local backoff. Longer
+server Retry-After delays always take precedence. A late success from another
+worker cannot clear an active pause. Deferred attempts make no HTTP request and
+retain the existing retry workflow. The pace popup counts completed matching
+attempts, including cached results, rather than HTTP requests. Its clock refreshes
+once per second; that display interval does not control network traffic.
+
 ## GitHub validation
+
 
 The scheduler tests and benchmarks run on Linux, Windows, Intel macOS and ARM
 macOS. **Provider pipeline** handles Linux, Windows and macOS 15 Intel. The

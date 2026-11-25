@@ -471,6 +471,25 @@ class BrowserTests(unittest.TestCase):
             expect(field).to_have_count(0)
             self.assertAlmostEqual(panel.bounding_box()['height'], collapsed, delta=2)
 
+    def test_provider_slowdown_defaults_to_two_and_is_sent_with_the_run(self):
+        with self.session() as (page, backend):
+            page.get_by_role('tab', name='Auto tag', exact=True).click()
+            page.get_by_text('Advanced', exact=True).click()
+            slider = page.get_by_test_id('provider-slowdown')
+            slider.scroll_into_view_if_needed()
+            expect(slider).to_have_attribute('aria-valuenow', '2')
+            slider.focus()
+            page.keyboard.press('ArrowRight')
+            expect(slider).to_have_attribute('aria-valuenow', '3')
+            page.get_by_text('Input & Tags', exact=True).click()
+            page.get_by_label('Path', exact=True).fill('/music')
+            page.get_by_role('button', name='Start tagging', exact=True).click()
+            deadline = time.monotonic() + 10
+            while not any(item['action'] == 'startTagging' for item in backend.commands) and time.monotonic() < deadline:
+                page.wait_for_timeout(50)
+            command = next(item for item in backend.commands if item['action'] == 'startTagging')
+            self.assertEqual(command['config']['providerSlowdown'], 3)
+
     def test_autotagger_checkbox_mouse_and_keyboard(self):
         with self.session() as (page, _backend):
             def exercise(control):
@@ -624,6 +643,7 @@ class BrowserTests(unittest.TestCase):
             }))
             page.get_by_role("button", name="Provider pace", exact=True).click()
             pace = page.get_by_test_id("provider-pace-list")
+            expect(page.get_by_text('Completed matching attempts, including cached results; not HTTP requests.', exact=True)).to_be_visible()
             expect(pace).to_contain_text("Beatport")
             expect(pace).to_contain_text("Measuring lookup rate")
             expect(pace).to_contain_text("Rate-limited or deferred (1)")

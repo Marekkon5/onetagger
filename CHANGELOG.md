@@ -1,5 +1,10 @@
 ## Unreleased (fantuz fork)
 
+- Consolidate the eight open Dependabot updates: Wry 0.55.1, webbrowser 1.2.7, clap 4.6.9, minify-html 0.16.5, id3 1.17.4, regex 1.13.2, Vite 8.3.8, Vue 3.5.46, Quasar 2.35.5, vue-i18n 11.4.23 and setup-python 7.1.0. Regenerate both lockfiles on GitHub and retain the existing browser target when upgrading Vite. Compare RustSec and npm advisory reports against the base commit in CI.
+- Add an adjustable provider slowdown (1–10×, default 2×) to Advanced settings and `--provider-slowdown` to the CLI. Apply it to shared request budgets for all twelve built-in providers and to worker limits, including existing profiles and album tagging. Default MusicBrainz requests start at least two seconds apart. Discogs custom rates can lower, but cannot disable, the authenticated/anonymous ceilings.
+- Back off further after repeated 429/503 responses, respect longer Retry-After delays, and stop recursive Musixmatch token requests after a challenge. Refresh status clocks once per second and explain that matching pace includes cache hits and is not an HTTP request counter.
+- Test repeated QuickTag and Edit Tags saves with open decoders on Linux, Windows and both macOS architectures for MP3, WAV, AIFF, FLAC, Ogg Vorbis, AAC and ALAC. Verify persisted ratings/genres, unchanged decoded audio, Unicode paths and cleanup of staging files.
+
 ## 2.2.1 — 2026-11-24
 
 - Fix Windows tag saves while an audio decoder has the original file open, including tracks selected before playback starts. Close the staging writer and use the pinned Rust toolchain's Windows rename fallback for atomic replacement; retain the original on genuine access/sharing failures and retry short sharing locks within a bounded interval.

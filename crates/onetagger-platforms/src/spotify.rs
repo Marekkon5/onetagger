@@ -1,5 +1,6 @@
 use crate::cooldown::{retry_delay, ProviderCooldown};
 use crate::request_cache::RequestCache;
+use crate::request_pacer::RequestPacer;
 use anyhow::Error;
 use chrono::NaiveDate;
 use std::time::Duration;
@@ -15,6 +16,7 @@ use onetagger_shared::{Settings, WEBSERVER_CALLBACKS, PORT};
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag, TrackMatch};
 
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
 
 /// Reexport, beacause the rspotify dependency is git
 pub use rspotify;
@@ -26,13 +28,14 @@ static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", 
 #[derive(Clone)]
 pub struct Spotify {
     pub spotify: AuthCodeSpotify,
+    slowdown: u16,
     album_cache: RequestCache<String, FullAlbum>,
     artist_cache: RequestCache<String, FullArtist>,
 }
 
 impl Spotify {
     fn with_client(spotify: AuthCodeSpotify) -> Self {
-        Self { spotify, album_cache: RequestCache::default(), artist_cache: RequestCache::default() }
+        Self { spotify, slowdown: 2, album_cache: RequestCache::default(), artist_cache: RequestCache::default() }
     }
     /// Create AuthCodeSpotify with parameters
     pub fn create_client(client_id: &str, client_secret: &str) -> AuthCodeSpotify {
@@ -98,18 +101,19 @@ impl Spotify {
         F: Fn(&Spotify) -> ClientResult<R>
     {
         COOLDOWN.check()?;
+        PACER.wait_scaled(Duration::from_millis(250), self.slowdown);
+        COOLDOWN.check()?;
         match f(self) {
             Ok(r) => {
-                // Intentionally slow down to prevent rate limits
-                std::thread::sleep(Duration::from_millis(250));
+                COOLDOWN.record_success();
                 Ok(r)
             },
             Err(ClientError::Http(http)) => {
                 match *http {
                     rspotify::http::HttpError::StatusCode(r) => {
                         // Rate limit
-                        if r.status() == 429 {
-                            let fallback = Duration::from_secs(3);
+                        if matches!(r.status(), 429 | 503) {
+                            let fallback = Duration::from_secs(15);
                             let delay = r.header("Retry-After")
                                 .map(|header| retry_delay(Some(header.as_ref()), fallback))
                                 .unwrap_or(fallback);
@@ -276,8 +280,10 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let slowdown = config.provider_slowdown();
         let config = config.spotify.clone().ok_or(anyhow!("Missing Spotify config!"))?;
-        let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or(anyhow!("Spotify not authorized!"))?;
+        let mut spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or(anyhow!("Spotify not authorized!"))?;
+        spotify.slowdown = slowdown;
         Ok(Box::new(spotify))
     }
 

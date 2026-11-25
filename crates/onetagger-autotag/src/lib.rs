@@ -929,10 +929,7 @@ impl Tagger {
                     }
                 };
                 let platform_info = tagger.info();
-                let mut threads = config.threads;
-                if platform_info.max_threads > 0 && platform_info.max_threads < config.threads {
-                    threads = platform_info.max_threads;
-                }
+                let threads = config.worker_limit(platform_info.max_threads);
                 let rx = match Tagger::tag_batch_in_run(&files, tagger, &config, threads, &run) {
                     Some(t) => t,
                     None => {

@@ -1,10 +1,9 @@
-use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::cooldown::ProviderCooldown;
 use crate::request_cache::RequestCache;
 use crate::request_pacer::RequestPacer;
 use anyhow::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
-use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
@@ -14,6 +13,7 @@ static PACER: RequestPacer = RequestPacer::new();
 
 pub struct MusicBrainz {
     client: Client,
+    slowdown: u16,
     release_cache: RequestCache<String, Release>,
 }
 
@@ -21,10 +21,11 @@ impl MusicBrainz {
     pub fn new() -> MusicBrainz {
         MusicBrainz {
             client: Client::builder()
-                .user_agent("OneTagger (+https://github.com/fantuz/onetagger)")
+                .user_agent(format!("OneTagger/{} (+https://github.com/fantuz/onetagger)", onetagger_shared::VERSION))
                 .timeout(Duration::from_secs(30))
                 .build()
                 .unwrap(),
+            slowdown: 2,
             release_cache: RequestCache::default(),
         }
     }
@@ -35,16 +36,12 @@ impl MusicBrainz {
         let mut new_query = query.to_owned();
         new_query.push(("fmt", "json"));
         debug!("MusicBrainz GET: {} {:?}", path, new_query);
-        PACER.wait(Duration::from_secs(1));
+        PACER.wait_scaled(Duration::from_secs(1), self.slowdown);
         COOLDOWN.check()?;
         let response = self.client.get(&format!("https://musicbrainz.org/ws/2{}", path))
             .query(&new_query)
             .send()?;
-        if matches!(response.status(), StatusCode::SERVICE_UNAVAILABLE | StatusCode::TOO_MANY_REQUESTS) {
-            let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
-                .and_then(|header| header.to_str().ok()), Duration::from_secs(2));
-            return Err(COOLDOWN.pause(delay).into());
-        }
+        COOLDOWN.check_response(&response, Duration::from_secs(15))?;
         Ok(response.error_for_status()?.json()?)
     }
 
@@ -319,8 +316,9 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
         MusicBrainzBuilder { release_cache: RequestCache::default() }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let mut source = MusicBrainz::new();
+        source.slowdown = config.provider_slowdown();
         source.release_cache = self.release_cache.clone();
         Ok(Box::new(source))
     }

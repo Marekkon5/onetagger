@@ -190,5 +190,8 @@
   "retryWait": "Nova tentativa em {seconds} s",
   "rotateProviders": "Alternar o primeiro provedor entre faixas",
   "rotateHint": "Começar cada faixa pelo próximo provedor e tentar os demais na sequência.",
-  "recoveredRun": "Conexão restabelecida. O progresso e a fila de tentativas incluem as buscas anteriores."
+  "recoveredRun": "Conexão restabelecida. O progresso e a fila de tentativas incluem as buscas anteriores.",
+  "providerSlowdownValue": "Desaceleração dos provedores: {factor}×",
+  "providerSlowdownHint": "Valores maiores espaçam as requisições e reduzem as tarefas simultâneas. Padrão: 2×. Os limites e as pausas dos provedores continuam ativos.",
+  "providerPaceHint": "Tentativas de busca concluídas, incluindo resultados em cache; não são requisições HTTP."
 }

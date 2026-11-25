@@ -1,3 +1,5 @@
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+use crate::request_policy::{PacedRequest, ProviderRequests};
 use crate::cooldown::{retry_delay, ProviderCooldown};
 use crate::request_cache::RequestCache;
 use anyhow::Error;
@@ -16,6 +18,7 @@ const RATE_LIMIT_CODE: i32 = 4;
 
 struct Deezer {
     client: Client,
+    slowdown: u16,
     config: DeezerConfig,
     album_cache: RequestCache<(String, i64), DeezerAlbumFull>,
 }
@@ -32,7 +35,7 @@ impl Deezer {
                 .default_headers(headers)
                 .build()
                 .unwrap(),
-            config,
+            config, slowdown: 2,
             album_cache: RequestCache::default(),
         }
     }
@@ -40,7 +43,7 @@ impl Deezer {
     /// GET with rate limit wrap
     fn get<D: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<D, Error> {
         COOLDOWN.check()?;
-        let response = self.client.get(format!("https://api.deezer.com{path}")).query(query).send()?;
+        let response = self.client.get(format!("https://api.deezer.com{path}")).query(query).send_paced(&REQUESTS, self.slowdown)?;
         let delay = retry_delay(response.headers().get(reqwest::header::RETRY_AFTER)
             .and_then(|header| header.to_str().ok()), Duration::from_secs(3));
         if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
@@ -300,6 +303,7 @@ impl AutotaggerSourceBuilder for DeezerBuilder {
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let deezer_config: DeezerConfig = config.get_custom("deezer")?;
         let mut source = Deezer::new(deezer_config);
+        source.slowdown = config.provider_slowdown();
         source.album_cache = self.album_cache.clone();
         Ok(Box::new(source))
     }

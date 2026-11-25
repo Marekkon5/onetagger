@@ -915,6 +915,47 @@ mod save_tests {
         }
     }
 
+    #[test]
+    fn both_editors_save_every_supported_container_with_an_open_decoder_and_preserve_audio() {
+        // Runs on Linux, Windows, Intel macOS and Apple Silicon in the native CI
+        // matrix. Decode real audio before and after replacement, without a device.
+        for name in ["tone.mp3", "tone.wav", "tone.aiff", "tone.flac", "tone.ogg", "tone-aac.m4a", "tone-alac.m4a"] {
+            let directory = tempfile::tempdir().unwrap();
+            let path = directory.path().join(format!("Édition 音楽 {name}"));
+            std::fs::copy(Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../onetagger-player/test-fixtures").join(name), &path).unwrap();
+            let mut tags = Tag::load_file(&path, true).unwrap();
+            tags.tag_mut().set_field(Field::Title, vec!["Fixture title".into()], true);
+            tags.tag_mut().set_field(Field::Artist, vec!["Fixture artist".into()], true);
+            tags.tag_mut().save_file(&path).unwrap();
+            let source = onetagger_player::AudioSources::from_path(&path).unwrap();
+            let original_audio: Vec<_> = source.get_source().unwrap().collect();
+            assert!(!original_audio.is_empty(), "{name}");
+            let mut held_decoder = source.get_source().unwrap();
+            for (editor, stars, genre) in [("quickTagSave", 3, "House"), ("tagEditorSave", 4, "Techno"), ("quickTagSave", 5, "Disco")] {
+                let value = json!({"action": editor, "requestId": genre, "changes": {
+                    "path": path, "changes": [{"type": "rating", "value": stars},
+                        {"type": "genre", "value": [genre]}],
+                    "separators": {"id3": ", ", "vorbis": null, "mp4": ", "}, "id3v24": true}});
+                let response = match serde_json::from_value(value).unwrap() {
+                    Action::QuickTagSave { changes, request_id } => quick_tag_save_response(&changes, request_id),
+                    Action::TagEditorSave { changes, request_id } => tag_editor_save_response(&changes, request_id),
+                    _ => unreachable!(),
+                };
+                assert_eq!(response["status"], "ok", "{name} {editor}: {response}");
+                assert_eq!(response["requestId"], genre);
+                assert_eq!(response["path"], json!(path));
+                let saved = Tag::load_file(&path, false).unwrap();
+                assert_eq!(saved.tag().get_rating(), Some(stars), "{name} {editor}");
+                assert_eq!(saved.tag().get_field(Field::Genre).unwrap(), vec![genre], "{name} {editor}");
+                let audio = onetagger_player::AudioSources::from_path(&path).unwrap();
+                assert_eq!(audio.get_source().unwrap().collect::<Vec<_>>(), original_audio, "{name} {editor}: audio changed");
+                assert!(held_decoder.next().is_some(), "{name}: old decoder stopped");
+                assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1, "{name}: staging file leaked");
+            }
+        }
+    }
+
     #[cfg(windows)]
     #[test]
     fn quicktag_reports_the_windows_replacement_error_and_retains_the_original() {

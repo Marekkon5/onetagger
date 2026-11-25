@@ -1,7 +1,6 @@
 use anyhow::Error;
-use crate::cooldown::{ProviderCooldown, retry_delay};
+use crate::cooldown::ProviderCooldown;
 use crate::request_pacer::RequestPacer;
-use reqwest::{header::RETRY_AFTER, StatusCode};
 
 static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
 static PACER: RequestPacer = RequestPacer::new();
@@ -13,6 +12,7 @@ use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Mat
 
 pub struct ITunes {
     client: Client,
+    slowdown: u16,
     // Requests per minute
     pub rate_limit: i16,
 }
@@ -25,6 +25,7 @@ impl ITunes {
                 .user_agent("OneTagger/1.0")
                 .build()
                 .unwrap(),
+            slowdown: 2,
             rate_limit: 20,
         }
     }
@@ -33,17 +34,14 @@ impl ITunes {
     fn get(&mut self, path: &str, query: &[(&str, &str)]) -> Result<Response, Error> {
         debug!("iTunes GET: {} {:?}", path, query);
         COOLDOWN.check()?;
-        PACER.wait_per_minute(self.rate_limit);
+        PACER.wait_per_minute(self.rate_limit.clamp(1, 20) as u16, self.slowdown);
         COOLDOWN.check()?;
 
         // Do request
         let res = self.client.get(&format!("https://itunes.apple.com{}", path))
             .query(query)
             .send()?;
-        if res.status() == StatusCode::TOO_MANY_REQUESTS {
-            let delay = retry_delay(res.headers().get(RETRY_AFTER).and_then(|v| v.to_str().ok()), Duration::from_secs(60));
-            return Err(COOLDOWN.pause(delay).into());
-        }
+        COOLDOWN.check_response(&res, Duration::from_secs(60))?;
         Ok(res.error_for_status()?)
     }
 
@@ -149,8 +147,10 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
         ITunesBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(ITunes::new()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = ITunes::new();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

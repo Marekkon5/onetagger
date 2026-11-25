@@ -1,3 +1,7 @@
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+use crate::cooldown::ProviderCooldown;
+use crate::request_policy::{PacedRequest, ProviderRequests};
 use std::collections::HashMap;
 use anyhow::Error;
 use std::sync::{Mutex, Arc};
@@ -12,6 +16,7 @@ use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Lyr
 #[derive(Clone)]
 pub struct Musixmatch {
     client: Client,
+    slowdown: u16,
     token: Arc<Mutex<Option<String>>>
 }
 
@@ -47,7 +52,7 @@ impl Musixmatch {
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36")
                 .build()
                 .unwrap(),
-            token: Arc::new(Mutex::new(None)),
+            token: Arc::new(Mutex::new(None)), slowdown: 2,
         }
     }
 
@@ -55,11 +60,9 @@ impl Musixmatch {
     fn fetch_token(&self) -> Result<(), Error> {
         debug!("Fetching Musixmatch token");
         let t: Value = self.get("token.get", &[("user_language", "en")])?;
-        // Capcha retry
+        // A challenge must not cause recursive requests that keep a worker alive.
         if t["message"]["header"]["status_code"].as_i64() == Some(401) {
-            warn!("Musixmatch capcha when getting token! Waiting for 10s...");
-            std::thread::sleep(Duration::from_secs(10));
-            return self.fetch_token();
+            return Err(COOLDOWN.pause(Duration::from_secs(60)).into());
         }
         let token = t["message"]["body"]["user_token"].as_str().ok_or(anyhow!("Couldn't fetch the token"))?.to_string();
         *self.token.lock().unwrap() = Some(token);
@@ -88,7 +91,9 @@ impl Musixmatch {
         let o = self.client.get(&format!("https://apic-desktop.musixmatch.com/ws/1.1/{action}"))
             .query(&query)
             // Request URLs contain the user token; errors reach application logs.
-            .send().map_err(reqwest::Error::without_url)?
+            .send_paced(&REQUESTS, self.slowdown).map_err(|error| {
+                match error.downcast::<reqwest::Error>() { Ok(http) => http.without_url().into(), Err(error) => error }
+            })?
             .json().map_err(reqwest::Error::without_url)?;
         Ok(o)
     }
@@ -338,8 +343,10 @@ impl AutotaggerSourceBuilder for MusixmatchBuilder {
         }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(self.mxm.clone()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = self.mxm.clone();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

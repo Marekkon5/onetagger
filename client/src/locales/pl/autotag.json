@@ -190,5 +190,8 @@
   "retryWait": "Ponowienie za {seconds} s",
   "rotateProviders": "Zmieniaj pierwszego dostawcę dla kolejnych utworów",
   "rotateHint": "Dla każdego utworu zacznij od następnego dostawcy, potem sprawdź pozostałych w kolejności.",
-  "recoveredRun": "Połączenie przywrócone. Pasek postępu i kolejka ponowień uwzględniają wcześniejsze wyszukiwania."
+  "recoveredRun": "Połączenie przywrócone. Pasek postępu i kolejka ponowień uwzględniają wcześniejsze wyszukiwania.",
+  "providerSlowdownValue": "Spowolnienie dostawców: {factor}×",
+  "providerSlowdownHint": "Większe wartości wydłużają odstępy między żądaniami i zmniejszają liczbę równoległych zadań. Domyślnie: 2×. Limity i przerwy dostawców zawsze obowiązują.",
+  "providerPaceHint": "Ukończone próby wyszukiwania, w tym wyniki z pamięci podręcznej; nie żądania HTTP."
 }

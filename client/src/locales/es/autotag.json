@@ -190,5 +190,8 @@
   "retryWait": "Reintento disponible en {seconds} s",
   "rotateProviders": "Alternar el primer proveedor entre pistas",
   "rotateHint": "Empezar cada pista por el proveedor siguiente y probar los demás en orden.",
-  "recoveredRun": "Conexión restablecida. El progreso y la cola de reintentos incluyen las búsquedas anteriores."
+  "recoveredRun": "Conexión restablecida. El progreso y la cola de reintentos incluyen las búsquedas anteriores.",
+  "providerSlowdownValue": "Desaceleración de proveedores: {factor}×",
+  "providerSlowdownHint": "Los valores más altos espacian las solicitudes y reducen las tareas simultáneas. Predeterminado: 2×. Los límites y las pausas de los proveedores siguen activos.",
+  "providerPaceHint": "Intentos de búsqueda completados, incluidos resultados en caché; no solicitudes HTTP."
 }

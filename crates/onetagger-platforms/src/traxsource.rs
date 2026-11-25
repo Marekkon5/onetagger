@@ -1,3 +1,7 @@
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+use crate::cooldown::ProviderCooldown;
+use crate::request_policy::{PacedRequest, ProviderRequests};
 use anyhow::Error;
 use crate::request_cache::RequestCache;
 use reqwest::blocking::Client;
@@ -7,6 +11,7 @@ use onetagger_tagger::{Track, AudioFileInfo, TaggerConfig, AutotaggerSource, Mat
 
 pub struct Traxsource {
     client: Client,
+    slowdown: u16,
     release_cache: RequestCache<String, String>,
 }
 
@@ -18,7 +23,7 @@ impl Traxsource {
             .build()
             .unwrap();
         Traxsource {
-            client, release_cache: RequestCache::default(),
+            client, slowdown: 2, release_cache: RequestCache::default(),
         }
     }
 
@@ -27,7 +32,7 @@ impl Traxsource {
         debug!("Q: {}", query);
         let data = self.client.get("https://www.traxsource.com/search/tracks")
             .query(&[("term", query)])
-            .send()?
+            .send_paced(&REQUESTS, self.slowdown)?
             .text()?;
 
         // Minify and parse
@@ -125,7 +130,7 @@ impl Traxsource {
     pub fn extend_track_traxsource(&self, track: &mut Track, album_meta: bool, album_art: bool) -> Result<(), Error> {
         // Fetch
         let data = self.client.get(&track.url)
-            .send()?
+            .send_paced(&REQUESTS, self.slowdown)?
             .text()?;
         
         // Minify and parse
@@ -149,7 +154,7 @@ impl Traxsource {
         }
         let data = self.release_cache.get_or_try_init(album_url.to_owned(), || -> Result<_, Error> {
             let data = self.client.get(format!("https://www.traxsource.com{}", album_url))
-                .send()?.error_for_status()?.text()?;
+                .send_paced(&REQUESTS, self.slowdown)?.error_for_status()?.text()?;
             let data = String::from_utf8(minify_html::minify(data.as_bytes(), &minify_html::Cfg::new()))?;
             // Reject incomplete/error pages before putting them in the cache.
             let document = Html::parse_document(&data);
@@ -201,7 +206,7 @@ impl Traxsource {
 
         // Pre fetch album art since traxsource changed something
         if album_art {
-            self.client.get(art_url).header("Referer", "https://www.traxsource.com/").send().ok();
+            self.client.get(art_url).header("Referer", "https://www.traxsource.com/").send_paced(&REQUESTS, self.slowdown).ok();
         }
 
         Ok(())
@@ -239,8 +244,9 @@ impl AutotaggerSourceBuilder for TraxsourceBuilder {
         TraxsourceBuilder { release_cache: RequestCache::default() }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
         let mut source = Traxsource::new();
+        source.slowdown = config.provider_slowdown();
         source.release_cache = self.release_cache.clone();
         Ok(Box::new(source))
     }

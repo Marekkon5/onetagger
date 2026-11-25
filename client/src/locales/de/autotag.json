@@ -190,5 +190,8 @@
   "retryWait": "Erneut versuchen in {seconds} s",
   "rotateProviders": "Ersten Anbieter pro Titel wechseln",
   "rotateHint": "Jeden Titel beim nächsten Anbieter beginnen und die übrigen der Reihe nach versuchen.",
-  "recoveredRun": "Verbindung wiederhergestellt. Fortschritt und Warteschlange berücksichtigen frühere Suchvorgänge."
+  "recoveredRun": "Verbindung wiederhergestellt. Fortschritt und Warteschlange berücksichtigen frühere Suchvorgänge.",
+  "providerSlowdownValue": "Anbieter verlangsamen: {factor}×",
+  "providerSlowdownHint": "Höhere Werte vergrößern die Abstände zwischen Anfragen und verringern gleichzeitige Aufgaben. Standard: 2×. Anbieterlimits und Wartezeiten gelten immer.",
+  "providerPaceHint": "Abgeschlossene Suchversuche einschließlich zwischengespeicherter Ergebnisse; keine HTTP-Anfragen."
 }
