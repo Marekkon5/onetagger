@@ -286,14 +286,6 @@ jobs:
         run: ./ci/smoke_windows_package.ps1 -Dist dist -Version (Get-Content -Raw VERSION).Trim()
       - name: Package macOS
         if: runner.os == 'macOS'
-        timeout-minutes: 15
-        env:
-          MACOS_DISTRIBUTION: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
-          MACOS_SIGNING_P12: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && secrets.MACOS_SIGNING_P12 || '' }}
-          MACOS_SIGNING_PASSWORD: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && secrets.MACOS_SIGNING_PASSWORD || '' }}
-          MACOS_APPLE_ID: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && secrets.MACOS_APPLE_ID || '' }}
-          MACOS_TEAM_ID: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && secrets.MACOS_TEAM_ID || '' }}
-          MACOS_NOTARY_PASSWORD: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && secrets.MACOS_NOTARY_PASSWORD || '' }}
         run: |
           python ci/package_macos.py
           python - <<'PYTHON'

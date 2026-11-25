@@ -115,26 +115,9 @@ Artifact downloads require a GitHub login and expire after 14 days. Published re
 
 Downloads, build badges, update checks, and support links point to `fantuz/onetagger`. The original project website is labeled as upstream documentation. Original author credits and donation destinations remain intact. SongRec dependencies and the custom-platform catalog still point to their upstream repositories intentionally.
 
-### macOS release signing
+### Homebrew packaging
 
-The macOS jobs on `master` require a Developer ID Application certificate from
-the Apple Developer Program and an Apple account authorized to notarize for that
-team. Export the certificate and its private key from Keychain Access as a
-password-protected `.p12`. Create an app-specific password for the Apple account.
-In the repository's **Settings → Secrets and variables → Actions**, add these
-repository secrets:
-
-| Secret | Value |
-| --- | --- |
-| `MACOS_SIGNING_P12` | Single-line base64 encoding of the exported `.p12` |
-| `MACOS_SIGNING_PASSWORD` | Password used to export the `.p12` |
-| `MACOS_APPLE_ID` | Apple account email used for notarization |
-| `MACOS_TEAM_ID` | Apple Developer team ID |
-| `MACOS_NOTARY_PASSWORD` | App-specific password for that Apple account |
-
-On macOS, encode the certificate with `base64 -i DeveloperID.p12 | tr -d '\n'`.
-Store the values directly as repository secrets. PR builds use ad-hoc signing
-and verify the extracted bundle without using Apple credentials. On `master`,
-CI requires notarization, staples the ticket, and runs Apple's distribution
-assessment on the extracted app before uploading either macOS release artifact.
-The standalone CLI is outside this app-bundle signing path.
+The project repository is also a Homebrew tap. When preparing a release, update
+the stable tag in `Formula/onetagger.rb` to match `VERSION`. The formula builds
+the frontend and native desktop and CLI executables from that tag. GitHub's
+Homebrew workflow tests the same formula against a source archive of the PR.

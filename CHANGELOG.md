@@ -11,7 +11,7 @@
 - Fix the AIFF decoder reading eight bytes beyond its sound payload, which could play tag headers as four extra samples or lose the final packet without a trailing tag. Correct the pinned demuxer's input length in a read-only view; leave the file and tag writer unchanged.
 - Build the frontend once for packaging, browser and localization checks. Keep localized workflows parallel with native jobs and include them in the Build success gate used for releases. Retain compiled Rust dependencies after failed tests or packaging; keep workspace outputs outside that cache.
 
-- Sign macOS release app bundles with Developer ID, staple Apple notarization tickets, and verify the app extracted from each final ZIP.
+- Ad-hoc sign macOS app bundles and verify each final ZIP after extraction. Install the desktop and CLI executables directly from source using the OneTagger Homebrew formula.
 
 [Full changes since v2.2.1](https://github.com/fantuz/onetagger/compare/v2.2.1...v2.2.2)
 
