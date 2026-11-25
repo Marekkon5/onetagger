@@ -100,7 +100,7 @@ impl Musixmatch {
     }
 
     /// Fetch the lyrics
-    pub fn fetch_lyrics(&self, title: &str, artist: &str, retry_count: u32) -> Result<MusixmatchMacroCallsBody<MusixmatchBody>, Error> {
+    pub fn fetch_lyrics(&self, title: &str, artist: &str, _retry_count: u32) -> Result<MusixmatchMacroCallsBody<MusixmatchBody>, Error> {
         let r: MusixmatchResponse<MusixmatchMacroCallsBody<MusixmatchBody>> = 
             self.get("macro.subtitles.get", &[
                 ("format", "json"),
@@ -111,17 +111,11 @@ impl Musixmatch {
                 ("q_track", title),
             ])?;
 
-        // Captcha, retry
+        // A challenge pauses the provider instead of recursively holding a worker
+        // and asking again. A later explicit retry can obtain a fresh token.
         if r.message.header.status_code == 401 {
-            if retry_count >= 3 {
-                error!("Musixmatch captcha too many retries reached!");
-                self.fetch_token()?;
-                return Err(anyhow!("Too many retries!"));
-            }
-            let delay = 2u64.pow(retry_count + 3);
-            warn!("Musixmatch captcha, waiting for {delay}s...");
-            std::thread::sleep(Duration::from_secs(delay));
-            return self.fetch_lyrics(title, artist, retry_count + 1);
+            *self.token.lock().unwrap() = None;
+            return Err(COOLDOWN.pause(Duration::from_secs(60)).into());
         }
 
         Ok(r.message.body.ok_or(anyhow!("Missing response body"))?)

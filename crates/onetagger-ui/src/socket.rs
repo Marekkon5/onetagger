@@ -931,8 +931,8 @@ mod save_tests {
             let source = onetagger_player::AudioSources::from_path(&path).unwrap();
             let original_audio: Vec<_> = source.get_source().unwrap().collect();
             assert!(!original_audio.is_empty(), "{name}");
-            let mut held_decoder = source.get_source().unwrap();
             for (editor, stars, genre) in [("quickTagSave", 3, "House"), ("tagEditorSave", 4, "Techno"), ("quickTagSave", 5, "Disco")] {
+                let mut held_decoder = onetagger_player::AudioSources::from_path(&path).unwrap().get_source().unwrap();
                 let value = json!({"action": editor, "requestId": genre, "changes": {
                     "path": path, "changes": [{"type": "rating", "value": stars},
                         {"type": "genre", "value": [genre]}],

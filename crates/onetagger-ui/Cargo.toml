@@ -22,7 +22,7 @@ urlencoding = "2.1"
 include_dir = "0.7"
 directories = "6.0"
 tinyfiledialogs = "3.9"
-rusqlite = { version = "=0.37.0", features = ["bundled"] }
+rusqlite = { version = "=0.41.0", features = ["bundled"] }
 futures-util = "0.3"
 tempfile = "3.20"
 
