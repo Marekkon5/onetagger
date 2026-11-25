@@ -62,7 +62,8 @@ impl ProviderCooldown {
         let remaining = pause.pause.map(|(since, delay)| delay.saturating_sub(since.elapsed())).unwrap_or_default();
         // Repeated throttling must slow down further, including when a server
         // omits Retry-After. Never shorten a longer explicit server delay.
-        let backoff = delay.saturating_mul(1 << pause.failures.min(6)).min(Duration::from_secs(600));
+        let backoff = delay.max(Duration::from_secs(1))
+            .saturating_mul(1 << pause.failures.min(6)).min(Duration::from_secs(600));
         pause.failures = pause.failures.saturating_add(1);
         // A response from another in-flight request can extend a pause.
         let delay = delay.max(backoff).max(Duration::from_secs(1)).max(remaining);

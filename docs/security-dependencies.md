@@ -25,6 +25,38 @@ previously existing advisories remain visible in the uploaded full JSON reports
 and summary. A green comparison does not assert that existing advisories are absent.
 Registry or scanner failures fail the check instead of being treated as clean.
 
+The first GitHub audit found nine advisory/package pairs in the base Rust lockfile
+and eight after the Dependabot updates, with no frontend advisories. Additional
+targeted updates address the available fixes:
+
+| Dependency | Version | Advisory |
+| --- | --- | --- |
+| cookie | 0.18.3 | RUSTSEC-2026-0594 |
+| crossbeam-epoch | 0.9.20 | RUSTSEC-2026-0204 |
+| rusqlite / libsqlite3-sys | 0.41.0 / 0.39.1 (SQLite 3.54.1) | RUSTSEC-2026-0459 |
+| quinn-udp | 0.5.16 | RUSTSEC-2026-0538 |
+| rkyv | 0.7.46 | RUSTSEC-2026-0001 |
+| url | 2.5.9 | RUSTSEC-2026-0592 |
+| webpki-roots | 1.0.10 | RUSTSEC-2026-0381 |
+
+### Remaining transitive advisory
+
+`RUSTSEC-2026-0235` affects archive validation in rkyv 0.7, which upstream no longer
+supports. The available fix is in 0.8.17+, incompatible with the 0.7 requirement of
+`parcel_sourcemap`, reached through `minify-html → lightningcss → parcel_sourcemap`.
+It is reported by the scanner and is not hidden by an ignore entry.
+
+The application passes HTML to the minifier with its default CSS and JavaScript
+minification disabled. It does not call rkyv archive parsing or source-map archive
+deserialization. This is a limited reachability assessment, not an upstream fix or
+a claim that the dependency is vulnerability-free. Replacing the HTML minifier
+or updating its source-map dependency requires separate parser compatibility work;
+the current provider extraction and matching behavior are preserved here.
+
+Sources: [rkyv archive advisory](https://rustsec.org/advisories/RUSTSEC-2026-0235.html),
+[minify-html 0.16.5 defaults](https://github.com/wilsonzlin/minify-html/blob/v0.16.5/minify-html/src/cfg/mod.rs),
+[parcel_sourcemap dependency](https://github.com/parcel-bundler/source-map/blob/master/parcel_sourcemap/Cargo.toml).
+
 The new configuration field changes the Rust plugin ABI. Custom provider
 compatibility is incremented from 45 to 46 so old binaries are rejected before a
 configuration reference crosses that boundary. Rebuild custom providers against
