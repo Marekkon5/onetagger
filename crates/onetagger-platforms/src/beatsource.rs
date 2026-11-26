@@ -34,18 +34,65 @@ impl Beatsource {
 
     /// Search for tracks
     pub fn search(&self, query: &str) -> Result<BeatsourceSearchResponse, Error> {
-        let res: BeatsourceSearchResponse = self.client.get("https://api.beatsource.com/v4/catalog/search")
+        self.search_at("https://api.beatsource.com/v4/catalog/search", query)
+    }
+
+    fn search_at(&self, endpoint: &str, query: &str) -> Result<BeatsourceSearchResponse, Error> {
+        let res: BeatsourceSearchResponse = self.client.get(endpoint)
             .query(&[
-                ("pubper_page", "100"),
+                ("per_page", "100"),
                 ("page", "1"),
                 ("type", "tracks"),
                 ("q", query)
             ])
             .bearer_auth(self.token_manager.token()?)
             .send_paced(&REQUESTS, self.slowdown)?
+            .error_for_status()?
             .json()?;
         Ok(res)
     }
+}
+
+#[test]
+fn catalog_search_requests_track_page_and_propagates_http_errors() {
+    use std::collections::HashMap;
+    use std::io::{BufRead, BufReader, Write};
+    use std::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = format!("http://{}/v4/catalog/search", listener.local_addr().unwrap());
+    let mut source = Beatsource::new(BeatsourceTokenManager::new());
+    source.client = Client::builder().no_proxy().timeout(Duration::from_secs(5)).build().unwrap();
+    *source.token_manager.token.lock().unwrap() = BeatsourceToken {
+        token: "local-test".into(), expires: u128::MAX,
+    };
+    let query = "Björk & DJ + Guest (Edit)";
+
+    std::thread::scope(|scope| {
+        let server = scope.spawn(|| {
+            for (status, body) in [("200 OK", r#"{"count":0,"tracks":[]}"#), ("403 Forbidden", "Denied")] {
+                let (mut socket, _) = listener.accept().unwrap();
+                let mut reader = BufReader::new(&socket);
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line).unwrap();
+                let target = request_line.split_whitespace().nth(1).unwrap();
+                let url = url::Url::parse(&endpoint).unwrap().join(target).unwrap();
+                assert_eq!(url.path(), "/v4/catalog/search");
+                assert_eq!(url.query_pairs().into_owned().collect::<HashMap<_, _>>(), HashMap::from([
+                    ("per_page".to_owned(), "100".to_owned()), ("page".to_owned(), "1".to_owned()),
+                    ("type".to_owned(), "tracks".to_owned()), ("q".to_owned(), query.to_owned()),
+                ]));
+                for header in reader.lines() {
+                    if header.unwrap().is_empty() { break; }
+                }
+                write!(socket, "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
+            }
+        });
+        assert!(source.search_at(&endpoint, query).unwrap().tracks.is_empty());
+        let error = source.search_at(&endpoint, query).unwrap_err();
+        assert_eq!(error.downcast_ref::<reqwest::Error>().unwrap().status(), Some(reqwest::StatusCode::FORBIDDEN));
+        server.join().unwrap();
+    });
 }
 
 impl AutotaggerSource for Beatsource {
