@@ -397,15 +397,14 @@ impl TagImpl for ID3Tag {
         // TXXX
         if tag.len() != 4 {
             if overwrite || self.get_raw(tag).is_none() {
-                // Remove if empty
-                if value.is_empty() {
-                    self.tag.remove_extended_text(Some(tag), None);
-                    return;
+                // ID3 readers can retain the same description in multiple text encodings.
+                self.tag.remove_extended_text(Some(tag), None);
+                if !value.is_empty() {
+                    self.tag.add_frame(ExtendedText {
+                        description: tag.to_string(),
+                        value: value.join(&self.id3_separator),
+                    });
                 }
-                self.tag.add_frame(ExtendedText {
-                    description: tag.to_string(),
-                    value: value.join(&self.id3_separator),
-                });
             }
             return;
         }
@@ -669,6 +668,40 @@ impl From<ID3Comment> for Lyrics {
 mod safety_tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn overwriting_a_custom_field_replaces_all_encodings_of_its_description() {
+        for (version, encoding) in [(Version::Id3v23, Encoding::UTF16), (Version::Id3v24, Encoding::UTF8)] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("track.mp3");
+            let audio = [0u8; 64];
+            fs::write(&path, audio).unwrap();
+            let mut seed = Tag::new();
+            for (description, value, enc) in [
+                ("WWWAUDIOFILE", "old-1", encoding),
+                ("WWWAUDIOFILE", "old-2", Encoding::Latin1),
+                ("UNIQUEFILEID", "keep", Encoding::Latin1),
+            ] {
+                let frame = Frame::from(ExtendedText { description: description.into(), value: value.into() });
+                seed.add_frame(frame.set_encoding(Some(enc)));
+            }
+            seed.write_to_path(&path, version).unwrap();
+            let values = |tag: &ID3Tag| tag.tag.extended_texts()
+                .filter(|t| t.description == "WWWAUDIOFILE").map(|t| t.value.clone()).collect::<Vec<_>>();
+            let mut tag = ID3Tag::load_file(&path).unwrap();
+            assert_eq!(values(&tag), ["old-1", "old-2"]);
+            tag.set_raw("WWWAUDIOFILE", vec!["ignored".into()], false);
+            assert_eq!(values(&tag), ["old-1", "old-2"]);
+            for value in ["new-1", "new-2"] {
+                tag.set_raw("WWWAUDIOFILE", vec![value.into()], true);
+                tag.save_file(&path).unwrap();
+                tag = ID3Tag::load_file(&path).unwrap();
+                assert_eq!(values(&tag), [value]);
+                assert_eq!(tag.get_raw("UNIQUEFILEID").unwrap(), ["keep"]);
+                assert!(fs::read(&path).unwrap().ends_with(&audio));
+            }
+        }
+    }
 
     #[test]
     fn missing_id3_tag_is_allowed_but_io_and_corruption_errors_are_preserved() {
