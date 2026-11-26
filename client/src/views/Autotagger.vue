@@ -1,11 +1,10 @@
 <template>
-<div>
+<div class='autotagger' ref='autotagger'>
 
     <q-stepper 
         v-model='step' 
         header-nav 
         color='primary' 
-        animated 
         alternative-labels
         flat 
         class='bg-darker'
@@ -14,21 +13,22 @@
         <!-- Platforms -->
         <q-step 
             :name='0' 
-            title='Select Platforms' 
+            :title="t('autotag.selectPlatforms')" 
             :done='step > 0 && $1t.config.value.platforms.length > 0'
             icon='mdi-web'
             :error='step > 0 && $1t.config.value.platforms.length == 0'
             class='text-center step'>
 
-            <div class='text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
-            <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>            
+            <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.selectPlatformsHeading') }}</div>
+            <div class='text-subtitle2 text-grey-6'>{{ t('autotag.platformOrderHint') }}</div>            
             <AutotaggerPlatforms></AutotaggerPlatforms>
         </q-step>
 
         <!-- Tags -->
         <q-step
+            data-testid='autotagger-input-step'
             :name='1'
-            title='Input & Tags'
+            :title="t('autotag.inputAndTags')"
             :done='canStart && step > 1'
             icon='mdi-label-multiple'
             :error='!canStart && step > 1'
@@ -40,7 +40,7 @@
         <!-- Platform Specific -->
         <q-step
             :name='2'
-            title='Platform Specific Settings'
+            :title="t('autotag.platformSettings')"
             :done='step > 2'
             icon='mdi-tune'
             class='text-center step'>
@@ -51,13 +51,13 @@
         <!-- Advanced -->
         <q-step
             :name='3'
-            title='Advanced'
+            :title="t('autotag.advanced')"
             :done='step > 3'
             icon='mdi-cog'
             class='text-center step'>
 
-            <div class='text-subtitle2 text-bold text-primary'>ADVANCED</div>
-            <span class='text-subtitle2 text-grey-6'>Miscellaneous options</span>
+            <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.advancedHeading') }}</div>
+            <span class='text-subtitle2 text-grey-6'>{{ t('autotag.miscOptions') }}</span>
             <br>
             <AutotaggerAdvanced class='q-mt-xs q-mb-xl'></AutotaggerAdvanced>
         </q-step>
@@ -75,7 +75,7 @@
         <div class='col-6 row align-center items-center justify-center content-center'>
             <div>
                 <q-btn dense push color='primary' class='rounded-borders q-px-md q-mt-xs text-black text-weight-medium' @click='step += 1' v-if='step < 3'>
-                    Next
+                    {{ t('autotag.next') }}
                 </q-btn>
             </div>
         </div>
@@ -91,14 +91,14 @@
                 <AutotaggerAdvanced class='q-mt-md'></AutotaggerAdvanced>
             </div>
             <div class='col q-px-xl'>
-                <div class='q-mt-md text-subtitle2 text-bold text-primary'>PROFILES</div>
-                <div class='text-subtitle2 text-grey-6'>Save, create, delete profiles</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-primary'>{{ t('autotag.profilesHeading') }}</div>
+                <div class='text-subtitle2 text-grey-6'>{{ t('autotag.profilesHint') }}</div>
                 <div class='row justify-center'>
                     <AutotaggerProfile style='width: 400px;' class='q-mt-md' v-if='$1t.settings.value.showAutoTaggerProfiles'></AutotaggerProfile>
                 </div>
                 <div class='q-my-lg'></div>
-                <div class='q-mt-md text-subtitle2 text-bold text-primary'>SELECT PLATFORMS</div>
-                <div class='text-subtitle2 text-grey-6'>Check the box to fetch tags from stated platform, drag & drop to reorder fallback</div>
+                <div class='q-mt-md text-subtitle2 text-bold text-primary'>{{ t('autotag.selectPlatformsHeading') }}</div>
+                <div class='text-subtitle2 text-grey-6'>{{ t('autotag.platformOrderHint') }}</div>
                 <AutotaggerPlatforms dense></AutotaggerPlatforms>
                 <AutotaggerPlatformSpecific></AutotaggerPlatformSpecific>
             </div>
@@ -113,7 +113,7 @@
             <div class='q-mr-md q-mt-md'>
                 <q-btn flat round icon='mdi-console' color='grey-8' @click='cliDialog = true'>
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span>CLI Version Config</span>
+                        <span>{{ t('autotag.cliConfig') }}</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -121,15 +121,17 @@
             <!-- Start fab -->
             <div>
                 <q-btn 
+                    data-testid='autotagger-start'
                     fab 
                     push
                     icon='mdi-play' 
                     color='primary'
                     :disable='!canStart'
                     @click='startTagging'
+                    :aria-label="t('autotag.startTagging')"
                 >
                     <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">            
-                        <span>START</span>
+                        <span>{{ t('autotag.start') }}</span>
                     </q-tooltip>
                 </q-btn>
             </div>
@@ -144,7 +146,9 @@
 </template>
 
 <script lang='ts' setup>
-import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { get1t } from '../scripts/onetagger';
 
@@ -158,6 +162,13 @@ import CliDialog from '../components/CliDialog.vue';
 const $1t = get1t();
 const $router = useRouter();
 const step = ref(0);
+const autotagger = ref<HTMLElement | null>(null);
+
+// A long panel must not leave the next (possibly empty) panel scrolled away.
+watch([step, () => $1t.settings.value.autoTaggerSinglePage], () => {
+    const content = autotagger.value?.closest<HTMLElement>('.content');
+    if (content) content.scrollTop = 0;
+}, { flush: 'post' });
 const cliDialog = ref(false);
 
 async function startTagging() {
@@ -184,7 +195,10 @@ async function startTagging() {
     setTimeout(() => {
         $1t.send('startTagging', {
             config: $1t.config.value,
-            playlist
+            playlist: $1t.taggingSelection.value ? null : playlist,
+            report: $1t.saveTaggingReport.value,
+            rotateProviders: $1t.settings.value.rotateProviders,
+            selection: $1t.taggingSelection.value
         });
     }, 100);
 
@@ -195,19 +209,26 @@ async function startTagging() {
 
 }
 
-const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data)) 
-    && $1t.config.value.platforms.length > 0) ? true : false);
+const canStart = computed(() => (($1t.taggingSelection.value || $1t.config.value.path || ($1t.autoTaggerPlaylist.value && $1t.autoTaggerPlaylist.value.data))
+    && $1t.config.value.platforms.length > 0 && !$1t.selectionError.value && !$1t.selectionLoading.value) ? true : false);
 
 </script>
 
 
 <style lang='scss'>
-.step {
-    min-height: calc(100vh - 164px);
-    max-height: calc(100vh - 164px);
+.autotagger {
+    padding-bottom: 80px;
+}
+.autotagger > .q-page-sticky {
+    z-index: 2;
+}
+.autotagger .step {
+    // Let short panels collapse and long panels extend the single scroll area.
+    min-height: 0;
+    max-height: none;
     background: #181818;
 }
-.q-stepper__step-inner {
+.autotagger .q-stepper__step-inner {
     background: #181818;
 }
 
@@ -233,9 +254,12 @@ const canStart = computed(() => (($1t.config.value.path || ($1t.autoTaggerPlayli
 
 .at-stepper-bar {
     width: 100%;
-    position: absolute;
+    position: fixed;
+    left: 0;
+    right: 0;
     height: 64px;
-    bottom: 0%;
+    bottom: 0;
+    z-index: 1;
     background-color: var(--q-accent);
 }
 </style>

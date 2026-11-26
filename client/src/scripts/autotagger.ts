@@ -1,3 +1,6 @@
+import { StatusIndex, type TrackOutcome } from './statusindex';
+import { translate } from '../i18n';
+import { ProviderPace } from './providerpace';
 import { FrameName, RustDuration, Separators } from "./utils";
 
 interface AutotaggerPlatform {
@@ -48,6 +51,7 @@ class AutotaggerConfig {
     id3v24: boolean = true;
     overwrite: boolean = true;
     threads: number = 16;
+    providerSlowdown: number = 2;
     strictness: number = 0.7;
     mergeGenres: boolean = false;
     albumArtFile: boolean = false;
@@ -95,6 +99,8 @@ class AutotaggerConfig {
     /// Load settings from JSON
     loadSettings(data: any) {
         Object.assign(this, data);
+        const slowdown = Number(data.providerSlowdown ?? 2);
+        this.providerSlowdown = Number.isFinite(slowdown) ? Math.min(10, Math.max(1, Math.round(slowdown))) : 2;
         this.stylesCustomTag = Object.assign(FrameName.same('STYLE'), data.stylesCustomTag);
         this.separators = Object.assign(new Separators(), data.separators);
     }
@@ -106,19 +112,49 @@ interface SpotifyConfig {
 }
 
 class TaggerStatus {
-    statuses: TaggingStatusWrap[][] = [];
+    runId?: number;
+    retryFiles = 0;
+    retryAt = 0;
+    retrySubmitting = false;
+    recovered = false;
+    results = new StatusIndex<TaggingStatusWrap>();
+    providerPaces = new Map<string, ProviderPace>();
+    paceUpdatedAt = 0;
     started: number = 0;
     progress: number = 0.0;
     done: boolean = false;
+    cancelled: boolean = false;
     total: number = 0;
     ok: number = 0;
     type?: 'autoTagger' | 'audioFeatures';
     data?: any;
 
+    recordProgress(update: TaggingStatusWrap) {
+        this.progress = update.progress;
+        this.results.record(update);
+
+        const limited = update.status.messageKey === 'backend.providerRateLimited';
+        if (this.type !== 'autoTagger' || (update.status.lookupMs === undefined && !limited)) return;
+
+        const id = update.providerId ?? update.platform;
+        const pace = this.providerPaces.get(id) ?? new ProviderPace(update.platform);
+        this.paceUpdatedAt = performance.now();
+        pace.record(this.paceUpdatedAt, update.status.lookupMs, limited);
+        this.providerPaces.set(id, pace);
+    }
+
     reset() {
-        this.statuses = [];
+        this.runId = undefined;
+        this.retryFiles = 0;
+        this.retryAt = 0;
+        this.retrySubmitting = false;
+        this.recovered = false;
+        this.results = new StatusIndex<TaggingStatusWrap>();
+        this.providerPaces.clear();
+        this.paceUpdatedAt = 0;
         this.started = Date.now();
         this.done = false;
+        this.cancelled = false;
         this.progress = 0.0;
         this.total = 0;
         this.ok = 0;
@@ -130,14 +166,19 @@ class TaggerStatus {
 interface TaggingStatusWrap {
     status: TaggingStatus;
     platform: string;
+    providerId?: string;
     progress: number;
 }
 
 interface TaggingStatus {
-    status: 'ok' | 'error' | 'skipped';
-    path: 'string',
+    status: TrackOutcome;
+    path: string;
     message?: string;
+    messageKey?: string;
+    messageArgs?: Record<string, string | number>;
     accuracy?: number;
+    lookupMs?: number;
+    reason?: string;
     usedShazam: boolean
 }
 
@@ -175,35 +216,35 @@ enum SupportedTag {
 
 /// All supported tags with labels and tooltips
 const SUPPORTED_TAGS = [
-    { tag: SupportedTag.AlbumArt, label: 'Album Art', tooltip: 'Resolution is platform dependent' },
-    { tag: SupportedTag.Album, label: 'Album' },
-    { tag: SupportedTag.AlbumArtist, label: 'Album Artist' },
-    { tag: SupportedTag.Artist, label: 'Artist' },
-    { tag: SupportedTag.Title, label: 'Title' },
-    { tag: SupportedTag.Version, label: 'Version' },
-    { tag: SupportedTag.Remixer, label: 'Remixers', tooltip: '' },
-    { tag: SupportedTag.Genre, label: 'Genre', tooltip: 'Spotify will populate multiple genres based on artist' },
-    { tag: SupportedTag.Style, label: 'Style / Subgenre', tooltip: ''},
-    { tag: SupportedTag.Label, label: 'Label' },
-    { tag: SupportedTag.ReleaseId, label: 'Release ID' },
-    { tag: SupportedTag.TrackId, label: 'Track ID' },
+    { tag: SupportedTag.AlbumArt, get label() { return translate('autotag.tagAlbumArt'); }, get tooltip() { return translate('autotag.tagAlbumArtHint'); } },
+    { tag: SupportedTag.Album, get label() { return translate('autotag.tagAlbum'); } },
+    { tag: SupportedTag.AlbumArtist, get label() { return translate('autotag.tagAlbumArtist'); } },
+    { tag: SupportedTag.Artist, get label() { return translate('autotag.tagArtist'); } },
+    { tag: SupportedTag.Title, get label() { return translate('autotag.tagTitle'); } },
+    { tag: SupportedTag.Version, get label() { return translate('autotag.tagVersion'); } },
+    { tag: SupportedTag.Remixer, get label() { return translate('autotag.tagRemixers'); }, tooltip: '' },
+    { tag: SupportedTag.Genre, get label() { return translate('autotag.tagGenre'); }, get tooltip() { return translate('autotag.tagGenreHint'); } },
+    { tag: SupportedTag.Style, get label() { return translate('autotag.tagStyle'); }, tooltip: ''},
+    { tag: SupportedTag.Label, get label() { return translate('autotag.tagLabel'); } },
+    { tag: SupportedTag.ReleaseId, get label() { return translate('autotag.tagReleaseId'); } },
+    { tag: SupportedTag.TrackId, get label() { return translate('autotag.tagTrackId'); } },
     { tag: SupportedTag.BPM, label: 'BPM' },
-    { tag: SupportedTag.Key, label: 'Key' },
-    { tag: SupportedTag.Mood, label: 'Mood' },
-    { tag: SupportedTag.CatalogNumber, label: 'Catalog Number' },
-    { tag: SupportedTag.TrackNumber, label: 'Track Number' },
-    { tag: SupportedTag.DiscNumber, label: 'Disc Number' },
-    { tag: SupportedTag.Duration, label: 'Duration' },
-    { tag: SupportedTag.TrackTotal, label: 'Track Total' },
+    { tag: SupportedTag.Key, get label() { return translate('autotag.tagKey'); } },
+    { tag: SupportedTag.Mood, get label() { return translate('autotag.tagMood'); } },
+    { tag: SupportedTag.CatalogNumber, get label() { return translate('autotag.tagCatalogNumber'); } },
+    { tag: SupportedTag.TrackNumber, get label() { return translate('autotag.tagTrackNumber'); } },
+    { tag: SupportedTag.DiscNumber, get label() { return translate('autotag.tagDiscNumber'); } },
+    { tag: SupportedTag.Duration, get label() { return translate('autotag.tagDuration'); } },
+    { tag: SupportedTag.TrackTotal, get label() { return translate('autotag.tagTrackTotal'); } },
     { tag: SupportedTag.ISRC, label: 'ISRC' },
-    { tag: SupportedTag.PublishDate, label: 'Publish Date', tooltip: '' },
-    { tag: SupportedTag.ReleaseDate, label: 'Release Date' },
+    { tag: SupportedTag.PublishDate, get label() { return translate('autotag.tagPublishDate'); }, tooltip: '' },
+    { tag: SupportedTag.ReleaseDate, get label() { return translate('autotag.tagReleaseDate'); } },
     { tag: SupportedTag.URL, label: 'URL' },
-    { tag: SupportedTag.OtherTags, label: 'Other Tags', tooltip: 'Specific tags only for some platforms' },
-    { tag: SupportedTag.MetaTags, label: 'OneTagger Tags', tooltip: 'Adds 1T_TAGGEDDATE tag with timestamp' },
-    { tag: SupportedTag.UnsyncedLyrics, label: 'Unsynced Lyrics' },
-    { tag: SupportedTag.SyncedLyrics, label: 'Synced Lyrics' },
-    { tag: SupportedTag.Explicit, label: 'Explicit' },
+    { tag: SupportedTag.OtherTags, get label() { return translate('autotag.tagOther'); }, get tooltip() { return translate('autotag.tagOtherHint'); } },
+    { tag: SupportedTag.MetaTags, get label() { return translate('autotag.tagOneTagger'); }, get tooltip() { return translate('autotag.tagOneTaggerHint'); } },
+    { tag: SupportedTag.UnsyncedLyrics, get label() { return translate('autotag.tagUnsyncedLyrics'); } },
+    { tag: SupportedTag.SyncedLyrics, get label() { return translate('autotag.tagSyncedLyrics'); } },
+    { tag: SupportedTag.Explicit, get label() { return translate('autotag.tagExplicit'); } },
 ];
 
 /// Track from 

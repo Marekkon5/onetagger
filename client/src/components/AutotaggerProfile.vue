@@ -5,7 +5,7 @@
             dense
             outlined
             v-model='$1t.settings.value.autoTaggerProfile'
-            label='Profile'
+            :label="t('autotag.profile')"
             class='col'
             @update:model-value="loadProfile"
             popup-content-class='no-shadow'
@@ -32,6 +32,8 @@
 
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { Dialog } from 'quasar';
 import { computed } from 'vue';
 import { AutotaggerConfig } from '../scripts/autotagger';
@@ -42,8 +44,8 @@ const $1t = get1t();
 /// Save current profile as new profile
 function saveAs() {
     Dialog.create({
-        title: 'Save profile as',
-        message: 'Name of new profile:',
+        title: t('autotag.saveProfileAs'),
+        message: t('autotag.profileName'),
         prompt: {
             model: '',
             type: 'text'
@@ -59,8 +61,8 @@ function saveAs() {
 /// Create new profile
 function newProfile() {
     Dialog.create({
-        title: 'Create new profile',
-        message: 'Name of new profile:',
+        title: t('autotag.createProfile'),
+        message: t('autotag.profileName'),
         prompt: {
             model: '',
             type: 'text'

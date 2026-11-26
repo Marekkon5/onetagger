@@ -43,6 +43,8 @@ pub struct ID3Tag {
     pub comm_lang: String,
 }
 
+const ONETAGGER_RATING_OWNER: &str = "no@email";
+
 impl ID3Tag {
     // Read from file
     pub fn load_file(path: impl AsRef<Path>) -> Result<ID3Tag, Error> {
@@ -99,7 +101,7 @@ impl ID3Tag {
     }
 
     // Load tag from file or create new
-    pub fn load_or_new(path: impl AsRef<Path>) -> ID3Tag {
+    pub fn load_or_new(path: impl AsRef<Path>) -> Result<ID3Tag, Error> {
         let ext = path.as_ref().extension().unwrap_or_default().to_ascii_lowercase();
         let format = if ext == "mp3" {
             ID3AudioFormat::MP3
@@ -110,17 +112,17 @@ impl ID3Tag {
         };
 
         match ID3Tag::load_file(&path) {
-            Ok(tag) => tag,
-            Err(e) => {
-                warn!("Failed loading: {:?}, creating new tag. {:?}", path.as_ref(), e);
-                ID3Tag {
+            Ok(tag) => Ok(tag),
+            Err(e) if e.downcast_ref::<id3::Error>().is_some_and(|e| matches!(e.kind, id3::ErrorKind::NoTag)) => {
+                Ok(ID3Tag {
                     tag: Tag::new(),
                     format,
                     id3_separator: String::from(", "),
                     id3v24: true,
                     comm_lang: "eng".to_string()
-                }
+                })
             }
+            Err(e) => Err(e),
         }
     }
 
@@ -162,15 +164,13 @@ impl ID3Tag {
 
     // POPM
     pub fn get_popularimeter(&self) -> Option<ID3Popularimeter> {
-        let tag = self.tag.get("POPM")?;
-        if let Content::Popularimeter(popm) = tag.content() {
-            return Some(popm.clone().into());
-        }
-        None
+        self.tag.frames().filter_map(|frame| frame.content().popularimeter())
+            .min_by_key(|frame| frame.user != ONETAGGER_RATING_OWNER)
+            .cloned().map(Into::into)
     }
 
     pub fn set_popularimeter(&mut self, popm: &ID3Popularimeter) {
-        self.tag.remove("POPM");
+        // ID3 identifies a POPM frame by owner. add_frame replaces only that owner.
         let popularimeter: Popularimeter = popm.clone().into();
         self.tag.add_frame(popularimeter);
     }
@@ -212,7 +212,8 @@ impl TagImpl for ID3Tag {
             self.set_raw("TPOS", self.get_raw("TPOS").unwrap_or(vec![]), true);
         }
 
-        // Write
+        // Stage every format in a sibling file before replacing the original.
+        crate::file_ops::atomic_update(path, |path| {
         match self.format {
             ID3AudioFormat::MP3 => {
                 Encoder::new()
@@ -223,8 +224,8 @@ impl TagImpl for ID3Tag {
             ID3AudioFormat::AIFF => self.tag.write_to_path(path, version)?,
             ID3AudioFormat::WAV => crate::wav::write_wav(path, self.tag.clone(), version)?,
         }
-        
         Ok(())
+        })
     }
 
     fn set_separator(&mut self, separator: &str) {
@@ -257,9 +258,14 @@ impl TagImpl for ID3Tag {
                 self.tag.set_text("TYER", date.year.to_string());
             }
             // Date
-            if date.has_md() && (overwrite || self.tag.get("TDAT").is_none()) {
-                self.tag.remove_date_recorded();
-                self.tag.set_text("TDAT", &format!("{:02}{:02}", date.day.unwrap(), date.month.unwrap()));
+            if let (Some(month), Some(day)) = (date.month, date.day) {
+                let fill_day_month = self.tag.get("TDAT").is_none() && self.tag.year() == Some(date.year);
+                if overwrite || fill_day_month {
+                    self.tag.remove_date_recorded();
+                    self.tag.set_text("TDAT", format!("{day:02}{month:02}"));
+                }
+            } else if overwrite {
+                self.tag.remove("TDAT");
             }
             return;
         }
@@ -294,34 +300,35 @@ impl TagImpl for ID3Tag {
 
     // Rating
     fn get_rating(&self) -> Option<u8> {
-        let tag = self.tag.get("POPM")?;
-        if let Content::Popularimeter(popm) = tag.content() {
-            let rating = (popm.rating as f32 / 51.0).ceil() as u8;
-            if rating == 0 {
-                return Some(1)
-            }
-            return Some(rating)
-        }
-        None
+        let rating = self.get_popularimeter()?.rating;
+        (rating != 0).then(|| rating.div_ceil(51))
     }
-    
+
     fn set_rating(&mut self, rating: u8, overwrite: bool) {
-        let frame: Popularimeter = ID3Popularimeter::new("no@email", rating * 51, 0).into();
-        if overwrite || self.tag.get("POPM").is_none() {
-            self.tag.remove("POPM");
-            if rating > 0 {
-                self.tag.add_frame(frame);
+        if !overwrite && self.get_rating().is_some() { return; }
+        let rating = rating.min(5);
+        let mut counter = 0;
+        let mut has_other_owner = false;
+        for frame in self.tag.frames().filter_map(|frame| frame.content().popularimeter()) {
+            if frame.user == ONETAGGER_RATING_OWNER { counter = frame.counter; }
+            else { has_other_owner = true; }
+        }
+        // A zero rating means unrated. Keep an explicit owner frame when it carries
+        // a play count or must take precedence over another application's rating.
+        if rating > 0 || counter > 0 || has_other_owner {
+            self.tag.add_frame(Popularimeter { user: ONETAGGER_RATING_OWNER.into(), rating: rating * 51, counter });
+        } else {
+            // Only remove this owner's frame. Preserve unrecognized POPM encodings.
+            for frame in self.tag.remove("POPM") {
+                if frame.content().popularimeter().is_none_or(|p| p.user != ONETAGGER_RATING_OWNER) {
+                    self.tag.add_frame(frame);
+                }
             }
         }
-        // Rating WMP
-        if overwrite || self.tag.get("RATING WMP").is_none() {
-            self.tag.remove("RATING WMP");
-            if rating > 0 {
-                let value = match rating {
-                    1 => 1,
-                    5 => 255,
-                    i => (i - 1) * 64
-                };
+        match rating {
+            0 => self.remove_raw("RATING WMP"),
+            n => {
+                let value = match n { 1 => 1, 5 => 255, _ => (n - 1) * 64 };
                 self.set_raw("RATING WMP", vec![value.to_string()], overwrite);
             }
         }
@@ -395,15 +402,14 @@ impl TagImpl for ID3Tag {
         // TXXX
         if tag.len() != 4 {
             if overwrite || self.get_raw(tag).is_none() {
-                // Remove if empty
-                if value.is_empty() {
-                    self.tag.remove_extended_text(Some(tag), None);
-                    return;
+                // ID3 readers can retain the same description in multiple text encodings.
+                self.tag.remove_extended_text(Some(tag), None);
+                if !value.is_empty() {
+                    self.tag.add_frame(ExtendedText {
+                        description: tag.to_string(),
+                        value: value.join(&self.id3_separator),
+                    });
                 }
-                self.tag.add_frame(ExtendedText {
-                    description: tag.to_string(),
-                    value: value.join(&self.id3_separator),
-                });
             }
             return;
         }
@@ -516,15 +522,20 @@ impl TagImpl for ID3Tag {
                 day: date.day
             });
         }
-        // ID3v2.3
-        if let Some(tag) = self.get_raw("TYER") {
-            return Some(TagDate {
-                year: tag[0].parse().ok()?,
-                month: None,
-                day: None
-            });
-        }
-        None
+        // ID3v2.3 stores the year and the optional DDMM in separate frames.
+        let year = self.tag.get("TYER")?.content().text()?.parse().ok()?;
+        let calendar = self.tag.get("TDAT").and_then(|frame| {
+            let text = frame.content().text()?;
+            if text.len() != 4 || !text.bytes().all(|byte| byte.is_ascii_digit()) {
+                return None;
+            }
+            let day: u8 = text[..2].parse().ok()?;
+            let month: u8 = text[2..].parse().ok()?;
+            chrono::NaiveDate::from_ymd_opt(year, month.into(), day.into())?;
+            Some((month, day))
+        });
+        let (month, day) = calendar.unzip();
+        Some(TagDate { year, month, day })
     }
 
     fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool) {
@@ -659,6 +670,159 @@ impl From<ID3Comment> for Lyrics {
             lang: c.lang,
             description: c.description,
             text: c.text
+        }
+    }
+}
+
+#[cfg(test)]
+mod safety_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn overwriting_a_custom_field_replaces_all_encodings_of_its_description() {
+        for (version, encoding) in [(Version::Id3v23, Encoding::UTF16), (Version::Id3v24, Encoding::UTF8)] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("track.mp3");
+            let audio = [0u8; 64];
+            fs::write(&path, audio).unwrap();
+            let mut seed = Tag::new();
+            for (description, value, enc) in [
+                ("WWWAUDIOFILE", "old-1", encoding),
+                ("WWWAUDIOFILE", "old-2", Encoding::Latin1),
+                ("UNIQUEFILEID", "keep", Encoding::Latin1),
+            ] {
+                let frame = Frame::from(ExtendedText { description: description.into(), value: value.into() });
+                seed.add_frame(frame.set_encoding(Some(enc)));
+            }
+            seed.write_to_path(&path, version).unwrap();
+            let values = |tag: &ID3Tag| tag.tag.extended_texts()
+                .filter(|t| t.description == "WWWAUDIOFILE").map(|t| t.value.clone()).collect::<Vec<_>>();
+            let mut tag = ID3Tag::load_file(&path).unwrap();
+            assert_eq!(values(&tag), ["old-1", "old-2"]);
+            tag.set_raw("WWWAUDIOFILE", vec!["ignored".into()], false);
+            assert_eq!(values(&tag), ["old-1", "old-2"]);
+            for value in ["new-1", "new-2"] {
+                tag.set_raw("WWWAUDIOFILE", vec![value.into()], true);
+                tag.save_file(&path).unwrap();
+                tag = ID3Tag::load_file(&path).unwrap();
+                assert_eq!(values(&tag), [value]);
+                assert_eq!(tag.get_raw("UNIQUEFILEID").unwrap(), ["keep"]);
+                assert!(fs::read(&path).unwrap().ends_with(&audio));
+            }
+        }
+    }
+
+    #[test]
+    fn missing_id3_tag_is_allowed_but_io_and_corruption_errors_are_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(ID3Tag::load_or_new(dir.path().join("missing.mp3")).is_err());
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        assert!(ID3Tag::load_or_new(&path).is_ok());
+        let broken = b"ID3\x05\x00\x00\x00\x00\x00\x06broken";
+        fs::write(&path, broken).unwrap();
+        assert!(ID3Tag::load_or_new(&path).is_err());
+        assert_eq!(fs::read(&path).unwrap(), broken);
+    }
+
+    fn wav_bytes() -> Vec<u8> {
+        let mut bytes = Vec::from(&b"RIFF"[..]);
+        bytes.extend(52u32.to_le_bytes());
+        bytes.extend(b"WAVEfmt ");
+        bytes.extend(16u32.to_le_bytes());
+        bytes.extend(1u16.to_le_bytes()); // PCM
+        bytes.extend(1u16.to_le_bytes()); // mono
+        bytes.extend(44100u32.to_le_bytes());
+        bytes.extend(88200u32.to_le_bytes());
+        bytes.extend(2u16.to_le_bytes());
+        bytes.extend(16u16.to_le_bytes());
+        bytes.extend(b"data");
+        bytes.extend(4u32.to_le_bytes());
+        bytes.extend([1, 2, 3, 4]);
+        bytes.extend(b"JUNK");
+        bytes.extend(3u32.to_le_bytes());
+        bytes.extend([7, 8, 9, 0]); // Unknown chunk with odd-sized payload and padding.
+        bytes
+    }
+
+    #[test]
+    fn invalid_empty_wav_containers_are_rejected_without_modification() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("broken.wav");
+        let mut invalid_riff = wav_bytes();
+        invalid_riff[4..8].copy_from_slice(&0u32.to_le_bytes());
+        let mut invalid_list = wav_bytes();
+        invalid_list.extend(b"LIST\0\0\0\0");
+        for bytes in [invalid_riff, invalid_list] {
+            fs::write(&path, &bytes).unwrap();
+            assert!(ID3Tag::load_or_new(&path).is_err());
+            assert_eq!(fs::read(&path).unwrap(), bytes);
+        }
+    }
+
+    #[test]
+    fn wav_tag_round_trip_preserves_audio_and_rejects_truncated_input() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.wav");
+        let original = wav_bytes();
+        fs::write(&path, &original).unwrap();
+        let mut tag = ID3Tag::load_or_new(&path).unwrap();
+        tag.set_field(Field::Title, vec!["Updated title".into()], true);
+        tag.save_file(&path).unwrap();
+        assert_eq!(ID3Tag::load_file(&path).unwrap().get_field(Field::Title).unwrap(), vec!["Updated title"]);
+        tag.set_field(Field::Title, vec!["Second title".into()], true);
+        tag.save_file(&path).unwrap();
+        assert_eq!(ID3Tag::load_file(&path).unwrap().get_field(Field::Title).unwrap(), vec!["Second title"]);
+        let written = fs::read(&path).unwrap();
+        let junk_offset = written.windows(4).position(|w| w == b"JUNK").unwrap();
+        assert_eq!(&written[junk_offset + 8..junk_offset + 12], &[7, 8, 9, 0]);
+        let data_offset = written.windows(4).position(|w| w == b"data").unwrap();
+        assert_eq!(&written[data_offset + 8..data_offset + 12], &[1, 2, 3, 4]);
+        fs::write(&path, &original[..20]).unwrap();
+        assert!(ID3Tag::load_or_new(&path).is_err());
+        assert_eq!(fs::read(&path).unwrap(), &original[..20]);
+    }
+
+    #[test]
+    fn id3v23_release_date_round_trips_calendar_precision() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        let mut tag = ID3Tag::load_or_new(&path).unwrap();
+        tag.set_id3v24(false);
+        let leap_day = TagDate { year: 2024, month: Some(2), day: Some(29) };
+        tag.set_date(&leap_day, true);
+        tag.save_file(&path).unwrap();
+        let mut tag = ID3Tag::load_file(&path).unwrap();
+        let date = tag.get_date().unwrap();
+        assert_eq!((date.year, date.month, date.day), (2024, Some(2), Some(29)));
+
+        let year_only = TagDate { year: 2025, month: None, day: None };
+        tag.set_date(&year_only, false);
+        assert_eq!(tag.get_raw("TDAT").unwrap(), ["2902"]);
+        tag.set_date(&year_only, true);
+        tag.save_file(&path).unwrap();
+        let mut tag = ID3Tag::load_file(&path).unwrap();
+        assert_eq!(tag.get_raw("TYER").unwrap(), ["2025"]);
+        assert!(tag.get_raw("TDAT").is_none());
+        tag.set_date(&leap_day, false);
+        assert!(tag.get_raw("TDAT").is_none());
+        tag.set_date(&TagDate { year: 2025, month: Some(3), day: Some(1) }, false);
+        assert_eq!(tag.get_raw("TDAT").unwrap(), ["0103"]);
+    }
+
+    #[test]
+    fn invalid_id3v23_day_month_still_returns_the_year() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        let mut tag = ID3Tag::load_or_new(&path).unwrap();
+        tag.set_raw("TYER", vec!["2023".into()], true);
+        for invalid in ["2902", "3213", "0", "1é2"] {
+            tag.set_raw("TDAT", vec![invalid.into()], true);
+            let date = tag.get_date().unwrap();
+            assert_eq!((date.year, date.month, date.day), (2023, None, None));
         }
     }
 }

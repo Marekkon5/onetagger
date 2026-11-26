@@ -6,13 +6,14 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
+rand = "0.9"
 mime = "0.3"
 dunce = "1.0"
 trash = "5.2"
 image = "0.25"
 anyhow = "1.0"
 opener = "0.8"
-base64 = "0.22"
+base64 = "0.23"
 walkdir = "2.5"
 serde_json = "1.0"
 webbrowser = "1.0"
@@ -21,10 +22,13 @@ urlencoding = "2.1"
 include_dir = "0.7"
 directories = "6.0"
 tinyfiledialogs = "3.9"
+rusqlite = { version = "=0.41.0", features = ["bundled"] }
+futures-util = "0.3"
+tempfile = "3.20"
 
 axum = { version = "0.8", features = ["ws"] }
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.45", features = ["rt-multi-thread"] }
+tokio = { version = "1.51.6", features = ["rt-multi-thread", "macros", "sync", "fs", "io-util", "time"] }
 
 onetagger-tag = { path = "../onetagger-tag" }
 onetagger-shared = { path = "../onetagger-shared" }
@@ -37,4 +41,8 @@ onetagger-platforms = { path = "../onetagger-platforms" }
 
 # Windows specific 
 [target.'cfg(windows)'.dependencies]
-sysinfo = "0.35"
+sysinfo = "0.38.4"
+
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

@@ -4,11 +4,13 @@
 
     <!-- Path -->
     <div v-if='!manualTag'>
-        <div class='text-subtitle2 text-bold text-primary'>SELECT INPUT</div>
-        <div class='text-subtitle2 q-mb-md text-grey-6'>Drag & drop folder, copy/paste path directly or<span class='keybind-icon text-caption text-bold'>CLICK</span> the browse <span><q-icon name='mdi-open-in-app' class='q-mb-xs'></q-icon> icon</span></div>
+        <LibraryReport />
+        <div v-if='!$1t.taggingSelection.value'>
+        <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.selectInput') }}</div>
+        <div class='text-subtitle2 q-mb-md text-grey-6'>{{ t('autotag.inputHint') }} <q-icon name='mdi-open-in-app' class='q-mb-xs' aria-hidden='true'></q-icon></div>
         <div class='row justify-center input' style='max-width: 725px; margin: auto;'>
             <div class='col-1'></div>
-            <q-input filled class='col-10' label='Path' v-model='$1t.config.value.path'>
+            <q-input data-testid='autotagger-path' filled class='col-10' :label="t('autotag.path')" v-model='$1t.config.value.path'>
                 <template v-slot:append>
                     <q-btn round dense flat icon='mdi-open-in-app' class='text-grey-4' @click='browse'></q-btn>
                 </template>
@@ -16,7 +18,7 @@
     
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='path-tooltip q-mx-sm q-pt-md q-mt-xs'>
-                    <q-tooltip>Subfolders are included</q-tooltip>
+                    <q-tooltip>{{ t('autotag.subfoldersIncluded') }}</q-tooltip>
                 </q-icon>
             </div>
         </div>
@@ -32,18 +34,19 @@
                     
             <div class='col-1'>
                 <q-icon name='mdi-help-circle-outline text-grey-6' class='playlist-tooltip q-mx-sm q-mt-xl q-pt-sm'>
-                    <q-tooltip>.m3u and .m3u8 extensions are supported</q-tooltip>
+                    <q-tooltip>{{ t('autotag.playlistsSupported') }}</q-tooltip>
                 </q-icon>
             </div>
         </div>
 
         <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 8px;"' inset color="dark"/>
+        </div>
     </div>
     
     <!-- Tags -->
 
-    <div class='text-subtitle2 q-mt-lg text-primary text-bold' style='margin-top: 35px;'>SELECT TAGS</div>
-    <div class='text-subtitle2 q-mb-sm text-grey-6'>Check the box to fetch stated tag</div>
+    <div class='text-subtitle2 q-mt-lg text-primary text-bold' style='margin-top: 35px;'>{{ t('autotag.selectTags') }}</div>
+    <div class='text-subtitle2 q-mb-sm text-grey-6'>{{ t('autotag.selectTagsHint') }}</div>
     
     <div class='q-pt-xs q-mb-md' :style='"max-width: 550px; margin: auto;"'>
         <div class='row justify-between tags wrap' :class='{"q-ml-md": manualTag, "q-ml-xl": !manualTag}'>
@@ -51,6 +54,7 @@
             <!-- All tags -->
             <div v-for='tag in SUPPORTED_TAGS'>
                 <q-checkbox 
+                    :data-tag='tag.tag'
                     :disable='!isSupported(tag.tag)'
                     class='tag checkbox text-grey-4' 
                     :label='tag.label'
@@ -68,15 +72,18 @@
 
     <!-- Convenience toggles -->
     <div class='row justify-center q-mb-xs'>
-        <q-btn push dense color='primary' class='rounded-borders q-mx-sm q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='toggleTags("enableAll")'>Enable All</q-btn>
-        <q-btn push dense color='primary' class='rounded-borders q-mx-sm q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='toggleTags("disableAll")'>Disable All</q-btn>
-        <q-btn push dense color='primary' class='rounded-borders q-mx-sm q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='toggleTags("toggle")'>Toggle</q-btn>
+        <q-btn push dense color='primary' class='rounded-borders q-mx-sm q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='toggleTags("enableAll")'>{{ t('autotag.enableAll') }}</q-btn>
+        <q-btn push dense color='primary' class='rounded-borders q-mx-sm q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='toggleTags("disableAll")'>{{ t('autotag.disableAll') }}</q-btn>
+        <q-btn push dense color='primary' class='rounded-borders q-mx-sm q-px-sm q-mt-md text-black text-weight-medium text-caption' @click='toggleTags("toggle")'>{{ t('autotag.toggle') }}</q-btn>
     </div>
     <br>
 </div>
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+import LibraryReport from './LibraryReport.vue';
 import { get1t } from '../scripts/onetagger';
 import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 import PlaylistDropZone from './PlaylistDropZone.vue';

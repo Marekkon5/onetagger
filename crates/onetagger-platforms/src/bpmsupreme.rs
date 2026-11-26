@@ -1,17 +1,22 @@
+use crate::request_policy::{PacedRequest, ProviderRequests};
+use crate::cooldown::ProviderCooldown;
 use anyhow::Error;
-use std::time::Duration;
 use chrono::{DateTime, Utc};
 use onetagger_tagger::{AutotaggerSourceBuilder, TaggerConfig, AutotaggerSource, PlatformInfo, PlatformCustomOptions, PlatformCustomOptionValue, AudioFileInfo, Track, MatchingUtils, supported_tags, TrackMatch};
 use regex::Regex;
-use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+
 struct BPMSupreme {
     client: Client,
+    slowdown: u16,
     library: BPMMusicLibrary
 }
 
@@ -19,9 +24,11 @@ impl BPMSupreme {
     /// Create new instance
     pub fn new(token: &str, library: BPMMusicLibrary) -> BPMSupreme {
         let mut header_map = HeaderMap::new();
-        header_map.append("Cookie", HeaderValue::from_str(&format!("bpm_session={token}")).unwrap());
+        let mut cookie = HeaderValue::from_str(&format!("bpm_session={token}")).unwrap();
+        cookie.set_sensitive(true);
+        header_map.append("Cookie", cookie);
         BPMSupreme {
-            library,
+            library, slowdown: 2,
             client: Client::builder()
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36.")
                 .default_headers(header_map)
@@ -55,23 +62,18 @@ impl BPMSupreme {
             .send()?
             .error_for_status()?
             .json()?;
-        debug!("User: {:?}", res.data);
+        debug!("BPM Supreme login succeeded");
         Ok(res.data.session_token)
     }
 
     /// Wrapper for GET request with rate limit
     fn get<T: DeserializeOwned>(&self, url: &str, query: &[(&str, &str)]) -> Result<T, Error> {
+        COOLDOWN.check()?;
         let res = self.client.get(url)
             .query(query)
-            .send()?;
+            .send_paced(&REQUESTS, self.slowdown)?;
 
         // Rate limit
-        if res.status() == StatusCode::TOO_MANY_REQUESTS {
-            let delay = res.headers().get("retry-after").map(|h| h.to_str().unwrap().parse().ok()).flatten().unwrap_or(3);
-            warn!("BPM Supreme rate limited, waiting for: {delay}s");
-            std::thread::sleep(Duration::from_secs(delay));
-            return self.get(url, query);
-        }
 
         Ok(res.error_for_status()?.json()?)
     }
@@ -117,7 +119,7 @@ struct BPMSupremeResponse<D> {
     pub data: D
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct BPMSupremeUser {
     pub session_token: String
 }
@@ -223,7 +225,9 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
         let token = BPMSupreme::login(&custom.email, &custom.password)?;
         self.library = custom.library;
         
-        Ok(Box::new(BPMSupreme::new(&token, self.library)))
+        let mut source = BPMSupreme::new(&token, self.library);
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {
@@ -250,9 +254,47 @@ impl AutotaggerSourceBuilder for BPMSupremeBuilder {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct BPMSupremeConfig {
     pub email: String,
     pub password: String,
     pub library: BPMMusicLibrary
+}
+
+impl std::fmt::Debug for BPMSupremeUser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BPMSupremeUser")
+            .field("session_token", &"[redacted]")
+            .finish()
+    }
+}
+
+
+impl std::fmt::Debug for BPMSupremeConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BPMSupremeConfig")
+            .field("email", &"[redacted]")
+            .field("password", &"[redacted]")
+            .field("library", &self.library)
+            .finish()
+    }
+}
+
+#[test]
+fn authentication_debug_redacts_credentials_without_changing_serialization() {
+    let secret = "bpm-secret-regression-sentinel";
+    let response = BPMSupremeResponse { data: BPMSupremeUser { session_token: secret.to_string() } };
+    let config = BPMSupremeConfig {
+        email: "private-account@example.invalid".to_string(),
+        password: secret.to_string(),
+        library: BPMMusicLibrary::Supreme,
+    };
+    let debug = format!("{response:?} {config:?}");
+    assert!(debug.contains("[redacted]"));
+    assert!(!debug.contains(secret));
+    assert!(!debug.contains(&config.email));
+    assert_eq!(serde_json::to_value(&response).unwrap()["data"]["session_token"], secret);
+    assert_eq!(serde_json::to_value(&config).unwrap()["password"], secret);
+    let client = BPMSupreme::new(secret, BPMMusicLibrary::Supreme);
+    assert!(!format!("{:?}", client.client).contains(secret));
 }

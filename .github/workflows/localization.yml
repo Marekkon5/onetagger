@@ -1,0 +1,55 @@
+name: Localization
+on:
+  workflow_call:
+permissions:
+  contents: read
+
+jobs:
+  browsers:
+    name: Localized workflows (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            engines: chromium,firefox,webkit
+            install: chromium firefox webkit
+          - os: windows-2022
+            engines: chromium
+            install: chromium
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend
+          path: client/dist
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ci/ui/requirements.txt
+      - name: Select a fast Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: python3 ci/ubuntu_apt_mirrors.py
+      - name: Install pinned browser dependencies
+        run: |
+          python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
+          python -m pip check
+          python -m playwright install --with-deps ${{ matrix.install }}
+      - name: Exercise every interface language
+        env:
+          UI_BROWSERS: ${{ matrix.engines }}
+        run: python ci/ui/localization_smoke.py
+      - name: Retain screenshots, failure traces and test summary
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: localization-results-${{ matrix.os }}
+          path: localization-results/
+          if-no-files-found: warn
+          retention-days: 14
+          overwrite: true

@@ -1,42 +1,62 @@
+use crate::cooldown::ProviderCooldown;
+use crate::request_cache::RequestCache;
+use crate::request_pacer::RequestPacer;
 use anyhow::Error;
 use std::time::Duration;
 use chrono::NaiveDate;
-use rand::Rng;
-use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use onetagger_tagger::{Track, AutotaggerSource, AudioFileInfo, TaggerConfig, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, TrackMatch};
 
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
+
 pub struct MusicBrainz {
-    client: Client
+    client: Client,
+    slowdown: u16,
+    release_cache: RequestCache<String, Release>,
 }
 
 impl MusicBrainz {
     pub fn new() -> MusicBrainz {
         MusicBrainz {
             client: Client::builder()
-                .user_agent("OneTagger/1.0")
+                .user_agent(format!("OneTagger/{} (+https://github.com/fantuz/onetagger)", onetagger_shared::VERSION))
+                .timeout(Duration::from_secs(30))
                 .build()
-                .unwrap()
+                .unwrap(),
+            slowdown: 2,
+            release_cache: RequestCache::default(),
         }
     }
 
     /// Make GET request to MusicBrainz, rate limit inlcuded
     fn get<T: DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> Result<T, Error> {
+        COOLDOWN.check()?;
         let mut new_query = query.to_owned();
         new_query.push(("fmt", "json"));
         debug!("MusicBrainz GET: {} {:?}", path, new_query);
-
+        PACER.wait_scaled(Duration::from_secs(1), self.slowdown);
+        COOLDOWN.check()?;
         let response = self.client.get(&format!("https://musicbrainz.org/ws/2{}", path))
             .query(&new_query)
             .send()?;
-        if response.status() == StatusCode::SERVICE_UNAVAILABLE {
-            warn!("MusicBrainz rate limit hit! Waiting...");
-            // Use random rate limit delay because threading
-            std::thread::sleep(Duration::from_millis(rand::rng().random_range(1000..3000)));
-            return self.get(path, &query);
-        }
+        COOLDOWN.check_response(&response, Duration::from_secs(15))?;
         Ok(response.error_for_status()?.json()?)
+    }
+
+    fn release(&self, id: &str) -> Result<Release, Error> {
+        self.release_with(id, || self.get(&format!("/release/{id}"), &[
+            ("inc", "artist-credits labels recordings genres"),
+        ]))
+    }
+
+    fn release_with(&self, id: &str, fetch: impl FnOnce() -> Result<Release, Error>) -> Result<Release, Error> {
+        self.release_cache.get_or_try_init(id.to_owned(), || {
+            let release = fetch()?;
+            anyhow::ensure!(release.id == id, "MusicBrainz returned a different release");
+            Ok(release)
+        })
     }
 
     /// Search tracks (recordings)
@@ -59,36 +79,46 @@ impl MusicBrainz {
 
     /// Add info from release to track
     pub fn extend_track(track: &mut Track, releases: BrowseReleases) {
-        if let Some(release) = releases.releases.first() {
-            // Add cover
-            if release.cover_art_archive.back || release.cover_art_archive.front {
-                track.art = Some(format!("https://coverartarchive.org/release/{}/{}", release.id, match release.cover_art_archive.front {
-                    true => "front",
-                    false => "back"
-                }));
-            }
-            track.album = Some(release.title.to_string());
-            track.release_id = Some(release.id.to_string());
-            // Label
-            if let Some(label_info) = match &release.label_info {
-                LabelInfoResult::Array(labels) => labels.first(),
-                LabelInfoResult::Single(label) => Some(label),
-            } {
-                if let Some(label) = &label_info.label {
-                    track.label = Some(label.name.to_string());
-                }
-                track.catalog_number = label_info.catalog_number.clone();
-            }
-            // Get track for track number
-            if let Some(mb_track) = release.media.iter().filter_map(
-                |m| m.tracks.iter().find(|t| &t.recording.id == track.track_id.as_ref().unwrap())
-            ).next() {
-                track.track_number = Some(TrackNumber::Number(mb_track.position as i32));
-            }
+        let release = match &track.release_id {
+            Some(id) => releases.releases.iter().find(|release| release.id == *id),
+            None if releases.releases.len() == 1 => releases.releases.first(),
+            None => None,
+        };
+        if let Some(release) = release { Self::apply_release(track, release); }
+    }
 
-            // Genres
-            track.genres = release.genres.iter().map(|g| g.name.to_string()).collect();
+    fn apply_release(track: &mut Track, release: &Release) {
+        if let Some(credits) = &release.artist_credit {
+            track.album_artists = credits.iter().map(|artist| artist.name.clone()).collect();
         }
+        // Add cover
+        if release.cover_art_archive.back || release.cover_art_archive.front {
+            track.art = Some(format!("https://coverartarchive.org/release/{}/{}", release.id, match release.cover_art_archive.front {
+                true => "front",
+                false => "back"
+            }));
+        }
+        track.album = Some(release.title.to_string());
+        track.release_id = Some(release.id.to_string());
+        // Label
+        if let Some(label_info) = match &release.label_info {
+            LabelInfoResult::Array(labels) => labels.first(),
+            LabelInfoResult::Single(label) => Some(label),
+        } {
+            if let Some(label) = &label_info.label {
+                track.label = Some(label.name.to_string());
+            }
+            track.catalog_number = label_info.catalog_number.clone();
+        }
+        // Get track for track number
+        if let Some(mb_track) = release.media.iter().filter_map(
+            |m| m.tracks.iter().find(|t| Some(&t.recording.id) == track.track_id.as_ref())
+        ).next() {
+            track.track_number = Some(TrackNumber::Number(mb_track.position as i32));
+        }
+
+        // Genres
+        track.genres = release.genres.iter().map(|g| g.name.to_string()).collect();
     }
 }
 
@@ -109,8 +139,14 @@ impl AutotaggerSource for MusicBrainz {
     }
 
     fn extend_track(&mut self, track: &mut Track, _config: &TaggerConfig) -> Result<(), Error> {
-        let releases = self.full_release(track.track_id.as_ref().unwrap())?;
-        MusicBrainz::extend_track(track, releases);
+        if let Some(id) = &track.release_id {
+            let release = self.release(id)?;
+            Self::apply_release(track, &release);
+        } else {
+            let id = track.track_id.as_deref().ok_or_else(|| anyhow!("Missing recording ID"))?;
+            let releases = self.full_release(id)?;
+            MusicBrainz::extend_track(track, releases);
+        }
         Ok(())
     }
 
@@ -139,18 +175,10 @@ pub struct Recording {
 impl Into<Track> for Recording {
     fn into(self) -> Track {
         // Find release with priority to not use compilations
-        let mut release = None;
-        if let Some(releases) = self.releases.as_ref() {
-            for r in releases {
-                if !r.release_group.secondary_types.as_ref().unwrap_or(&vec![]).contains(&"compilation".to_string()) {
-                    release = Some(r);
-                    break;
-                }
-            }
-            if release.is_none() {
-                release = releases.first();
-            }
-        }
+        let release = self.releases.as_ref().and_then(|releases| {
+            releases.iter().find(|r| !r.release_group.secondary_types.iter().flatten()
+                .any(|kind| kind.eq_ignore_ascii_case("compilation"))).or_else(|| releases.first())
+        });
 
         Track {
             platform: "musicbrainz".to_string(),
@@ -279,15 +307,20 @@ pub struct BrowseReleases {
 }
 
 #[derive(Debug, Clone)]
-pub struct MusicBrainzBuilder;
+pub struct MusicBrainzBuilder {
+    release_cache: RequestCache<String, Release>,
+}
 
 impl AutotaggerSourceBuilder for MusicBrainzBuilder {
     fn new() -> MusicBrainzBuilder {
-        MusicBrainzBuilder
+        MusicBrainzBuilder { release_cache: RequestCache::default() }
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(MusicBrainz::new()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = MusicBrainz::new();
+        source.slowdown = config.provider_slowdown();
+        source.release_cache = self.release_cache.clone();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {
@@ -309,6 +342,53 @@ impl AutotaggerSourceBuilder for MusicBrainzBuilder {
 /// Test if API works properly
 mod tests {
     #[test]
+    fn selected_release_reuse_keeps_per_track_numbers_and_rejects_wrong_editions() {
+        use super::*;
+        use serde_json::json;
+        let source = MusicBrainz::new();
+        let release = |id: &str| serde_json::from_value(json!({"id":id, "title":id,
+            "artist-credit":[{"name":"Album artist","artist":{"id":"artist","name":"Album artist"}}],
+            "label-info":[], "genres":[], "media":[{"tracks":[
+                {"id":"medium-one","position":1,"recording":{"id":"song-one","title":"One"}},
+                {"id":"medium-two","position":2,"recording":{"id":"song-two","title":"Two"}}
+            ]}], "cover-art-archive":{"back":false,"front":true,"artwork":true,"count":1}})).unwrap();
+        assert!(source.release_with("edition-a", || Ok(release("edition-b"))).is_err());
+        let selected = source.release_with("edition-a", || Ok(release("edition-a"))).unwrap();
+        let reused = source.release_with("edition-a", || -> Result<Release, Error> { panic!("duplicate HTTP fetch") }).unwrap();
+        for (recording, number, details) in [("song-one", 1, &selected), ("song-two", 2, &reused)] {
+            let mut track = Track { track_id: Some(recording.into()), ..Default::default() };
+            MusicBrainz::apply_release(&mut track, details);
+            assert_eq!(track.release_id.as_deref(), Some("edition-a"));
+            assert_eq!(track.track_number, Some(TrackNumber::Number(number)));
+            assert_eq!(track.album_artists, vec!["Album artist"]);
+        }
+    }
+
+    #[test]
+    fn enrichment_keeps_the_selected_edition_across_browse_order_and_missing_pages() {
+        use super::*;
+        use serde_json::json;
+        let small = |id: &str, kinds: &[&str]| json!({"id":id, "title":id, "release-group":{
+            "id":id, "title":id, "secondary-types":kinds}});
+        let full = |id: &str| json!({"id":id, "title":id, "artist-credit":[{"name":id,"artist":{"id":id,"name":id}}],
+            "label-info":[{"label":{"id":id,"name":id}}], "media":[], "genres":[],
+            "cover-art-archive":{"back":false,"front":true,"artwork":true,"count":1}});
+        let rec: Recording = serde_json::from_value(json!({"id":"song","title":"Song",
+            "releases":[small("compilation",&["Compilation"]),small("original",&[])]})).unwrap();
+        let mut selected: Track = rec.into();
+        assert_eq!(selected.release_id.as_deref(), Some("original"));
+        let browse = |releases| serde_json::from_value(json!({"release-count":2,"release-offset":0,"releases":releases})).unwrap();
+        MusicBrainz::extend_track(&mut selected, browse(vec![full("compilation")]));
+        assert_eq!(selected.label, None);
+        MusicBrainz::extend_track(&mut selected, browse(vec![full("compilation"),full("original")]));
+        assert_eq!(selected.release_id.as_deref(), Some("original"));
+        assert_eq!(selected.label.as_deref(), Some("original"));
+        assert_eq!(selected.album_artists, vec!["original"]);
+        assert!(selected.art.unwrap().contains("/original/"));
+    }
+
+    #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
     pub fn test_search_serialization() {
         let m = super::MusicBrainz::new();
         m.search("marting garrix animals").expect("Search 1 failed");
@@ -318,6 +398,7 @@ mod tests {
     }
 
     #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
     pub fn text_full_release_serialization() {
         let m = super::MusicBrainz::new();
         let results = m.search("illenium needed you").expect("Search failed!");

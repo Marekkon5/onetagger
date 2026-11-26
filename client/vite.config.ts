@@ -15,9 +15,18 @@ export default defineConfig({
         })
     ],
     server: {
-        port: 8080
+        host: '127.0.0.1',
+        port: 8080,
+        strictPort: true,
+        proxy: Object.fromEntries(['/session', '/ws', '/audio', '/thumb', '/spotify'].map(route => [route, {
+            target: 'http://127.0.0.1:36913', ws: route === '/ws', changeOrigin: false,
+        }]))
     },
     build: {
+        // Keep the Vite 6 browser floor when upgrading the build tool. Native
+        // WebKit/WebView2 support must not silently follow Vite's newer default.
+        target: ['chrome87', 'edge88', 'firefox78', 'safari14'],
         assetsInlineLimit: 16 * 1024
     }
 });
+

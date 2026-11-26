@@ -1,208 +1,381 @@
 name: Build
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
 
 jobs:
-  build-linux:
-    name: Linux
-    runs-on: ubuntu-22.04
-
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate GitHub workflow definitions
+        run: |
+          curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '%s  %s\n' '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8' "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --status
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes=
+      - name: Validate release tooling and synchronized versions
+        run: |
+          python3 -m unittest discover -s ci -p 'test_*.py' -v
+          python3 ci/release_tools.py check
+      - name: Validate locked Rust dependency graph
+        run: cargo metadata --locked --format-version 1 > /dev/null
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: '10.11.0'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+      - name: Test provider pace, status counters and locale negotiation
+        run: node --experimental-strip-types --test ci/provider_pace.test.ts ci/status_index.test.ts ci/requests.test.ts ci/i18n_runtime.test.ts
+      - name: Build and typecheck locked frontend
+        run: |
+          pnpm --dir client install --frozen-lockfile
+          node ci/i18n_compile.mjs
+          pnpm --dir client run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend
+          path: client/dist/
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
 
-    - name: Checkout
-      uses: actions/checkout@v3
+  localization:
+    name: Localization
+    needs: frontend
+    uses: ./.github/workflows/localization.yml
 
-    - name: Rust Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y lld autogen libasound2-dev pkg-config make libssl-dev gcc g++ curl wget git libwebkit2gtk-4.1-dev
-
-    - name: Install NodeJS
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
-
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
-
-    - name: Build
-      run: |
-        cd client
-        pnpm i
-        pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
-
-    - name: Bundle
-      run: |
-        tar zcf OneTagger-linux.tar.gz -C target/release onetagger
-        tar zcf OneTagger-linux-cli.tar.gz -C target/release onetagger-cli
-        mkdir dist
-        mv OneTagger-linux.tar.gz dist/
-        mv OneTagger-linux-cli.tar.gz dist/
-    
-    - name: Upload Linux
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-linux
-        path: dist/OneTagger-linux.tar.gz
-    
-    - name: Upload Linux CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-linux-cli
-        path: dist/OneTagger-linux-cli.tar.gz
-
-
-  build-win:
-    name: Windows
-    runs-on: windows-2022
-    
+  ui:
+    name: Browser UI tests (${{ matrix.os }})
+    needs: frontend
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            browsers: chromium,firefox,webkit
+            install: chromium firefox webkit
+          - os: windows-2022
+            browsers: chromium
+            install: chromium
+    env:
+      UI_BROWSERS: ${{ matrix.browsers }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend
+          path: client/dist
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ci/ui/requirements.txt
+      - name: Select a fast Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: python3 ci/ubuntu_apt_mirrors.py
+      - name: Install pinned browser test dependencies
+        run: |
+          python -m pip install --only-binary=:all: -r ci/ui/requirements.txt
+          python -m pip check
+          python -m playwright install --with-deps ${{ matrix.install }}
+      - name: Exercise the production frontend in three browser engines
+        run: python ci/ui/ui_smoke.py
+      - name: Upload UI screenshots and failure traces
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-test-results-${{ matrix.os }}
+          path: ui-test-results/
+          if-no-files-found: warn
+          retention-days: 7
+          overwrite: true
 
-    - name: Rust Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Install NodeJS
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
-
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
-
-    - name: Install Dependencies
-      run: |
-        choco install nsis -y
-        rustup update
-
-    - name: Build
-      run: |
-        cd client
-        pnpm i
-        pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
-        
-    - name: Bundle
-      run: |
-        mkdir dist
-        powershell -command "(new-object System.Net.WebClient).DownloadFile('https://aka.ms/vs/16/release/vc_redist.x64.exe','vc_redist.x64.exe')"
-        powershell -command "(new-object System.Net.WebClient).DownloadFile('https://go.microsoft.com/fwlink/p/?LinkId=2124703','MicrosoftEdgeWebview2Setup.exe')"
-        &'C:\Program Files (x86)\NSIS\makensis.exe' 'assets\installer.nsi'
-        copy target\release\onetagger.exe dist\OneTagger-windows.exe
-        copy target\release\onetagger-cli.exe dist\OneTagger-windows-cli.exe
-
-    - name: Upload Archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-win
-        path: | 
-          dist/OneTagger-windows.exe
-    
-    - name: Upload Archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-win-setup
-        path: dist/OneTagger-windows-setup.exe
-
-    - name: Upload CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-win-cli
-        path: |
-          dist/OneTagger-windows-cli.exe
-
-  build-mac:
-    name: Mac
-    runs-on: macos-13
-
+  build:
+    name: ${{ matrix.name }}
+    needs: frontend
+    runs-on: ${{ matrix.os }}
+    # Retain 45 minutes for native work, 10 for the ARM scheduler, and setup margin.
+    timeout-minutes: ${{ matrix.artifact == 'macos-arm64' && 60 || 45 }}
+    env:
+      # Keep file/line backtraces without full type/variable debug data in CI.
+      # Release profiles and local development defaults are unchanged.
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+      CARGO_PROFILE_TEST_DEBUG: line-tables-only
+      CARGO_INCREMENTAL: '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-24.04
+            artifact: linux-x64
+          - name: Windows x64
+            os: windows-2022
+            artifact: windows-x64
+          - name: macOS Intel
+            os: macos-15-intel
+            artifact: macos-intel
+          - name: macOS ARM64
+            os: macos-26
+            artifact: macos-arm64
+    defaults:
+      run:
+        shell: bash
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend
+          path: client/dist
+      - name: Select a fast Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: python3 ci/ubuntu_apt_mirrors.py
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        timeout-minutes: 12
+        run: |
+          sudo apt-get -o APT::Update::Error-Mode=any update
+          sudo apt-get install -y lld autogen libasound2-dev pkg-config libssl-dev libwebkit2gtk-4.1-dev \
+            webkit2gtk-driver xvfb pulseaudio
+      - name: Install Windows packaging tools
+        if: runner.os == 'Windows'
+        run: choco install nsis --no-progress -y
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup show active-toolchain
+          rustc -vV
+      - name: Restore Rust dependency cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        id: cargo-cache
+        with:
+          prefix-key: v1-onetagger-deps
+          # Include the virtual workspace manifest and runner image even in
+          # fallback keys. The action also hashes rustc, CARGO/RUST env vars,
+          # member manifests and dependency versions; no per-commit suffix.
+          shared-key: ${{ matrix.os }}-${{ matrix.artifact }}-${{ hashFiles('Cargo.toml', '.cargo/config.toml', 'rust-toolchain.toml') }}
+          cache-bin: 'false'
+          cache-workspace-crates: 'false'
+          cache-on-failure: 'true'
+          # Retain compiled third-party dependencies even when a later test or
+          # packaging step fails. Workspace crates remain excluded, and the
+          # existing rustc/manifest/environment keys still guard cache reuse.
+      # Share the ARM runner allocation with packaging; the other scheduler
+      # platforms remain in provider-pipeline.yml.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: matrix.artifact == 'macos-arm64'
+        with:
+          python-version: '3.12'
+      - name: Test and benchmark the production scheduler on ARM
+        if: matrix.artifact == 'macos-arm64'
+        timeout-minutes: 10
+        run: python ci/provider_benchmark.py
+      - name: Retain ARM benchmark evidence
+        if: matrix.artifact == 'macos-arm64' && always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: provider-benchmark-${{ matrix.os }}
+          path: |
+            provider-benchmark-results/*.csv
+            provider-benchmark-results/*.json
+            provider-benchmark-results/*.md
+            provider-benchmark-results/*.log
+          if-no-files-found: error
+          retention-days: 30
+      - name: Regression tests
+        run: cargo test --workspace --all-targets --locked --timings
+      - name: Measure cold and incremental library reads
+        if: runner.os == 'Linux'
+        env:
+          LIBRARY_BENCHMARK_OUTPUT: ${{ runner.temp }}/library-benchmark.json
+        run: cargo test -p onetagger-ui --locked library::tests::library_benchmark -- --ignored --nocapture
+      - name: Retain library performance evidence
+        if: runner.os == 'Linux' && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: library-performance
+          path: ${{ runner.temp }}/library-benchmark.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Check out the pinned Helper importer
+        if: runner.os == 'Linux'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: fantuz/rekordbox-migration-helper
+          ref: b437fe95d432da4ec356cc5c8bc98ea081713910
+          path: .ci-helper
+          persist-credentials: false
+      - name: Verify the actual producer-to-importer round trip
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          python3 -m venv "$RUNNER_TEMP/helper-roundtrip-venv"
+          "$RUNNER_TEMP/helper-roundtrip-venv/bin/python" -m pip install -r .ci-helper/requirements.txt
+          "$RUNNER_TEMP/helper-roundtrip-venv/bin/python" .ci-helper/packaging/check_onetagger_roundtrip.py --producer . --output roundtrip-results
+      - name: Upload cross-repository round-trip evidence
+        if: runner.os == 'Linux' && always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: helper-roundtrip
+          path: roundtrip-results/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked
+      - name: Build release binaries
+        run: cargo build --workspace --release --locked --timings
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          tar -czf dist/OneTagger-linux-x64.tar.gz -C target/release onetagger
+          tar -czf dist/OneTagger-linux-x64-cli.tar.gz -C target/release onetagger-cli
+      - name: Exercise native Linux Autotagger controls
+        if: runner.os == 'Linux'
+        timeout-minutes: 5
+        run: |
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=onetagger_test
+          dbus-run-session -- xvfb-run -a python3 ci/ui/native_linux.py target/release/onetagger
+          dbus-run-session -- xvfb-run -a python3 ci/ui/native_recovery.py target/release/onetagger
+      - name: Upload native Linux UI evidence
+        if: runner.os == 'Linux' && always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-linux-ui
+          path: native-ui-results/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Verify Windows executables can use the static MSVC runtime
+        if: runner.os == 'Windows'
+        run: python ci/check_windows_imports.py target/release/onetagger.exe target/release/onetagger-cli.exe
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist
+          Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile MicrosoftEdgeWebview2Setup.exe
+          $version = (Get-Content -Raw VERSION).Trim()
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DPRODUCT_VERSION=$version.0" 'assets\installer.nsi'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item target/release/onetagger.exe dist/OneTagger-windows.exe
+          Copy-Item target/release/onetagger-cli.exe dist/OneTagger-windows-cli.exe
+      - name: Verify Windows versions and exercise the installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        timeout-minutes: 5
+        run: ./ci/smoke_windows_package.ps1 -Dist dist -Version (Get-Content -Raw VERSION).Trim()
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: |
+          python ci/package_macos.py
+          python - <<'PYTHON'
+          import subprocess
+          for binary in ['target/release/onetagger', 'target/release/onetagger-cli']:
+              libraries = subprocess.check_output(['otool', '-L', binary], text=True)
+              print(libraries)
+              for line in libraries.splitlines()[1:]:
+                  dependency = line.strip().split(' (', 1)[0]
+                  if not dependency.startswith(('/usr/lib/', '/System/Library/')):
+                      raise SystemExit(f'{binary} depends on an unbundled library: {dependency}')
+          PYTHON
+          mkdir -p dist
+          bash ci/sign_macos_app.sh target/release/bundle/osx/OneTagger.app dist/OneTagger-${{ matrix.artifact }}.zip
+          zip -j dist/OneTagger-${{ matrix.artifact }}-cli.zip target/release/onetagger-cli
+      - name: Generate checksums
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          paths = sorted(p for p in Path('dist').iterdir() if p.is_file())
+          with Path('dist/SHA256SUMS-${{ matrix.artifact }}.txt').open('w') as output:
+              for path in paths:
+                  with path.open('rb') as source:
+                      digest = hashlib.file_digest(source, 'sha256').hexdigest()
+                  output.write(f'{digest}  {path.name}\n')
+          PY
+      - name: Record release artifact provenance
+        env:
+          RELEASE_PLATFORM: ${{ matrix.artifact }}
+        run: python ci/release_tools.py manifest "$RELEASE_PLATFORM" dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: onetagger-${{ matrix.artifact }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+      - name: Upload compilation timings
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cargo-timings-${{ matrix.artifact }}
+          path: target/cargo-timings/*.html
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
+      - name: Summarize compilation cache
+        if: always() && !cancelled()
+        env:
+          CACHE_HIT: ${{ steps.cargo-cache.outputs.cache-hit }}
+        run: |
+          {
+            echo '### Rust compilation cache'
+            echo "Exact dependency cache hit: ${CACHE_HIT:-unavailable} (false can mean a fallback restore)."
+            echo 'See Restore Rust dependency cache for the matched key and its post-job step for the pruned archive size.'
+            echo 'Cargo timing reports are uploaded separately when available; GitHub step durations include cache transfer and packaging overhead.'
+          } >> "$GITHUB_STEP_SUMMARY"
 
-    - name: Checkout
-      uses: actions/checkout@v3
+  release-assets:
+    name: Validate release assets
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: onetagger-*
+          path: ${{ runner.temp }}/release-artifacts
+          merge-multiple: false
+          digest-mismatch: error
+      - name: Verify all packages, source metadata and checksums
+        env:
+          RELEASE_ARTIFACTS: ${{ runner.temp }}/release-artifacts
+        run: python3 ci/release_tools.py verify "$RELEASE_ARTIFACTS"
 
-    - name: Rust Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Install dependencies
-      run: |
-        brew install rustup nodejs pnpm
-        rustup install stable
-        cargo install cargo-bundle --version 0.6.1 --locked || true
-    
-    - name: Build
-      run: |
-        cd client
-        pnpm i
-        pnpm run build
-        cd ..
-        cargo update
-        cargo build --release
-        cargo bundle --release
-
-    - name: Bundle
-      run: |
-        mkdir dist
-
-        cd target/release/bundle/osx
-        chmod +x OneTagger.app/Contents/MacOS/onetagger
-        zip -r OneTagger-mac.zip .
-        cd -
-
-        cd target/release
-        chmod +x onetagger-cli
-        zip OneTagger-mac-cli.zip onetagger-cli
-        cd -
-
-        mv target/release/bundle/osx/OneTagger-mac.zip dist/
-        mv target/release/OneTagger-mac-cli.zip dist/
-
-    - name: Upload Mac
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-mac
-        path: dist/OneTagger-mac.zip
-
-    - name: Upload Mac CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: onetagger-mac-cli
-        path: dist/OneTagger-mac-cli.zip
-
+  checks:
+    name: Required checks
+    if: always()
+    needs: [frontend, ui, localization, build, release-assets]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every platform to pass
+        env:
+          FRONTEND: ${{ needs.frontend.result }}
+          UI: ${{ needs.ui.result }}
+          LOCALIZATION: ${{ needs.localization.result }}
+          BUILD: ${{ needs.build.result }}
+          RELEASE_ASSETS: ${{ needs.release-assets.result }}
+        run: test "$FRONTEND" = success && test "$UI" = success && test "$LOCALIZATION" = success && test "$BUILD" = success && test "$RELEASE_ASSETS" = success

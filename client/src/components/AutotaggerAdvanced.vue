@@ -3,8 +3,8 @@
     <q-list>
         <!-- Overwrite tags -->
         <AdvancedSettingsToggle 
-            label='Overwrite tags'
-            tooltip='When disabling toggle, you can select which tags to overwrite alternatively'
+            :label="t('autotag.overwriteTags')"
+            :tooltip="t('autotag.overwriteHint')"
             v-model='$1t.config.value.overwrite'
         ></AdvancedSettingsToggle>
 
@@ -19,7 +19,7 @@
                 :options='SUPPORTED_TAGS'
                 use-chips
                 multiple
-                label='Select which tags to overwrite'
+                :label="t('autotag.selectOverwriteTags')"
             >
                 <template v-slot:selected-item='scope'>
                     <q-chip 
@@ -35,153 +35,158 @@
 
         <AdvancedSettingsToggle 
             label='ID3v2.4'
-            tooltip='Use ID3v2.4 instead of IDv2.3 for MP3/AIFF files'
+            :tooltip="t('autotag.id3VersionHint')"
             v-model='$1t.config.value.id3v24'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Short title'
-            tooltip='Write title without version, currently supported for Beatport & Traxsource only'
+            :label="t('autotag.shortTitle')"
+            :tooltip="t('autotag.shortTitleHint')"
             v-model='$1t.config.value.shortTitle'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Save album art to file'
-            tooltip='Writes a cover.jpg into the folder'
+            :label="t('autotag.saveCover')"
+            :tooltip="t('autotag.saveCoverHint')"
             v-model='$1t.config.value.albumArtFile'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Merge/append genre & styles'
-            tooltip='Merge the fetched genre & styles with existing ones, instead of replacing'
+            :label="t('autotag.mergeGenres')"
+            :tooltip="t('autotag.mergeGenresHint')"
             v-model='$1t.config.value.mergeGenres'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Camelot key notation'
-            tooltip='Write Camelot key 8A, 8B ... instead of musical key Am, C ...'
+            :label="t('autotag.camelot')"
+            :tooltip="t('autotag.camelotHint')"
             v-model='$1t.config.value.camelot'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Track or Release ID tag as input to get exact match'
-            tooltip='Valid tags are: DISCOGS_RELEASE_ID, BEATPORT_TRACK_ID'
+            :label="t('autotag.matchId')"
+            :tooltip="t('autotag.matchIdHint')"
             v-model='$1t.config.value.matchById'
         ></AdvancedSettingsToggle>
 
         <div class='row'>
             <img width='16' class='q-ml-md' src='../assets/shazam_icon.svg' svg-inline />
             <AdvancedSettingsToggle 
-                label='Identify tracks with Shazam'
-                tooltip='Match tracks without any tags using Shazam'
+                :label="t('autotag.shazam')"
+                :tooltip="t('autotag.shazamHint')"
                 v-model='$1t.config.value.enableShazam'
                 style='width: calc(100% - 32px)'
             ></AdvancedSettingsToggle>
         </div>
         <AdvancedSettingsToggle 
-            label='Force Shazam'
-            tooltip='Indentify tracks with Shazam, even if tags are present'
+            :label="t('autotag.forceShazam')"
+            :tooltip="t('autotag.forceShazamHint')"
             v-model='$1t.config.value.forceShazam'
             v-if='$1t.config.value.enableShazam'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Skip already tagged tracks'
-            tooltip='Skip tracks with the 1T_TAGGEDDATE tag (One Tagger Tag)'
+            :label="t('autotag.skipTagged')"
+            :tooltip="t('autotag.skipTaggedHint')"
             v-model='$1t.config.value.skipTagged'
         ></AdvancedSettingsToggle>
         
         <AdvancedSettingsToggle 
-            label='Include subfolders'
-            tooltip='Tag all subfolders as well'
+            :label="t('autotag.subfolders')"
+            :tooltip="t('autotag.subfoldersHint')"
             v-model='$1t.config.value.includeSubfolders'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Only write year'
-            tooltip='Write just the year instead of full date'
+            :label="t('autotag.yearOnly')"
+            :tooltip="t('autotag.yearOnlyHint')"
             v-model='$1t.config.value.onlyYear'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Tag same track on multiple platforms'
-            tooltip='Tag every track on every platform to get all the tags'
+            :label="t('autotag.multiplatform')"
+            :tooltip="t('autotag.multiplatformHint')"
             v-model='$1t.config.value.multiplatform'
         ></AdvancedSettingsToggle>
 
+        <AdvancedSettingsToggle v-if="!$1t.config.value.albumTagging"
+            :label="t('autotag.rotateProviders')" :tooltip="t('autotag.rotateHint')"
+            v-model="$1t.settings.value.rotateProviders"
+        ></AdvancedSettingsToggle>
+
         <AdvancedSettingsToggle 
-            label='Remove all covers if overwriting'
-            tooltip='Removes all existing covers if overwriting album art'
+            :label="t('autotag.removeCovers')"
+            :tooltip="t('autotag.removeCoversHint')"
             v-model='$1t.config.value.removeAllCovers'
         ></AdvancedSettingsToggle>
 
         <!-- Parse meta from filename -->
         <AdvancedSettingsToggle 
-            label='Parse metadata from filename'
-            tooltip='Valid variables are: %track%, %artist%, %title%, etc. anything in between % % gets treated as dynamic content'
+            :label="t('autotag.parseFilename')"
+            :tooltip="t('autotag.parseFilenameHint')"
             v-model='$1t.config.value.parseFilename'
         ></AdvancedSettingsToggle>
         <div v-if='$1t.config.value.parseFilename'>
             <q-input
                 v-model='$1t.config.value.filenameTemplate'
                 filled
-                label='Filename scheme'
+                :label="t('autotag.filenameScheme')"
                 class='input q-mb-sm' 
             ></q-input>
         </div>
 
         <!-- Move files -->
         <AdvancedSettingsToggle
-            label='Move succesfully tagged files after tagging'
+            :label="t('autotag.moveSuccessful')"
             v-model='$1t.config.value.moveSuccess'
         ></AdvancedSettingsToggle>
         <div v-if='$1t.config.value.moveSuccess'>
             <q-input
                 v-model='$1t.config.value.moveSuccessPath'
                 filled
-                label='Target folder'
+                :label="t('autotag.targetFolder')"
                 class='input q-mb-sm' 
             ></q-input>
         </div>
         <AdvancedSettingsToggle
-            label='Move files that failed to get tagged'
+            :label="t('autotag.moveFailed')"
             v-model='$1t.config.value.moveFailed'
         ></AdvancedSettingsToggle>
         <div v-if='$1t.config.value.moveFailed'>
             <q-input
                 v-model='$1t.config.value.moveFailedPath'
                 filled
-                label='Target folder'
+                :label="t('autotag.targetFolder')"
                 class='input q-mb-sm' 
             ></q-input>
         </div>
 
         <AdvancedSettingsToggle 
-            label='Write .LRC file'
-            tooltip='Write file with lyrics'
+            :label="t('autotag.writeLrc')"
+            :tooltip="t('autotag.writeLrcHint')"
             v-model='$1t.config.value.writeLrc'
         ></AdvancedSettingsToggle>
         <AdvancedSettingsToggle 
-            label='Enhanced LRC file'
-            tooltip='Write per-word timestamps into LRC (if available). Not all players support this.'
+            :label="t('autotag.enhancedLrc')"
+            :tooltip="t('autotag.enhancedLrcHint')"
             v-if='$1t.config.value.writeLrc'
             v-model='$1t.config.value.enhancedLrc'
         ></AdvancedSettingsToggle>
 
         <AdvancedSettingsToggle 
-            label='Capitalize Genres'
-            tooltip='Capitalize all of the genres'
+            :label="t('autotag.capitalizeGenres')"
+            :tooltip="t('autotag.capitalizeGenresHint')"
             v-model='$1t.config.value.capitalizeGenres'
         ></AdvancedSettingsToggle>
 
         <!-- Album Tagging -->
         <AdvancedSettingsToggle
-            label="Album Tagging"
-            tooltip="Treat folders as albums"
+            :label="t('autotag.albumTagging')"
+            :tooltip="t('autotag.albumTaggingHint')"
             v-model='$1t.config.value.albumTagging'
         ></AdvancedSettingsToggle>
         <div class='row justify-center items-center q-px-md' v-if='$1t.config.value.albumTagging'>
-            <div class='q-pb-lg'>How many % of tracks must be from same album to be treated as album: </div>
+            <div class='q-pb-lg'>{{ t('autotag.albumRatio') }} </div>
             <q-slider
                 class='q-mt-sm'
                 :min='0.0'
@@ -196,10 +201,10 @@
 
         <!-- Duration -->   
         <div class='row justify-center items-center q-px-md'>
-            <div>Match duration</div>
+            <div>{{ t('autotag.matchDuration') }}</div>
             <div class='text-grey-6 q-ml-sm'>
                 <q-icon name='mdi-alert-circle-outline' class='q-mb-xs'></q-icon>
-                Warning: Strict
+                {{ t('autotag.strictWarning') }}
             </div>
             <q-space></q-space>
             <q-toggle v-model='$1t.config.value.matchDuration'></q-toggle>
@@ -210,21 +215,22 @@
     <!-- Styles / genres action -->
     <q-separator class='q-mx-auto q-mt-md custom-sep-advanced' :style='"margin-top: 21px;"' inset color="dark"/>
     <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg' :style='"margin-top: 35px;"'>
-        GENRE / STYLE / SUBGENRE
+        {{ t('autotag.genreStyleHeading') }}
         <div class='text-subtitle2 q-mb-md text-grey-6'>
-            Fetch all <span class="text-grey-4">(default)</span>, if it should merge them, or write elsewhere <br><span class="text-grey-4">(supported platforms only)</span>
+            {{ t('autotag.genreStyleHint') }}
         </div>        
         
         <!-- Styles -->
         <q-select
             dark
             standout='text-grey-4 bg-dark'
-            v-model='stylesOption'
+            v-model='$1t.config.value.stylesOptions'
             :options='stylesOptions'
+            emit-value
+            map-options
             class='select'
-            label='Genres/Styles tag'
+            :label="t('autotag.genreStyleTag')"
             style='margin-bottom: 40px;'
-            @update:model-value='updateStyleOption'
             popup-content-class='no-shadow'
         ></q-select>
         <!-- Styles custom tag -->
@@ -243,7 +249,9 @@
         class='row select q-ma-auto' :style='"margin-top: -8px;"'
         v-model='$1t.config.value.multipleMatches' 
         :options='multipleMatches'
-        label='Multiple matches ordering'
+        emit-value
+        map-options
+        :label="t('autotag.multipleMatches')"
         popup-content-class='no-shadow'
     ></q-select>    
 
@@ -259,12 +267,12 @@
             label-always
             class='slider q-mt-xl q-my-sm q-pb-lg col-10'
             label-text-color='black'
-            :label-value='"Strictness: " + Math.round($1t.config.value.strictness*100) + "%"'
+            :label-value="t('autotag.strictnessValue', { percent: Math.round($1t.config.value.strictness * 100) })"
         >
         </q-slider>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-pt-md q-mx-sm slider-tooltip'>
             <q-tooltip>
-                The higher, the more accurate results, but less potential matches
+                {{ t('autotag.strictnessHint') }}
             </q-tooltip>
         </q-icon>
     </div>
@@ -280,10 +288,25 @@
             label-always
             class='slider q-mt-xl q-my-sm q-pb-lg col-10'
             label-text-color='black'
-            :label-value='"Search Threads: " + $1t.config.value.threads'
+            :label-value="t('autotag.threadsValue', { count: $1t.config.value.threads })"
         ></q-slider>
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-pt-md q-mx-sm slider-tooltip'>
-            <q-tooltip>The higher, the faster, but uses more bandwidth, and not supported by all platforms</q-tooltip>
+            <q-tooltip>{{ t('autotag.threadsHint') }}</q-tooltip>
+        </q-icon>
+    </div>
+
+    <div class='row justify-center' style='max-width: 550px;'>
+        <q-slider
+            v-model='$1t.config.value.providerSlowdown'
+            :min='1' :max='10' :step='1'
+            label label-always
+            class='slider q-mt-xl q-my-sm q-pb-lg col-10'
+            label-text-color='black'
+            :label-value="t('autotag.providerSlowdownValue', { factor: $1t.config.value.providerSlowdown })"
+            data-testid='provider-slowdown'
+        ></q-slider>
+        <q-icon name='mdi-help-circle-outline text-grey-6' class='q-pt-md q-mx-sm slider-tooltip'>
+            <q-tooltip>{{ t('autotag.providerSlowdownHint') }}</q-tooltip>
         </q-icon>
     </div>
 
@@ -291,7 +314,7 @@
     <q-input
         v-model='$1t.config.value.titleRegex'
         filled 
-        label='Title cleanup regex'
+        :label="t('autotag.titleRegex')"
         class='input'
     ></q-input>
 
@@ -299,7 +322,7 @@
     <q-input
         v-model='$1t.config.value.coverFilename' 
         filled 
-        label='Cover filename template'
+        :label="t('autotag.coverFilename')"
         class='input monospace'
     ></q-input>
 
@@ -314,7 +337,7 @@
             label-always
             class='slider q-mt-lg'
             label-text-color='black'
-            :label-value='"Max difference: " + $1t.config.value.maxDurationDifference + "s"'
+            :label-value="t('autotag.maxDifference', { seconds: $1t.config.value.maxDurationDifference })"
         ></q-slider>
     </div>
     <br>
@@ -323,20 +346,20 @@
 
     <!-- Separators -->
     <q-separator class='q-mx-auto q-mt-md custom-sep-advanced' :style='"margin-top: 8px;"' inset color="dark"/>
-    <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg q-mb-sm' :style='"margin-top: 35px;"'>SEPARATORS</div>
+    <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg q-mb-sm' :style='"margin-top: 35px;"'>{{ t('autotag.separators') }}</div>
     <div class='row q-pb-md q-mt-sm justify-center half-width'>
         <Separators v-model='$1t.config.value.separators'></Separators>
     </div>
 
     <!-- Track number padding -->
     
-    <div class='text-subtitle2 text-center text-bold text-primary' style='margin-top: 3px;'>TAG OPTIONS</div>
+    <div class='text-subtitle2 text-center text-bold text-primary' style='margin-top: 3px;'>{{ t('autotag.tagOptions') }}</div>
     <div class='row q-pb-xs justify-center half-width'>
         <q-input 
             v-model.number='$1t.config.value.trackNumberLeadingZeroes' 
             filled 
             type='number'
-            label='Track number leading zeroes'
+            :label="t('autotag.leadingZeroes')"
             class='input'
         ></q-input>
     </div>
@@ -346,7 +369,7 @@
         <q-input :labelStyle="{ fontSize: '10px' }"
             v-model='$1t.config.value.id3CommLang' 
             filled 
-            label='ID3 COMM Language'            
+            :label="t('autotag.id3Language')"            
             class='input'
             :rules="[val => !val || val.length == 3]"
         ></q-input>
@@ -356,14 +379,14 @@
 
     <!-- Command -->
     <div class='text-subtitle2 text-center text-bold text-primary q-mt-lg' style='margin-top: 35px;'>
-        EXECUTE COMMAND WHEN TAGGING IS FINISHED
+        {{ t('autotag.postCommand') }}
         <q-icon name='mdi-help-circle-outline text-grey-6' class='q-mx-sm q-mb-xs'>
             <q-tooltip>
-                $success and $failed will be substituted with paths to files containing paths of affected tracks
+                {{ t('autotag.postCommandHint') }}
             </q-tooltip>
         </q-icon>
     </div>
-    <q-input label='$success, $failed will be substituted' filled class='row input q-py-sm justify-center' style='max-width: 526px; margin: auto;' v-model='$1t.config.value.postCommand'></q-input>
+    <q-input :label="t('autotag.postCommandInput')" filled class='row input q-py-sm justify-center' style='max-width: 526px; margin: auto;' v-model='$1t.config.value.postCommand'></q-input>
     <br>
 
     <br>
@@ -371,7 +394,9 @@
 </template>
 
 <script lang='ts' setup>
-import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+import { computed, onMounted } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { FrameName } from '../scripts/utils';
 
@@ -381,20 +406,15 @@ import TagFields from './TagFields.vue';
 import { SUPPORTED_TAGS, SupportedTag } from '../scripts/autotagger';
 
 const $1t = get1t();
-const multipleMatches = ['Default', 'Oldest', 'Newest'];
-const stylesOptions = ["Default", "Only Genre(s)", "Only Style(s)", "Merge to Genre tag", 
-    "Merge to Style tag", "Write Style to Genre tag", "Write Genre to Style tag",
-    "Write Style to Custom tag"];
+// Labels can change language without changing the Rust enum/config values.
+const multipleMatches = computed(() => ['Default', 'Oldest', 'Newest'].map(value => ({
+    value, label: t(`autotag.${value.toLowerCase()}`)
+})));
 const values = ["default", "onlyGenres", "onlyStyles", "mergeToGenres", "mergeToStyles",
     "stylesToGenre", "genresToStyle", "customTag"];
-const stylesOption = ref('Default');
-
-function updateStyleOption() {
-    $1t.config.value.stylesOptions = values[stylesOptions.indexOf(stylesOption.value)];
-}
+const stylesOptions = computed(() => values.map(value => ({ value, label: t(`autotag.${value}`) })));
 
 onMounted(() => {
-    stylesOption.value = stylesOptions[values.indexOf($1t.config.value.stylesOptions)];
     // In case of null because of update
     if (!$1t.config.value.stylesCustomTag)
         $1t.config.value.stylesCustomTag = FrameName.same('STYLE');

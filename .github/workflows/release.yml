@@ -1,0 +1,95 @@
+name: Release validated version
+run-name: Release from Build ${{ github.event.workflow_run.id || inputs.build_run_id || 'for current master' }}
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Optional Build run ID (blank uses the latest Build for the current master commit)
+        type: string
+        required: false
+        default: ''
+      publish:
+        description: Publish when verified (unchecked prepares or resumes a draft)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onetagger-release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Validate release source
+    if: >-
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      version: ${{ steps.plan.outputs.version }}
+      source: ${{ steps.plan.outputs.source }}
+      run_id: ${{ steps.plan.outputs.run_id }}
+      artifact_ids: ${{ steps.plan.outputs.artifact_ids }}
+    steps:
+      # Execute trusted default-branch code, never scripts from a PR or artifact.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate the release version, successful build and available artifacts
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ github.event.workflow_run.id || inputs.build_run_id }}
+          RELEASE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          AUTOMATIC_RELEASE: ${{ github.event_name == 'workflow_run' }}
+        run: python3 ci/release.py plan
+
+  publish:
+    name: Verify packages and release
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.plan.outputs.artifact_ids }}
+          run-id: ${{ needs.plan.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/release-artifacts
+          merge-multiple: false
+          digest-mismatch: error
+      - name: Verify provenance, create or resume the draft, and finish publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ needs.plan.outputs.run_id }}
+          EXPECTED_SOURCE: ${{ needs.plan.outputs.source }}
+          EXPECTED_VERSION: ${{ needs.plan.outputs.version }}
+          RELEASE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RELEASE_ARTIFACTS: ${{ runner.temp }}/release-artifacts
+          PUBLISH_RELEASE: ${{ github.event_name == 'workflow_run' || inputs.publish }}
+        run: python3 ci/release.py publish --assets "$RELEASE_ARTIFACTS"

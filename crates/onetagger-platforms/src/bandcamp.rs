@@ -1,5 +1,6 @@
+use crate::request_policy::{PacedRequest, ProviderRequests};
+use crate::cooldown::ProviderCooldown;
 use anyhow::Error;
-use std::time::Duration;
 use chrono::{NaiveDate, Datelike};
 use onetagger_tagger::{supported_tags, AudioFileInfo, AutotaggerSource, AutotaggerSourceBuilder, MatchingUtils, PlatformCustomOptionValue, PlatformCustomOptions, PlatformInfo, TaggerConfig, Track, TrackMatch};
 use reqwest::blocking::Client;
@@ -7,8 +8,13 @@ use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use serde::{Serialize, Deserialize};
 
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static REQUESTS: ProviderRequests = ProviderRequests::new(&COOLDOWN);
+
 pub struct Bandcamp {
-    client: Client
+    client: Client,
+    slowdown: u16,
 }
 
 impl Bandcamp {
@@ -19,12 +25,13 @@ impl Bandcamp {
             .build()
             .unwrap();
         Bandcamp {
-            client
+            client, slowdown: 2,
         }
     }
 
     /// Search for tracks
     fn search_tracks(&self, query: &str) -> Result<Vec<BandcampSearchResult>, Error> {
+        COOLDOWN.check()?;
         let response = self.client.post("https://bandcamp.com/api/bcsearch_public_api/1/autocomplete_elastic")
             .json(&json!({
                 "fan_id": null,
@@ -32,29 +39,16 @@ impl Bandcamp {
                 "search_filter": "t",
                 "search_text": query
             }))
-            .send()?;
-        // No rate limit
-        if response.status().is_success() {
-            let r: Value = response.json()?;
-            let results = serde_json::from_value(r["auto"]["results"].to_owned())?;
-            return Ok(results)
-        }
-        // Rate limit
-        warn!("Bandcamp rate limit... Waiting for few seconds");
-        std::thread::sleep(Duration::from_secs(3));
-        self.search_tracks(query)
+            .send_paced(&REQUESTS, self.slowdown)?;
+        let result: Value = response.error_for_status()?.json()?;
+        Ok(serde_json::from_value(result["auto"]["results"].to_owned())?)
     }
 
     /// Get data from track page
     fn track_page(&self, url: &str) -> Result<BandcampTrack, Error> {
-        // Fetch with rate limit
-        let response = self.client.get(url).send()?;
-        if response.status().is_client_error() {
-            warn!("Bandcamp track page rate limit... Waiting for few seconds");
-            std::thread::sleep(Duration::from_secs(3));
-            return self.track_page(url);
-        }
-        let response = response.text()?;
+        COOLDOWN.check()?;
+        let response = self.client.get(url).send_paced(&REQUESTS, self.slowdown)?;
+        let response = response.error_for_status()?.text()?;
         // Get <script> tag
         let document = Html::parse_document(&response);
         let selector = Selector::parse("script[type=\"application/ld+json\"]").unwrap();
@@ -99,8 +93,10 @@ impl AutotaggerSourceBuilder for BandcampBuilder {
         BandcampBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(Bandcamp::new()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = Bandcamp::new();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {
@@ -233,6 +229,7 @@ impl BandcampPublisherSmall {
 
 
 #[test]
+#[ignore = "Live provider integration test; run explicitly with --ignored"]
 fn test_bandcamp() {
     let b = Bandcamp::new();
     let results = b.search_tracks("mr kill myself").unwrap();

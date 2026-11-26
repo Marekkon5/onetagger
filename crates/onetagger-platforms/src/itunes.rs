@@ -1,6 +1,10 @@
 use anyhow::Error;
+use crate::cooldown::ProviderCooldown;
+use crate::request_pacer::RequestPacer;
+
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
 use std::time::Duration;
-use std::thread::sleep;
 use chrono::NaiveDate;
 use reqwest::blocking::{Client, Response};
 use serde::{Serialize, Deserialize};
@@ -8,9 +12,9 @@ use onetagger_tagger::{AutotaggerSource, AudioFileInfo, TaggerConfig, Track, Mat
 
 pub struct ITunes {
     client: Client,
+    slowdown: u16,
     // Requests per minute
     pub rate_limit: i16,
-    last_request: u128,
 }
 
 impl ITunes {
@@ -21,31 +25,24 @@ impl ITunes {
                 .user_agent("OneTagger/1.0")
                 .build()
                 .unwrap(),
+            slowdown: 2,
             rate_limit: 20,
-            last_request: 0
         }
     }
 
     /// Make get request to API
     fn get(&mut self, path: &str, query: &[(&str, &str)]) -> Result<Response, Error> {
         debug!("iTunes GET: {} {:?}", path, query);
-        // Rate limit
-        if self.last_request > 0 && self.rate_limit != -1 {
-            let diff = timestamp!() - self.last_request;
-            let req_ms = 1000_f64 / (self.rate_limit as f64 / 60_f64);
-            let wait = diff as f64 - req_ms;
-            if wait < 0_f64 {
-                info!("iTunes rate limit delay: {}", -wait);
-                sleep(Duration::from_millis(-wait as u64));
-            }
-        }
+        COOLDOWN.check()?;
+        PACER.wait_per_minute(self.rate_limit.clamp(1, 20) as u16, self.slowdown);
+        COOLDOWN.check()?;
 
         // Do request
         let res = self.client.get(&format!("https://itunes.apple.com{}", path))
             .query(query)
             .send()?;
-        self.last_request = timestamp!();
-        Ok(res)
+        COOLDOWN.check_response(&res, Duration::from_secs(60))?;
+        Ok(res.error_for_status()?)
     }
 
     /// Search the iTunes API
@@ -150,8 +147,10 @@ impl AutotaggerSourceBuilder for ITunesBuilder {
         ITunesBuilder
     }
 
-    fn get_source(&mut self, _config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
-        Ok(Box::new(ITunes::new()))
+    fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let mut source = ITunes::new();
+        source.slowdown = config.provider_slowdown();
+        Ok(Box::new(source))
     }
 
     fn info(&self) -> PlatformInfo {

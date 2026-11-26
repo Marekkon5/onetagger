@@ -1,30 +1,82 @@
+use crate::cooldown::{retry_delay, ProviderCooldown};
+use crate::request_cache::RequestCache;
+use crate::request_pacer::RequestPacer;
 use anyhow::Error;
 use chrono::NaiveDate;
 use std::time::Duration;
 use rspotify::clients::{BaseClient, OAuthClient};
-use rspotify::model::{SearchType, TrackId, Id, AlbumId, ArtistId, Modality};
+use rspotify::model::{TrackId, Id, AlbumId, ArtistId, Modality, Page, SimplifiedArtist};
 use rspotify::{Credentials, Config, AuthCodeSpotify, OAuth, scopes, ClientError, ClientResult};
 use rspotify::model::album::FullAlbum;
 use rspotify::model::artist::FullArtist;
-use rspotify::model::search::SearchResult;
+use serde::{Deserialize, de::DeserializeOwned};
 use rspotify::model::track::FullTrack;
 use rspotify::model::audio::AudioFeatures;
 use onetagger_shared::{Settings, WEBSERVER_CALLBACKS, PORT};
 use onetagger_tagger::{AutotaggerSource, Track, TaggerConfig, AudioFileInfo, MatchingUtils, TrackNumber, AutotaggerSourceBuilder, PlatformInfo, supported_tags, SupportedTag, TrackMatch};
 
-/// Reexport, beacause the rspotify dependency is git
+static COOLDOWN: ProviderCooldown = ProviderCooldown::new();
+static PACER: RequestPacer = RequestPacer::new();
+
+/// Spotify account and API types shared with the Audio Features tool.
 pub use rspotify;
 
 
 static PITCH_CLASS_MAJOR: [&'static str; 12] = ["C", "C#",   "D",  "D#",  "E",  "F",  "F#",  "G",  "G#",  "A",  "A#",  "B" ];
 static PITCH_CLASS_MINOR: [&'static str; 12] = ["Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Gm", "Abm", "Am", "Bbm", "Bm"];
 
+// Development Mode accepts up to ten candidates in one search request.
+const SEARCH_PAGE_SIZE: u32 = 10;
+// Before pagination this public method could request at most 50 candidates in total.
+const MAX_SEARCH_CANDIDATES: u32 = 50;
+
+#[derive(Deserialize)]
+#[serde(bound(deserialize = "T: DeserializeOwned"))]
+struct TrackSearch<T: DeserializeOwned> {
+    tracks: Page<T>,
+}
+
+fn collect_search_pages<T: DeserializeOwned>(
+    limit: u32,
+    mut fetch: impl FnMut(u32, u32) -> Result<String, Error>,
+) -> Result<Vec<T>, Error> {
+    anyhow::ensure!(limit <= MAX_SEARCH_CANDIDATES, "Spotify search supports up to {MAX_SEARCH_CANDIDATES} candidates");
+    let mut items = Vec::new();
+    let mut offset = 0;
+    while offset < limit {
+        let count = (limit - offset).min(SEARCH_PAGE_SIZE);
+        let body = fetch(offset, count)?;
+        let page = serde_json::from_str::<TrackSearch<T>>(&body)?.tracks;
+        items.extend(page.items.into_iter().take(count as usize));
+        if page.next.is_none() {
+            break;
+        }
+        offset += count;
+    }
+    Ok(items)
+}
+
+/// The SDK defaults a missing popularity to zero. File tags need to distinguish the two.
+#[derive(Clone, Deserialize)]
+pub struct AudioFeaturesTrack {
+    pub id: Option<TrackId<'static>>,
+    pub name: String,
+    pub artists: Vec<SimplifiedArtist>,
+    pub popularity: Option<u32>,
+}
+
 #[derive(Clone)]
 pub struct Spotify {
-    pub spotify: AuthCodeSpotify
+    pub spotify: AuthCodeSpotify,
+    slowdown: u16,
+    album_cache: RequestCache<String, FullAlbum>,
+    artist_cache: RequestCache<String, FullArtist>,
 }
 
 impl Spotify {
+    fn with_client(spotify: AuthCodeSpotify) -> Self {
+        Self { spotify, slowdown: 2, album_cache: RequestCache::default(), artist_cache: RequestCache::default() }
+    }
     /// Create AuthCodeSpotify with parameters
     pub fn create_client(client_id: &str, client_secret: &str) -> AuthCodeSpotify {
         let credentials = Credentials::new(client_id, client_secret);
@@ -52,7 +104,7 @@ impl Spotify {
         *client.token.lock().unwrap() = Some(token);
         client.refresh_token().ok()?;
         client.auto_reauth().ok()?;
-        Some(Spotify { spotify: client })
+        Some(Spotify::with_client(client))
     }
 
      /// Authentication server for callback from spotify
@@ -71,9 +123,7 @@ impl Spotify {
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
-        Ok(Spotify {
-            spotify
-        })
+        Ok(Spotify::with_client(spotify))
     }
 
     /// Authorize from URL
@@ -82,9 +132,7 @@ impl Spotify {
         spotify.request_token(&code)?;
         spotify.auto_reauth()?;
         spotify.write_token_cache()?;
-        Ok(Spotify {
-            spotify
-        })
+        Ok(Spotify::with_client(spotify))
     }
 
     /// Wrapper for rate limit 
@@ -92,26 +140,24 @@ impl Spotify {
     where
         F: Fn(&Spotify) -> ClientResult<R>
     {
+        COOLDOWN.check()?;
+        PACER.wait_scaled(Duration::from_millis(250), self.slowdown);
+        COOLDOWN.check()?;
         match f(self) {
             Ok(r) => {
-                // Intentionally slow down to prevent rate limits
-                std::thread::sleep(Duration::from_millis(250));
+                COOLDOWN.record_success();
                 Ok(r)
             },
             Err(ClientError::Http(http)) => {
                 match *http {
                     rspotify::http::HttpError::StatusCode(r) => {
                         // Rate limit
-                        if r.status() == 429 {
-                            let delay = r.header("Retry-After").map(|v| v.parse().ok()).flatten().unwrap_or(3);
-                            if delay > 600 {
-                                error!("Spotify rate limit too high!: {delay}");
-                                return Err(anyhow!("Too high rate limit by Spotify"));
-                            }
-
-                            warn!("Spotify rate limit hit, sleeping for: {delay}s...");
-                            std::thread::sleep(Duration::from_secs(delay));
-                            return self.rate_limit_wrap(f);
+                        if matches!(r.status(), 429 | 503) {
+                            let fallback = Duration::from_secs(15);
+                            let delay = r.header("Retry-After")
+                                .map(|header| retry_delay(Some(header.as_ref()), fallback))
+                                .unwrap_or(fallback);
+                            return Err(COOLDOWN.pause(delay).into());
                         }
                         return Err(anyhow!("Unknown Spotify status code: {}", r.status()));
                     },
@@ -122,14 +168,24 @@ impl Spotify {
         }
     }
 
-    /// Search tracks by query
+    /// Search tracks by query.
     pub fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<FullTrack>, Error> {
-        let results = self.rate_limit_wrap(|s| s.spotify.search(query, SearchType::Track, None, None, Some(limit), None))?;
-        let mut tracks = vec![];
-        if let SearchResult::Tracks(tracks_page) = results {
-            tracks = tracks_page.items;
-        }
-        Ok(tracks)
+        self.search_pages(query, limit)
+    }
+
+    pub fn search_audio_features_tracks(&self, query: &str, limit: u32) -> Result<Vec<AudioFeaturesTrack>, Error> {
+        self.search_pages(query, limit)
+    }
+
+    fn search_pages<T: DeserializeOwned>(&self, query: &str, limit: u32) -> Result<Vec<T>, Error> {
+        collect_search_pages(limit, |offset, count| {
+            let count = count.to_string();
+            let offset = offset.to_string();
+            let params = [
+                ("q", query), ("type", "track"), ("limit", &count), ("offset", &offset),
+            ].into_iter().collect();
+            self.rate_limit_wrap(|s| s.spotify.api_get("search", &params))
+        })
     }
 
     /// Fetch audio features for track id
@@ -140,23 +196,35 @@ impl Spotify {
 
     /// Fetch full album
     pub fn album(&self, id: &AlbumId) -> Result<FullAlbum, Error> {
-        self.rate_limit_wrap(|s| s.spotify.album(id.to_owned(), None))
+        self.album_cache.get_or_try_init(id.id().to_owned(), || {
+            let album = self.rate_limit_wrap(|s| s.spotify.album(id.to_owned(), None))?;
+            anyhow::ensure!(album.id.id() == id.id(), "Spotify returned a different album");
+            Ok(album)
+        })
     }
 
     /// Fetch full artist
     pub fn artist(&self, id: &ArtistId) -> Result<FullArtist, Error> {
-        self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))
+        self.artist_cache.get_or_try_init(id.id().to_owned(), || {
+            let artist = self.rate_limit_wrap(|s| s.spotify.artist(id.to_owned()))?;
+            anyhow::ensure!(artist.id.id() == id.id(), "Spotify returned a different artist");
+            Ok(artist)
+        })
     }
 
 
     /// Extend track for autotagger
+    #[allow(deprecated, reason = "Eligible apps can still return the album label and artist genres")]
     fn extend_track_spotify(&self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         // Fetch album
-        if config.tag_enabled(SupportedTag::Label) || config.tag_enabled(SupportedTag::Genre) {
-            match self.album(&AlbumId::from_id(track.release_id.as_ref().ok_or(anyhow!("Missing release_id"))?)?) {
+        let want_album = config.tag_enabled(SupportedTag::Label) || config.tag_enabled(SupportedTag::Genre);
+        if let Some(release_id) = track.release_id.as_deref().filter(|_| want_album) {
+            match self.album(&AlbumId::from_id(release_id)?) {
                 Ok(album) => {
-                    track.label = album.label;
-                    track.genres.extend(album.genres.into_iter());
+                    if let Some(label) = album.label {
+                        track.label = Some(label);
+                    }
+                    track.genres.extend(album.genres);
                 }
                 Err(e) => warn!("Failed to fetch album data: {}", e),
             }
@@ -164,7 +232,7 @@ impl Spotify {
 
         // Fetch genres from artist if album has them unavailable
         if config.tag_enabled(SupportedTag::Genre) && track.custom.get("artist_ids").is_some() {
-            for id in track.custom.get("artist_ids").unwrap().split("\0") {
+            for id in track.custom.get("artist_ids").unwrap().split('\0').filter(|id| !id.is_empty()) {
                 debug!("artist id: {id}");
                 match self.artist(&ArtistId::from_uri(id)?) {
                     Ok(artist) => {
@@ -208,17 +276,15 @@ impl AutotaggerSource for Spotify {
         // Try ISRC
         if let Some(isrc) = info.isrc.as_ref() {
             let query = format!("isrc:{isrc}");
-            let results = self.search_tracks(&query, 20)?;
-            let tracks: Vec<Track> = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
-            if let Some(track) = tracks.first() {
-                return Ok(vec![TrackMatch::new_isrc(track.clone())]);
+            if let Some(track) = self.search_tracks(&query, 1)?.into_iter().next() {
+                return Ok(vec![TrackMatch::new_isrc(full_track_to_track(track))]);
             }
         };
 
         // Normal search
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         let results = self.search_tracks(&query, 20)?;
-        let tracks = results.clone().into_iter().map(|t| full_track_to_track(t)).collect();
+        let tracks = results.into_iter().map(full_track_to_track).collect();
         Ok(MatchingUtils::match_track(info, &tracks, config, true))
     }
 
@@ -266,8 +332,10 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
     }
 
     fn get_source(&mut self, config: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        let slowdown = config.provider_slowdown();
         let config = config.spotify.clone().ok_or(anyhow!("Missing Spotify config!"))?;
-        let spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or(anyhow!("Spotify not authorized!"))?;
+        let mut spotify = Spotify::try_cached_token(&config.client_id, &config.client_secret).ok_or(anyhow!("Spotify not authorized!"))?;
+        spotify.slowdown = slowdown;
         Ok(Box::new(spotify))
     }
 
@@ -275,7 +343,7 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
         PlatformInfo {
             id: "spotify".to_string(),
             name: "Spotify".to_string(),
-            description: "Requires a free account, can match using ISRC".to_string(),
+            description: "Matches using ISRC or artist and title. Development Mode requires Spotify Premium for the app owner.".to_string(),
             icon: include_bytes!("../assets/spotify.png"),
             max_threads: 1,
             version: "1.0.0".to_string(),
@@ -283,5 +351,68 @@ impl AutotaggerSourceBuilder for SpotifyBuilder {
             requires_auth: true,
             supported_tags: supported_tags!(Title, Artist, AlbumArtist, Album, AlbumArt, URL, TrackId, ReleaseId, Duration, TrackNumber, ISRC, ReleaseDate, Genre, Key, Label, Explicit)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn track(number: u32) -> Value {
+        json!({
+            "name": format!("Track {number}"), "album": {
+                "name": "Album", "artists": [], "images": [], "external_urls": {}
+            }, "artists": [], "disc_number": 1, "duration_ms": 1000, "explicit": false,
+            "external_ids": {}, "external_urls": {}, "is_local": false,
+            "track_number": number, "type": "track"
+        })
+    }
+
+    #[test]
+    fn searches_in_ten_result_pages_and_reads_tracks_without_popularity() {
+        let mut requests = Vec::new();
+        let matches: Vec<FullTrack> = collect_search_pages(20, |offset, count| {
+            requests.push((offset, count));
+            let end = (offset + count).min(14);
+            let items: Vec<_> = (offset..end).map(track).collect();
+            let body = json!({"tracks": {
+                "href": "", "items": items, "limit": count, "next": (end < 14).then_some("next page"),
+                "offset": offset, "previous": null, "total": 14
+            }});
+            Ok(body.to_string())
+        }).unwrap();
+        assert_eq!(requests, [(0, 10), (10, 10)]);
+        assert_eq!(matches.len(), 14);
+        assert_eq!(matches[10].name, "Track 10");
+        assert!(collect_search_pages::<FullTrack>(51, |_, _| panic!("oversized search made a request")).is_err());
+    }
+
+    #[test]
+    #[allow(deprecated, reason = "Verify responses both with and without legacy artist genres")]
+    fn absent_popularity_is_distinct_from_zero_and_artist_genres_are_optional() {
+        let mut item = track(1);
+        assert_eq!(serde_json::from_value::<AudioFeaturesTrack>(item.clone()).unwrap().popularity, None);
+        item["popularity"] = json!(0);
+        assert_eq!(serde_json::from_value::<AudioFeaturesTrack>(item).unwrap().popularity, Some(0));
+
+        let mut artist = json!({"id": "abc", "name": "Artist", "external_urls": {}, "href": "", "images": []});
+        assert!(serde_json::from_value::<FullArtist>(artist.clone()).unwrap().genres.is_empty());
+        artist["genres"] = json!(["House"]);
+        assert_eq!(serde_json::from_value::<FullArtist>(artist).unwrap().genres, ["House"]);
+    }
+
+    #[test]
+    fn missing_album_and_artist_ids_do_not_discard_the_search_match() {
+        let provider = Spotify::with_client(AuthCodeSpotify::default());
+        let mut track = full_track_to_track(serde_json::from_value(track(1)).unwrap());
+        let config = TaggerConfig {
+            tags: vec![SupportedTag::Genre, SupportedTag::Label],
+            ..Default::default()
+        };
+        provider.extend_track_spotify(&mut track, &config).unwrap();
+        assert_eq!(track.title, "Track 1");
+        assert!(track.label.is_none());
+        assert!(track.genres.is_empty());
     }
 }

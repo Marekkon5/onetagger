@@ -1,21 +1,22 @@
 <template>
     <q-card>
         <q-card-section>
-            <div class='text-h6'>Add new album art</div>
+            <div class='text-h6'>{{ t('tools.addAlbumArt') }}</div>
         </q-card-section>
         <q-card-section>
             <q-select
                 filled
                 dense
-                label='Type'
+                :label="t('tools.type')"
                 :options='types'
+                :option-label='coverLabel'
                 v-model='type'
                 popup-content-class='no-shadow'
             ></q-select>
             <q-input
                 filled
                 dense
-                label='Description'
+                :label="t('tools.description')"
                 v-model='description'
                 class='q-mt-sm'
             ></q-input>
@@ -28,22 +29,25 @@
                 @drop.prevent='drop'
             >
                 <q-img v-if='image' :src='image' style='height: 200px;'></q-img>
-                <span class='text-grey-7 text-h6' v-if='!image'>Drag & drop image here</span>
+                <span class='text-grey-7 text-h6' v-if='!image'>{{ t('tools.dropImage') }}</span>
             </div>
         </q-card-section>
         <q-card-section class='justify-around row'>
             <q-btn color='red' @click='$emit("close")'>
-                Cancel
+                {{ t('tools.cancel') }}
             </q-btn>
             <q-btn v-if='type && image' color='primary' @click='add'>
-                Add
+                {{ t('tools.add') }}
             </q-btn>
         </q-card-section>
     </q-card>
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { ref } from 'vue';
+import { coverLabel } from '../scripts/tags';
 
 const drag = ref(false);
 const type = ref<string | undefined>();

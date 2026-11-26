@@ -5,14 +5,14 @@
     <div class='text-weight-bold clickable path-display q-my-md' v-if='!editPath'>
         <div class='row inline'>
             <span style="direction:ltr;">
-                <span @click='browse' class='text-primary monospace q-pr-xs'>{{path}}</span>
+                <span @click='browse' dir='ltr' class='text-primary monospace q-pr-xs'>{{path}}</span>
                 <q-icon name='mdi-pencil' class='q-pb-xs' @click='editPath = true'></q-icon>
             </span>
         </div>
     </div>
     <div class='q-my-sm' v-if='editPath'>
         <form @submit.prevent='loadFiles()'>
-            <q-input outlined dense v-model='path' @blur='editPath = false'></q-input>
+            <q-input outlined dense dir='ltr' v-model='path' @blur='editPath = false'></q-input>
         </form>
     </div>
 
@@ -20,12 +20,12 @@
     <div class='q-mt-sm'>
 
         <!-- Filter -->        
-        <q-input dense filled label='Filter' class='q-mb-sm' @update:model-value='applyFilter' v-model='filter'></q-input>
+        <q-input dense filled :label="t('quicktag.filter')" class='q-mb-sm' @update:model-value='applyFilter' v-model='filter'></q-input>
 
         <!-- Parent -->
         <div class='q-mb-sm clickable te-file' @click='loadFiles("..")'>
             <q-icon size='xs' class='q-mb-xs text-grey-5' name='mdi-folder-upload'></q-icon>
-            <span class='q-ml-sm text-caption text-grey-5'>Parent folder</span>
+            <span class='q-ml-sm text-caption text-grey-5'>{{t('quicktag.parentFolder')}}</span>
         </div>
 
         <!-- Files -->
@@ -48,10 +48,12 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
 import { onMounted, ref } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 
 const $1t = get1t();
+const { t } = useI18n({ useScope: 'global' });
 const path = ref($1t.settings.value.path);
 const files = ref<any[]>([]);
 const originalFiles = ref<any[]>([]);

@@ -43,7 +43,7 @@
                     <q-btn
                         round
                         flat
-                        icon="mdi-play"
+                        icon="mdi-play" :aria-label="t('common.play')"
                         class="q-mr-sm"
                         :ripple="false"
                         v-if="!$1t.player.value.playing"
@@ -54,7 +54,7 @@
                     <q-btn
                         round
                         flat
-                        icon="mdi-pause"
+                        icon="mdi-pause" :aria-label="t('common.pause')"
                         class="q-mr-sm"
                         :ripple="false"
                         v-else
@@ -81,7 +81,7 @@
     
             <!-- Volume -->
             <div class="q-pt-sm" style="width: 88px">
-                <q-slider
+                <q-slider :aria-label="t('common.volume')"
                     v-model="$1t.player.value.volume"
                     :min="0.0"
                     :max="1.0"
@@ -99,6 +99,8 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import Waveform from './Waveform.vue';
 import PlaylistDropZone from "./PlaylistDropZone.vue";
 import { Playlist, httpUrl } from '../scripts/utils';

@@ -15,4 +15,11 @@ pub mod deezer;
 pub mod musixmatch;
 pub mod bandcamp;
 mod bandcamp_genres;
+mod cooldown;
+mod request_cache;
+mod request_pacer;
 
+pub use cooldown::ProviderRateLimited;
+pub use request_cache::RequestCache;
+
+mod request_policy;

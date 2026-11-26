@@ -7,12 +7,11 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-alac = "0.5"
 hound = "3.5"
 lofty = "0.22"
 anyhow = "1.0"
-pacmog = "0.6.0"
-mp4parse = "0.17"
 
-rodio = { version = "0.20", features = ["symphonia-aac", "symphonia-isomp4", "flac", "vorbis", "wav", "minimp3"], default-features = false }
+rodio = { version = "0.20", default-features = false }
+# The AIFF adapter corrects the locked RIFF demuxer's SSND length; review it when upgrading.
+symphonia = { version = "0.5.4", default-features = false, features = ["aac", "flac", "isomp4", "mp3", "vorbis", "ogg", "wav", "pcm", "adpcm", "alac", "aiff"] }
 

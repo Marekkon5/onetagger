@@ -12,10 +12,13 @@ use tao::event::{StartCause, Event, WindowEvent};
 use tao::event_loop::{EventLoopBuilder, ControlFlow};
 use tao::window::{WindowBuilder, Icon, Theme};
 
-use onetagger_shared::{VERSION, COMMIT, PORT};
+use onetagger_shared::{VERSION, COMMIT};
 use onetagger_ui::StartContext;
 
-fn main() {
+#[cfg(target_os = "linux")]
+mod linux_webview;
+
+fn main() -> Result<(), Error> {
     // Setup 1T
     onetagger_shared::setup();
     let cli = Cli::parse();
@@ -28,25 +31,16 @@ fn main() {
     }
             
     // Start
-    let context = StartContext {
-        start_path: cli.path, 
-        server_mode: cli.server, 
-        expose: cli.expose,
-        browser: cli.browser
-    };
+    let context = StartContext::new(cli.server, cli.path, cli.expose, cli.browser);
+    let launch_url = context.session.launch_url();
 
-    // Server mode
-    if cli.server {
-        onetagger_ui::start_all(context).expect("Failed to start servers!");
-        return;
-    }
+    let serve = onetagger_ui::prepare_server(context)?;
+    if cli.server { return serve(); }
 
-    // GUI Mode
     std::thread::spawn(move || {
-        onetagger_ui::start_all(context).expect("Failed to start servers!");
+        if let Err(error) = serve() { error!("Local server stopped: {error}"); }
     });
-    start_webview().expect("Failed to start webview!");
-    debug!("Exitting gracefully...");
+    start_webview(&launch_url, cli.webdriver, #[cfg(target_os = "linux")] cli.software_rendering)
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -67,6 +61,15 @@ struct Cli {
     /// Open in browser
     #[clap(long)]
     browser: bool,
+
+    /// Use software rendering in the Linux desktop window from startup
+    #[cfg(target_os = "linux")]
+    #[clap(long)]
+    software_rendering: bool,
+
+    /// Allow local WebKitWebDriver control for native Linux regression tests.
+    #[clap(long, hide = true)]
+    webdriver: bool,
 }
 
 /// Show warning for old macOS
@@ -111,13 +114,13 @@ fn old_macos_warning() -> Result<(), Error> { Ok(()) }
 
 
 /// Start webview window
-pub fn start_webview() -> Result<(), Error> {
+pub fn start_webview(launch_url: &str, webdriver: bool, #[cfg(target_os = "linux")] software_rendering: bool) -> Result<(), Error> {
     // Setup wry
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
     let window = WindowBuilder::new()
         .with_title("One Tagger")
-        .with_min_inner_size(Size::Logical(LogicalSize::new(1150.0, 550.0)))
+        .with_min_inner_size(Size::Logical(LogicalSize::new(1200.0, 550.0)))
         .with_inner_size(Size::Logical(LogicalSize::new(1280.0, 720.0)))
         .with_resizable(true)
         .with_window_icon(Some(Icon::from_rgba(include_bytes!("../../../assets/64x64.bin").to_vec(), 64, 64).unwrap()))
@@ -125,6 +128,8 @@ pub fn start_webview() -> Result<(), Error> {
         .build(&event_loop)?;
     window.set_inner_size(Size::Logical(LogicalSize::new(1280.0, 720.0)));
     let mut context = WebContext::new(Some(Settings::get_folder()?.join("webview")));
+    // Opt-in only: normal application sessions never enable automation.
+    context.set_allows_automation(webdriver);
     let p = proxy.clone();
 
     // Register menu for MacOS shortcuts to work
@@ -153,7 +158,6 @@ pub fn start_webview() -> Result<(), Error> {
     
     // Configure
     let mut webview = WebViewBuilder::new_with_web_context(&mut context)
-        .with_url(&format!("http://127.0.0.1:{PORT}/"))
         .with_devtools(Settings::load().map(|s| s.devtools()).unwrap_or(false))
         .with_ipc_handler(move |message| {
             let proxy = &p;
@@ -165,12 +169,15 @@ pub fn start_webview() -> Result<(), Error> {
             }
         });
 
+    #[cfg(not(target_os = "linux"))]
+    { webview = webview.with_url(launch_url); }
+
     // Windows webview2 does NOT support custom DnD, janky workaround
     if cfg!(target_os = "windows") {
         // Handler
         let proxy = proxy.clone();
         let handle_url = move |url: String| -> bool {
-            debug!("Navigation/NewWindow to: {url}");
+            debug!("WebView navigation requested");
             if url.starts_with("file://") {
                 let url = url.replace("file:///", "");
                 let path = urlencoding::decode(&url).map(|r| r.to_string()).unwrap_or(url).replace("/", "\\");
@@ -182,7 +189,13 @@ pub fn start_webview() -> Result<(), Error> {
         
         // Register
         webview = webview.with_navigation_handler(handle_url.clone());
-        webview = webview.with_new_window_req_handler(handle_url);
+        webview = webview.with_new_window_req_handler(move |url, _features| {
+            if handle_url(url) {
+                wry::NewWindowResponse::Allow
+            } else {
+                wry::NewWindowResponse::Deny
+            }
+        });
     }
 
     // Handle dropped folders (for all other than Windows)
@@ -228,8 +241,11 @@ pub fn start_webview() -> Result<(), Error> {
     let webview = {
         use tao::platform::unix::WindowExtUnix;
         use wry::WebViewBuilderExtUnix;
-        let vbox = window.default_vbox().unwrap();
-        webview.build_gtk(vbox).unwrap()
+        let vbox = window.default_vbox().ok_or_else(|| anyhow::anyhow!("GTK window has no content area"))?;
+        let view = webview.build_gtk(vbox)?;
+        #[cfg(target_os = "linux")]
+        linux_webview::load(&view, vbox, launch_url, software_rendering);
+        view
     };
 
     // Event loop
@@ -242,7 +258,12 @@ pub fn start_webview() -> Result<(), Error> {
             },
             // Check for unsaved progress
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                match webview.evaluate_script("window.onWebviewEvent({\"action\": \"exit\"})") {
+                #[cfg(target_os = "linux")]
+                if !linux_webview::page_visible(&webview) {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+                match webview.evaluate_script("window.onWebviewEvent ? window.onWebviewEvent({action:'exit'}) : window.ipc.postMessage('exit')") {
                     Ok(_) => {},
                     Err(e) => {
                         warn!("Failed to ask for exit: {e}");
@@ -279,3 +300,4 @@ enum CustomWindowEvent {
     DevTools,
     Exit
 }
+

@@ -11,9 +11,9 @@ url = "2.5"
 rand = "0.9"
 regex = "1.11"
 anyhow = "1.0"
-scraper = "0.23"
+scraper = "0.27"
 serde_json = "1.0"
-minify-html = "0.16"
+minify-html = "0.18"
 
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -22,7 +22,7 @@ reqwest = { version = "0.12", features = [
     "blocking",
     "rustls-tls",
 ], default-features = false }
-rspotify = { version = "0.15", features = [
+rspotify = { version = "0.16.1", features = [
     "client-ureq",
     "ureq-rustls-tls",
 ], default-features = false }

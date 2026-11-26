@@ -1,15 +1,16 @@
 <template>
     <div class='row justify-center'>
-        <draggable v-model='$1t.info.value.platforms' @update='syncPlatforms' item-key='id'>
+        <draggable v-model='providerCards' @update='syncPlatforms()' :item-key='platformKey'
+            filter='.q-checkbox' :prevent-on-filter='false'>
             <template #item='{ element: platform }'>
                 <q-card flat class='card q-ma-md'>
                     <q-card-section horizontal class='row justify-between'>
                         <q-card-section>
                             <div class='row'>
-                                <q-checkbox :model-value='isEnabled(platform.platform.id)' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
+                                <q-checkbox :model-value='isEnabled(platform.platform.id)' :aria-label='platform.platform.name' class='cb' @update:model-value='update(platform.platform.id)'></q-checkbox>
                                 <div class='text-h6 q-mt-xs'>
                                     {{platform.platform.name}}
-                                    
+
                                     <!-- Speed icon -->
                                     <span>
                                         <span class='q-pl-xs text-grey-7'>
@@ -18,8 +19,8 @@
                                             <q-icon v-if='platform.platform.maxThreads == 0' name='mdi-speedometer' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
-                                            <span v-if='platform.platform.maxThreads'>This platform allows up to {{platform.platform.maxThreads}} concurrent searches</span>
-                                            <span v-else>This platform allows unlimited concurrent searches</span>
+                                            <span v-if='platform.platform.maxThreads'>{{ t('autotag.concurrentSearches', { count: platform.platform.maxThreads }) }}</span>
+                                            <span v-else>{{ t('autotag.unlimitedSearches') }}</span>
                                         </q-tooltip>
                                     </span>
 
@@ -29,7 +30,7 @@
                                             <q-icon name='mdi-lock' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
-                                            <span>Platform requires an account</span>
+                                            <span>{{ t('autotag.requiresAccount') }}</span>
                                         </q-tooltip>
                                     </span>
 
@@ -39,14 +40,15 @@
                                             <q-icon name='mdi-microphone' size='xs' class='q-pb-xs'></q-icon>
                                         </span>
                                         <q-tooltip>
-                                            <span>Platform can fetch lyrics</span>
+                                            <span>{{ t('autotag.fetchesLyrics') }}</span>
                                         </q-tooltip>
                                     </span>
-    
+
                                 </div>
                             </div>
                             <div v-if='!dense' class='text-subtitle2 q-ml-sm text-left text-grey-6'>
-                                <span v-html='platform.platform.description'></span>
+                                <span v-if='providerDescription(platform.builtIn, platform.platform.id) !== undefined'>{{ providerDescription(platform.builtIn, platform.platform.id) }}</span>
+                                <span v-else v-html='platform.platform.description'></span>
                             </div>
                             <div v-if='!platform.builtIn' class='text-grey-8 q-pl-sm text-bold monospace text-left' style='font-size: 10px;'>
                                 [{{platform.platform.id}}@{{platform.platform.version}}]
@@ -58,32 +60,35 @@
                     </q-card-section>
                 </q-card>
             </template>
-        </draggable>        
+        </draggable>
     </div>
-    
+
     <q-separator class='q-mx-auto' :style='"max-width: 513px; margin-top: 24px; margin-bottom: 35px"' inset color="dark"/>
 
     <div v-if='!dense' class='q-mt-md q-mb-xl'>
-        <div class='text-subtitle2 text-bold text-primary'>NEED MORE PLATFORMS?</div>
-        <div class='text-subtitle2 text-grey-6'>One Tagger supports custom platforms written in Rust.<br>You can install them using the button below.</div>
+        <div class='text-subtitle2 text-bold text-primary'>{{ t('autotag.morePlatforms') }}</div>
+        <div class='text-subtitle2 text-grey-6'>{{ t('autotag.customPlatformsHint') }}</div>
 
         <div class="row items-center justify-center q-mt-md">
-            <q-btn dense push color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="rounded-borders q-px-sm q-mb-xs text-black text-weight-medium text-caption" @click='openPlatformsRepo()'>Platforms Repository</q-btn>
+            <q-btn dense push color="primary" :loading='platformsRepoButtonLoading' :disable="platformsRepoButtonLoading" class="rounded-borders q-px-sm q-mb-xs text-black text-weight-medium text-caption" @click='openPlatformsRepo()'>{{ t('autotag.platformsRepository') }}</q-btn>
         </div>
 
         <div class='text-caption text-grey-6 text-center q-py-sm'>
-            <span @click='$1t.url("https://github.com/Marekkon5/onetagger/blob/master/CUSTOM_PLATFORMS.md")' class='clickable doc-link'>How to create a custom platform?<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>            
+            <span @click='$1t.url("https://github.com/Marekkon5/onetagger-platforms")' class='clickable doc-link'>{{ t('autotag.createPlatform') }}<span class="q-ml-xs"><q-icon name='mdi-open-in-new'></q-icon></span></span>
         </div>
 
-    </div>       
+    </div>
 
 </template>
 
 <script lang='ts' setup>
-import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
+import { ref, watch } from 'vue';
 import { get1t } from '../scripts/onetagger.js';
 import draggable from 'vuedraggable';
 import { AutotaggerPlatform, SupportedTag } from '../scripts/autotagger';
+import { providerDescription } from '../i18n/providers';
 
 
 const { dense } = defineProps({
@@ -91,14 +96,15 @@ const { dense } = defineProps({
 });
 const $1t = get1t();
 const platformsRepoButtonLoading = ref(false);
+const providerCards = ref<AutotaggerPlatform[]>([]);
 
-// Update config
+// Platform IDs live inside the descriptor, not on the wrapper object.
+function platformKey(platform: AutotaggerPlatform) { return platform.platform.id; }
+
 function update(platform: string) {
-    let i = $1t.config.value.platforms.indexOf(platform);
-    if (i == -1)
-        $1t.config.value.platforms.push(platform);
-    else
-        $1t.config.value.platforms.splice(i, 1);
+    const enabled = new Set($1t.config.value.platforms);
+    if (!enabled.delete(platform)) enabled.add(platform);
+    syncPlatforms(enabled);
 }
 
 // Is platform enabled
@@ -106,9 +112,12 @@ function isEnabled(platform: string) {
     return $1t.config.value.platforms.includes(platform);
 }
 
-// Sync platforms order to config
-function syncPlatforms() {
-    $1t.config.value.platforms = $1t.info.value.platforms.map((p) => p.platform.id).filter((p) => $1t.config.value.platforms.includes(p));
+function syncPlatforms(enabled = new Set($1t.config.value.platforms)) {
+    const displayed = providerCards.value.map(platformKey);
+    $1t.config.value.platforms = [
+        ...displayed.filter(id => enabled.has(id)),
+        ...[...enabled].filter(id => !displayed.includes(id)),
+    ];
 }
 
 /// Does the platform have lyrics
@@ -125,15 +134,23 @@ function openPlatformsRepo() {
     }, 2000);
 }
 
-onMounted(() => {
-    $1t.info.value.platforms.sort((a, b) => {
-        let x = $1t.config.value.platforms.indexOf(a.platform.id);
-        let y = $1t.config.value.platforms.indexOf(b.platform.id);
-        if (x == -1) x = 1000;
-        if (y == -1) y = 1000;
-        return x - y;
-    });
-});
+watch(
+    [() => $1t.info.value.platforms, () => $1t.config.value.platforms],
+    ([available, selected], [previousAvailable]) => {
+        const rank = new Map(selected.map((id, index) => [id, index]));
+        if (available === previousAvailable) {
+            const displayed = providerCards.value.map(platformKey);
+            const enabled = displayed.filter(id => rank.has(id));
+            const configured = selected.filter(id => displayed.includes(id));
+            // Checkbox and drag changes already use the displayed order. A
+            // loaded profile can change that order and needs to reorder cards.
+            if (configured.length === enabled.length && configured.every((id, i) => id === enabled[i])) return;
+        }
+        providerCards.value = [...available].sort((a, b) =>
+            (rank.get(platformKey(a)) ?? selected.length) - (rank.get(platformKey(b)) ?? selected.length));
+    },
+    { immediate: true },
+);
 
 </script>
 

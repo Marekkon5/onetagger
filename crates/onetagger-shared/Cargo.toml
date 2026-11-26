@@ -1,6 +1,6 @@
 [package]
 name = "onetagger-shared"
-version = "1.7.0"
+version = "2.2.3"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,7 +10,8 @@ log = "0.4"
 anyhow = "1.0"
 chrono = "0.4"
 backtrace = "0.3"
-crossterm = "0.29"
+# CLI logging uses terminal styling. Keep Windows support without the event-reader dependency.
+crossterm = { version = "0.29", default-features = false, features = ["windows"] }
 serde_json = "1.0"
 directories = "6.0"
 lazy_static = "1.5"

@@ -24,6 +24,8 @@ pub mod mp4;
 pub mod vorbis;
 #[cfg(feature = "tag")]
 mod wav;
+#[cfg(feature = "tag")]
+pub mod file_ops;
 
 // Supported extensions
 pub static EXTENSIONS : [&'static str; 11] = ["mp3", "flac", "aif", "aiff", "m4a", 
@@ -57,7 +59,7 @@ impl Tag {
 
         // ID3
         let tag = if allow_new {
-            id3::ID3Tag::load_or_new(path)
+            id3::ID3Tag::load_or_new(path)?
         } else {
             id3::ID3Tag::load_file(path)?
         };
@@ -443,7 +445,8 @@ impl TagChanges {
     pub fn commit(&self) -> Result<Tag, Error> {
         use base64::Engine;
         
-        let mut tag_wrap = Tag::load_file(&self.path, false)?;
+        // Match the editor: create only a missing ID3 tag, preserving parse/I/O errors.
+        let mut tag_wrap = Tag::load_file(&self.path, true)?;
         tag_wrap.set_separators(&self.separators);
 
         // Format specific changes
@@ -570,3 +573,67 @@ pub struct LyricsLinePart {
     pub end: Option<Duration>
 }
 
+
+
+#[cfg(all(test, feature = "tag"))]
+mod commit_tests {
+    use super::*;
+    use std::fs;
+
+    fn changes(path: PathBuf) -> TagChanges {
+        TagChanges {
+            path, changes: vec![TagChange::Raw { tag: "TIT2".into(), value: vec!["First title".into()] }],
+            separators: TagSeparators::default(), id3v24: true, id3_comm_lang: None,
+        }
+    }
+
+    #[test]
+    fn rating_edits_preserve_popm_owners_counters_and_clear_the_wmp_mirror() {
+        use ::id3::{Tag as DiskTag, TagLike, Version, frame::Popularimeter};
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("multi-owner.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        let mut disk = DiskTag::new();
+        for (user, rating, counter) in [("Deck A", 128, 37), ("Deck B", 192, 81), ("no@email", 51, 12)] {
+            disk.add_frame(Popularimeter { user: user.into(), rating, counter });
+        }
+        disk.write_to_path(&path, Version::Id3v24).unwrap();
+        for (stars, expected, mirror) in [(4, Some(4), Some("192")), (0, None, None), (2, Some(2), Some("64"))] {
+            let mut edit = changes(path.clone());
+            edit.changes = vec![TagChange::Rating { value: stars }];
+            edit.commit().unwrap();
+            let on_disk = Tag::load_file(&path, false).unwrap();
+            assert_eq!(on_disk.tag().get_rating(), expected);
+            assert_eq!(on_disk.tag().get_raw("RATING WMP"), mirror.map(|s| vec![s.to_owned()]));
+            let disk = DiskTag::read_from_path(&path).unwrap();
+            let mut frames: Vec<_> = disk.frames().filter_map(|f| f.content().popularimeter())
+                .map(|p| (p.user.as_str(), p.rating, p.counter)).collect();
+            frames.sort();
+            assert_eq!(frames, vec![("Deck A", 128, 37), ("Deck B", 192, 81), ("no@email", stars * 51, 12)]);
+        }
+    }
+
+    #[test]
+    fn editor_can_commit_first_id3_tag_without_losing_audio_payload() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("untagged.mp3");
+        let audio = [0u8; 64];
+        fs::write(&path, audio).unwrap();
+        assert!(Tag::load_file(&path, true).is_ok());
+        changes(path.clone()).commit().unwrap();
+        assert_eq!(Tag::load_file(&path, false).unwrap().tag().get_field(Field::Title).unwrap(), vec!["First title"]);
+        assert!(fs::read(path).unwrap().ends_with(&audio));
+    }
+
+    #[test]
+    fn editor_commit_preserves_corrupt_files_and_does_not_create_missing_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("missing.mp3");
+        assert!(changes(path.clone()).commit().is_err());
+        assert!(!path.exists());
+        let corrupt = b"ID3\x05\x00\x00\x00\x00\x00\x06broken";
+        fs::write(&path, corrupt).unwrap();
+        assert!(changes(path.clone()).commit().is_err());
+        assert_eq!(fs::read(path).unwrap(), corrupt);
+    }
+}

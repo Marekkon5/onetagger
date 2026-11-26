@@ -8,10 +8,10 @@ use onetagger_platforms::spotify::rspotify::model::{TrackId, Id};
 use serde::{Serialize, Deserialize};
 use onetagger_tagger::{AudioFileInfo, MatchingUtils};
 use onetagger_platforms::spotify::{Spotify, rspotify};
-use onetagger_platforms::spotify::rspotify::model::track::FullTrack;
+use onetagger_platforms::spotify::AudioFeaturesTrack;
 use onetagger_tag::{Tag, AudioFileFormat, FrameName, TagSeparators};
 
-use crate::{TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl, STOP_TAGGING};
+use crate::{TaggingMessage, TaggingState, TaggingStatus, TaggingStatusWrap, AudioFileInfoImpl, STOP_TAGGING};
 
 
 // Config from UI
@@ -91,8 +91,8 @@ pub struct AFProperty {
 
 impl AFProperties {
     // Merge properties into list with actual values
-    pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, track: &FullTrack, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
-        vec![
+    pub fn merge_with_values(&self, features: &rspotify::model::audio::AudioFeatures, track: &AudioFeaturesTrack, format: AudioFileFormat) -> Vec<AFPropertyMerged> {
+        let mut values = vec![
             AFPropertyMerged::new(features.danceability, &self.danceability, &format)
                 .add_main_value("#dance-low", "#dance-med", "#dance-high"),
             AFPropertyMerged::new(features.acousticness, &self.acousticness, &format)
@@ -107,9 +107,12 @@ impl AFProperties {
                 .add_main_value("#music", "", "#speech"),
             AFPropertyMerged::new(features.valence, &self.valence, &format)
                 .add_main_value("#negative", "#balanced", "#positive"),
-            AFPropertyMerged::new(track.popularity as f32 / 100.0, &self.popularity, &format)
-                .add_main_value("#unpopular", "", "#popular")
-        ]
+        ];
+        if let Some(popularity) = track.popularity {
+            values.push(AFPropertyMerged::new(popularity as f32 / 100.0, &self.popularity, &format)
+                .add_main_value("#unpopular", "", "#popular"));
+        }
+        values
     }
 }
 
@@ -182,14 +185,15 @@ impl AudioFeatures {
                 let mut status = TaggingStatus {
                     status: TaggingState::Error,
                     path: file.to_owned(),
-                    message: None, accuracy: None, used_shazam: false, release_id: None, reason: None
+                    message: None, message_key: None, message_args: None,
+                    accuracy: None, lookup_ms: None, used_shazam: false, release_id: None, track_id: None, reason: None
                 };
                 // Load file
                 if let Ok(info) = AudioFileInfo::load_file(&file, None, None) {
                     if config.skip_tagged && info.tagged.af() {
                         // Skip tagged
                         status.status = TaggingState::Skipped;
-                        status.message = Some("Already tagged!".to_string());
+                        status.set_message(TaggingMessage::AudioFeaturesAlreadyTagged);
                     } else {
                         // Match and get features
                         match AudioFeatures::find_features(&spotify, &info) {
@@ -201,7 +205,7 @@ impl AudioFeatures {
                                     },
                                     Err(e) => {
                                         error!("Audio features failed writing to tag: {}", e);
-                                        status.message = Some(format!("Audio features failed writing to tag: {}", e));
+                                        status.set_message(TaggingMessage::AudioFeaturesWriteFailed(e.to_string()));
                                         status.status = TaggingState::Error;
                                     }
                                 };
@@ -209,7 +213,7 @@ impl AudioFeatures {
                             // Failed searching track
                             Err(e) => {
                                 error!("Audio features search track by ISRC error: {}", e);
-                                status.message = Some(format!("Audio features search track by ISRC error: {}", e));
+                                status.set_message(TaggingMessage::AudioFeaturesSearchFailed(e.to_string()));
                                 status.status = TaggingState::Error;
                             }
                         }
@@ -230,11 +234,11 @@ impl AudioFeatures {
     }
 
     // Get features from track
-    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<(rspotify::model::audio::AudioFeatures, FullTrack), Error> {
-        let (mut track_id, mut full_track): (Option<String>, Option<FullTrack>) = (None, None);
+    fn find_features(spotify: &Spotify, track: &AudioFileInfo) -> Result<(rspotify::model::audio::AudioFeatures, AudioFeaturesTrack), Error> {
+        let (mut track_id, mut full_track): (Option<String>, Option<AudioFeaturesTrack>) = (None, None);
         // Get by ISRC
         if let Some(isrc) = track.isrc.as_ref() {
-            let results = spotify.search_tracks(&format!("isrc:{}", isrc), 1)?;
+            let results = spotify.search_audio_features_tracks(&format!("isrc:{}", isrc), 1)?;
             if let Some(t) = results.first() {
                 track_id = Some(t.id.as_ref().ok_or(anyhow!("Missing track ID"))?.id().to_owned());
                 full_track = Some(t.clone());
@@ -244,7 +248,7 @@ impl AudioFeatures {
         // Fallback
         if track_id.is_none() {
             let q = format!("{} {}", track.artists.first().ok_or(anyhow!("Track is missing artist"))?.to_lowercase(), MatchingUtils::clean_title(track.title()?));
-            let results = spotify.search_tracks(&q, 20)?;
+            let results = spotify.search_audio_features_tracks(&q, 20)?;
             // Match
             for t in results {
                 let title_1 = MatchingUtils::clean_title_matching(&t.name);
@@ -267,7 +271,7 @@ impl AudioFeatures {
     }
 
     // Write to path
-    fn write_to_path(path: impl AsRef<Path>, features: &rspotify::model::audio::AudioFeatures, full_track: &FullTrack, config: &AudioFeaturesConfig) -> Result<(), Error> {
+    fn write_to_path(path: impl AsRef<Path>, features: &rspotify::model::audio::AudioFeatures, full_track: &AudioFeaturesTrack, config: &AudioFeaturesConfig) -> Result<(), Error> {
         // Load tag
         let mut tag_wrap = Tag::load_file(&path, false)?;
         tag_wrap.set_separators(&config.separators);
@@ -299,5 +303,31 @@ impl AudioFeatures {
         // Save
         tag.save_file(path.as_ref())?;
         Ok(())
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn missing_popularity_omits_the_tag_and_reported_zero_is_preserved() {
+        let features = serde_json::from_value(json!({
+            "id": "id", "duration_ms": 1000, "analysis_url": "", "track_href": "",
+            "acousticness": 0.1, "danceability": 0.2, "energy": 0.3, "instrumentalness": 0.4,
+            "key": 0, "liveness": 0.5, "loudness": -10.0, "mode": 1, "speechiness": 0.7,
+            "tempo": 128.0, "time_signature": 4, "valence": 0.8
+        })).unwrap();
+        let mut track: AudioFeaturesTrack = serde_json::from_value(json!({"name": "Track", "artists": []})).unwrap();
+        let properties = AFProperties::default();
+        let written_popularity = |track: &AudioFeaturesTrack| {
+            properties.merge_with_values(&features, track, AudioFileFormat::MP3)
+                .into_iter().find(|p| p.tag == "1T_POPULARITY").map(|p| p.value)
+        };
+        assert_eq!(written_popularity(&track), None);
+        track.popularity = Some(0);
+        assert_eq!(written_popularity(&track), Some(0));
     }
 }

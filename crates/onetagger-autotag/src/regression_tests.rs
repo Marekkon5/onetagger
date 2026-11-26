@@ -1,0 +1,699 @@
+use super::*;
+use onetagger_tagger::{Album, PlatformInfo};
+use std::fs;
+
+struct FallbackSource { stage: usize }
+impl AutotaggerSource for FallbackSource {
+    fn match_track(&mut self, info: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        let item: usize = info.path.file_stem().unwrap().to_str().unwrap().parse().unwrap();
+        if item == 3 && self.stage == 0 { return Err(anyhow!("Mock provider unavailable")); }
+        if item == 3 || (self.stage == 0 && item % 2 == 1) { return Ok(vec![]); }
+        Ok(vec![TrackMatch::new(1.0, Track { title: "Fixture".into(),
+            genres: vec![format!("Provider {}", self.stage)], ..Default::default() })])
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> { Ok(()) }
+}
+
+#[test]
+fn pipeline_preserves_written_tags_reports_and_multiplatform_order() {
+    use crate::scheduler::{self, Attempt, Schedule};
+    for multiplatform in [false, true] {
+        let mut reference = None;
+        for schedule in [Schedule::Batched, Schedule::Pipelined] {
+            let dir = tempfile::tempdir().unwrap();
+            let files: Vec<_> = (0..5).map(|i| {
+                let path = dir.path().join(format!("{i}.mp3"));
+                mp3(&path, Some("Fixture")); path
+            }).collect();
+            write_existing_marker(&files[4]);
+            let existing = fs::read(&files[4]).unwrap();
+            let config = TaggerConfig {
+                tags: vec![SupportedTag::Genre, SupportedTag::MetaTags],
+                skip_tagged: true, multiplatform, ..Default::default()
+            };
+            let run = RunTagState::new(&config);
+            let sources: Vec<Vec<_>> = (0..2).map(|stage| (0..2)
+                .map(|_| Mutex::new(Box::new(FallbackSource { stage }))).collect()).collect();
+            let mut results = TaggingResults::default();
+            let mut report = report::ReportBuilder::new(&files, None);
+            scheduler::run(&files, &[1, 2], 2, multiplatform, schedule, || false,
+                |stage, slot, path| {
+                    let mut source = sources[stage][slot].lock().unwrap();
+                    let status = Tagger::tag_track_with_cancel(path, &mut *source, &config, &run, &|| false);
+                    assert_eq!(status.lookup_ms.is_some(), status.status != TaggingState::Skipped);
+                    Attempt { matched: status.status == TaggingState::Ok, value: status }
+                }, |stage, _, status, _| {
+                    let status = status.unwrap();
+                    results.record(&status);
+                    report.record(&format!("provider-{stage}"), &status);
+                });
+            assert_eq!(results.successful.len(), 3);
+            assert_eq!(results.failed, BTreeSet::from([files[3].clone()]));
+            assert_eq!(fs::read(&files[4]).unwrap(), existing);
+            let mut next_run_config = config.clone();
+            next_run_config.enable_shazam = true;
+            next_run_config.force_shazam = true;
+            let (info, skipped) = Tagger::load_track(&files[0], &next_run_config);
+            assert!(info.is_none());
+            assert_eq!(skipped.message_key.as_deref(), Some("backend.alreadyTagged"));
+            let report = report.finish(false);
+            let mut outcomes = vec![];
+            for (item, row) in report.tracks.iter().enumerate() {
+                let (expected, state) = match item {
+                    3 => (None, "failed"),
+                    4 => (None, "skipped"),
+                    _ => (Some(format!("Provider {}", if multiplatform || item == 1 { 1 } else { 0 })), "written"),
+                };
+                assert_eq!(row.after.as_ref().unwrap().genre, expected);
+                assert_eq!(row.status, state);
+                if multiplatform && item == 0 {
+                    assert_eq!(row.attempts.iter().map(|attempt| attempt.status.as_str()).collect::<Vec<_>>(),
+                        vec!["written", "written"]);
+                }
+                outcomes.push((row.after.clone(), serde_json::to_value(&row.attempts).unwrap()));
+            }
+            if let Some(reference) = &reference { assert_eq!(&outcomes, reference); }
+            reference = Some(outcomes);
+        }
+    }
+}
+
+#[test]
+fn pipeline_deduplicates_paths_and_canonical_aliases() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("selected.mp3");
+    mp3(&file, Some("Selected"));
+    let alias = dir.path().join(".").join("selected.mp3");
+    let mut files = vec![file.clone(), alias, file.clone()];
+    #[cfg(unix)] {
+        let link = dir.path().join("alias.mp3");
+        std::os::unix::fs::symlink(&file, &link).unwrap();
+        files.push(link);
+    }
+    crate::pipeline::deduplicate_files(&mut files);
+    assert_eq!(files, vec![file]);
+}
+
+fn mp3(path: &Path, title: Option<&str>) {
+    fs::write(path, [0u8; 64]).unwrap();
+    let mut tag = Tag::load_file(path, true).unwrap();
+    if let Some(title) = title {
+        tag.tag_mut().set_field(Field::Title, vec![title.into()], true);
+    }
+    tag.tag_mut().set_field(Field::Artist, vec!["Test artist".into()], true);
+    tag.tag_mut().save_file(path).unwrap();
+}
+
+fn write_existing_marker(path: &Path) {
+    let mut tag = Tag::load_file(path, false).unwrap();
+    tag.tag_mut().set_raw("1T_TAGGEDDATE", vec!["2020-10-20 00:00:00_AT".into()], true);
+    tag.tag_mut().save_file(path).unwrap();
+}
+
+struct AlbumSource;
+
+struct AlbumRunProvider(&'static str);
+
+impl AutotaggerSourceBuilder for AlbumRunProvider {
+    fn new() -> Self { Self("fixture") }
+
+    fn get_source(&mut self, _: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> {
+        Ok(Box::new(Self(self.0)))
+    }
+
+    fn info(&self) -> PlatformInfo {
+        PlatformInfo {
+            id: self.0.into(),
+            name: self.0.into(),
+            description: String::new(),
+            version: "1.0.0".into(),
+            icon: &[],
+            max_threads: 1,
+            custom_options: Default::default(),
+            supported_tags: vec![SupportedTag::Genre],
+            requires_auth: false,
+        }
+    }
+}
+
+impl AutotaggerSource for AlbumRunProvider {
+    fn match_track(&mut self, info: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        assert_eq!(info.title()?, "Selected");
+        Ok(vec![TrackMatch::new(1.0, Track {
+            title: "Selected".into(), release_id: Some("album".into()),
+            genres: vec![format!("{} track", self.0)], ..Default::default()
+        })])
+    }
+
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> { Ok(()) }
+
+    fn get_album(&mut self, _: &str, _: &TaggerConfig) -> Result<Option<Album>, Error> {
+        let mut album = AlbumSource.get_album("album", &TaggerConfig::default())?.unwrap();
+        album.tracks[0].genres = vec![format!("{} album", self.0)];
+        Ok(Some(album))
+    }
+}
+
+#[test]
+fn album_batches_skip_preexisting_marks_but_can_revisit_tags_from_the_same_run() {
+    let dir = tempfile::tempdir().unwrap();
+    let selected = dir.path().join("selected.mp3");
+    let pretagged = dir.path().join("previous-run.mp3");
+    let neighbour = dir.path().join("not-selected.mp3");
+    mp3(&selected, Some("Selected"));
+    mp3(&pretagged, Some("Already tagged"));
+    mp3(&neighbour, Some("Neighbour"));
+    write_existing_marker(&pretagged);
+    let original = fs::read(&pretagged).unwrap();
+    let untouched = fs::read(&neighbour).unwrap();
+    let files = [selected.clone(), pretagged.clone()];
+    let config = TaggerConfig {
+        tags: vec![SupportedTag::Genre, SupportedTag::MetaTags],
+        album_tagging: true, album_tagging_ratio: 0.5, multiplatform: true, skip_tagged: true,
+        overwrite: true, ..Default::default()
+    };
+    let run = RunTagState::new(&config);
+
+    for provider in ["first", "second"] {
+        let mut builder: Box<dyn AutotaggerSourceBuilder + Send + Sync> = Box::new(AlbumRunProvider(provider));
+        let statuses: Vec<_> = Tagger::tag_batch_in_run(&files, &mut builder, &config, 1, &run)
+            .unwrap().into_iter().collect();
+        let writes: Vec<_> = statuses.iter().filter(|status| status.status == TaggingState::Ok).collect();
+        assert_eq!(writes.len(), 2, "Expected a track save and an album save for {provider}");
+        assert!(writes.iter().all(|status| status.path == selected));
+        assert_eq!(writes[1].reason, Some(MatchReason::Album));
+        assert!(statuses.iter().any(|status|
+            status.path == pretagged && status.message_key.as_deref() == Some("backend.alreadyTagged")));
+        let tag = Tag::load_file(&selected, false).unwrap();
+        assert_eq!(tag.tag().get_field(Field::Genre).unwrap(), vec![format!("{provider} album")]);
+    }
+    assert_eq!(fs::read(&pretagged).unwrap(), original);
+    assert_eq!(fs::read(&neighbour).unwrap(), untouched);
+}
+
+struct RecoverySource(&'static str);
+
+impl AutotaggerSource for RecoverySource {
+    fn match_track(&mut self, _: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        if self.0 == "search-limit" { return Err(ProviderRateLimited::retry_after(Duration::from_secs(30)).into()); }
+        Ok(vec![TrackMatch::new(1.0, Track {
+            title: "Fixture".into(), genres: vec![self.0.into()],
+            label: match self.0 { "complete" => Some("Recovered label".into()), "still-empty" => Some(" ".into()), _ => None }, ..Default::default()
+        })])
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> {
+        if self.0 == "detail-limit" { return Err(ProviderRateLimited::retry_after(Duration::from_secs(30)).into()); }
+        Ok(())
+    }
+}
+
+#[test]
+fn a_separate_retry_only_fills_missing_tags_even_with_overwrite_enabled() {
+    for multiplatform in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        mp3(&path, Some("Fixture"));
+        let config = TaggerConfig { tags: vec![SupportedTag::Genre, SupportedTag::Label, SupportedTag::MetaTags],
+            overwrite: true, skip_tagged: true, multiplatform, ..Default::default() };
+        let run = RunTagState::new(&config);
+        let partial = Tagger::tag_track_with_cancel(&path, &mut Box::new(RecoverySource("detail-limit")),
+            &config, &run, &|| false);
+        assert_eq!(partial.status, TaggingState::Partial);
+        let mut results = TaggingResults::default();
+        results.record(&partial);
+        let plan = RetryPlan::capture(&config, RunOptions { keep_retry: true, ..Default::default() }, &results, &run).unwrap();
+        let next = plan.resume_state();
+        let complete = Tagger::tag_track_with_cancel(&path, &mut Box::new(RecoverySource("complete")),
+            &config, &next, &|| false);
+        assert_eq!(complete.status, TaggingState::Ok);
+        let mut audio = Tag::load_file(&path, false).unwrap();
+        assert_eq!(audio.tag_mut().get_field(Field::Genre).unwrap(), ["detail-limit"]);
+        assert_eq!(audio.tag_mut().get_field(Field::Label).unwrap(), ["Recovered label"]);
+    }
+}
+
+#[test]
+fn retryable_detail_failures_fill_only_outstanding_fields_and_preserve_report_compatibility() {
+    use crate::scheduler::{self, Attempt, Schedule};
+    use TaggingState::*;
+    for (first, want_genre, expected) in [
+        ("search-limit", false, vec![Deferred, Ok]),
+        ("detail-limit", false, vec![Deferred, Deferred, Ok]),
+        ("detail-limit", true, vec![Partial, Deferred, Ok]),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        mp3(&path, Some("Fixture"));
+        let original = fs::read(&path).unwrap();
+        let mut tags = vec![SupportedTag::Label, SupportedTag::MetaTags];
+        if want_genre { tags.push(SupportedTag::Genre); }
+        let config = TaggerConfig { tags, overwrite: true, skip_tagged: true, ..Default::default() };
+        let stages = if first == "search-limit" { vec![first, "complete"] } else { vec![first, "still-empty", "complete"] };
+        let limits = vec![1; stages.len()];
+        let run = RunTagState::new(&config);
+        let mut report = report::ReportBuilder::new(std::slice::from_ref(&path), None);
+        let mut results = TaggingResults::default();
+        let mut states = Vec::new();
+        scheduler::run(std::slice::from_ref(&path), &limits, 1, false, Schedule::Pipelined, || false,
+            |stage, _, file| {
+                let mut source = Box::new(RecoverySource(stages[stage]));
+                let status = Tagger::tag_track_with_cancel(file, &mut source, &config, &run, &|| false);
+                Attempt { matched: status.status == Ok, value: status }
+            }, |stage, _, value, _| {
+                let status = value.unwrap();
+                results.record(&status);
+                report.record(stages[stage], &status);
+                states.push(status.status.clone());
+                if stage == 0 {
+                    assert!(results.failed.is_empty() && results.successful.is_empty());
+                    if status.status == Deferred { assert_eq!(fs::read(&path).unwrap(), original); }
+                    assert!(Tag::load_file(&path, false).unwrap().tag().get_raw("1T_TAGGEDDATE").is_none());
+                    // A later miss cannot put a pending file in the move-failed list.
+                    results.record(&super::regression_tests::status(&path, Error));
+                    assert!(results.failed.is_empty());
+                }
+            });
+        assert_eq!(states, expected);
+        assert!(results.successful.contains(&path) && results.failed.is_empty());
+        let row = report.finish(false).tracks.pop().unwrap();
+        assert_eq!(row.status, "written");
+        assert!(row.outcome.is_none());
+        assert_eq!(row.attempts[0].outcome.as_ref(), Some(&expected[0]));
+        assert_eq!(row.attempts[0].status, if want_genre { "written" } else { "skipped" });
+        assert_eq!(row.attempts[0].retry_after_seconds, Some(30));
+        assert_eq!(row.attempts[0].warning_code.as_deref(), Some("backend.providerRateLimited"));
+        let tag = Tag::load_file(path, false).unwrap();
+        assert_eq!(tag.tag().get_field(Field::Label), Some(vec!["Recovered label".into()]));
+        assert!(tag.tag().get_raw("1T_TAGGEDDATE").is_some());
+        if want_genre { assert_eq!(tag.tag().get_field(Field::Genre), Some(vec!["detail-limit".into()])); }
+    }
+}
+
+#[test]
+fn mixed_album_selection_does_not_retag_an_unrelated_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let first = dir.path().join("seed.mp3");
+    let second = dir.path().join("other.mp3");
+    mp3(&first, Some("Selected"));
+    mp3(&second, Some("Unrelated"));
+    let original = fs::read(&second).unwrap();
+    let config = TaggerConfig { strictness: 1.0, match_duration: true, max_duration_difference: 0,
+        tags: vec![SupportedTag::Title, SupportedTag::Genre], ..Default::default() };
+    let mut source: Box<dyn AutotaggerSource> = Box::new(AlbumSource);
+    let statuses = Tagger::tag_album(&[first, second.clone()], "album", &mut source, &config).unwrap();
+    assert_eq!(statuses[0].status, TaggingState::Ok);
+    assert_eq!(statuses[1].message_key.as_deref(), Some("backend.noAlbumMatch"));
+    assert_eq!(fs::read(second).unwrap(), original);
+}
+
+#[derive(Clone, Copy)]
+struct MixedFolderSource { album_available: bool }
+
+impl AutotaggerSourceBuilder for MixedFolderSource {
+    fn new() -> Self { Self { album_available: true } }
+    fn get_source(&mut self, _: &TaggerConfig) -> Result<Box<dyn AutotaggerSource>, Error> { Ok(Box::new(*self)) }
+    fn info(&self) -> PlatformInfo { AlbumRunProvider("test").info() }
+}
+
+impl AutotaggerSource for MixedFolderSource {
+    fn match_track(&mut self, info: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        let title = info.title()?;
+        Ok(vec![TrackMatch::new(1.0, Track { title: title.into(), release_id: Some(title.into()),
+            genres: vec![format!("Regular {title}")], ..Default::default() })])
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> { Ok(()) }
+    fn get_album(&mut self, id: &str, cfg: &TaggerConfig) -> Result<Option<Album>, Error> {
+        if self.album_available { AlbumSource.get_album(id, cfg) } else { Ok(None) }
+    }
+}
+
+#[test]
+fn a_folder_shortcut_keeps_regular_lookup_for_an_unmatched_or_unavailable_album() {
+    for album_available in [true, false] {
+        let dir = tempfile::tempdir().unwrap();
+        let seed = dir.path().join("seed.mp3");
+        let other = dir.path().join("other.mp3");
+        mp3(&seed, Some("Selected"));
+        mp3(&other, Some("Another recording"));
+        let cfg = TaggerConfig { album_tagging: true, strictness: 1.0, tags: vec![SupportedTag::Genre], ..Default::default() };
+        let mut builder: Box<dyn AutotaggerSourceBuilder + Send + Sync> = Box::new(MixedFolderSource { album_available });
+        let receiver = Tagger::tag_batch_in_run(&[seed, other.clone()], &mut builder, &cfg, 1, &RunTagState::new(&cfg)).unwrap();
+        let statuses: Vec<_> = receiver.into_iter().collect();
+        assert!(statuses.iter().any(|s| s.path == other && s.status == TaggingState::Ok));
+        let tag = Tag::load_file(&other, false).unwrap();
+        assert_eq!(tag.tag().get_field(Field::Genre), Some(vec!["Regular Another recording".into()]));
+    }
+}
+
+struct CancellingSource {
+    stopped: Arc<AtomicBool>,
+    during_extension: bool,
+}
+impl AutotaggerSource for CancellingSource {
+    fn match_track(&mut self, _: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        if !self.during_extension { self.stopped.store(true, Ordering::SeqCst); }
+        Ok(vec![TrackMatch::new(1.0, Track { title: "Must not be written".into(), ..Default::default() })])
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> {
+        assert!(self.during_extension, "Stop after matching must prevent further provider work");
+        self.stopped.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+    fn get_album(&mut self, _: &str, _: &TaggerConfig) -> Result<Option<Album>, Error> {
+        self.stopped.store(true, Ordering::SeqCst);
+        AlbumSource.get_album("album", &TaggerConfig::default())
+    }
+}
+
+#[test]
+fn stop_during_provider_work_prevents_late_track_and_album_writes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("selected.mp3");
+    mp3(&path, Some("Selected"));
+    let original = fs::read(&path).unwrap();
+    let config = TaggerConfig { tags: vec![SupportedTag::Title], overwrite: true, ..Default::default() };
+    for during_extension in [false, true] {
+        let stopped = Arc::new(AtomicBool::new(false));
+        let mut source = Box::new(CancellingSource { stopped: stopped.clone(), during_extension });
+        let result = Tagger::tag_track_with_cancel(&path, &mut source, &config, &RunTagState::default(),
+            &|| stopped.load(Ordering::SeqCst));
+        assert_eq!(result.status, TaggingState::Skipped);
+        assert_eq!(result.message.as_deref(), Some("Stopped before writing tags"));
+        assert_eq!(result.message_key.as_deref(), Some("backend.stoppedBeforeWriting"));
+        assert_eq!(result.message_args, Some(serde_json::Map::new()));
+        assert_eq!(fs::read(&path).unwrap(), original);
+    }
+    let stopped = Arc::new(AtomicBool::new(false));
+    let mut source: Box<dyn AutotaggerSource> = Box::new(CancellingSource { stopped: stopped.clone(), during_extension: false });
+    let statuses = Tagger::tag_album_with_cancel(std::slice::from_ref(&path), "album", &mut source, &config,
+        &RunTagState::default(), &|| stopped.load(Ordering::SeqCst)).unwrap();
+    assert!(statuses.is_empty());
+    assert_eq!(fs::read(path).unwrap(), original);
+}
+impl AutotaggerSource for AlbumSource {
+    fn match_track(&mut self, _: &AudioFileInfo, _: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        unreachable!("Album processing must use the supplied album")
+    }
+    fn extend_track(&mut self, _: &mut Track, _: &TaggerConfig) -> Result<(), Error> { Ok(()) }
+    fn get_album(&mut self, _: &str, _: &TaggerConfig) -> Result<Option<Album>, Error> {
+        Ok(Some(Album { id: "album".into(), name: "Fixture".into(), tracks: vec![Track {
+            title: "Selected".into(), genres: vec!["Updated genre".into()], ..Default::default()
+        }] }))
+    }
+}
+
+#[test]
+fn album_tagging_preserves_unselected_neighbours_and_deduplicates_selection() {
+    let dir = tempfile::tempdir().unwrap();
+    let selected = dir.path().join("selected.mp3");
+    let neighbour = dir.path().join("not-in-playlist.mp3");
+    mp3(&selected, Some("Selected"));
+    mp3(&neighbour, Some("Neighbour"));
+    let untouched = fs::read(&neighbour).unwrap();
+    let mut context = AlbumTagContext::new();
+    context.init(&[selected.clone(), selected.clone()]);
+    let files = &context.folders.get(dir.path()).unwrap().files;
+    assert_eq!(files, std::slice::from_ref(&selected));
+    let mut source: Box<dyn AutotaggerSource> = Box::new(AlbumSource);
+    let config = TaggerConfig { tags: vec![SupportedTag::Genre], ..Default::default() };
+    let statuses = Tagger::tag_album(files, "album", &mut source, &config).unwrap();
+    assert_eq!(statuses.len(), 1);
+    assert_eq!(statuses[0].path, selected);
+    assert_eq!(statuses[0].status, TaggingState::Ok);
+    assert_eq!(Tag::load_file(&selected, false).unwrap().tag().get_field(Field::Genre).unwrap(), vec!["Updated genre"]);
+    assert_eq!(fs::read(neighbour).unwrap(), untouched);
+}
+
+#[test]
+fn selected_file_without_album_match_reports_error_without_panicking_or_writing() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("no-title.mp3");
+    mp3(&path, None);
+    let original = fs::read(&path).unwrap();
+    let mut source: Box<dyn AutotaggerSource> = Box::new(AlbumSource);
+    let statuses = Tagger::tag_album(std::slice::from_ref(&path), "album", &mut source, &TaggerConfig::default()).unwrap();
+    assert_eq!(statuses.len(), 1);
+    assert_eq!(statuses[0].status, TaggingState::Error);
+    assert!(statuses[0].message.as_ref().unwrap().contains("No album match"));
+    assert_eq!(fs::read(path).unwrap(), original);
+}
+
+pub(super) fn status(path: &Path, status: TaggingState) -> TaggingStatus {
+    TaggingStatus { path: path.into(), status, message: None, message_key: None, message_args: None, accuracy: None,
+        lookup_ms: None, used_shazam: false, release_id: None, track_id: None, reason: None }
+}
+
+#[test]
+fn legacy_tagging_status_round_trips_without_new_presentation_fields() {
+    let old = serde_json::json!({
+        "status": "error", "path": "library/Музыка/track.mp3", "message": "Provider detail",
+        "accuracy": null, "usedShazam": false, "releaseId": null, "trackId": null, "reason": null
+    });
+    let parsed: TaggingStatus = serde_json::from_value(old.clone()).unwrap();
+    assert!(parsed.message_key.is_none());
+    assert!(parsed.message_args.is_none());
+    assert!(parsed.lookup_ms.is_none());
+    assert_eq!(serde_json::to_value(parsed).unwrap(), old);
+}
+
+#[test]
+fn typed_status_messages_preserve_english_and_named_argument_contracts() {
+    let detail = "provider: /Музыка/Ελληνικά/<img onerror=alert(1)> {count}";
+    let cases = [
+        (TaggingMessage::AlreadyTagged, "backend.alreadyTagged", "Already tagged".to_string()),
+        (TaggingMessage::AudioFeaturesAlreadyTagged, "backend.alreadyTagged", "Already tagged!".to_string()),
+        (TaggingMessage::NoMatch, "backend.noMatch", "No match!".to_string()),
+        (TaggingMessage::StoppedBeforeWriting, "backend.stoppedBeforeWriting", "Stopped before writing tags".to_string()),
+        (TaggingMessage::NoAlbumMatch, "backend.noAlbumMatch", "No album match for selected file".to_string()),
+        (TaggingMessage::AlbumWriteFailed, "backend.albumWriteFailed", "Failed writing album tags".to_string()),
+        (TaggingMessage::ShazamFailed(detail.into()), "backend.shazamFailed", format!("Error Shazaming file: {detail}")),
+        (TaggingMessage::FileLoadFailed(detail.into()), "backend.fileLoadFailed", format!("Error loading file: {detail}")),
+        (TaggingMessage::TrackMatchFailed(detail.into()), "backend.trackMatchFailed", format!("Error matching track: {detail}")),
+        (TaggingMessage::TrackWriteFailed(detail.into()), "backend.trackWriteFailed", format!("Failed writing tags to file: {detail}")),
+        (TaggingMessage::AudioFeaturesWriteFailed(detail.into()), "backend.audioFeaturesWriteFailed", format!("Audio features failed writing to tag: {detail}")),
+        (TaggingMessage::AudioFeaturesSearchFailed(detail.into()), "backend.audioFeaturesSearchFailed", format!("Audio features search track by ISRC error: {detail}")),
+        (TaggingMessage::ProviderWorkerPanicked, "backend.providerWorkerPanicked", "Provider worker panicked; source disabled for this run".to_string()),
+        (TaggingMessage::ProviderInitializationPanicked, "backend.providerInitializationPanicked", "Provider initialization panicked".to_string()),
+        (TaggingMessage::ProviderInitializationFailed(detail.into()), "backend.providerInitializationFailed", format!("Could not initialize provider: {detail}")),
+        (TaggingMessage::ProviderUnavailable("fixture-provider".into()), "backend.providerUnavailable", "Provider unavailable: fixture-provider".to_string()),
+        (TaggingMessage::ProviderRateLimited(4), "backend.providerRateLimited", "Provider rate limited. Retry in 4 s.".to_string()),
+        (TaggingMessage::ProviderPanickedTryingNext, "backend.providerPanickedTryingNext", "Provider panicked; trying the next provider".to_string()),
+    ];
+    let catalogs = [
+        include_str!("../../../client/src/locales/en/backend.json"),
+        include_str!("../../../client/src/locales/it/backend.json"),
+        include_str!("../../../client/src/locales/fr/backend.json"),
+        include_str!("../../../client/src/locales/nl/backend.json"),
+        include_str!("../../../client/src/locales/de/backend.json"),
+        include_str!("../../../client/src/locales/es/backend.json"),
+        include_str!("../../../client/src/locales/el/backend.json"),
+        include_str!("../../../client/src/locales/ru/backend.json"),
+        include_str!("../../../client/src/locales/pt-PT/backend.json"),
+        include_str!("../../../client/src/locales/pt-BR/backend.json"),
+        include_str!("../../../client/src/locales/cs/backend.json"),
+        include_str!("../../../client/src/locales/pl/backend.json"),
+        include_str!("../../../client/src/locales/ja/backend.json"),
+        include_str!("../../../client/src/locales/ar/backend.json"),
+    ];
+    for (message, key, english) in cases {
+        let mut output = status(Path::new("selected.mp3"), TaggingState::Error);
+        let mut legacy = serde_json::to_value(&output).unwrap();
+        output.set_message(message);
+        assert_eq!(output.message.as_deref(), Some(english.as_str()));
+        assert_eq!(output.message_key.as_deref(), Some(key));
+        let arguments = output.message_args.as_ref().unwrap();
+        if key == "backend.providerUnavailable" {
+            assert_eq!(arguments.len(), 1);
+            assert_eq!(arguments["provider"], "fixture-provider");
+        } else if key == "backend.providerRateLimited" {
+            assert_eq!(arguments.len(), 1);
+            assert_eq!(arguments["seconds"], "4");
+        } else if english.ends_with(detail) {
+            assert_eq!(arguments.len(), 1);
+            assert_eq!(arguments["detail"], detail);
+        } else {
+            assert!(arguments.is_empty());
+        }
+        let mut event = serde_json::to_value(&output).unwrap();
+        event.as_object_mut().unwrap().remove("messageKey");
+        event.as_object_mut().unwrap().remove("messageArgs");
+        legacy["message"] = serde_json::json!(english);
+        assert_eq!(event, legacy, "message metadata must not alter status, paths or matching data");
+        for catalog in catalogs {
+            let catalog: serde_json::Value = serde_json::from_str(catalog).unwrap();
+            let text = catalog[key.strip_prefix("backend.").unwrap()].as_str().unwrap();
+            assert!(!text.trim().is_empty(), "missing translation for {key}");
+            for argument in arguments.keys() {
+                assert!(text.contains(format!("{{{argument}}}").as_str()), "missing {argument} in {key}");
+            }
+        }
+    }
+}
+
+#[test]
+fn translation_arguments_do_not_enter_exported_tagging_reports() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("selected.mp3");
+    mp3(&path, Some("Selected"));
+    let mut report = report::ReportBuilder::new(std::slice::from_ref(&path), None);
+    let mut failed = status(&path, TaggingState::Error);
+    failed.set_message(TaggingMessage::TrackMatchFailed("secret=DO-NOT-EXPORT".into()));
+    report.record("fixture-provider", &failed);
+    let json = serde_json::to_string(&report.finish(false)).unwrap();
+    assert!(!json.contains("DO-NOT-EXPORT"));
+    assert!(!json.contains("messageKey"));
+    assert!(!json.contains("messageArgs"));
+}
+
+#[test]
+fn provider_fallback_success_cannot_enter_failed_moves_or_failed_playlist() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("eventually-successful.mp3");
+    fs::write(&path, b"audio").unwrap();
+    let mut results = TaggingResults::default();
+    for state in [TaggingState::Error, TaggingState::Error, TaggingState::Ok, TaggingState::Error] {
+        results.record(&status(&path, state));
+    }
+    // Exercise the same failed-file move input as the batch finalizer.
+    for failed in &results.failed {
+        Tagger::move_file(failed, dir.path().join("failed")).unwrap();
+    }
+    assert_eq!(results.successful.into_iter().collect::<Vec<_>>(), vec![path.clone()]);
+    assert!(results.failed.is_empty());
+    assert_eq!(fs::read(path).unwrap(), b"audio");
+    assert!(!dir.path().join("failed").exists());
+}
+
+#[test]
+fn repeated_provider_failures_have_one_final_failure_and_skips_stay_separate() {
+    let failed = Path::new("failed.mp3");
+    let mut results = TaggingResults::default();
+    results.record(&status(failed, TaggingState::Error));
+    results.record(&status(failed, TaggingState::Error));
+    results.record(&status(Path::new("skipped.mp3"), TaggingState::Skipped));
+    assert!(results.successful.is_empty());
+    assert_eq!(results.failed.into_iter().collect::<Vec<_>>(), vec![failed.to_path_buf()]);
+}
+
+fn atom(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+    let mut bytes = ((data.len() + 8) as u32).to_be_bytes().to_vec();
+    bytes.extend(kind);
+    bytes.extend(data);
+    bytes
+}
+
+fn mp4_with_cover(path: &Path) -> Vec<u8> {
+    // Minimal ISO-BMFF metadata container plus a sentinel media payload. The test
+    // exercises MP4 tag parsing/writing, not decoding or playback.
+    let mut metadata = vec![0; 4];
+    metadata.extend(atom(b"ilst", &[]));
+    let mut bytes = atom(b"ftyp", b"M4A \0\0\0\0M4A isom");
+    // Version-0 movie header (100-byte payload), required by mp4ameta.
+    let mut movie_header = vec![0; 100];
+    movie_header[12..16].copy_from_slice(&1000u32.to_be_bytes()); // timescale
+    movie_header[16..20].copy_from_slice(&1000u32.to_be_bytes()); // duration
+    movie_header[20..24].copy_from_slice(&0x00010000u32.to_be_bytes()); // rate
+    movie_header[24..26].copy_from_slice(&0x0100u16.to_be_bytes()); // volume
+    for (offset, value) in [(36, 0x00010000u32), (52, 0x00010000), (68, 0x40000000)] {
+        movie_header[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
+    }
+    movie_header[96..100].copy_from_slice(&1u32.to_be_bytes());
+    let mut movie = atom(b"mvhd", &movie_header);
+    movie.extend(atom(b"udta", &atom(b"meta", &metadata)));
+    bytes.extend(atom(b"moov", &movie));
+    bytes.extend(atom(b"mdat", b"preserve-media-payload"));
+    fs::write(path, bytes).unwrap();
+    let old_cover = b"existing artwork bytes".to_vec();
+    let mut tag = Tag::load_file(path, false).unwrap();
+    tag.tag_mut().set_art(CoverType::CoverFront, "image/jpeg", Some("Original"), old_cover.clone());
+    tag.tag_mut().save_file(path).unwrap();
+    old_cover
+}
+
+fn artwork_response(status: &str, body: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
+    use std::net::TcpListener;
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/cover", listener.local_addr().unwrap());
+    let response = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+        let mut request = Vec::new();
+        let mut buffer = [0; 1024];
+        while !request.ends_with(b"\r\n\r\n") {
+            let count = stream.read(&mut buffer).unwrap();
+            assert!(count > 0, "Connection closed before the request headers");
+            request.extend_from_slice(&buffer[..count]);
+            assert!(request.len() <= 16384, "Unexpectedly large fixture request");
+        }
+        stream.write_all(response.as_bytes()).unwrap();
+        stream.write_all(&body).unwrap();
+    });
+    (url, server)
+}
+
+#[test]
+fn failed_or_invalid_mp4_artwork_download_preserves_existing_cover() {
+    for (http_status, body) in [("404 Not Found", vec![]), ("200 OK", vec![b'x'; 5000])] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.m4a");
+        let old_cover = mp4_with_cover(&path);
+        let (url, server) = artwork_response(http_status, body);
+        let track = Track { title: "Updated title".into(), art: Some(url), ..Default::default() };
+        let config = TaggerConfig { tags: vec![SupportedTag::Title, SupportedTag::AlbumArt],
+            overwrite: true, remove_all_covers: true, ..Default::default() };
+        track.write_to_file(&path, &config).unwrap();
+        server.join().unwrap();
+        let tag = Tag::load_file(&path, false).unwrap();
+        assert_eq!(tag.tag().get_art().len(), 1);
+        assert_eq!(tag.tag().get_art()[0].data, old_cover);
+        assert_eq!(tag.tag().get_field(Field::Title).unwrap(), vec!["Updated title"]);
+        assert!(fs::read(path).unwrap().windows(22).any(|w| w == b"preserve-media-payload"));
+    }
+}
+
+#[test]
+fn valid_mp4_artwork_is_embedded_and_only_saved_separately_on_request() {
+    let mut seed = 0x12345678u32;
+    let image = image::RgbImage::from_fn(128, 128, |_, _| {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        image::Rgb([seed as u8, (seed >> 8) as u8, (seed >> 16) as u8])
+    });
+    let mut body = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgb8(image).write_to(&mut body, image::ImageFormat::Png).unwrap();
+    assert!(body.get_ref().len() >= 4096);
+    let body = body.into_inner();
+    for save_cover in [false, true] {
+        for existing_cover in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("track.m4a");
+            let sidecar = dir.path().join("cover.jpg");
+            let old_cover = mp4_with_cover(&path);
+            if existing_cover {
+                fs::write(&sidecar, b"custom folder artwork").unwrap();
+            }
+            let (url, server) = artwork_response("200 OK", body.clone());
+            let track = Track { art: Some(url), ..Default::default() };
+            let config = TaggerConfig { tags: vec![SupportedTag::AlbumArt], overwrite: true,
+                album_art_file: save_cover, ..Default::default() };
+            track.write_to_file(&path, &config).unwrap();
+            server.join().unwrap();
+            let tag = Tag::load_file(&path, false).unwrap();
+            let pictures = tag.tag().get_art();
+            assert_eq!(pictures.len(), 1);
+            assert_ne!(pictures[0].data, old_cover);
+            assert_eq!(image::guess_format(&pictures[0].data).unwrap(), image::ImageFormat::Jpeg);
+            assert_eq!(image::load_from_memory(&pictures[0].data).unwrap().width(), 128);
+            if save_cover {
+                assert_eq!(fs::read(&sidecar).unwrap(), pictures[0].data);
+            } else if existing_cover {
+                assert_eq!(fs::read(&sidecar).unwrap(), b"custom folder artwork");
+            } else {
+                assert!(!sidecar.exists());
+            }
+        }
+    }
+}
+

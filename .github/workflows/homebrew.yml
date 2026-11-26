@@ -1,0 +1,38 @@
+name: Homebrew
+on:
+  pull_request:
+    paths:
+      - 'Formula/onetagger.rb'
+      - '.github/workflows/homebrew.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-install:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install and test the formula against this commit
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: |
+          set -euo pipefail
+          version="$(cat VERSION)"
+          archive="$RUNNER_TEMP/onetagger-$version.tar.gz"
+          git archive --format=tar.gz --prefix="onetagger-$version/" HEAD > "$archive"
+          sha="$(shasum -a 256 "$archive" | cut -d ' ' -f 1)"
+          brew tap fantuz/onetagger https://github.com/fantuz/onetagger
+          formula_dir="$(brew --repository fantuz/onetagger)/Formula"
+          mkdir -p "$formula_dir"
+          grep -F "tag: \"v$version\"" Formula/onetagger.rb
+          awk -v archive="$archive" -v sha="$sha" '
+            /^  url / { print "  url \"file://" archive "\""; print "  sha256 \"" sha "\""; next }
+            { print }
+          ' Formula/onetagger.rb > "$formula_dir/onetagger.rb"
+          brew install --build-from-source fantuz/onetagger/onetagger
+          brew test fantuz/onetagger/onetagger

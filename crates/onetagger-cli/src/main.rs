@@ -4,7 +4,7 @@
 use anyhow::Error;
 use onetagger_ui::StartContext;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use convert_case::{Casing, Case};
@@ -14,6 +14,20 @@ use onetagger_shared::{VERSION, COMMIT};
 use onetagger_autotag::audiofeatures::{AudioFeaturesConfig, AudioFeatures};
 use onetagger_autotag::{Tagger, TaggerConfigExt, AudioFileInfoImpl};
 use onetagger_tagger::{TaggerConfig, AudioFileInfo, SupportedTag};
+
+fn input_files(path: &Path, subfolders: bool) -> Result<Vec<PathBuf>, Error> {
+    if path.is_dir() { return Ok(AudioFileInfo::get_file_list(path, subfolders)); }
+    anyhow::ensure!(path.is_file(), "Input file or directory does not exist: {}", path.display());
+    if onetagger_playlist::is_audio_file(path) { return Ok(vec![path.to_owned()]); }
+    onetagger_playlist::get_files_from_playlist_file(path)
+}
+
+fn input_or_exit(path: &Path, subfolders: bool) -> Vec<PathBuf> {
+    input_files(path, subfolders).unwrap_or_else(|error| {
+        eprintln!("{error}");
+        std::process::exit(2);
+    })
+}
 
 fn main() {
     let cli = Cli::parse();
@@ -42,23 +56,45 @@ fn main() {
 
     let action = cli.action.unwrap();
     match &action {
-        Actions::Autotagger { path, .. } => {
+        Actions::Autotagger { path, report, selection_manifest, .. } => {
             let config = action.get_at_config().expect("Failed loading config file!");
             debug!("{:?}", config);
 
             // Get files
-            let files = if path.is_file() {
-                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
-            } else {
-                AudioFileInfo::get_file_list(&path, config.include_subfolders)
+            let selection = selection_manifest.as_ref().map(|path| {
+                let data = std::fs::read_to_string(path)?;
+                onetagger_autotag::report::Selection::parse(&data)
+            }).transpose().expect("Invalid Helper selection manifest");
+            let files = match &selection {
+                Some(selection) => selection.files(),
+                None => input_or_exit(path, config.include_subfolders),
             };
 
-            let rx = Tagger::tag_files(&config, files, Arc::new(Mutex::new(None)));
+            let finished = Arc::new(Mutex::new(None));
+            let rx = if *report || selection.is_some() {
+                Tagger::tag_files_report(&config, files, finished.clone(), selection).expect("Invalid report settings")
+            } else { Tagger::tag_files(&config, files, finished.clone()) };
             let start = timestamp!();
             for status in rx {
                 debug!("{status:?}");
             }
             info!("Tagging finished, took: {} seconds.", (timestamp!() - start) / 1000);
+            let finished = finished.lock().unwrap();
+            if let Some(result) = finished.as_ref() {
+                if let Some(path) = &result.report_file { println!("Results JSON: {path}"); }
+                if let Some(error) = &result.report_error { eprintln!("{error}"); std::process::exit(1); }
+            }
+            match finished.as_ref() {
+                Some(result) if result.move_errors.is_empty() => {},
+                Some(result) => {
+                    for error in &result.move_errors { eprintln!("File move failed: {error}"); }
+                    std::process::exit(1);
+                },
+                None => {
+                    eprintln!("Tagging ended without a complete result report; check the application log.");
+                    std::process::exit(1);
+                },
+            }
         },
         Actions::Audiofeatures { path, config, client_id, client_secret, no_subfolders } => {
             let file = File::open(config).expect("Failed reading config file!");
@@ -73,11 +109,7 @@ fn main() {
                 .expect("Spotify unauthorized, please run the authorize-spotify option or login to Spotify in UI at least once!");
 
             // Get files
-            let files = if path.is_file() {
-                onetagger_playlist::get_files_from_playlist_file(path).expect("Not a valid playlist file")
-            } else {
-                AudioFileInfo::get_file_list(&path, subfolders)
-            };
+            let files = input_or_exit(path, subfolders);
 
             let rx = AudioFeatures::start_tagging(config, spotify, files);
             let start = timestamp!();
@@ -101,12 +133,7 @@ fn main() {
                 false => {
                     let expose = *expose;
                     std::thread::spawn(move || {
-                        onetagger_ui::start_all(StartContext {
-                            server_mode: true,
-                            start_path: None,
-                            expose,
-                            browser: false,
-                        }).expect("Failed starting server!");
+                        onetagger_ui::start_all(StartContext::new(true, None, expose, false)).expect("Failed starting server!");
                     });
                     let _spotify = Spotify::auth_server(client).expect("Spotify authentication failed!");
                 }
@@ -139,16 +166,18 @@ fn main() {
                 return;
             }
 
-            renamer.rename(&names, &config).expect("Failed renaming!");
+            let report = renamer.rename(&names, &config).expect("Failed renaming!");
+            println!("{} completed, {} unchanged, {} failed/conflicted", report.succeeded, report.skipped, report.failed);
+            for result in &report.results {
+                if let Some(message) = &result.message {
+                    eprintln!("{} -> {}: {}", result.from.display(), result.to.display(), message);
+                }
+            }
+            if report.failed > 0 { std::process::exit(1); }
         },
         // Server mode
         Actions::Server { expose, path, browser } => {
-            onetagger_ui::start_all(StartContext {
-                server_mode: true,
-                start_path: path.clone().map(String::from),
-                expose: *expose,
-                browser: *browser,
-            }).expect("Failed starting the server");
+            onetagger_ui::start_all(StartContext::new(true, path.clone().map(String::from), *expose, *browser)).expect("Failed starting the server");
         }
     }
 }
@@ -174,9 +203,17 @@ struct Cli {
 enum Actions {
     /// Start Autotagger in CLI mode
     Autotagger {
-        /// Path to music files (overrides config)
+        /// Audio file, music directory or M3U playlist (overrides config)
         #[clap(short, long)]
         path: PathBuf,
+
+        /// Save a JSON report with actual before/after tags and provider evidence
+        #[clap(long)]
+        report: bool,
+
+        /// Helper JSON selection; overrides the input path and implies --report
+        #[clap(long)]
+        selection_manifest: Option<PathBuf>,
 
         /// Specify a path to config file
         #[clap(short, long)]
@@ -201,6 +238,10 @@ enum Actions {
         /// How many threads to use for the searching & matching process
         #[clap(long)]
         threads: Option<u16>,
+
+        /// Provider slowdown factor: longer request intervals and fewer workers (default: 2)
+        #[clap(long, value_parser = clap::value_parser!(u16).range(1..=10))]
+        provider_slowdown: Option<u16>,
 
         /// How strict should the matching be? Use: 0 - 100, Default: 80 (%).
         #[clap(long)]
@@ -268,7 +309,7 @@ enum Actions {
     },
     /// Start Audio Features in CLI mode
     Audiofeatures {
-        /// Path to music files (overrides config)
+        /// Audio file, music directory or M3U playlist (overrides config)
         #[clap(short, long)]
         path: PathBuf,
 
@@ -374,9 +415,9 @@ impl Actions {
     pub fn get_at_config(&self) -> Result<TaggerConfig, Error> {
         match self {
             Actions::Autotagger { path, config, platforms, tags, id3v24, 
-                overwrite, threads, strictness, album_art_file, merge_genres, camelot, 
+                overwrite, threads, provider_slowdown, strictness, album_art_file, merge_genres, camelot, 
                 short_title, match_duration, max_duration_difference, match_by_id, enable_shazam, force_shazam, 
-                skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform } => {
+                skip_tagged, parse_filename, filename_template, no_subfolders, only_year, multiplatform, .. } => {
 
                 // Load config
                 let mut config = if let Some(config_path) = config {
@@ -414,6 +455,9 @@ impl Actions {
                 if let Some(threads) = threads {
                     config.threads = *threads;
                 }
+                if let Some(factor) = provider_slowdown {
+                    config.provider_slowdown = *factor;
+                }
                 if let Some(strictness) = strictness {
                     if *strictness > 100 {
                         warn!("Invalid stricness!");
@@ -437,3 +481,26 @@ impl Actions {
     }
 }
 
+#[cfg(test)]
+mod input_tests {
+    use super::*;
+
+    #[test]
+    fn direct_audio_playlist_and_directory_resolve_the_expected_paths() {
+        let root = tempfile::tempdir().unwrap();
+        let literal = root.path().join("Mix%20One.MP3");
+        let space = root.path().join("Mix One.mp3");
+        std::fs::write(&literal, b"fixture").unwrap();
+        std::fs::write(&space, b"other").unwrap();
+        let playlist = root.path().join("crate.M3U8");
+        std::fs::write(&playlist, "Mix%20One.MP3\n").unwrap();
+        assert_eq!(input_files(&literal, false).unwrap(), vec![literal.clone()]);
+        assert_eq!(input_files(&playlist, false).unwrap(), vec![literal.clone()]);
+        let directory = input_files(root.path(), false).unwrap();
+        assert!(directory.contains(&literal) && directory.contains(&space));
+        assert!(input_files(&root.path().join("missing.mp3"), false).is_err());
+        let unsupported = root.path().join("readme.txt");
+        std::fs::write(&unsupported, b"notes").unwrap();
+        assert!(input_files(&unsupported, false).is_err());
+    }
+}

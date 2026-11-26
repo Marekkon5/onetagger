@@ -13,7 +13,7 @@ dunce = "1.0"
 image = "0.25"
 anyhow = "1.0"
 chrono = "0.4"
-base64 = "0.22"
+base64 = "0.23"
 execute = "0.2"
 walkdir = "2.5"
 libloading = "0.8"
@@ -36,3 +36,6 @@ onetagger-player = { path = "../onetagger-player" }
 onetagger-shared = { path = "../onetagger-shared" }
 onetagger-renamer = { path = "../onetagger-renamer" }
 onetagger-platforms = { path = "../onetagger-platforms" }
+
+[dev-dependencies]
+tempfile = "3.20"

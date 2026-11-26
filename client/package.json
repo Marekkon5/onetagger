@@ -9,21 +9,27 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@quasar/extras": "1.16.16",
-    "axios": "1.8.2",
+    "@quasar/extras": "2.1.0",
+    "axios": "1.21.1",
     "compare-versions": "6.1.1",
-    "quasar": "2.17.7",
-    "vue": "3.5.13",
-    "vue-router": "4.5.0",
+    "quasar": "2.35.6",
+    "vue": "3.5.46",
+    "vue-i18n": "11.4.23",
+    "vue-router": "4.6.5",
     "vuedraggable": "4.1.0"
   },
   "devDependencies": {
-    "@quasar/vite-plugin": "1.9.0",
-    "@vitejs/plugin-vue": "5.2.4",
+    "@quasar/vite-plugin": "1.12.0",
+    "@vitejs/plugin-vue": "6.0.11",
     "path": "^0.12.7",
-    "sass": "1.83.4",
-    "typescript": "5.7.3",
-    "vite": "6.3.5",
-    "vue-tsc": "3.0.5"
+    "postcss-rtlcss": "6.0.0",
+    "sass": "1.108.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.8",
+    "vue-tsc": "3.3.14"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=24 <25"
   }
 }

@@ -51,9 +51,18 @@
     --waveform-wave: 40;
 }
 
+:root {
+    --onetagger-ui-font: Dosis, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 * {
-    font-family: Dosis !important;
+    font-family: var(--onetagger-ui-font) !important;
     user-select: none;
+}
+
+// Use the platform UI fonts for scripts outside the display font's coverage.
+:root:lang(el), :root:lang(ru), :root:lang(ja), :root:lang(ar) {
+    --onetagger-ui-font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .text-h5 {

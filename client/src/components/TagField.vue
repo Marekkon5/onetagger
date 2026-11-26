@@ -25,8 +25,10 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n({ useScope: 'global' });
 import { Ref, computed, ref, toRef, watch } from 'vue';
-import {MP4, VORBIS, ID3} from '../scripts/tags';
+import { tagOptions } from '../scripts/tags';
 
 type BannedTags = { id3: string[], vorbis: string[], mp4: string[] };
 
@@ -54,23 +56,14 @@ const props = defineProps({
 });
 const { format, dense, tageditor } = props;
 
-// Autocompletion
-let options: string[] = [];
-switch (format) {
-    case 'id3':
-        options = ID3;
-        break;
-    case 'vorbis':
-        options = VORBIS;
-        break;
-    case 'mp4':
-        options = MP4;
-        break;
-}
-let originalOptions = JSON.parse(JSON.stringify(options));
+// Labels are recomputed on locale changes; option values still reduce to frame IDs.
+const filterText = ref('');
+const options = computed(() => tagOptions(format).filter(option =>
+    option.toLocaleUpperCase().includes(filterText.value.toLocaleUpperCase())));
 
 const value: Ref<string> = ref(props.modelValue);
-const error = ref<string | undefined>();
+const errorKey = ref<string | undefined>();
+const error = computed(() => errorKey.value ? t('tools.' + errorKey.value) : undefined);
 const emit = defineEmits(['update:modelValue']);
 
 
@@ -94,22 +87,26 @@ function onInputValue(v: string) {
     value.value = v;
     removeHelper();
 
+    // The displayed helper is localized; only the unchanged frame identifier
+    // may reach a tag configuration or a save request.
+    v = value.value;
+
     // Validate
     // warning.value = null;
-    error.value = undefined;
+    errorKey.value = undefined;
 
     if (format != 'mp4' && v.toUpperCase() != v && !(format == 'id3' && v.length != 4))
-        error.value = 'Tag names should be uppercase!';
+        errorKey.value = 'uppercaseTag';
 
     if (v.includes(' ') && !(format == 'id3' && v.length != 4))
-        error.value = "Tag names shouldn't contain spaces!"
+        errorKey.value = 'noSpacesTag'
 
     // @ts-ignore
     if ((tageditor ? bannedTagEditor : banned)[format].includes(v.toUpperCase()))
-        error.value = "tag.value is reserved, might cause corruption!"
+        errorKey.value = 'reservedTag'
 
     if (!v)
-        error.value = "Shouldn't be empty!"
+        errorKey.value = 'emptyTag'
 
     emit('update:modelValue', v);
 }
@@ -117,8 +114,7 @@ function onInputValue(v: string) {
 // On filter for quasar
 function onFilter(val: any, update: any) {
     update(() => {
-        let n = val.toUpperCase();
-        options = originalOptions.filter((v: string) => v.toUpperCase().includes(n));
+        filterText.value = String(val);
     });
 }
 

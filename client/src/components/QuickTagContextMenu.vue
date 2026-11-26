@@ -1,6 +1,6 @@
 <template>
     <q-menu touch-position context-menu class='no-menu-shadow'>
-        <q-list>
+        <q-list :inert='$1t.quickTag.value.saving > 0'>
 
             <!-- Manual tag -->
             <q-item dense clickable @click='emit("manual-tag")' v-close-popup>
@@ -8,7 +8,7 @@
                     <q-icon name='mdi-magnify'></q-icon>
                 </q-item-section>
                 <q-item-section>
-                    Manual Tag
+                    {{t('quicktag.manualTag')}}
                 </q-item-section>
             </q-item>
 
@@ -18,7 +18,7 @@
                     <q-icon name='mdi-pencil'></q-icon>
                 </q-item-section>
                 <q-item-section>
-                    Edit tags
+                    {{t('quicktag.editTags')}}
                 </q-item-section>
             </q-item>
 
@@ -28,7 +28,7 @@
                     <q-icon name='mdi-delete' color='red'></q-icon>
                 </q-item-section>
                 <q-item-section class='text-red'>
-                    Delete
+                    {{t('quicktag.delete')}}
                 </q-item-section>
             </q-item>
 
@@ -38,6 +38,7 @@
 </template>
 
 <script lang='ts' setup>
+import { useI18n } from 'vue-i18n';
 import { toRefs } from 'vue';
 import { get1t } from '../scripts/onetagger';
 import { useRouter } from 'vue-router';
@@ -51,6 +52,7 @@ const { path } = toRefs(props);
 const $1t = get1t();
 const $q = useQuasar();
 const $router = useRouter();
+const { t } = useI18n({ useScope: 'global' });
 
 // Open tag editor
 function tagEditor() {
@@ -62,8 +64,8 @@ function tagEditor() {
 function deleteFile() {
     // Confirm dialog
     $q.dialog({
-        title: 'Delete File',
-        message: 'Do you really want to delete the selected file?',
+        title: t('quicktag.deleteFile'),
+        message: t('quicktag.deleteFileQuestion'),
         persistent: false,
         ok: {
             color: 'red'                        
