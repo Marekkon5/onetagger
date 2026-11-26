@@ -1,5 +1,22 @@
 ## Unreleased (fantuz fork)
 
+## 2.2.3 — 2026-11-26
+
+### Tags and artwork
+
+- Overwriting a user-defined ID3 text field now replaces duplicate values with the same description across text encodings. Reopening the file shows the replacement.
+- ID3v2.3 release dates retain their month and day after saving and reopening, including leap days. Overwriting with a year clears the previous day and month.
+- Embedding artwork creates or replaces a separate cover file only when **Save cover** is enabled. With the option off, existing folder artwork is preserved.
+
+### Music providers
+
+- Spotify Development Mode searches request at most ten tracks per page and still consider up to twenty for artist/title matching. A missing popularity value produces no popularity tag. A reported zero remains zero. Available genre and label metadata can still be used.
+- Shazam recognition reuses successful matches for identical audio fingerprints across provider attempts. Concurrent lookups for the same fingerprint share a request. Errors and unmatched fingerprints remain eligible for retry.
+- Beatport surfaces rate limits and search errors and retains matches already found before a later failure. A successful search with no candidates still shows **No match**.
+- Beatsource catalog searches now request the intended 100 results and report HTTP errors before trying to decode the response.
+
+[Full changes since v2.2.2](https://github.com/fantuz/onetagger/compare/v2.2.2...v2.2.3)
+
 ## 2.2.2 — 2026-11-25
 
 - Consolidate the eight open Dependabot updates: Wry 0.55.1, webbrowser 1.2.7, clap 4.6.9, minify-html 0.16.5, id3 1.17.4, regex 1.13.2, Vite 8.3.8, Vue 3.5.46, Quasar 2.35.5, vue-i18n 11.4.23 and setup-python 7.1.0. Regenerate both lockfiles on GitHub and retain the existing browser target when upgrading Vite. Compare RustSec and npm advisory reports against the base commit in CI.
