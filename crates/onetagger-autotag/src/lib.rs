@@ -309,9 +309,9 @@ impl TrackFieldWriter for Track {
                             tag.remove_art(kind);
                         }
                     }
-                    tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data.clone());
+                    cover_data = config.album_art_file.then(|| data.clone());
+                    tag.set_art(CoverType::CoverFront, "image/jpeg", Some("Cover"), data);
                     if recovering { supplied.push(SupportedTag::AlbumArt); }
-                    cover_data = Some(data);
                 }
                 Ok(None) => warn!("Invalid album art; existing artwork preserved"),
                 Err(e) => warn!("Error downloading album art; existing artwork preserved: {e}"),
