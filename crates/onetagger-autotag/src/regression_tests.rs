@@ -653,10 +653,7 @@ fn failed_or_invalid_mp4_artwork_download_preserves_existing_cover() {
 }
 
 #[test]
-fn valid_mp4_artwork_replaces_old_cover_after_validation() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("track.m4a");
-    let old_cover = mp4_with_cover(&path);
+fn valid_mp4_artwork_is_embedded_and_only_saved_separately_on_request() {
     let mut seed = 0x12345678u32;
     let image = image::RgbImage::from_fn(128, 128, |_, _| {
         seed ^= seed << 13;
@@ -667,16 +664,36 @@ fn valid_mp4_artwork_replaces_old_cover_after_validation() {
     let mut body = std::io::Cursor::new(Vec::new());
     image::DynamicImage::ImageRgb8(image).write_to(&mut body, image::ImageFormat::Png).unwrap();
     assert!(body.get_ref().len() >= 4096);
-    let (url, server) = artwork_response("200 OK", body.into_inner());
-    let track = Track { art: Some(url), ..Default::default() };
-    let config = TaggerConfig { tags: vec![SupportedTag::AlbumArt], overwrite: true, ..Default::default() };
-    track.write_to_file(&path, &config).unwrap();
-    server.join().unwrap();
-    let tag = Tag::load_file(&path, false).unwrap();
-    let pictures = tag.tag().get_art();
-    assert_eq!(pictures.len(), 1);
-    assert_ne!(pictures[0].data, old_cover);
-    assert_eq!(image::guess_format(&pictures[0].data).unwrap(), image::ImageFormat::Jpeg);
-    assert_eq!(image::load_from_memory(&pictures[0].data).unwrap().width(), 128);
+    let body = body.into_inner();
+    for save_cover in [false, true] {
+        for existing_cover in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("track.m4a");
+            let sidecar = dir.path().join("cover.jpg");
+            let old_cover = mp4_with_cover(&path);
+            if existing_cover {
+                fs::write(&sidecar, b"custom folder artwork").unwrap();
+            }
+            let (url, server) = artwork_response("200 OK", body.clone());
+            let track = Track { art: Some(url), ..Default::default() };
+            let config = TaggerConfig { tags: vec![SupportedTag::AlbumArt], overwrite: true,
+                album_art_file: save_cover, ..Default::default() };
+            track.write_to_file(&path, &config).unwrap();
+            server.join().unwrap();
+            let tag = Tag::load_file(&path, false).unwrap();
+            let pictures = tag.tag().get_art();
+            assert_eq!(pictures.len(), 1);
+            assert_ne!(pictures[0].data, old_cover);
+            assert_eq!(image::guess_format(&pictures[0].data).unwrap(), image::ImageFormat::Jpeg);
+            assert_eq!(image::load_from_memory(&pictures[0].data).unwrap().width(), 128);
+            if save_cover {
+                assert_eq!(fs::read(&sidecar).unwrap(), pictures[0].data);
+            } else if existing_cover {
+                assert_eq!(fs::read(&sidecar).unwrap(), b"custom folder artwork");
+            } else {
+                assert!(!sidecar.exists());
+            }
+        }
+    }
 }
 
