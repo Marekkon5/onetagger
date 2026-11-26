@@ -20,5 +20,6 @@ mod request_cache;
 mod request_pacer;
 
 pub use cooldown::ProviderRateLimited;
+pub use request_cache::RequestCache;
 
 mod request_policy;

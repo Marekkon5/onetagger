@@ -42,9 +42,10 @@ unrelated default page.
 ## Additional identification services
 
 OneTagger's optional audio recognition uses Shazam through `songrec`, separately
-from the twelve metadata adapters. No verified supported cross-song recognition
-batch contract was found for that integration. It must continue to identify each
-audio signature separately.
+from the twelve metadata adapters. When several providers need the same audio
+signature, they can reuse a successful recognition for up to ten minutes. The app
+keeps up to 256 entries in memory. Each file keeps its own path and duration.
+Distinct signatures require separate lookups, and a failed lookup can be retried.
 
 AcoustID is not a built-in adapter in this version. Its documentation does allow
 batch fingerprint **submission** and batch MBID-to-AcoustID lookup. Those are not
