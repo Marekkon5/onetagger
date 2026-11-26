@@ -1,10 +1,14 @@
 use anyhow::Error;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::thread::Builder;
 use onetagger_player::rodio::source::UniformSourceIterator;
 use serde::{Serialize, Deserialize};
-use songrec::SignatureGenerator;
+use songrec::{DecodedSignature, SignatureGenerator};
 use onetagger_player::AudioSources;
+use onetagger_platforms::RequestCache;
+
+static RECOGNITIONS: LazyLock<RequestCache<Vec<u8>, ShazamTrack>> = LazyLock::new(RequestCache::default);
 
 pub struct Shazam;
 
@@ -29,10 +33,23 @@ impl Shazam {
             .unwrap()
             .join()
             .unwrap();
-        let response = songrec::recognize_song_from_signature(&signature, 0).map_err(|e| anyhow!("{e:?}"))?;
-        let response: ShazamResponse = serde_json::from_value(response)?;
-        let track = response.track.ok_or(anyhow!("Shazam returned no matches!"))?;
+        let track = Self::recognize_signature(&RECOGNITIONS, &signature, || {
+            songrec::recognize_song_from_signature(&signature, 0).map_err(|e| anyhow!("{e:?}"))
+        })?;
         Ok((track, duration))
+    }
+
+    fn recognize_signature(
+        cache: &RequestCache<Vec<u8>, ShazamTrack>,
+        signature: &DecodedSignature,
+        lookup: impl FnOnce() -> Result<serde_json::Value, Error>,
+    ) -> Result<ShazamTrack, Error> {
+        // Different local paths and tag rewrites can produce the same recognition request.
+        let key = signature.encode_to_binary().map_err(|e| anyhow!("{e}"))?;
+        cache.get_or_try_init(key, || {
+            let response: ShazamResponse = serde_json::from_value(lookup()?)?;
+            response.track.ok_or_else(|| anyhow!("Shazam returned no matches!"))
+        })
     }
 }
 
@@ -98,4 +115,61 @@ pub enum ShazamSection {
 pub struct ShazamMetadataSection {
     pub text: String,
     pub title: String
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use songrec::{FrequencyBand, FrequencyPeak};
+    use std::sync::{Barrier, atomic::{AtomicUsize, Ordering}};
+
+    fn signature(bin: u16) -> DecodedSignature {
+        let peak = FrequencyPeak {
+            fft_pass_number: 1, peak_magnitude: 32, corrected_peak_frequency_bin: bin, sample_rate_hz: 16000,
+        };
+        DecodedSignature {
+            sample_rate_hz: 16000, number_samples: 192000,
+            frequency_band_to_sound_peaks: [(FrequencyBand::_250_520, vec![peak])].into(),
+        }
+    }
+
+    fn matched(title: &str) -> serde_json::Value {
+        serde_json::json!({
+            "tagid": "test", "timestamp": 123,
+            "track": { "title": title, "subtitle": "Artist", "key": "1", "sections": [], "url": "" }
+        })
+    }
+
+    #[test]
+    fn simultaneous_identical_signatures_share_lookup_and_distinct_audio_gets_its_own_result() {
+        let cache = RequestCache::default();
+        let starts = Barrier::new(8);
+        let calls = AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            for _ in 0..8 {
+                scope.spawn(|| {
+                    starts.wait();
+                    let track = Shazam::recognize_signature(&cache, &signature(1200), || {
+                        calls.fetch_add(1, Ordering::SeqCst);
+                        Ok(matched("First"))
+                    }).unwrap();
+                    assert_eq!(track.title, "First");
+                });
+            }
+        });
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        let other = Shazam::recognize_signature(&cache, &signature(1250), || Ok(matched("Second"))).unwrap();
+        assert_eq!(other.title, "Second");
+    }
+
+    #[test]
+    fn unsuccessful_recognition_can_be_retried() {
+        let cache = RequestCache::default();
+        let signature = signature(1250);
+        assert!(Shazam::recognize_signature(&cache, &signature, || Err(anyhow!("offline"))).is_err());
+        let miss = serde_json::json!({"tagid": "test", "timestamp": 123, "track": null});
+        assert!(Shazam::recognize_signature(&cache, &signature, || Ok(miss)).is_err());
+        let next = Shazam::recognize_signature(&cache, &signature, || Ok(matched("Recovered"))).unwrap();
+        assert_eq!(next.title, "Recovered");
+    }
 }

@@ -17,7 +17,8 @@ struct Inner<K, V> {
     fetches: AtomicUsize,
 }
 
-pub(crate) struct RequestCache<K, V>(Arc<Inner<K, V>>);
+/// Reuse successful provider lookups for up to ten minutes, with up to 256 entries by default.
+pub struct RequestCache<K, V>(Arc<Inner<K, V>>);
 
 impl<K, V> Clone for RequestCache<K, V> {
     fn clone(&self) -> Self { Self(self.0.clone()) }
@@ -45,7 +46,8 @@ impl<K, V> RequestCache<K, V> {
 }
 
 impl<K: Eq + Hash + Clone, V: Clone> RequestCache<K, V> {
-    pub(crate) fn get_or_try_init<E>(&self, key: K, fetch: impl FnOnce() -> Result<V, E>) -> Result<V, E> {
+    /// Share a successful lookup for this key. A failed fetch leaves it available for retry.
+    pub fn get_or_try_init<E>(&self, key: K, fetch: impl FnOnce() -> Result<V, E>) -> Result<V, E> {
         let slot = {
             let mut entries = self.0.entries.lock().unwrap_or_else(|error| error.into_inner());
             if let Some(slot) = entries.get(&key) { Some(slot.clone()) }
