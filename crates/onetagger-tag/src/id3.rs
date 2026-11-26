@@ -258,9 +258,14 @@ impl TagImpl for ID3Tag {
                 self.tag.set_text("TYER", date.year.to_string());
             }
             // Date
-            if date.has_md() && (overwrite || self.tag.get("TDAT").is_none()) {
-                self.tag.remove_date_recorded();
-                self.tag.set_text("TDAT", &format!("{:02}{:02}", date.day.unwrap(), date.month.unwrap()));
+            if let (Some(month), Some(day)) = (date.month, date.day) {
+                let fill_day_month = self.tag.get("TDAT").is_none() && self.tag.year() == Some(date.year);
+                if overwrite || fill_day_month {
+                    self.tag.remove_date_recorded();
+                    self.tag.set_text("TDAT", format!("{day:02}{month:02}"));
+                }
+            } else if overwrite {
+                self.tag.remove("TDAT");
             }
             return;
         }
@@ -518,15 +523,20 @@ impl TagImpl for ID3Tag {
                 day: date.day
             });
         }
-        // ID3v2.3
-        if let Some(tag) = self.get_raw("TYER") {
-            return Some(TagDate {
-                year: tag[0].parse().ok()?,
-                month: None,
-                day: None
-            });
-        }
-        None
+        // ID3v2.3 stores the year and the optional DDMM in separate frames.
+        let year = self.tag.get("TYER")?.content().text()?.parse().ok()?;
+        let calendar = self.tag.get("TDAT").and_then(|frame| {
+            let text = frame.content().text()?;
+            if text.len() != 4 || !text.bytes().all(|byte| byte.is_ascii_digit()) {
+                return None;
+            }
+            let day: u8 = text[..2].parse().ok()?;
+            let month: u8 = text[2..].parse().ok()?;
+            chrono::NaiveDate::from_ymd_opt(year, month.into(), day.into())?;
+            Some((month, day))
+        });
+        let (month, day) = calendar.unzip();
+        Some(TagDate { year, month, day })
     }
 
     fn set_track_number(&mut self, track_number: &str, track_total: Option<u16>, overwrite: bool) {
@@ -739,5 +749,47 @@ mod safety_tests {
         fs::write(&path, &original[..20]).unwrap();
         assert!(ID3Tag::load_or_new(&path).is_err());
         assert_eq!(fs::read(&path).unwrap(), &original[..20]);
+    }
+
+    #[test]
+    fn id3v23_release_date_round_trips_calendar_precision() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        let mut tag = ID3Tag::load_or_new(&path).unwrap();
+        tag.set_id3v24(false);
+        let leap_day = TagDate { year: 2024, month: Some(2), day: Some(29) };
+        tag.set_date(&leap_day, true);
+        tag.save_file(&path).unwrap();
+        let mut tag = ID3Tag::load_file(&path).unwrap();
+        let date = tag.get_date().unwrap();
+        assert_eq!((date.year, date.month, date.day), (2024, Some(2), Some(29)));
+
+        let year_only = TagDate { year: 2025, month: None, day: None };
+        tag.set_date(&year_only, false);
+        assert_eq!(tag.get_raw("TDAT").unwrap(), ["2902"]);
+        tag.set_date(&year_only, true);
+        tag.save_file(&path).unwrap();
+        let mut tag = ID3Tag::load_file(&path).unwrap();
+        assert_eq!(tag.get_raw("TYER").unwrap(), ["2025"]);
+        assert!(tag.get_raw("TDAT").is_none());
+        tag.set_date(&leap_day, false);
+        assert!(tag.get_raw("TDAT").is_none());
+        tag.set_date(&TagDate { year: 2025, month: Some(3), day: Some(1) }, false);
+        assert_eq!(tag.get_raw("TDAT").unwrap(), ["0103"]);
+    }
+
+    #[test]
+    fn invalid_id3v23_day_month_still_returns_the_year() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("track.mp3");
+        fs::write(&path, [0u8; 64]).unwrap();
+        let mut tag = ID3Tag::load_or_new(&path).unwrap();
+        tag.set_raw("TYER", vec!["2023".into()], true);
+        for invalid in ["2902", "3213", "0", "1é2"] {
+            tag.set_raw("TDAT", vec![invalid.into()], true);
+            let date = tag.get_date().unwrap();
+            assert_eq!((date.year, date.month, date.day), (2023, None, None));
+        }
     }
 }
