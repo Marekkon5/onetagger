@@ -1,4 +1,5 @@
 use crate::cooldown::ProviderCooldown;
+use crate::ProviderRateLimited;
 use crate::request_policy::{PacedRequest, ProviderRequests};
 use std::sync::{Arc, Mutex};
 use anyhow::Error;
@@ -50,6 +51,7 @@ impl Beatport {
                 ("per-page", &results_per_page.to_string())
             ])
             .send_paced(&REQUESTS, self.slowdown)?
+            .error_for_status()?
             .text()?;
         
         // Parse JSON
@@ -364,9 +366,10 @@ impl BeatportTrack {
     }
 }
 
-// Match track
-impl AutotaggerSource for Beatport {
-    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {       
+impl Beatport {
+    fn match_with_search(&self, info: &AudioFileInfo, config: &TaggerConfig,
+        mut search: impl FnMut(&str, i32, usize) -> Result<BeatportTrackResults, Error>,
+    ) -> Result<Vec<TrackMatch>, Error> {
         // Load custom config
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
         let mut output = vec![];
@@ -383,6 +386,7 @@ impl AutotaggerSource for Beatport {
                     output.push(track);
                 },
                 Ok(None) => warn!("Matching by ID failed, track restricted, matching normally"),
+                Err(e) if e.is::<ProviderRateLimited>() => return Err(e),
                 Err(e) => {
                     warn!("Matching by ID failed, matching normally: {e}");
                 }
@@ -391,10 +395,13 @@ impl AutotaggerSource for Beatport {
 
         // Fetch by ISRC
         if let Some(isrc) = info.isrc.as_ref() {
-            match self.search(isrc, 1, 25) {
+            match search(isrc, 1, 25) {
                 Ok(results) => {
                     if !results.data.is_empty() {
-                        let track = self.track(results.data[0].track_id)?;
+                        let track = match self.track(results.data[0].track_id) {
+                            Ok(track) => track,
+                            Err(e) => return Self::matches_after_error(output, e),
+                        };
                         match track {
                             Some(track) => {
                                 let track = TrackMatch::new_isrc(track.to_track(custom_config.art_resolution));
@@ -407,6 +414,7 @@ impl AutotaggerSource for Beatport {
                         }
                     }
                 },
+                Err(e) if e.is::<ProviderRateLimited>() => return Self::matches_after_error(output, e),
                 Err(e) => {
                     warn!("Failed fetching track by ISRC: {e}");
                 },
@@ -417,7 +425,7 @@ impl AutotaggerSource for Beatport {
         let query = format!("{} {}", info.artist()?, MatchingUtils::clean_title(info.title()?));
         debug!("BP Query: {}", query);
         for page in 1..custom_config.max_pages+1 {
-            match self.search(&query, page, 50) {
+            match search(&query, page, 50) {
                 Ok(res) => {
                     // Match
                     let tracks = res.data
@@ -450,14 +458,26 @@ impl AutotaggerSource for Beatport {
                     return Ok(output);
                 },
                 Err(e) => {
-                    warn!("Beatport search failed, query: {}. {}", query, e);
-                    return Ok(output);
+                    return Self::matches_after_error(output, e);
                 }
             }
         }
         Ok(output)
     }
 
+    fn matches_after_error(matches: Vec<TrackMatch>, error: Error) -> Result<Vec<TrackMatch>, Error> {
+        if matches.is_empty() {
+            return Err(error);
+        }
+        warn!("Returning earlier Beatport matches after a lookup failed: {error}");
+        Ok(matches)
+    }
+}
+
+impl AutotaggerSource for Beatport {
+    fn match_track(&mut self, info: &AudioFileInfo, config: &TaggerConfig) -> Result<Vec<TrackMatch>, Error> {
+        self.match_with_search(info, config, |query, page, count| self.search(query, page, count))
+    }
 
     fn extend_track(&mut self, track: &mut Track, config: &TaggerConfig) -> Result<(), Error> {
         let custom_config: BeatportConfig = config.get_custom("beatport")?;
@@ -573,6 +593,71 @@ fn test_album() {
 
     let mut bp = builder.get_source(&config).unwrap();
     bp.get_album("2174307", &config).unwrap();
+}
+
+#[cfg(test)]
+mod search_tests {
+    use super::*;
+    use onetagger_tagger::{AudioFileFormat, FileTaggedStatus};
+
+    fn fixture() -> (Beatport, AudioFileInfo, TaggerConfig) {
+        let builder = BeatportBuilder::new();
+        let mut config = TaggerConfig::default();
+        config.custom.0.insert("beatport".into(), builder.info().custom_options.get_defaults());
+        let info = AudioFileInfo {
+            title: Some("Night Drive".into()), artists: vec!["Artist".into()],
+            format: AudioFileFormat::MP3, path: "track.mp3".into(), isrc: None,
+            duration: None, track_number: None, tagged: FileTaggedStatus::Untagged, tags: Default::default(),
+        };
+        (builder.source(), info, config)
+    }
+
+    #[test]
+    fn distinguishes_a_successful_empty_search_from_an_unreadable_page() {
+        let (source, info, config) = fixture();
+        let matches = source.match_with_search(&info, &config, |_, _, _| {
+            Ok(BeatportTrackResults { data: vec![] })
+        }).unwrap();
+        assert!(matches.is_empty());
+        let error = source.match_with_search(&info, &config, |_, _, _| {
+            source.get_next_data("<html><body>Search</body></html>")
+        }).unwrap_err();
+        assert!(error.to_string().contains("Missing __NEXT_DATA__"));
+    }
+
+    #[test]
+    fn reports_the_original_retry_delay_without_starting_a_second_lookup() {
+        let (source, mut info, config) = fixture();
+        for isrc in [None, Some("USABC2400001".to_string())] {
+            info.isrc = isrc;
+            let mut calls = 0;
+            let error = source.match_with_search(&info, &config, |_, _, _| {
+                calls += 1;
+                Err(ProviderRateLimited::retry_after(Duration::from_secs(90)).into())
+            }).unwrap_err();
+            assert_eq!(calls, 1);
+            let limited = error.downcast_ref::<ProviderRateLimited>().unwrap();
+            assert_eq!(limited.retry_after_seconds(), 90);
+            assert!(!limited.deferred());
+        }
+    }
+
+    #[test]
+    fn keeps_matches_from_a_successful_page_when_the_next_page_fails() {
+        let (source, info, mut config) = fixture();
+        config.fetch_all_results = true;
+        config.custom.0.get_mut("beatport").unwrap()["max_pages"] = json!(2);
+        let matches = source.match_with_search(&info, &config, |_, page, _| match page {
+            1 => Ok(serde_json::from_value(json!({"data": [{
+                "track_id": 123, "track_name": "Night Drive",
+                "artists": [{"artist_id": 45, "artist_name": "Artist", "artist_type_name": "Artist"}]
+            }]}))?),
+            2 => Err(ProviderRateLimited::retry_after(Duration::from_secs(90)).into()),
+            _ => panic!("unexpected page {page}"),
+        }).unwrap();
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].track.track_id.as_deref(), Some("123"));
+    }
 }
 
 #[cfg(test)]
